@@ -1,6 +1,6 @@
 import { readEventData, writeEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { initialRegistration } from "@/lib/scheduling/registration-data";
+import { initialRegistration, normalizeRegistrationState } from "@/lib/scheduling/registration-data";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -15,7 +15,8 @@ async function resolveEventId(request: NextRequest): Promise<string> {
 
 export async function GET(request: NextRequest) {
   const eventId = await resolveEventId(request);
-  return Response.json(await readEventData(eventId, "registration", initialRegistration()));
+  const stored = await readEventData(eventId, "registration", initialRegistration());
+  return Response.json(normalizeRegistrationState(stored));
 }
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ message: "数据过大" }, { status: 413 });
     }
     const eventId = await resolveEventId(request);
-    await writeEventData(eventId, "registration", await request.json());
+    await writeEventData(eventId, "registration", normalizeRegistrationState(await request.json()));
     return Response.json({ message: "saved" });
   } catch {
     return Response.json({ message: "保存失败" }, { status: 400 });

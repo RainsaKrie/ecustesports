@@ -86,17 +86,17 @@ export function useSchedule(eventId?: string) {
   /** 驳回改期申请 */
   const rejectRequest = useCallback((requestId: string) => {
     setState((s) => rejectRequestOp(s, requestId));
-  }, [eventId]);
+  }, []);
 
   /** 切换比赛冻结状态 */
   const toggleFrozen = useCallback((matchId: string) => {
     setState((s) => toggleFrozenOp(s, matchId));
-  }, [eventId]);
+  }, []);
 
   /** 标记通知为已发送 */
   const markNotificationSent = useCallback((notificationId: string) => {
     setState((s) => markNotificationSentOp(s, notificationId));
-  }, [eventId]);
+  }, []);
 
   /**
    * 报分：录入逐局结果、校验比分、判定胜者、标记完成，
@@ -128,17 +128,17 @@ export function useSchedule(eventId?: string) {
   /** 从赛制抽签导入对阵，生成比赛列表 */
   const importMatches = useCallback((matches: ScheduleMatch[]) => {
     setState((s) => importMatchesOp(s, matches));
-  }, [eventId]);
+  }, []);
 
   /** 保存 BP 选出的地图（用于逐局地图同步） */
   const saveBPMaps = useCallback((matchId: string, maps: string[]) => {
     setState((s) => saveBPMapsOp(s, matchId, maps));
-  }, [eventId]);
+  }, []);
 
   /** 重置为初始演示数据 */
   const reset = useCallback(() => {
     setState(initialSchedule());
-  }, [eventId]);
+  }, []);
 
   return {
     state,

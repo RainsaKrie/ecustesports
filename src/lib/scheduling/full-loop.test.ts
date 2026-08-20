@@ -4,7 +4,7 @@
 // 运行：npx tsx src/lib/scheduling/full-loop.test.ts
 // =====================
 
-import type { RegistrationState, RegistrationPlayer, RegistrationTeam } from "./registration-data.ts";
+import { normalizeRegistrationState, type RegistrationState, type RegistrationPlayer, type RegistrationTeam } from "./registration-data.ts";
 import { createTeamOp, addMemberOp } from "./registration-ops.ts";
 import { buildSeedPots, drawGroups, generateMatchups } from "./format-data.ts";
 import { buildTournamentMatches, TBD } from "./bracket.ts";
@@ -75,12 +75,16 @@ function makeRegistration(): RegistrationState {
       createdAt: new Date().toISOString(),
     });
   }
-  return { players, teams, frozen: true };
+  return { players, teams, playerRegistrationClosed: true, teamRegistrationClosed: true, frozen: true };
 }
 
 console.log("== 1. 报名与组队（registration-ops） ==");
 {
-  const empty: RegistrationState = { players: [], teams: [], frozen: false };
+  const legacyClosed = normalizeRegistrationState({ players: [], teams: [], frozen: true });
+  check("旧版 frozen 数据迁移为两个入口均截止", legacyClosed.playerRegistrationClosed && legacyClosed.teamRegistrationClosed);
+  const splitClosed = normalizeRegistrationState({ players: [], teams: [], playerRegistrationClosed: false, teamRegistrationClosed: true, frozen: true });
+  check("新版双截止状态不被旧 frozen 字段覆盖", !splitClosed.playerRegistrationClosed && splitClosed.teamRegistrationClosed);
+  const empty: RegistrationState = { players: [], teams: [], playerRegistrationClosed: false, teamRegistrationClosed: false, frozen: false };
   const p1: RegistrationPlayer = { id: "p1", name: "甲", studentId: "1", gameId: "g1", rank: "黄金", submittedAt: "", status: "已报名" };
   const p2: RegistrationPlayer = { ...p1, id: "p2", name: "乙" };
   const p3: RegistrationPlayer = { ...p1, id: "p3", name: "丙" };

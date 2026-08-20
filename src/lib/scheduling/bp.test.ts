@@ -3,8 +3,8 @@
 // 运行：npx tsx src/lib/scheduling/bp.test.ts
 // =====================
 
-import { buildBPOrder, remainingMaps, bpResultMaps, isBPComplete, type BPStep, type BPAction } from "./bp.ts";
-import { startBP, advanceBP, undoBP, swapFirstBP, resetBP, canStartBP, teamInSession, stepTeam, type BPStore, type BPSession } from "./bp-ops.ts";
+import { buildBPOrder, remainingMaps, isBPComplete } from "./bp.ts";
+import { startBP, advanceBP, undoBP, swapFirstBP, resetBP, canStartBP, teamInSession, stepTeam, type BPStore } from "./bp-ops.ts";
 import type { ScheduleMatch } from "./schedule-data.ts";
 
 const POOL7 = ["Ascent", "Bind", "Haven", "Split", "Icebox", "Breeze", "Lotus"];

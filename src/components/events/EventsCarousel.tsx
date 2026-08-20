@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { EsportEvent } from "@/types";
 import { getStatusInfo } from "@/lib/utils";
 import { STAGE_CONFIGS, type EventStage } from "@/lib/scheduling/stage";
@@ -41,11 +42,14 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
         {/* 海报铺满全屏 */}
         {active.posterImage ? (
           <>
-            <img
+            <Image
               key={`${active.id}-poster`}
               src={active.posterImage}
               alt={`${active.name} 宣传海报`}
-              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover transition-opacity duration-700"
             />
             <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0a1318]/95 via-[#0a1318]/55 to-transparent" />
             <div aria-hidden className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#0a1318] via-[#0a1318]/85 to-transparent" />
@@ -132,7 +136,7 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
                       style={{ opacity }}
                     >
                       {e.posterImage ? (
-                        <img src={e.posterImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+                        <Image src={e.posterImage} alt="" aria-hidden fill sizes="176px" className="object-cover" />
                       ) : null}
                       <div aria-hidden className={`absolute inset-0 ${isActive ? "bg-black/10" : "bg-[#0a1318]/65"}`} />
                       <div

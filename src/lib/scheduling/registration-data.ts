@@ -34,14 +34,38 @@ export interface RegistrationTeam {
 export interface RegistrationState {
   players: RegistrationPlayer[];
   teams: RegistrationTeam[];
-  frozen: boolean; // 名单是否冻结
+  /** 是否停止接收新的个人报名 */
+  playerRegistrationClosed: boolean;
+  /** 是否停止建队、入队与名单调整 */
+  teamRegistrationClosed: boolean;
+  /** 旧字段兼容：队伍申报截止后名单冻结 */
+  frozen: boolean;
 }
 
 export function initialRegistration(): RegistrationState {
   return {
     players: [],
     teams: [],
+    playerRegistrationClosed: false,
+    teamRegistrationClosed: false,
     frozen: false,
+  };
+}
+
+/** 兼容 3.24 及更早只保存 frozen 的赛事报名数据。 */
+export function normalizeRegistrationState(value: unknown): RegistrationState {
+  const source = typeof value === "object" && value !== null
+    ? (value as Partial<RegistrationState>)
+    : {};
+  const legacyFrozen = source.frozen === true;
+  const hasPlayerClosedFlag = typeof source.playerRegistrationClosed === "boolean";
+  const hasTeamClosedFlag = typeof source.teamRegistrationClosed === "boolean";
+  return {
+    players: Array.isArray(source.players) ? source.players : [],
+    teams: Array.isArray(source.teams) ? source.teams : [],
+    playerRegistrationClosed: hasPlayerClosedFlag ? source.playerRegistrationClosed === true : legacyFrozen,
+    teamRegistrationClosed: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,
+    frozen: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,
   };
 }
 

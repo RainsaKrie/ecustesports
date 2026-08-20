@@ -1,6 +1,7 @@
 // =====================
 // 赛事管理接口（管理员）
 // POST /api/admin/events        新建比赛（按赛制模板实例化）
+// PATCH /api/admin/events       更新单个赛事的后台可编辑配置
 // POST /api/admin/events/switch 切换当前赛事
 // =====================
 
@@ -78,6 +79,9 @@ export async function POST(request: NextRequest) {
       stageConfigs,
       registrationStart: typeof input.registrationStart === "string" ? input.registrationStart : "",
       registrationEnd: typeof input.registrationEnd === "string" ? input.registrationEnd : "",
+      teamRegistrationEnd: typeof input.teamRegistrationEnd === "string"
+        ? input.teamRegistrationEnd
+        : (typeof input.registrationEnd === "string" ? input.registrationEnd : ""),
       eventDateLabel: typeof input.eventDateLabel === "string" ? input.eventDateLabel : undefined,
       coverColor: typeof input.coverColor === "string" ? input.coverColor : "#ff4655",
     });
@@ -93,5 +97,117 @@ export async function POST(request: NextRequest) {
     return Response.json({ message: "赛事创建成功", event: saved.events.find((e) => e.id === eventId) });
   } catch {
     return Response.json({ message: "创建失败，请稍后重试" }, { status: 400 });
+  }
+}
+
+const EVENT_STATUSES = ["draft", "registration", "ongoing", "completed", "archived"] as const;
+
+function dateText(value: unknown): string | null {
+  if (value === "") return "";
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!isAdmin(request)) {
+    return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json().catch(() => null);
+    const input = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
+    const eventId = text(input.eventId, 60);
+    const raw = (typeof input.event === "object" && input.event !== null ? input.event : {}) as Record<string, unknown>;
+    const config = await getSiteConfig();
+    const existing = config.events.find((event) => event.id === eventId);
+    if (!existing) {
+      return Response.json({ message: "赛事不存在" }, { status: 404 });
+    }
+
+    const name = text(raw.name, 80);
+    const game = text(raw.game, 40);
+    const organizer = text(raw.organizer, 80);
+    if (!name || !game || !organizer) {
+      return Response.json({ message: "赛事名称、游戏和主办方不能为空" }, { status: 400 });
+    }
+
+    const registrationStart = dateText(raw.registrationStart);
+    const registrationEnd = dateText(raw.registrationEnd);
+    const teamRegistrationEnd = dateText(raw.teamRegistrationEnd);
+    if (registrationStart === null || registrationEnd === null || teamRegistrationEnd === null) {
+      return Response.json({ message: "报名日期格式不正确" }, { status: 400 });
+    }
+    if (registrationStart && registrationEnd && registrationStart > registrationEnd) {
+      return Response.json({ message: "选手报名截止日期不能早于报名开始日期" }, { status: 400 });
+    }
+    if (registrationEnd && teamRegistrationEnd && registrationEnd > teamRegistrationEnd) {
+      return Response.json({ message: "队伍申报截止日期不能早于选手报名截止日期" }, { status: 400 });
+    }
+
+    const status = EVENT_STATUSES.includes(raw.status as (typeof EVENT_STATUSES)[number])
+      ? (raw.status as (typeof EVENT_STATUSES)[number])
+      : existing.status;
+    const rules = Array.isArray(raw.rules)
+      ? raw.rules.slice(0, 30).map((item) => {
+          const rule = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+          return { title: text(rule.title, 60), detail: text(rule.detail, 500) };
+        }).filter((rule) => rule.title && rule.detail)
+      : existing.rules;
+    const preparationSteps = Array.isArray(raw.preparationSteps)
+      ? raw.preparationSteps.slice(0, 10).map((item, index) => {
+          const step = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+          return {
+            number: text(step.number, 8) || String(index + 1).padStart(2, "0"),
+            title: text(step.title, 50),
+            detail: text(step.detail, 240),
+          };
+        }).filter((step) => step.title && step.detail)
+      : existing.preparationSteps;
+    const mapPool = Array.isArray(raw.mapPool)
+      ? raw.mapPool.slice(0, 20).map((item) => {
+          const map = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+          return { id: text(map.id, 40), name: text(map.name, 40) };
+        }).filter((map, index, maps) => map.id && map.name && maps.findIndex((candidate) => candidate.id === map.id) === index)
+      : existing.mapPool;
+    if (rules.length === 0 || mapPool.length === 0) {
+      return Response.json({ message: "至少保留一条规则和一张地图" }, { status: 400 });
+    }
+
+    const nextEvent = {
+      ...existing,
+      name,
+      game,
+      organizer,
+      status,
+      teamCount: Math.min(128, Math.max(2, Math.round(Number(raw.teamCount) || existing.teamCount))),
+      teamSize: Math.min(20, Math.max(1, Math.round(Number(raw.teamSize) || existing.teamSize))),
+      registrationStart,
+      registrationEnd,
+      teamRegistrationEnd,
+      eventDateLabel: text(raw.eventDateLabel, 80),
+      registrationLabel: text(raw.registrationLabel, 60),
+      stageSummary: text(raw.stageSummary, 160),
+      description: text(raw.description, 500),
+      prizePool: text(raw.prizePool, 240),
+      coverColor: typeof raw.coverColor === "string" && /^#[0-9a-fA-F]{6}$/.test(raw.coverColor)
+        ? raw.coverColor
+        : existing.coverColor,
+      posterImage: typeof raw.posterImage === "string" && (raw.posterImage === "" || raw.posterImage.startsWith("/"))
+        ? raw.posterImage.slice(0, 160)
+        : existing.posterImage,
+      rules,
+      mapPool,
+      preparationSteps,
+    };
+
+    const saved = await saveSiteConfig({
+      ...config,
+      events: config.events.map((event) => event.id === eventId ? nextEvent : event),
+    });
+    return Response.json({
+      message: "赛事设置已保存",
+      event: saved.events.find((event) => event.id === eventId),
+    });
+  } catch {
+    return Response.json({ message: "保存失败，请稍后重试" }, { status: 400 });
   }
 }

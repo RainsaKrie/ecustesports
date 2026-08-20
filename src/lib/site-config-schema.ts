@@ -45,6 +45,8 @@ export interface EditableEvent {
   organizer: string;
   registrationStart: string;
   registrationEnd: string;
+  /** 队伍申报与名单调整截止日期；可晚于选手个人报名截止 */
+  teamRegistrationEnd: string;
   eventDateLabel: string;
   registrationLabel: string;
   stageSummary: string;
@@ -192,6 +194,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       organizer: "华东理工大学电竞社",
       registrationStart: "2026-08-01",
       registrationEnd: "2026-09-30",
+      teamRegistrationEnd: "2026-10-03",
       eventDateLabel: "比赛时间待公布",
       registrationLabel: "尚未开放",
       stageSummary: "32 队入围赛 → 16 队小组赛 → 8 队双败淘汰",
@@ -344,6 +347,7 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
         // 报名日期允许空字符串（表示未定），仅在字段缺失时使用默认值
         registrationStart: typeof item.registrationStart === "string" ? item.registrationStart.trim().slice(0, 20) : fallback.registrationStart,
         registrationEnd: typeof item.registrationEnd === "string" ? item.registrationEnd.trim().slice(0, 20) : fallback.registrationEnd,
+        teamRegistrationEnd: typeof item.teamRegistrationEnd === "string" ? item.teamRegistrationEnd.trim().slice(0, 20) : (fallback.teamRegistrationEnd || fallback.registrationEnd),
         eventDateLabel: text(item.eventDateLabel, fallback.eventDateLabel, 80),
         registrationLabel: text(item.registrationLabel, fallback.registrationLabel, 60),
         stageSummary: text(item.stageSummary, fallback.stageSummary, 160),

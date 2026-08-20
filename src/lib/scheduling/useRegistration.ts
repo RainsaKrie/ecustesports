@@ -4,11 +4,15 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { RegistrationState, RegistrationPlayer, RegistrationTeam } from "./registration-data";
-import { initialRegistration } from "./registration-data";
+import { initialRegistration, normalizeRegistrationState } from "./registration-data";
 
 const PLAYER_ID_KEY = "current-player-id";
+const subscribePlayerIdentity = (onStoreChange: () => void) => {
+  window.addEventListener("storage", onStoreChange);
+  return () => window.removeEventListener("storage", onStoreChange);
+};
 
 export function useRegistration(eventId?: string) {
   const [state, setState] = useState<RegistrationState>(initialRegistration());
@@ -20,7 +24,7 @@ export function useRegistration(eventId?: string) {
     fetch(`/api/data/registration${eventId ? `?eventId=${encodeURIComponent(eventId)}` : ""}`)
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setState(data as RegistrationState);
+        if (!cancelled) setState(normalizeRegistrationState(data));
       })
       .catch(() => {
         // 加载失败用默认值
@@ -31,7 +35,7 @@ export function useRegistration(eventId?: string) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [eventId]);
 
   // 状态变化后保存到后端
   useEffect(() => {
@@ -43,15 +47,16 @@ export function useRegistration(eventId?: string) {
     }).catch(() => {
       // 保存失败不阻断交互
     });
-  }, [state, loaded]);
+  }, [state, loaded, eventId]);
 
   /** 当前选手身份（简易，报名时绑定） */
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(PLAYER_ID_KEY);
-    }
-    return null;
-  });
+  const storedPlayerId = useSyncExternalStore(
+    subscribePlayerIdentity,
+    () => localStorage.getItem(PLAYER_ID_KEY),
+    () => null,
+  );
+  const [submittedPlayerId, setSubmittedPlayerId] = useState<string | null>(null);
+  const currentPlayerId = submittedPlayerId ?? storedPlayerId;
 
   /** 选手报名，返回选手 id。优先通过公开接口落盘；服务端明确拒绝时抛错，网络失败退化为本地记录 */
   const submitPlayer = useCallback(
@@ -62,7 +67,7 @@ export function useRegistration(eventId?: string) {
         const res = await fetch("/api/public/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ ...data, eventId }),
         });
         if (res.ok) {
           const json = (await res.json()) as { player?: RegistrationPlayer; state?: RegistrationState };
@@ -102,10 +107,10 @@ export function useRegistration(eventId?: string) {
       } catch {
         // 忽略
       }
-      setCurrentPlayerId(player.id);
+      setSubmittedPlayerId(player.id);
       return player.id;
     },
-    [],
+    [eventId],
   );
 
   /** 队长建队，返回队伍 id */
@@ -160,7 +165,7 @@ export function useRegistration(eventId?: string) {
         const res = await fetch("/api/public/team", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, captainId: currentPlayerId }),
+          body: JSON.stringify({ name, captainId: currentPlayerId, eventId }),
         });
         if (!res.ok) {
           const json = (await res.json()) as { message?: string };
@@ -176,7 +181,7 @@ export function useRegistration(eventId?: string) {
         throw new Error("建队失败，请稍后重试");
       }
     },
-    [currentPlayerId],
+    [currentPlayerId, eventId],
   );
 
   /** 把选手加入队伍（公开接口落盘，供玩家人才市场使用），服务端拒绝时抛错 */
@@ -186,7 +191,7 @@ export function useRegistration(eventId?: string) {
         const res = await fetch("/api/public/team/member", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teamId, playerId, role }),
+          body: JSON.stringify({ teamId, playerId, role, eventId }),
         });
         if (!res.ok) {
           const json = (await res.json()) as { message?: string };
@@ -201,7 +206,7 @@ export function useRegistration(eventId?: string) {
         throw new Error("入队失败，请稍后重试");
       }
     },
-    [],
+    [eventId],
   );
 
   /** 审核通过队伍（名单锁定） */
@@ -223,9 +228,17 @@ export function useRegistration(eventId?: string) {
     }));
   }, []);
 
-  /** 冻结全部名单 */
-  const freezeAll = useCallback(() => {
-    setState((s) => ({ ...s, frozen: true }));
+  /** 单独开放或关闭个人报名，不影响已报名选手继续组队。 */
+  const togglePlayerRegistration = useCallback(() => {
+    setState((s) => ({ ...s, playerRegistrationClosed: !s.playerRegistrationClosed }));
+  }, []);
+
+  /** 开放或关闭队伍申报；关闭后同时冻结名单。 */
+  const toggleTeamRegistration = useCallback(() => {
+    setState((s) => {
+      const closed = !s.teamRegistrationClosed;
+      return { ...s, teamRegistrationClosed: closed, frozen: closed };
+    });
   }, []);
 
   /** 载入演示数据：16 支已冻结队伍，段位按 4 个池递减 */
@@ -272,7 +285,13 @@ export function useRegistration(eventId?: string) {
         createdAt: new Date().toISOString(),
       });
     });
-    setState({ players, teams, frozen: true });
+    setState({
+      players,
+      teams,
+      playerRegistrationClosed: true,
+      teamRegistrationClosed: true,
+      frozen: true,
+    });
   }, []);
 
   /** 重置演示数据 */
@@ -289,7 +308,8 @@ export function useRegistration(eventId?: string) {
     removePlayerFromTeam,
     approveTeam,
     removeTeam,
-    freezeAll,
+    togglePlayerRegistration,
+    toggleTeamRegistration,
     loadDemoData,
     reset,
   };

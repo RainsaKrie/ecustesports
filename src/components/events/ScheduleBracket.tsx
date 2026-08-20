@@ -41,8 +41,8 @@ function MatchCell({ m }: { m: ScheduleMatch }) {
   );
 }
 
-export default function ScheduleBracket() {
-  const { state } = useSchedule();
+export default function ScheduleBracket({ eventId }: { eventId: string }) {
+  const { state } = useSchedule(eventId);
   const matches = state.matches;
 
   if (matches.length === 0) {

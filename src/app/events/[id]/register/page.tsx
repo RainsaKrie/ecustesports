@@ -13,14 +13,14 @@ const inputClass =
 
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const event = useCurrentEventConfig();
-  const { state, submitPlayer } = useRegistration();
+  const event = useCurrentEventConfig(id);
+  const { state, submitPlayer } = useRegistration(id);
 
   const now = new Date();
   const start = event.registrationStart ? new Date(`${event.registrationStart}T00:00:00`) : null;
   const end = event.registrationEnd ? new Date(`${event.registrationEnd}T23:59:59`) : null;
   const phase: "not-open" | "open" | "closed" =
-    start && now < start ? "not-open" : end && now > end ? "closed" : "open";
+    start && now < start ? "not-open" : state.playerRegistrationClosed || (end && now > end) ? "closed" : "open";
 
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");

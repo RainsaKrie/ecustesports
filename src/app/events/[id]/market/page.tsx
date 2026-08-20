@@ -5,7 +5,6 @@ import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useRegistration } from "@/lib/scheduling/useRegistration";
-import type { RegistrationTeam } from "@/lib/scheduling/registration-data";
 
 interface MarketPageProps {
   params: Promise<{ id: string }>;
@@ -20,9 +19,9 @@ function teamMembers(memberIds: string[], players: ReturnType<typeof useRegistra
 }
 
 export default function MarketPage({ params }: MarketPageProps) {
-  use(params);
-  const event = useCurrentEventConfig();
-  const { state, currentPlayerId, createTeamAsPlayer, joinTeamPublic } = useRegistration();
+  const { id } = use(params);
+  const event = useCurrentEventConfig(id);
+  const { state, currentPlayerId, createTeamAsPlayer, joinTeamPublic } = useRegistration(id);
 
   const me = state.players.find((p) => p.id === currentPlayerId);
   const myTeam = me ? state.teams.find((t) => t.memberIds.includes(me.id)) : undefined;
@@ -37,7 +36,7 @@ export default function MarketPage({ params }: MarketPageProps) {
   const [busy, setBusy] = useState(false);
 
   async function handleCreate() {
-    if (!teamName.trim()) return;
+    if (state.teamRegistrationClosed || !teamName.trim()) return;
     setBusy(true);
     setError("");
     try {
@@ -52,7 +51,7 @@ export default function MarketPage({ params }: MarketPageProps) {
   }
 
   async function handleAdd() {
-    if (!myTeam || !addPlayerId || !addTarget) return;
+    if (state.teamRegistrationClosed || !myTeam || !addPlayerId || !addTarget) return;
     setBusy(true);
     setError("");
     try {
@@ -74,7 +73,7 @@ export default function MarketPage({ params }: MarketPageProps) {
             <h1 className="text-2xl font-bold text-gray-900">人才市场</h1>
             <p className="mt-1 text-sm text-gray-500">{event.name} · 寻找队友或队伍</p>
           </div>
-          {!myTeam && me && (
+          {!myTeam && me && !state.teamRegistrationClosed && (
             <Button onClick={() => setShowCreate(true)}>＋ 创建队伍</Button>
           )}
           {!me && (
@@ -84,6 +83,12 @@ export default function MarketPage({ params }: MarketPageProps) {
 
         {error && (
           <div className="mb-6 border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>
+        )}
+
+        {state.teamRegistrationClosed && (
+          <div className="mb-6 border border-slate-300 bg-slate-50 p-4 text-sm text-slate-700">
+            队伍申报已截止，当前名单仅供查看。如需更正，请联系赛事负责人。
+          </div>
         )}
 
         {/* 我的队伍 / 创建提示 */}
@@ -112,7 +117,7 @@ export default function MarketPage({ params }: MarketPageProps) {
                 </span>
               ))}
             </div>
-            {isCaptain && (
+            {isCaptain && !state.teamRegistrationClosed && (
               <div className="mt-3 flex gap-2">
                 {(["首发", "替补", "教练"] as const).map((role) => (
                   <button key={role} onClick={() => { setAddTarget(role); setAddPlayerId(""); }} className="border border-[#c83242] px-3 py-1.5 text-xs font-bold text-[#c83242] hover:bg-[#c83242] hover:text-white">
@@ -126,7 +131,9 @@ export default function MarketPage({ params }: MarketPageProps) {
 
         {me && !myTeam && (
           <div className="mb-6 border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-            你还没有加入队伍。可以「创建队伍」当队长，或在下方队伍列表里联系队长加入。
+            {state.teamRegistrationClosed
+              ? "队伍申报已截止，你目前未加入队伍。如有遗漏，请联系赛事负责人。"
+              : "你还没有加入队伍。可以「创建队伍」当队长，或在下方队伍列表里联系队长加入。"}
           </div>
         )}
 
@@ -134,7 +141,7 @@ export default function MarketPage({ params }: MarketPageProps) {
         <h2 className="mb-3 text-sm font-bold text-gray-900">队伍列表</h2>
         {state.teams.length === 0 ? (
           <div className="border border-gray-200 bg-white p-8 text-center text-sm text-gray-400">
-            暂无队伍，快来创建第一支队伍吧
+            {state.teamRegistrationClosed ? "队伍申报已截止，暂无已申报队伍" : "暂无队伍，快来创建第一支队伍吧"}
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

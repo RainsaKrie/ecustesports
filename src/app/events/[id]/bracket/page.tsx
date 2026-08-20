@@ -4,6 +4,7 @@ import ScheduleBracket from "@/components/events/ScheduleBracket";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { getStatusInfo } from "@/lib/utils";
+import { notFound } from "next/navigation";
 
 interface BracketFullScreenProps {
   params: Promise<{ id: string }>;
@@ -12,7 +13,8 @@ interface BracketFullScreenProps {
 export default async function BracketFullScreenPage({ params }: BracketFullScreenProps) {
   const { id } = await params;
   const events = getConfiguredEvents(await getSiteConfig());
-  const event = events.find((item) => item.id === id) ?? events[0];
+  const event = events.find((item) => item.id === id);
+  if (!event) notFound();
   const statusInfo = getStatusInfo(event.status);
 
   return (
@@ -34,7 +36,7 @@ export default async function BracketFullScreenPage({ params }: BracketFullScree
 
         {/* Bracket */}
         <div className="border border-gray-200 bg-white p-6">
-          <ScheduleBracket />
+          <ScheduleBracket eventId={id} />
         </div>
       </div>
     </div>

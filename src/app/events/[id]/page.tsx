@@ -8,6 +8,7 @@ import EventDetailTabs from "@/components/events/EventDetailTabs";
 import Container from "@/components/layout/Container";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { notFound } from "next/navigation";
 
 interface EventDetailPageProps {
   params: Promise<{ id: string }>;
@@ -19,7 +20,8 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const { tab } = await searchParams;
   const config = await getSiteConfig();
   const events = getConfiguredEvents(config);
-  const event = events.find((item) => item.id === id) ?? events[0];
+  const event = events.find((item) => item.id === id);
+  if (!event) notFound();
   const cfgEvent = getEvent(config, id);
   const statusInfo = getStatusInfo(event.status);
 
@@ -82,7 +84,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
       {/* Tabs / Content */}
       <Container className="py-8">
-        <EventDetailTabs stage={stage} initialTab={tab} />
+        <EventDetailTabs eventId={id} stage={stage} initialTab={tab} />
       </Container>
     </div>
   );

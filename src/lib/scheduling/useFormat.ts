@@ -24,7 +24,7 @@ export interface FormatState {
 const EMPTY: FormatState = { seedPots: [], groups: [], matchups: [] };
 
 export function useFormat(eventId?: string) {
-  const { state: regState } = useRegistration();
+  const { state: regState } = useRegistration(eventId);
 
   const [state, setState] = useState<FormatState>(EMPTY);
   const [loaded, setLoaded] = useState(false);
@@ -45,7 +45,7 @@ export function useFormat(eventId?: string) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [eventId]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -56,7 +56,7 @@ export function useFormat(eventId?: string) {
     }).catch(() => {
       // 保存失败不阻断交互
     });
-  }, [state, loaded]);
+  }, [state, loaded, eventId]);
 
   /** 从冻结队伍生成种子分档；冻结队伍数不为 16 时不生成，返回 null */
   const seed = useCallback(() => {

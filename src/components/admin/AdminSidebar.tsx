@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { operationsModules, getLifecycleStages, stateStyles, type ModuleWithState } from "@/lib/operations-data";
+import { usePathname, useRouter } from "next/navigation";
+import { getLifecycleStages, stateStyles, type ModuleWithState } from "@/lib/operations-data";
 import type { EditableEvent } from "@/lib/site-config-schema";
 import type { EventStage } from "@/lib/scheduling/stage";
 
@@ -46,6 +46,7 @@ function NavLinks({ eventId, modules }: { eventId: string; modules: ModuleWithSt
 }
 
 export default function AdminSidebar({ event, stage, modules }: AdminSidebarProps) {
+  const router = useRouter();
   const lifecycle = getLifecycleStages(stage);
   // 生命周期 5 段 → 对应模块跳转
   const stageModuleHref: Record<string, string> = {
@@ -74,7 +75,7 @@ export default function AdminSidebar({ event, stage, modules }: AdminSidebarProp
 
           {/* 生命周期条（阶段指示，点击跳对应模块） */}
           <div className="mb-5 flex items-center gap-0 border border-slate-200 bg-white">
-            {lifecycle.map((item, index) => (
+            {lifecycle.map((item) => (
               <Link
                 key={item.label}
                 href={stageModuleHref[item.label]}
@@ -95,7 +96,8 @@ export default function AdminSidebar({ event, stage, modules }: AdminSidebarProp
               type="button"
               onClick={async () => {
                 await fetch("/api/admin/logout", { method: "POST" });
-                window.location.href = "/login";
+                router.push("/login");
+                router.refresh();
               }}
               className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-400 hover:text-[#c83242]"
             >

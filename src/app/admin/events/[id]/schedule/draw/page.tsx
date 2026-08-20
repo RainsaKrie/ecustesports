@@ -3,7 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { buildSeedPots, drawGroups, generateMatchups, type Group, type SeedPot } from "@/lib/scheduling/format-data";
+import { buildSeedPots, generateMatchups, type Group, type SeedPot } from "@/lib/scheduling/format-data";
 import { buildTournamentMatches } from "@/lib/scheduling/bracket";
 import type { RegistrationState } from "@/lib/scheduling/registration-data";
 import { initialRegistration } from "@/lib/scheduling/registration-data";
@@ -71,7 +71,7 @@ export default function DrawPage({ params }: DrawPageProps) {
 
       const frozenTeams = regData.teams.filter((t) => t.status === "已冻结");
       let seedPots = fmtData.seedPots ?? [];
-      let existingGroups = fmtData.groups ?? [];
+      const existingGroups = fmtData.groups ?? [];
 
       if (seedPots.length === 0 && frozenTeams.length > 0) {
         seedPots = buildSeedPots(frozenTeams, regData.players);
@@ -88,7 +88,7 @@ export default function DrawPage({ params }: DrawPageProps) {
       const nextQueue: DrawQueueItem[] = [];
       seedPots.forEach((pot, potIndex) => {
         const remaining = shuffle(pot.teamIds.filter((tid) => !groupsInit.some((g) => g.teamIds.includes(tid))));
-        remaining.forEach((teamId, slot) => {
+        remaining.forEach((teamId) => {
           // 找到该队应去的组：该组该池位置为空
           const target = groupsInit.find((g) => g.teamIds.length <= potIndex);
           if (target) {

@@ -278,6 +278,7 @@ export interface NewEventInput {
   description?: string;
   registrationStart?: string;
   registrationEnd?: string;
+  teamRegistrationEnd?: string;
   eventDateLabel?: string;
   prizePool?: string;
   coverColor?: string;
@@ -312,6 +313,7 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
     organizer: input.organizer.trim() || "赛事组",
     registrationStart: input.registrationStart ?? "",
     registrationEnd: input.registrationEnd ?? "",
+    teamRegistrationEnd: input.teamRegistrationEnd ?? input.registrationEnd ?? "",
     eventDateLabel: input.eventDateLabel?.trim() || "比赛时间待公布",
     registrationLabel: "尚未开放",
     stageSummary: stageConfigSummary(stageConfigs),

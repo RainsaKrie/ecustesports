@@ -62,11 +62,11 @@ function PlayerList({ players }: { players: RegistrationPlayer[] }) {
   );
 }
 
-export default function EventDetailTabs({ stage, initialTab }: { stage: EventStage; initialTab?: string }) {
+export default function EventDetailTabs({ eventId, stage, initialTab }: { eventId: string; stage: EventStage; initialTab?: string }) {
   const config = STAGE_CONFIGS[stage];
   const validInitial = TABS.includes(initialTab as Tab) ? (initialTab as Tab) : undefined;
   const [tab, setTab] = useState<Tab>(validInitial ?? (config.defaultTab as Tab) ?? "赛程");
-  const { state } = useRegistration();
+  const { state } = useRegistration(eventId);
 
   return (
     <div>
@@ -96,9 +96,9 @@ export default function EventDetailTabs({ stage, initialTab }: { stage: EventSta
 
       {tab === "队伍名单" && <TeamList teams={state.teams} players={state.players} />}
 
-      {tab === "赛程" && <PublicSchedule />}
+      {tab === "赛程" && <PublicSchedule eventId={eventId} />}
 
-      {tab === "对阵图" && <ScheduleBracket />}
+      {tab === "对阵图" && <ScheduleBracket eventId={eventId} />}
     </div>
   );
 }

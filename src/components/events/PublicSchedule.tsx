@@ -21,8 +21,8 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-block px-2 py-1 text-xs font-bold ${style}`}>{status}</span>;
 }
 
-export default function PublicSchedule() {
-  const { state } = useSchedule();
+export default function PublicSchedule({ eventId }: { eventId: string }) {
+  const { state } = useSchedule(eventId);
   const matches = state.matches;
 
   if (matches.length === 0) {

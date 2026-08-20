@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import { useRegistration } from "@/lib/scheduling/useRegistration";
@@ -16,10 +16,11 @@ function winCount(
   return games.filter((g) => (side === "A" ? g.teamAScore > g.teamBScore : g.teamBScore > g.teamAScore)).length;
 }
 
-export default function ReportPage() {
-  const event = useCurrentEventConfig();
-  const { state: schedule } = useSchedule();
-  const { state: registration } = useRegistration();
+export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const event = useCurrentEventConfig(id);
+  const { state: schedule } = useSchedule(id);
+  const { state: registration } = useRegistration(id);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [highlights, setHighlights] = useState("");

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import { useRegistration } from "@/lib/scheduling/useRegistration";
-import { currentStep, remainingMaps, type BPAction } from "@/lib/scheduling/bp";
+import { currentStep, type BPAction } from "@/lib/scheduling/bp";
 import type { BPSession } from "@/lib/scheduling/bp-ops";
 import { mapImageOf } from "@/lib/maps";
 import Badge from "@/components/ui/Badge";
@@ -53,8 +54,9 @@ export default function BPPage({ params }: BPPageProps) {
     };
   }, [matchId]);
 
+  const shouldPoll = session?.status === "进行中";
   useEffect(() => {
-    if (!session || session.status !== "进行中") return;
+    if (!shouldPoll) return;
     const timer = setInterval(() => {
       fetch(`/api/data/bp?matchId=${encodeURIComponent(matchId)}`, { cache: "no-store" })
         .then((r) => r.json())
@@ -64,7 +66,7 @@ export default function BPPage({ params }: BPPageProps) {
         });
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [session?.status, matchId]);
+  }, [shouldPoll, matchId]);
 
   const post = useCallback(
     async (body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; session?: BPSession; swapped?: boolean }> => {
@@ -131,7 +133,6 @@ export default function BPPage({ params }: BPPageProps) {
 
   // 会话内的身份与步骤
   const step = session ? currentStep(session.order, session.actions) : null;
-  const remaining = session ? remainingMaps(pool, session.actions) : [];
   const mySideInSession =
     session && myTeamId ? (session.firstTeamId === myTeamId ? "first" : session.secondTeamId === myTeamId ? "second" : null) : null;
   const myTurn = Boolean(session && step && mySideInSession && step.side === mySideInSession && isCaptain);
@@ -276,10 +277,12 @@ export default function BPPage({ params }: BPPageProps) {
                   >
                     <div className="relative flex h-full items-center justify-center overflow-hidden bg-gray-800">
                       {mapImageOf({ name: mapName }) && (
-                        <img
-                          src={mapImageOf({ name: mapName })}
+                        <Image
+                          src={mapImageOf({ name: mapName })!}
                           alt={mapName}
-                          className="absolute inset-0 h-full w-full object-cover opacity-90"
+                          fill
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                          className="object-cover opacity-90"
                         />
                       )}
                       <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/25" />

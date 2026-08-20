@@ -1,5 +1,7 @@
 {
   "players": [],
   "teams": [],
+  "playerRegistrationClosed": false,
+  "teamRegistrationClosed": false,
   "frozen": false
 }

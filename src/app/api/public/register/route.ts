@@ -4,10 +4,11 @@
 // =====================
 
 import { readEventData, writeEventData } from "@/lib/data-store";
-import { getSiteConfig } from "@/lib/site-config";
+import { getEvent, getSiteConfig } from "@/lib/site-config";
 import { RANK_VALUE } from "@/lib/scheduling/format-data";
 import {
   initialRegistration,
+  normalizeRegistrationState,
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
@@ -58,7 +59,12 @@ export async function POST(request: Request) {
 
     // 报名时间窗口校验（与前台一致）
     const config = await getSiteConfig();
-    const { registrationStart, registrationEnd } = config.events.find((e) => e.id === config.currentEventId) ?? config.events[0];
+    const requestedEventId = text(body.eventId, 60);
+    if (requestedEventId && !config.events.some((event) => event.id === requestedEventId)) {
+      return Response.json({ message: "赛事不存在或已下线。" }, { status: 404 });
+    }
+    const event = getEvent(config, requestedEventId);
+    const { registrationStart, registrationEnd } = event;
     if (registrationStart && registrationEnd) {
       const now = Date.now();
       const start = new Date(`${registrationStart}T00:00:00`).getTime();
@@ -68,9 +74,11 @@ export async function POST(request: Request) {
       }
     }
 
-    const state = await readEventData<RegistrationState>(config.currentEventId, "registration", initialRegistration());
-    if (state.frozen) {
-      return Response.json({ message: "名单已冻结，报名通道已关闭。" }, { status: 403 });
+    const state = normalizeRegistrationState(
+      await readEventData<RegistrationState>(event.id, "registration", initialRegistration()),
+    );
+    if (state.playerRegistrationClosed) {
+      return Response.json({ message: "选手报名已截止。" }, { status: 403 });
     }
 
     const player: RegistrationPlayer = {
@@ -88,7 +96,7 @@ export async function POST(request: Request) {
     };
 
     const next: RegistrationState = { ...state, players: [...state.players, player] };
-    await writeEventData(config.currentEventId, "registration", next);
+    await writeEventData(event.id, "registration", next);
     return Response.json({ player, state: next });
   } catch {
     return Response.json({ message: "报名提交失败，请稍后重试。" }, { status: 400 });

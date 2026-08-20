@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-18T01:35:33.182Z",
+  "updatedAt": "2026-08-20T04:29:44.005Z",
   "brand": {
     "name": "华东理工大学电竞部",
     "englishName": "ECUST ESPORTS DEPT",
@@ -84,6 +84,7 @@
       "organizer": "华东理工大学电竞社",
       "registrationStart": "2026-08-01",
       "registrationEnd": "2026-09-30",
+      "teamRegistrationEnd": "2026-10-03",
       "eventDateLabel": "比赛时间待公布",
       "registrationLabel": "尚未开放",
       "stageSummary": "32 队入围赛 → 16 队小组赛 → 8 队双败淘汰",
@@ -172,6 +173,35 @@
         }
       ],
       "formatTemplateId": "val-16gsl-8de",
+      "proposal": {
+        "background": "",
+        "purpose": "",
+        "budget": "",
+        "prizes": "",
+        "leader": "",
+        "contact": ""
+      },
+      "stageConfigs": [
+        {
+          "name": "入围赛",
+          "type": "single-elim",
+          "teamCount": 32,
+          "boType": "BO1"
+        },
+        {
+          "name": "小组赛",
+          "type": "gsl-groups",
+          "teamCount": 16,
+          "boType": "BO3",
+          "groupCount": 4
+        },
+        {
+          "name": "淘汰赛",
+          "type": "double-elim",
+          "teamCount": 8,
+          "boType": "BO3"
+        }
+      ],
       "createdAt": "2026-08-14T00:00:00.000Z"
     }
   ],

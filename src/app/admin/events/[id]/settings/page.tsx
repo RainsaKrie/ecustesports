@@ -1,14 +1,17 @@
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import SiteContentEditor from "@/components/admin/SiteContentEditor";
+import EventSettingsEditor from "@/components/admin/EventSettingsEditor";
 import { getSiteConfig } from "@/lib/site-config";
+import { notFound } from "next/navigation";
 
 interface SettingsPageProps { params: Promise<{ id: string }> }
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
-  await params;
+  const { id } = await params;
   const config = await getSiteConfig();
+  const event = config.events.find((candidate) => candidate.id === id);
+  if (!event) notFound();
   return <div>
-    <AdminPageHeader eyebrow="MODULE 08 / GOVERN" title="公开内容与赛事设置" description="由赛事负责人维护公开页面文案、本届赛事信息、参赛规则和往届说明。保存后前台直接读取，无需修改代码。" status="仅负责人可修改" />
-    <SiteContentEditor initialConfig={config} />
+    <AdminPageHeader eyebrow="MODULE 04 / SETTINGS" title="赛事设置" description="维护本届赛事信息、参赛规则、地图池和玩家侧公开内容。" status="负责人确认后发布" />
+    <EventSettingsEditor initialEvent={event} />
   </div>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useSyncExternalStore } from "react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useRegistration } from "@/lib/scheduling/useRegistration";
@@ -18,13 +18,13 @@ function contactOf(p: RegistrationPlayer): string {
   return p.qq || p.wechat || p.phone || "未填";
 }
 
+const subscribeStatic = () => () => {};
+
 export default function RegistrationPage({ params }: RegistrationPageProps) {
   const { id } = use(params);
-  const [origin] = useState(() =>
-    typeof window === "undefined" ? "" : window.location.origin,
-  );
+  const origin = useSyncExternalStore(subscribeStatic, () => window.location.origin, () => "");
   const registerUrl = origin ? `${origin}/events/${id}/register` : "";
-  const event = useCurrentEventConfig();
+  const event = useCurrentEventConfig(id);
   const {
     state,
     createTeam,
@@ -32,7 +32,8 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
     removePlayerFromTeam,
     approveTeam,
     removeTeam,
-    freezeAll,
+    togglePlayerRegistration,
+    toggleTeamRegistration,
     reset,
   } = useRegistration(id);
 
@@ -46,7 +47,7 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
   const [assignRole, setAssignRole] = useState<"首发" | "替补" | "教练">("首发");
 
   function handleCreateTeam() {
-    if (!teamName.trim() || !captainId) return;
+    if (state.teamRegistrationClosed || !teamName.trim() || !captainId) return;
     const teamId = createTeam(teamName.trim(), captainId);
     assignPlayer(captainId, teamId, "首发");
     setTeamName("");
@@ -55,7 +56,7 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
   }
 
   function handleAssign() {
-    if (!assigning || !assignTeam) return;
+    if (state.teamRegistrationClosed || !assigning || !assignTeam) return;
     assignPlayer(assigning.id, assignTeam, assignRole);
     setAssigning(null);
     setAssignTeam("");
@@ -68,12 +69,29 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
         eyebrow="MODULE 02 / REGISTER"
         title="报名与队伍"
         description="选手报名、队伍申报与名单审核。"
-        status={state.frozen ? "报名已截止" : `${pool.length} 人待组队`}
+        status={
+          state.playerRegistrationClosed && state.teamRegistrationClosed
+            ? "报名与申报均已截止"
+            : state.playerRegistrationClosed
+              ? "选手报名已截止 · 队伍申报中"
+              : state.teamRegistrationClosed
+                ? "队伍申报已截止"
+                : `${pool.length} 人待组队`
+        }
         actions={
-          <div className="flex gap-2">
-            <button onClick={() => setShowCreate(true)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-500 hover:border-slate-950">代建队伍</button>
-            <button onClick={freezeAll} disabled={state.frozen} className={`px-4 py-2.5 text-xs font-bold ${state.frozen ? "border border-slate-200 text-slate-400" : "bg-[#ff4655] text-white hover:bg-[#d83b48]"}`}>
-              {state.frozen ? "报名已截止" : "截止报名"}
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              onClick={() => setShowCreate(true)}
+              disabled={state.teamRegistrationClosed}
+              className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-500 hover:border-slate-950 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+            >
+              代建队伍
+            </button>
+            <button onClick={togglePlayerRegistration} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">
+              {state.playerRegistrationClosed ? "重新开放选手报名" : "截止选手报名"}
+            </button>
+            <button onClick={toggleTeamRegistration} className={`px-4 py-2.5 text-xs font-bold ${state.teamRegistrationClosed ? "border border-slate-300 bg-white text-slate-700 hover:border-slate-950" : "bg-[#ff4655] text-white hover:bg-[#d83b48]"}`}>
+              {state.teamRegistrationClosed ? "重新开放队伍申报" : "截止队伍申报"}
             </button>
           </div>
         }
@@ -93,7 +111,7 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
             <p className="text-xs font-bold text-slate-700">报名二维码</p>
             <p className="mt-1 break-all text-xs text-slate-500">{registerUrl || "加载中…"}</p>
             <p className="mt-2 text-[0.625rem] text-slate-400">
-              选手报名截止 {event.registrationEnd || "待定"}
+              选手报名截止 {event.registrationEnd || "待定"} · 队伍申报截止 {event.teamRegistrationEnd || "待定"}
             </p>
           </div>
         </div>
@@ -143,7 +161,13 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
                       <td className="px-4 py-3 text-slate-600">{p.rank}</td>
                       <td className="px-4 py-3 text-slate-500">{contactOf(p)}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => { setAssigning(p); setAssignTeam(""); setAssignRole("首发"); }} className="font-bold text-[#c83242]">组队</button>
+                        <button
+                          onClick={() => { setAssigning(p); setAssignTeam(""); setAssignRole("首发"); }}
+                          disabled={state.teamRegistrationClosed}
+                          className="font-bold text-[#c83242] disabled:cursor-not-allowed disabled:text-slate-300"
+                        >
+                          组队
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -189,7 +213,7 @@ export default function RegistrationPage({ params }: RegistrationPageProps) {
                         <span key={m.id} className="inline-flex items-center gap-1 border border-slate-200 bg-slate-50 px-2 py-1 text-[0.625rem]">
                           {m.gameId}
                           <span className="text-slate-400">·{m.role ?? "成员"}</span>
-                          {team.status === "报名中" && (
+                          {team.status === "报名中" && !state.teamRegistrationClosed && (
                             <button onClick={() => removePlayerFromTeam(m.id)} className="ml-1 text-slate-400 hover:text-red-600">×</button>
                           )}
                         </span>

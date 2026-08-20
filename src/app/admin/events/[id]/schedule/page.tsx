@@ -116,7 +116,7 @@ function Bracket({ matches, bpSessions, onSelect }: { matches: ScheduleMatch[]; 
 
 export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
-  const { state, submitRequest, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset } = useSchedule(id);
+  const { state, submitRequest, approveRequest, toggleFrozen, setMatchTime, reportGameResults, reset } = useSchedule(id);
 
   const [selected, setSelected] = useState<ScheduleMatch | null>(null);
   const [mode, setMode] = useState<DialogMode>("overview");

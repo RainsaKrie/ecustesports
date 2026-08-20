@@ -1,9 +1,8 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { stageConfigSummary, type StageConfig } from "@/lib/scheduling/format-templates";
+import { stageConfigSummary } from "@/lib/scheduling/format-templates";
 import type { EditableEvent } from "@/lib/site-config-schema";
 
 interface PlanningPageProps {
@@ -73,7 +72,6 @@ ${rulesText || "（详见赛事设置）"}
 
 export default function PlanningPage({ params }: PlanningPageProps) {
   const { id } = use(params);
-  const router = useRouter();
 
   const [event, setEvent] = useState<EditableEvent | null>(null);
   const [fields, setFields] = useState<ProposalFields>({ background: "", purpose: "", budget: "", prizes: "", leader: "", contact: "" });

@@ -4,8 +4,8 @@
 // =====================
 
 import { readEventData, writeEventData } from "@/lib/data-store";
-import { getSiteConfig } from "@/lib/site-config";
-import { initialRegistration, type RegistrationState } from "@/lib/scheduling/registration-data";
+import { getEvent, getSiteConfig } from "@/lib/site-config";
+import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
 import { createTeamOp } from "@/lib/scheduling/registration-ops";
 
 export const runtime = "nodejs";
@@ -27,19 +27,26 @@ export async function POST(request: Request) {
 
     // 报名时间窗口校验
     const config = await getSiteConfig();
-    const { registrationStart, registrationEnd } = config.events.find((e) => e.id === config.currentEventId) ?? config.events[0];
-    if (registrationStart && registrationEnd) {
+    const eventId = typeof body.eventId === "string" ? body.eventId.trim() : "";
+    if (eventId && !config.events.some((event) => event.id === eventId)) {
+      return Response.json({ message: "赛事不存在或已下线。" }, { status: 404 });
+    }
+    const event = getEvent(config, eventId);
+    const { registrationStart, teamRegistrationEnd } = event;
+    if (registrationStart && teamRegistrationEnd) {
       const now = Date.now();
       const start = new Date(`${registrationStart}T00:00:00`).getTime();
-      const end = new Date(`${registrationEnd}T23:59:59`).getTime();
+      const end = new Date(`${teamRegistrationEnd}T23:59:59`).getTime();
       if (now < start || now > end) {
-        return Response.json({ message: "当前不在报名时间内。" }, { status: 403 });
+        return Response.json({ message: "当前不在队伍申报时间内。" }, { status: 403 });
       }
     }
 
-    const state = await readEventData<RegistrationState>(config.currentEventId, "registration", initialRegistration());
-    if (state.frozen) {
-      return Response.json({ message: "名单已冻结，不能再新建队伍。" }, { status: 403 });
+    const state = normalizeRegistrationState(
+      await readEventData<RegistrationState>(event.id, "registration", initialRegistration()),
+    );
+    if (state.teamRegistrationClosed) {
+      return Response.json({ message: "队伍申报已截止，不能再新建队伍。" }, { status: 403 });
     }
 
     const result = createTeamOp(state, { name, captainId });
@@ -47,7 +54,7 @@ export async function POST(request: Request) {
       return Response.json({ message: result.message ?? "建队失败" }, { status: 400 });
     }
 
-    await writeEventData(config.currentEventId, "registration", result.state);
+    await writeEventData(event.id, "registration", result.state);
     return Response.json({ team: result.team, state: result.state });
   } catch {
     return Response.json({ message: "建队失败，请稍后重试。" }, { status: 400 });
