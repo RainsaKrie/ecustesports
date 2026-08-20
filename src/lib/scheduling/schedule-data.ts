@@ -1,0 +1,143 @@
+// =====================
+// 赛程数据模型与初始演示数据（改期闭环 MVP）
+// =====================
+
+import type { BOType, Conflict } from "./rule-engine";
+
+export type MatchStatus = "待排期" | "已排期" | "已完成";
+
+/** 单局结果（逐局比分，不简化） */
+export interface GameResult {
+  map?: string; // 本局地图名
+  teamAScore: number; // 本局 A 得分
+  teamBScore: number; // 本局 B 得分
+}
+
+/** 赛程中的一场比赛 */
+export interface ScheduleMatch {
+  id: string;
+  phase: string; // 阶段名
+  teamAId: string; // 队伍 ID（匿名，用于约束校验）
+  teamBId: string;
+  teamAName: string; // 展示名
+  teamBName: string;
+  boType: BOType;
+  startTime: string; // "2026-10-06T12:00:00"，空表示待排期
+  endTime: string;
+  status: MatchStatus;
+  frozen: boolean;
+  prerequisiteId?: string;
+  // 比赛执行相关
+  gameResults?: GameResult[]; // 逐局结果
+  bpMaps?: string[]; // BP 选出的地图（按选图顺序，用于逐局地图）
+  winnerTeamId?: string; // 胜者队伍
+  nextMatchId?: string; // 胜者晋级到的下一场比赛
+  nextSide?: "A" | "B"; // 胜者填入下一场的哪一侧
+  nextLoserMatchId?: string; // 败者进入的下一场比赛（双败淘汰）
+  nextLoserSide?: "A" | "B"; // 败者填入下一场的哪一侧
+  round?: string; // 轮次（首轮 / 次轮 / 决赛等）
+}
+
+/** 一条改期申请 */
+export interface RescheduleRecord {
+  id: string;
+  matchId: string;
+  newStartTime: string;
+  reason: string;
+  teamAConfirmed: boolean;
+  teamBConfirmed: boolean;
+  basedOnVersion: number; // 申请基于的赛程版本号（AC-03：旧版本申请不能直接批准）
+  submittedAt: string;
+  status: "待审批" | "已批准" | "已驳回";
+  conflicts: Conflict[]; // 提交或批准前校验时的冲突结果
+}
+
+/** 赛程版本快照 */
+export interface ScheduleVersion {
+  version: number;
+  matches: ScheduleMatch[];
+  note: string;
+  createdAt: string;
+}
+
+/** 通知草稿 */
+export interface NotificationDraft {
+  id: string;
+  version: number;
+  content: string;
+  status: "草稿" | "已发送";
+  createdAt: string;
+}
+
+/** 完整赛程状态 */
+export interface ScheduleState {
+  version: number;
+  matches: ScheduleMatch[];
+  versions: ScheduleVersion[];
+  requests: RescheduleRecord[];
+  notifications: NotificationDraft[];
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function fmt(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+function mk(
+  id: string,
+  phase: string,
+  teamAId: string,
+  teamAName: string,
+  teamBId: string,
+  teamBName: string,
+  boType: BOType,
+  start: string,
+  durationMin: number,
+  extra: Partial<ScheduleMatch> = {},
+): ScheduleMatch {
+  const startMs = new Date(start).getTime();
+  const endMs = startMs + durationMin * 60 * 1000;
+  return {
+    id,
+    phase,
+    teamAId,
+    teamAName,
+    teamBId,
+    teamBName,
+    boType,
+    startTime: start,
+    endTime: fmt(new Date(endMs)),
+    status: "已排期",
+    frozen: false,
+    ...extra,
+  };
+}
+
+/** 初始演示赛程：入围赛 6 场，每时段并发 2 场（满容量），方便演示并发冲突 */
+export function initialSchedule(): ScheduleState {
+  const matches: ScheduleMatch[] = [
+    mk("M01", "入围赛", "A", "星辰电竞", "B", "暗影战队", "BO3", "2026-10-06T12:00:00", 90),
+    mk("M02", "入围赛", "C", "烈焰先锋", "D", "寒冰之刃", "BO3", "2026-10-06T12:00:00", 90),
+    mk("M03", "入围赛", "E", "雷霆万钧", "F", "风暴联盟", "BO3", "2026-10-06T14:00:00", 90),
+    mk("M04", "入围赛", "G", "极光战队", "H", "深渊之怒", "BO3", "2026-10-06T14:00:00", 90),
+    mk("M05", "入围赛", "I", "幻影骑士", "J", "铁血战狼", "BO3", "2026-10-06T16:00:00", 90),
+    mk("M06", "入围赛", "K", "破晓之光", "L", "暗夜行者", "BO3", "2026-10-06T16:00:00", 90),
+  ];
+  return {
+    version: 1,
+    matches,
+    versions: [
+      {
+        version: 1,
+        matches,
+        note: "初始赛程草案",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    requests: [],
+    notifications: [],
+  };
+}

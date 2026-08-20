@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-18T01:35:33.182Z",
+  "brand": {
+    "name": "华东理工大学电竞部",
+    "englishName": "ECUST ESPORTS DEPT",
+    "mark": "ECUST",
+    "footerDescription": "华东理工大学电竞部官方网站。赛事、活动、玩家工具与电竞部动态都在这里。",
+    "footerStatus": "第三届华理瓦理杯筹备中",
+    "copyright": "© 2026 华东理工大学电竞部"
+  },
+  "navigation": {
+    "home": "首页",
+    "events": "赛事",
+    "bp": "工具",
+    "admin": "工作台"
+  },
+  "seo": {
+    "title": "华理瓦理杯 | 无畏契约校内赛",
+    "description": "第三届华理瓦理杯赛事信息、报名通知、比赛规则、分组赛程与赛果查询。"
+  },
+  "home": {
+    "heroImage": "/uploads/hero-656480c7-5403-4be8-a4cb-7edee610f475.png",
+    "heroImageAlt": "红色灯束照亮的未来感电竞场馆",
+    "railLeft": "ECUST VALORANT COMMUNITY",
+    "railRight": "2026 / WALICUP",
+    "kicker": "第三届华理瓦理杯筹备中",
+    "headlineTop": "华理玩家",
+    "headlineBottom": "下一场见",
+    "description": "冠军与亚军将获得现金奖励与定制周边，晋级队伍均有纪念品。具体奖励即将公布，现在就组队报名，抢占参赛席位！",
+    "primaryCta": "立即报名",
+    "secondaryCta": "查看历届赛事",
+    "journeyKicker": "ROAD TO THE FINAL",
+    "journeyTitleTop": "从报名，",
+    "journeyTitleBottom": "一路打到决赛。",
+    "journeyAside": "参赛信息、分组、比赛时间和赛果都会在这里更新。你只需要和队友准备好上场。",
+    "cards": [
+      {
+        "index": "01",
+        "meta": "REGISTRATION / REVIEW",
+        "title": "报名与组队",
+        "description": "查看报名时间、参赛资格和队伍要求。没有固定队伍的玩家，也可以关注赛事群内的招募信息。"
+      },
+      {
+        "index": "02",
+        "meta": "BRACKET / SCHEDULE",
+        "title": "分组与赛程",
+        "description": "名单确认后统一公布种子分档、分组抽签和比赛时间。临时调整请以赛事组最新通知为准。"
+      },
+      {
+        "index": "03",
+        "meta": "BAN / PICK",
+        "title": "比赛日流程",
+        "description": "按通知完成地图 BP 和比赛准备。遇到迟到、掉线或争议，请第一时间联系当值裁判。"
+      },
+      {
+        "index": "04",
+        "meta": "REPORT / MOMENT",
+        "title": "赛果与回顾",
+        "description": "每轮结束后更新比分、晋级情况和后续对阵。赛事结束后可查看最终排名和比赛回顾。"
+      }
+    ],
+    "historyKicker": "WALICUP HISTORY",
+    "historyTitle": "瓦理杯赛事",
+    "historyLink": "查看全部",
+    "closingKicker": "FIND YOUR TEAM",
+    "closingTitle": "准备好你的五人小队。",
+    "closingCta": "查看参赛须知"
+  },
+  "eventList": {
+    "eyebrow": "WALICUP EVENTS",
+    "title": "华理瓦理杯",
+    "description": "查看第三届赛事筹备进度，以及历届瓦理杯的赛事资料。"
+  },
+  "events": [
+    {
+      "id": "event-1",
+      "name": "第三届瓦理杯",
+      "game": "无畏契约",
+      "status": "draft",
+      "teamCount": 32,
+      "teamSize": 5,
+      "description": "致十七岁的梦想，坚持的岁月和不灭的斗志。",
+      "organizer": "华东理工大学电竞社",
+      "registrationStart": "2026-08-01",
+      "registrationEnd": "2026-09-30",
+      "eventDateLabel": "比赛时间待公布",
+      "registrationLabel": "尚未开放",
+      "stageSummary": "32 队入围赛 → 16 队小组赛 → 8 队双败淘汰",
+      "prizePool": "奖项与奖品将在报名开启前公布",
+      "coverColor": "#ff4655",
+      "posterImage": "/suke-x.jpg",
+      "mapPool": [
+        {
+          "id": "ascent",
+          "name": "亚海悬城"
+        },
+        {
+          "id": "bind",
+          "name": "源工重镇"
+        },
+        {
+          "id": "haven",
+          "name": "隐士修所"
+        },
+        {
+          "id": "split",
+          "name": "霓虹町"
+        },
+        {
+          "id": "icebox",
+          "name": "森寒冬港"
+        },
+        {
+          "id": "breeze",
+          "name": "微风岛屿"
+        },
+        {
+          "id": "lotus",
+          "name": "莲华古城"
+        }
+      ],
+      "preparationSteps": [
+        {
+          "number": "01",
+          "title": "准备五人小队",
+          "detail": "报名开放前确认队伍名称、五名首发和有效联系方式。"
+        },
+        {
+          "number": "02",
+          "title": "关注赛事公告",
+          "detail": "报名时间、比赛日期、地图池和奖项将由赛事组统一公布。"
+        },
+        {
+          "number": "03",
+          "title": "按最新赛程参赛",
+          "detail": "分组抽签完成后公布比赛时间；临时调整以赛事组通知为准。"
+        }
+      ],
+      "rules": [
+        {
+          "title": "参赛规模",
+          "detail": "计划招募 32 支队伍，每队 5 名首发选手"
+        },
+        {
+          "title": "入围赛",
+          "detail": "32 支队伍随机配对，进行单败淘汰 BO1，16 支队伍晋级"
+        },
+        {
+          "title": "小组赛",
+          "detail": "16 支队伍分为 4 组，进行 GSL 双败赛，全部比赛为 BO3；每组两支队伍晋级"
+        },
+        {
+          "title": "淘汰赛",
+          "detail": "8 支队伍进行双败淘汰；败者组决赛和总决赛为 BO5，其余比赛为 BO3"
+        },
+        {
+          "title": "地图与 BP",
+          "detail": "地图池和具体 BP 顺序以报名开启前发布的参赛手册为准"
+        },
+        {
+          "title": "赛程确认",
+          "detail": "两队可协商比赛时间，但最终时间以赛事组发布的有效赛程为准"
+        },
+        {
+          "title": "比赛报到",
+          "detail": "参赛队伍应按通知提前进入赛事群和指定房间，配合裁判完成地图 BP"
+        },
+        {
+          "title": "争议处理",
+          "detail": "如遇迟到、掉线或比赛争议，请第一时间联系当值裁判，不要自行判定赛果"
+        }
+      ],
+      "formatTemplateId": "val-16gsl-8de",
+      "createdAt": "2026-08-14T00:00:00.000Z"
+    }
+  ],
+  "currentEventId": "event-1",
+  "archives": []
+}
