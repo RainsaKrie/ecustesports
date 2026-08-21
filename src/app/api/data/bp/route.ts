@@ -1,20 +1,22 @@
 // =====================
 // BP 会话接口
 // GET 公开读取；POST 为公开写接口，但服务端按操作校验身份：
-// - 双方队长（弱身份 playerId）可推进本方步骤、启动、掷硬币、回退本方上一步
+// - 双方队长（参赛管理码鉴权）可推进本方步骤、启动、掷硬币、回退本方上一步
 // - 管理员（会话 cookie）可代任意操作、手动交换先手、重置
 // =====================
 
 import { readEventData, writeEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
 import type { NextRequest } from "next/server";
 import {
-  initialSchedule,
+  emptySchedule,
   type ScheduleState,
 } from "@/lib/scheduling/schedule-data";
 import {
   initialRegistration,
+  normalizeRegistrationState,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
 import {
@@ -36,30 +38,28 @@ async function loadStore(eventId: string): Promise<BPStore> {
   return readEventData<BPStore>(eventId, "bp", {});
 }
 
-/** 判定请求者身份：管理员（cookie）或选手所属队伍（playerId） */
+/** 判定请求者身份：管理员（cookie）或参赛管理码所属队伍。 */
 async function resolveRequester(
   request: NextRequest,
-  body: Record<string, unknown> | null,
   eventId: string,
 ): Promise<{ admin: boolean; playerId?: string; teamId?: string; isCaptain?: boolean }> {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const admin = verifySessionToken(token);
   if (admin) return { admin };
 
-  const playerId = typeof body?.playerId === "string" ? body.playerId : "";
-  if (!playerId) return { admin: false };
-
-  const reg = await readEventData<RegistrationState>(eventId, "registration", initialRegistration());
-  const player = reg.players.find((p) => p.id === playerId);
-  if (!player?.teamId) return { admin: false, playerId };
+  const reg = normalizeRegistrationState(
+    await readEventData<RegistrationState>(eventId, "registration", initialRegistration()),
+  );
+  const player = findParticipant(reg, readParticipantToken(request));
+  if (!player?.teamId) return { admin: false, playerId: player?.id };
   const team = reg.teams.find((t) => t.id === player.teamId);
-  return { admin: false, playerId, teamId: team?.id, isCaptain: team?.captainId === playerId };
+  return { admin: false, playerId: player.id, teamId: team?.id, isCaptain: team?.captainId === player.id };
 }
 
 /** 完成 BP 后：把选图写入比赛记录 + 生成通知草稿 */
 async function commitBPMaps(session: BPSession, eventId: string) {
   if (!session.finalMaps || session.finalMaps.length === 0) return;
-  const schedule = await readEventData<ScheduleState>(eventId, "schedule", initialSchedule());
+  const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
   const match = schedule.matches.find((m) => m.id === session.matchId);
   if (!match) return;
   const matches = schedule.matches.map((m) =>
@@ -81,9 +81,12 @@ async function commitBPMaps(session: BPSession, eventId: string) {
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const matchId = url.searchParams.get("matchId");
+  const matchId = url.searchParams.get("matchId")?.trim() ?? "";
+  const eventId = url.searchParams.get("eventId")?.trim() ?? "";
   const config = await getSiteConfig();
-  const eventId = config.currentEventId;
+  if (!eventId || !config.events.some((event) => event.id === eventId)) {
+    return Response.json({ message: "赛事不存在或缺少赛事 ID。" }, { status: 404 });
+  }
   const store = await loadStore(eventId);
   if (matchId) {
     return Response.json({ session: store[matchId] ?? null });
@@ -102,12 +105,16 @@ export async function POST(request: NextRequest) {
     const action = typeof body?.action === "string" ? body.action : "";
     const matchId = typeof body?.matchId === "string" ? body.matchId : "";
     const mapId = typeof body?.mapId === "string" ? body.mapId : "";
+    const eventId = typeof body?.eventId === "string" ? body.eventId.trim() : "";
 
     const config = await getSiteConfig();
-    const eventId = config.currentEventId;
-    const requester = await resolveRequester(request, body, eventId);
-    const pool = config.events.find((e) => e.id === eventId)?.mapPool.map((m) => m.name) ?? [];
-    const schedule = await readEventData<ScheduleState>(eventId, "schedule", initialSchedule());
+    const event = config.events.find((candidate) => candidate.id === eventId);
+    if (!eventId || !event) {
+      return Response.json({ ok: false, message: "赛事不存在或缺少赛事 ID" }, { status: 400 });
+    }
+    const requester = await resolveRequester(request, eventId);
+    const pool = event.mapPool.map((m) => m.name);
+    const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
     const match = schedule.matches.find((m) => m.id === matchId);
     const store = await loadStore(eventId);
     const session = store[matchId];

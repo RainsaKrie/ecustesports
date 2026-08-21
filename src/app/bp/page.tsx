@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
@@ -13,15 +13,21 @@ function fmt(iso: string): string {
   return iso.slice(5, 16).replace("T", " ");
 }
 
-export default function BPEntryPage() {
-  const event = useCurrentEventConfig();
-  const { state } = useSchedule();
+interface BPEntryPageProps {
+  searchParams: Promise<{ eventId?: string }>;
+}
+
+export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
+  const { eventId: requestedEventId } = use(searchParams);
+  const event = useCurrentEventConfig(requestedEventId);
+  const eventId = requestedEventId || event.id;
+  const { state } = useSchedule(eventId);
   const [sessions, setSessions] = useState<Record<string, BPSession>>({});
 
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      fetch("/api/data/bp", { cache: "no-store" })
+      fetch(`/api/data/bp?eventId=${encodeURIComponent(eventId)}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((json: { sessions?: Record<string, BPSession> }) => {
           if (!cancelled) setSessions(json.sessions ?? {});
@@ -36,7 +42,7 @@ export default function BPEntryPage() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, []);
+  }, [eventId]);
 
   const bpMatches = state.matches.filter((m) => m.status === "已排期" && m.teamAId !== "TBD" && m.teamBId !== "TBD");
 
@@ -87,7 +93,7 @@ export default function BPEntryPage() {
             return (
               <Link
                 key={match.id}
-                href={`/bp/${match.id}`}
+                href={`/bp/${match.id}?eventId=${encodeURIComponent(eventId)}`}
                 className="border border-gray-200 bg-white p-5 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between">
@@ -126,7 +132,7 @@ export default function BPEntryPage() {
       {/* BP entrance */}
       <div className="mt-6 text-center">
         {bpMatches.length > 0 ? (
-          <Button href={`/bp/${bpMatches[0].id}`} variant="outline">进入第一场 BP 房间 →</Button>
+          <Button href={`/bp/${bpMatches[0].id}?eventId=${encodeURIComponent(eventId)}`} variant="outline">进入第一场 BP 房间 →</Button>
         ) : (
           <p className="text-sm text-gray-500">赛程排期后开放 BP 房间</p>
         )}

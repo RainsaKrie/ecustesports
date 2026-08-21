@@ -18,6 +18,8 @@ export interface RegistrationPlayer {
   status: "已报名" | "已入队" | "已退赛";
   teamId?: string; // 所属队伍
   role?: "首发" | "替补" | "教练"; // 队内角色
+  /** 参赛管理码摘要；原始管理码只在报名成功时返回给本人。 */
+  manageTokenHash?: string;
 }
 
 /** 队伍（一组选手） */
@@ -30,10 +32,27 @@ export interface RegistrationTeam {
   createdAt: string;
 }
 
+export type TeamRequestType = "application" | "invitation";
+export type TeamRequestStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+/** 组队必须经过双方确认：选手申请由队长处理，队长邀请由选手处理。 */
+export interface TeamRequest {
+  id: string;
+  type: TeamRequestType;
+  teamId: string;
+  playerId: string;
+  role: "首发" | "替补" | "教练";
+  initiatedByPlayerId: string;
+  status: TeamRequestStatus;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 /** 报名状态 */
 export interface RegistrationState {
   players: RegistrationPlayer[];
   teams: RegistrationTeam[];
+  teamRequests?: TeamRequest[];
   /** 是否停止接收新的个人报名 */
   playerRegistrationClosed: boolean;
   /** 是否停止建队、入队与名单调整 */
@@ -46,6 +65,7 @@ export function initialRegistration(): RegistrationState {
   return {
     players: [],
     teams: [],
+    teamRequests: [],
     playerRegistrationClosed: false,
     teamRegistrationClosed: false,
     frozen: false,
@@ -63,6 +83,7 @@ export function normalizeRegistrationState(value: unknown): RegistrationState {
   return {
     players: Array.isArray(source.players) ? source.players : [],
     teams: Array.isArray(source.teams) ? source.teams : [],
+    teamRequests: Array.isArray(source.teamRequests) ? source.teamRequests : [],
     playerRegistrationClosed: hasPlayerClosedFlag ? source.playerRegistrationClosed === true : legacyFrozen,
     teamRegistrationClosed: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,
     frozen: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,

@@ -7,27 +7,32 @@ function rulesToText(rules: EditableEvent["rules"]): string {
 }
 
 export function getConfiguredEvents(config: SiteConfig): EsportEvent[] {
-  const currentEvent = config.events.find((e) => e.id === config.currentEventId) ?? config.events[0];
-  const current: EsportEvent = {
+  const published = config.events.filter((event) => event.status !== "draft");
+  const ordered = [...published].sort((a, b) => {
+    if (a.id === config.currentEventId) return -1;
+    if (b.id === config.currentEventId) return 1;
+    return (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
+  });
+  const events: EsportEvent[] = ordered.map((event) => ({
     ...mockEvent,
-    id: currentEvent.id,
-    name: currentEvent.name,
-    game: currentEvent.game,
-    status: currentEvent.status,
-    teamCount: currentEvent.teamCount,
-    teamSize: currentEvent.teamSize,
-    description: currentEvent.description,
-    rules: rulesToText(currentEvent.rules),
-    prizePool: currentEvent.prizePool,
-    organizer: currentEvent.organizer,
-    coverColor: currentEvent.coverColor,
-    posterImage: currentEvent.posterImage,
-    dateLabel: currentEvent.eventDateLabel,
-    registrationLabel: currentEvent.registrationLabel,
-    stageSummary: currentEvent.stageSummary,
-    preparationSteps: currentEvent.preparationSteps,
-    rulesList: currentEvent.rules,
-  };
+    id: event.id,
+    name: event.name,
+    game: event.game,
+    status: event.status,
+    teamCount: event.teamCount,
+    teamSize: event.teamSize,
+    description: event.description,
+    rules: rulesToText(event.rules),
+    prizePool: event.prizePool,
+    organizer: event.organizer,
+    coverColor: event.coverColor,
+    posterImage: event.posterImage,
+    dateLabel: event.eventDateLabel,
+    registrationLabel: event.registrationLabel,
+    stageSummary: event.stageSummary,
+    preparationSteps: event.preparationSteps,
+    rulesList: event.rules,
+  }));
 
   const archives: EsportEvent[] = config.archives.map((archive) => ({
     ...mockEvent,
@@ -43,5 +48,5 @@ export function getConfiguredEvents(config: SiteConfig): EsportEvent[] {
     teams: [],
   }));
 
-  return [current, ...archives];
+  return [...events, ...archives];
 }

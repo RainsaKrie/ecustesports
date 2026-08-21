@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { getLifecycleStages, stateStyles, type ModuleWithState } from "@/lib/operations-data";
 import type { EditableEvent } from "@/lib/site-config-schema";
 import type { EventStage } from "@/lib/scheduling/stage";
@@ -46,7 +46,6 @@ function NavLinks({ eventId, modules }: { eventId: string; modules: ModuleWithSt
 }
 
 export default function AdminSidebar({ event, stage, modules }: AdminSidebarProps) {
-  const router = useRouter();
   const lifecycle = getLifecycleStages(stage);
   // 生命周期 5 段 → 对应模块跳转
   const stageModuleHref: Record<string, string> = {
@@ -91,19 +90,6 @@ export default function AdminSidebar({ event, stage, modules }: AdminSidebarProp
           <p className="mb-2 px-3 font-mono text-[0.5625rem] font-bold tracking-[0.14em] text-slate-400">赛事工作区</p>
           <NavLinks eventId={event.id} modules={modules} />
 
-          <div className="mt-5 border-t border-slate-200 pt-4">
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/admin/logout", { method: "POST" });
-                router.push("/login");
-                router.refresh();
-              }}
-              className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-400 hover:text-[#c83242]"
-            >
-              退出登录
-            </button>
-          </div>
         </div>
       </aside>
 

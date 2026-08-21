@@ -116,7 +116,7 @@ function Bracket({ matches, bpSessions, onSelect }: { matches: ScheduleMatch[]; 
 
 export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
-  const { state, submitRequest, approveRequest, toggleFrozen, setMatchTime, reportGameResults, reset } = useSchedule(id);
+  const { state, submitRequest, approveRequest, toggleFrozen, setMatchTime, reportGameResults, reset } = useSchedule(id, "admin");
 
   const [selected, setSelected] = useState<ScheduleMatch | null>(null);
   const [mode, setMode] = useState<DialogMode>("overview");
@@ -141,7 +141,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      fetch("/api/data/bp", { cache: "no-store" })
+      fetch(`/api/data/bp?eventId=${encodeURIComponent(id)}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((json: { sessions?: Record<string, BPSession> }) => {
           if (!cancelled) setBpSessions(json.sessions ?? {});
@@ -156,7 +156,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, []);
+  }, [id]);
 
   function openMatch(m: ScheduleMatch) {
     setSelected(m);
@@ -170,7 +170,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
     setScoreError("");
     setGames([{ map: "", teamAScore: 0, teamBScore: 0 }]);
     setReportMaps(m.bpMaps ?? []);
-    fetch(`/api/data/bp?matchId=${encodeURIComponent(m.id)}`, { cache: "no-store" })
+    fetch(`/api/data/bp?eventId=${encodeURIComponent(id)}&matchId=${encodeURIComponent(m.id)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((json: { session?: { finalMaps?: string[] } | null }) => {
         const maps = json.session?.finalMaps ?? m.bpMaps ?? [];
@@ -305,7 +305,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                   )}
                   {selected.status === "已排期" && (
                     <>
-                      <Link href={`/bp/${selected.id}`} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-700">去 BP</Link>
+                      <Link href={`/bp/${selected.id}?eventId=${encodeURIComponent(id)}`} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-700">去 BP</Link>
                       <button onClick={() => setMode("report")} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white">报分</button>
                       <button onClick={() => setMode("reschedule")} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-700">改期</button>
                     </>

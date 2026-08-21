@@ -78,6 +78,17 @@ export interface ScheduleState {
   notifications: NotificationDraft[];
 }
 
+/** 新赛事的真实空状态。演示赛程只能由负责人主动载入，不能作为读失败兜底。 */
+export function emptySchedule(): ScheduleState {
+  return {
+    version: 0,
+    matches: [],
+    versions: [],
+    requests: [],
+    notifications: [],
+  };
+}
+
 function pad(n: number): string {
   return String(n).padStart(2, "0");
 }

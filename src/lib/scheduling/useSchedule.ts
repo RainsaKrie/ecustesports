@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ScheduleState, ScheduleMatch, GameResult } from "./schedule-data";
-import { initialSchedule } from "./schedule-data";
+import { emptySchedule } from "./schedule-data";
 import type { ValidationResult } from "./rule-engine";
 import {
   importMatchesOp,
@@ -21,38 +21,42 @@ import {
   saveBPMapsOp,
 } from "./schedule-ops";
 
-export function useSchedule(eventId?: string) {
-  const [state, setState] = useState<ScheduleState>(initialSchedule());
-  const [loaded, setLoaded] = useState(false);
+export function useSchedule(eventId?: string, access: "public" | "admin" = "public") {
+  const [state, setState] = useState<ScheduleState>(emptySchedule());
+  const [loadedEventId, setLoadedEventId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/data/schedule${eventId ? `?eventId=${encodeURIComponent(eventId)}` : ""}`)
-      .then((r) => r.json())
+    if (!eventId) {
+      return;
+    }
+    const endpoint = access === "admin" ? "/api/data/schedule" : "/api/public/schedule";
+    fetch(`${endpoint}?eventId=${encodeURIComponent(eventId)}`)
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("赛程读取失败")))
       .then((data) => {
-        if (!cancelled) setState(data as ScheduleState);
+        if (!cancelled) {
+          setState({ ...emptySchedule(), ...(data as Partial<ScheduleState>) });
+          setLoadedEventId(eventId);
+        }
       })
       .catch(() => {
         // 用默认值
-      })
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [eventId]);
+  }, [eventId, access]);
 
   useEffect(() => {
-    if (!loaded) return;
-    fetch(`/api/data/schedule${eventId ? `?eventId=${encodeURIComponent(eventId)}` : ""}`, {
+    if (access !== "admin" || !eventId || loadedEventId !== eventId) return;
+    fetch(`/api/data/schedule?eventId=${encodeURIComponent(eventId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
     }).catch(() => {
       // 保存失败不阻断交互
     });
-  }, [state, loaded, eventId]);
+  }, [state, loadedEventId, eventId, access]);
 
   /** 提交改期申请并校验，返回校验结果 */
   const submitRequest = useCallback(
@@ -137,7 +141,7 @@ export function useSchedule(eventId?: string) {
 
   /** 重置为初始演示数据 */
   const reset = useCallback(() => {
-    setState(initialSchedule());
+    setState(emptySchedule());
   }, []);
 
   return {

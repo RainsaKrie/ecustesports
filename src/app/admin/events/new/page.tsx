@@ -100,7 +100,7 @@ export default function NewEventPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
       <div className="mb-8 flex items-center border border-slate-200 bg-white">
         {steps.map((s, i) => (
           <div key={s.n} className="flex flex-1 items-center">

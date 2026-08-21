@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
-import { useRegistration } from "@/lib/scheduling/useRegistration";
+import { participantTokenKey, usePublicRegistration } from "@/lib/scheduling/usePublicRegistration";
 
 const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
 
@@ -14,7 +14,7 @@ const inputClass =
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const event = useCurrentEventConfig(id);
-  const { state, submitPlayer } = useRegistration(id);
+  const { state } = usePublicRegistration(id);
 
   const now = new Date();
   const start = event.registrationStart ? new Date(`${event.registrationStart}T00:00:00`) : null;
@@ -32,6 +32,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   const [college, setCollege] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [manageToken, setManageToken] = useState("");
 
   async function handleSubmit() {
     if (phase !== "open") return;
@@ -44,16 +45,25 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
       return;
     }
     try {
-      await submitPlayer({
-        name: name.trim(),
-        studentId: studentId.trim(),
-        gameId: gameId.trim(),
-        rank,
-        qq: qq.trim() || undefined,
-        wechat: wechat.trim() || undefined,
-        phone: phone.trim() || undefined,
-        college: college.trim() || undefined,
+      const response = await fetch("/api/public/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: id,
+          name: name.trim(),
+          studentId: studentId.trim(),
+          gameId: gameId.trim(),
+          rank,
+          qq: qq.trim() || undefined,
+          wechat: wechat.trim() || undefined,
+          phone: phone.trim() || undefined,
+          college: college.trim() || undefined,
+        }),
       });
+      const result = await response.json() as { manageToken?: string; message?: string };
+      if (!response.ok || !result.manageToken) throw new Error(result.message ?? "报名提交失败，请稍后重试。");
+      localStorage.setItem(participantTokenKey(id), result.manageToken);
+      setManageToken(result.manageToken);
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : "报名提交失败，请稍后重试。");
       return;
@@ -73,12 +83,17 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           </div>
           <h2 className="text-lg font-bold text-gray-900">报名成功</h2>
           <p className="mt-2 text-sm text-gray-500">
-            你已进入选手池。可以与队友互相邀请组成队伍，也可以去人才市场创建队伍或联系队长加入。
+            你已进入选手池。可以创建队伍、申请加入已有队伍，或由队长输入你的完整游戏 ID 发出邀请。
           </p>
-          <p className="mt-4 text-xs text-gray-400">当前已报名 {state.players.length} 名选手</p>
+          <div className="mt-5 bg-slate-50 p-4 text-left">
+            <p className="text-xs font-bold text-slate-700">请保存你的参赛管理码</p>
+            <code className="mt-2 block break-all text-xs text-slate-600">{manageToken}</code>
+            <p className="mt-2 text-[0.6875rem] leading-5 text-slate-400">用于修改报名、申请或邀请组队。系统已在本设备保存，换设备时仍需此码。</p>
+          </div>
+          <p className="mt-4 text-xs text-gray-400">当前已报名 {state.playerCount + 1} 名选手</p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link href={`/events/${id}/market`} className="bg-[#ff4655] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#d83b48]">
-              去人才市场组队 →
+            <Link href={`/events/${id}/manage`} className="bg-[#ff4655] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#d83b48]">
+              管理报名与组队 →
             </Link>
             <Link href="/" className="border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:border-gray-500">
               返回首页

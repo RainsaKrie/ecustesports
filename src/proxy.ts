@@ -7,8 +7,9 @@ const PUBLIC_WRITE_PATHS = [
   "/api/admin/login",
   "/api/admin/logout",
   "/api/public/register",
+  "/api/public/participant",
   "/api/public/team",
-  "/api/public/team/member",
+  "/api/public/team/request",
   "/api/data/bp",
 ];
 

@@ -1,19 +1,10 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { DEFAULT_SITE_CONFIG, normalizeSiteConfig, type EditableEvent, type SiteConfig } from "@/lib/site-config-schema";
-
-const dataDirectory = path.join(process.cwd(), "data");
-const configPath = path.join(dataDirectory, "site-config.json");
+import { readData, updateData, writeData } from "@/lib/data-store";
 
 export async function getSiteConfig(): Promise<SiteConfig> {
-  try {
-    const raw = await readFile(configPath, "utf8");
-    return normalizeSiteConfig(JSON.parse(raw));
-  } catch {
-    return DEFAULT_SITE_CONFIG;
-  }
+  return normalizeSiteConfig(await readData("site-config", DEFAULT_SITE_CONFIG));
 }
 
 export async function saveSiteConfig(value: unknown): Promise<SiteConfig> {
@@ -21,12 +12,22 @@ export async function saveSiteConfig(value: unknown): Promise<SiteConfig> {
     ...((typeof value === "object" && value !== null) ? value : {}),
     updatedAt: new Date().toISOString(),
   });
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await writeData("site-config", config);
   return config;
 }
 
-/** 按 id 取赛事；不传 id 时返回当前赛事；找不到时回退第一个赛事 */
+/** 串行更新站点配置，防止两位办赛者同时编辑不同赛事时互相覆盖。 */
+export async function updateSiteConfig(
+  updater: (current: SiteConfig) => SiteConfig | Promise<SiteConfig>,
+): Promise<SiteConfig> {
+  return updateData("site-config", DEFAULT_SITE_CONFIG, async (stored) => {
+    const current = normalizeSiteConfig(stored);
+    const next = await updater(current);
+    return normalizeSiteConfig({ ...next, updatedAt: new Date().toISOString() });
+  });
+}
+
+/** 按 id 取赛事；未传 id 的兼容分支只用于首页焦点展示，后台业务必须显式传 id。 */
 export function getEvent(config: SiteConfig, eventId?: string | null): EditableEvent {
   const id = eventId && eventId.trim() !== "" ? eventId : config.currentEventId;
   return config.events.find((e) => e.id === id) ?? config.events[0] ?? DEFAULT_SITE_CONFIG.events[0];

@@ -5,9 +5,12 @@
 // POST /api/admin/events/switch 切换当前赛事
 // =====================
 
-import { getSiteConfig, saveSiteConfig } from "@/lib/site-config";
+import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { buildEventFromTemplate, type StageConfig } from "@/lib/scheduling/format-templates";
+import { writeEventData } from "@/lib/data-store";
+import { initialRegistration } from "@/lib/scheduling/registration-data";
+import { emptySchedule } from "@/lib/scheduling/schedule-data";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -68,7 +71,6 @@ export async function POST(request: NextRequest) {
       contact: text(proposalRaw.contact, 80),
     };
 
-    const config = await getSiteConfig();
     const eventId = `event-${Date.now().toString(36)}`;
     const newEvent = buildEventFromTemplate({
       id: eventId,
@@ -88,11 +90,16 @@ export async function POST(request: NextRequest) {
     // 策划案信息写入赛事对象
     newEvent.proposal = proposal;
 
-    const saved = await saveSiteConfig({
+    // 新赛事必须显式拥有空数据，不能从演示赛事或首页焦点赛事继承。
+    await Promise.all([
+      writeEventData(eventId, "registration", initialRegistration()),
+      writeEventData(eventId, "schedule", emptySchedule()),
+      writeEventData(eventId, "format", { seedPots: [], groups: [], matchups: [] }),
+    ]);
+    const saved = await updateSiteConfig((config) => ({
       ...config,
       events: [...config.events, newEvent],
-      currentEventId: eventId,
-    });
+    }));
 
     return Response.json({ message: "赛事创建成功", event: saved.events.find((e) => e.id === eventId) });
   } catch {
@@ -199,10 +206,10 @@ export async function PATCH(request: NextRequest) {
       preparationSteps,
     };
 
-    const saved = await saveSiteConfig({
-      ...config,
-      events: config.events.map((event) => event.id === eventId ? nextEvent : event),
-    });
+    const saved = await updateSiteConfig((latest) => ({
+      ...latest,
+      events: latest.events.map((event) => event.id === eventId ? nextEvent : event),
+    }));
     return Response.json({
       message: "赛事设置已保存",
       event: saved.events.find((event) => event.id === eventId),

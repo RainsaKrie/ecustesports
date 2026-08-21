@@ -122,8 +122,9 @@ export interface SiteConfig {
     title: string;
     description: string;
   };
-  /** 全部赛事（含已结束），currentEventId 指向当前对外展示的赛事 */
+  /** 全部赛事（含已结束）；每场赛事的数据与后台工作区由各自 id 隔离。 */
   events: EditableEvent[];
+  /** 兼容字段：仅表示首页焦点赛事，不得作为后台或 API 的隐式赛事上下文。 */
   currentEventId: string;
   archives: EditableArchive[];
 }

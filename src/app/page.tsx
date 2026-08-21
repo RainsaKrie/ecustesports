@@ -4,7 +4,7 @@ import { getConfiguredEvents } from "@/lib/configured-events";
 import { getEvent, getSiteConfig } from "@/lib/site-config";
 import { getEventStage } from "@/lib/scheduling/stage";
 import { readEventData } from "@/lib/data-store";
-import { initialSchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import EventsCarousel from "@/components/events/EventsCarousel";
 import EventCard from "@/components/events/EventCard";
 import Container from "@/components/layout/Container";
@@ -14,28 +14,41 @@ export default async function Home() {
   const config = await getSiteConfig();
   const events = getConfiguredEvents(config);
   const current = events[0];
-  const cfgEvent = getEvent(config);
+  const cfgEvent = current ? getEvent(config, current.id) : null;
   // 阶段判定（自动 + 手动覆盖）
-  const schedule = await readEventData<ScheduleState>(cfgEvent.id, "schedule", initialSchedule());
+  const schedule = cfgEvent
+    ? await readEventData<ScheduleState>(cfgEvent.id, "schedule", emptySchedule())
+    : emptySchedule();
   const hasSchedule = Array.isArray(schedule.matches) && schedule.matches.length > 0;
   const stage = getEventStage({
-    status: current.status,
-    registrationStart: cfgEvent.registrationStart,
-    registrationEnd: cfgEvent.registrationEnd,
+    status: current?.status ?? "draft",
+    registrationStart: cfgEvent?.registrationStart,
+    registrationEnd: cfgEvent?.registrationEnd,
     hasSchedule,
   });
 
   return (
     <div className="home-shell">
       {/* 主视觉：当前赛事海报作底板（替代原 hero-stage + live-panel）*/}
-      <EventsCarousel events={events} height="min-h-[80vh]" stage={stage} />
+      {current ? (
+        <EventsCarousel events={events} height="min-h-[80vh]" stage={stage} />
+      ) : (
+        <section className="grid min-h-[70vh] place-items-center bg-[#09111a] px-6 text-center text-white">
+          <div className="max-w-2xl">
+            <p className="font-mono text-xs font-black tracking-[0.18em] text-[#ff4655]">ECUST ESPORTS</p>
+            <h1 className="mt-5 text-4xl font-black sm:text-6xl">下一场校内赛，正在筹备</h1>
+            <p className="mt-5 leading-7 text-slate-300">报名时间、参赛规则和赛程确认后将在这里公开。</p>
+            <Link href="/events" className="mt-8 inline-flex bg-[#ff4655] px-6 py-3 text-sm font-black">查看赛事</Link>
+          </div>
+        </section>
+      )}
 
       <div className="signal-strip" aria-label="赛事信息导航">
         <Container className="signal-strip__inner">
           {["赛事手册", "选手名单", "队伍名单", "赛程", "对阵图"].map((item, index) => (
             <Fragment key={`${item}-${index}`}>
               {index > 0 && <i />}
-              <Link href={`/events/${current.id}?tab=${encodeURIComponent(item)}`} className="transition-opacity hover:opacity-75">
+              <Link href={current ? `/events/${current.id}?tab=${encodeURIComponent(item)}` : "/events"} className="transition-opacity hover:opacity-75">
                 {item}
               </Link>
             </Fragment>
@@ -97,7 +110,7 @@ export default async function Home() {
             <p className="section-kicker section-kicker--light"><span /> {config.home.closingKicker}</p>
             <h2>{config.home.closingTitle}</h2>
           </div>
-          <Button href={`/events/${cfgEvent.id}`} size="lg">
+          <Button href={cfgEvent ? `/events/${cfgEvent.id}` : "/events"} size="lg">
             {config.home.closingCta} <span aria-hidden="true">↗</span>
           </Button>
         </Container>

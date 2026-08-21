@@ -3,8 +3,9 @@
 // 只追加单个选手，不做全量覆盖，避免暴露/篡改队伍与其他选手数据
 // =====================
 
-import { readEventData, writeEventData } from "@/lib/data-store";
-import { getEvent, getSiteConfig } from "@/lib/site-config";
+import { updateEventData } from "@/lib/data-store";
+import { getSiteConfig } from "@/lib/site-config";
+import { issueParticipantToken, withoutParticipantSecret } from "@/lib/participant-auth";
 import { RANK_VALUE } from "@/lib/scheduling/format-data";
 import {
   initialRegistration,
@@ -63,7 +64,13 @@ export async function POST(request: Request) {
     if (requestedEventId && !config.events.some((event) => event.id === requestedEventId)) {
       return Response.json({ message: "赛事不存在或已下线。" }, { status: 404 });
     }
-    const event = getEvent(config, requestedEventId);
+    const event = config.events.find((item) => item.id === requestedEventId);
+    if (!event || event.status === "draft" || event.status === "archived") {
+      return Response.json({ message: "赛事不存在或尚未公开。" }, { status: 404 });
+    }
+    if (event.status !== "registration") {
+      return Response.json({ message: "当前赛事未开放报名。" }, { status: 403 });
+    }
     const { registrationStart, registrationEnd } = event;
     if (registrationStart && registrationEnd) {
       const now = Date.now();
@@ -74,13 +81,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const state = normalizeRegistrationState(
-      await readEventData<RegistrationState>(event.id, "registration", initialRegistration()),
-    );
-    if (state.playerRegistrationClosed) {
-      return Response.json({ message: "选手报名已截止。" }, { status: 403 });
-    }
-
+    const credential = issueParticipantToken();
     const player: RegistrationPlayer = {
       id: `P-${Date.now()}${Math.random().toString(36).slice(2, 8)}`,
       name,
@@ -93,11 +94,27 @@ export async function POST(request: Request) {
       ...(college ? { college } : {}),
       submittedAt: new Date().toISOString(),
       status: "已报名",
+      manageTokenHash: credential.tokenHash,
     };
-
-    const next: RegistrationState = { ...state, players: [...state.players, player] };
-    await writeEventData(event.id, "registration", next);
-    return Response.json({ player, state: next });
+    let rejection = "";
+    await updateEventData<RegistrationState>(event.id, "registration", initialRegistration(), (stored) => {
+      const state = normalizeRegistrationState(stored);
+      if (state.playerRegistrationClosed) {
+        rejection = "选手报名已截止。";
+        return state;
+      }
+      if (state.players.some((item) => item.studentId.toLowerCase() === studentId.toLowerCase())) {
+        rejection = "该学号已经提交过报名。如需修改，请使用参赛管理码。";
+        return state;
+      }
+      if (state.players.some((item) => item.gameId.toLowerCase() === gameId.toLowerCase())) {
+        rejection = "该游戏 ID 已经提交过报名。";
+        return state;
+      }
+      return { ...state, players: [...state.players, player] };
+    });
+    if (rejection) return Response.json({ message: rejection }, { status: 409 });
+    return Response.json({ player: withoutParticipantSecret(player), manageToken: credential.token });
   } catch {
     return Response.json({ message: "报名提交失败，请稍后重试。" }, { status: 400 });
   }

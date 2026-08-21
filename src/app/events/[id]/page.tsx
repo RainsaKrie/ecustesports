@@ -3,7 +3,7 @@ import { getEvent, getSiteConfig } from "@/lib/site-config";
 import { getStatusInfo } from "@/lib/utils";
 import { getEventStage } from "@/lib/scheduling/stage";
 import { readEventData } from "@/lib/data-store";
-import { initialSchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import EventDetailTabs from "@/components/events/EventDetailTabs";
 import Container from "@/components/layout/Container";
 import Badge from "@/components/ui/Badge";
@@ -26,7 +26,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const statusInfo = getStatusInfo(event.status);
 
   // 阶段判定（自动 + 手动覆盖）
-  const schedule = await readEventData<ScheduleState>(cfgEvent.id, "schedule", initialSchedule());
+  const schedule = await readEventData<ScheduleState>(cfgEvent.id, "schedule", emptySchedule());
   const hasSchedule = Array.isArray(schedule.matches) && schedule.matches.length > 0;
   const stage = getEventStage({
     status: event.status,
@@ -37,7 +37,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   const isPreparing = event.status === "draft";
   const isArchive = event.status === "archived";
-  const hasPublishedCompetitionData = !isPreparing && !isArchive;
+  const hasPublishedCompetitionData = event.status === "ongoing" || event.status === "completed" || isArchive;
 
   return (
     <div>
@@ -53,27 +53,30 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                 <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
                 <span className="text-sm text-gray-500">{event.game}</span>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">{event.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{event.name}</h1>
               <p className="text-gray-600 mt-2 max-w-2xl">{event.description}</p>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="grid w-full flex-shrink-0 grid-cols-1 gap-2 sm:flex sm:w-auto">
+              <Button href={`/events/${event.id}/manage`} variant="outline" size="lg" className="w-full whitespace-nowrap sm:w-auto">
+                管理我的参赛
+              </Button>
               {event.status === "registration" && (
-                <Button href={`/events/${event.id}/register`} size="lg">
+                <Button href={`/events/${event.id}/register`} size="lg" className="w-full whitespace-nowrap sm:w-auto">
                   立即报名
                 </Button>
               )}
               {isPreparing && (
-                <Button href={`/events/${event.id}`} size="lg">
+                <Button href={`/events/${event.id}`} size="lg" className="w-full whitespace-nowrap sm:w-auto">
                   查看参赛须知
                 </Button>
               )}
               {event.status === "ongoing" && (
-                <Button href={`/events/${event.id}/bracket`} variant="outline" size="lg">
+                <Button href={`/events/${event.id}/bracket`} variant="outline" size="lg" className="w-full whitespace-nowrap sm:w-auto">
                   全屏对阵图
                 </Button>
               )}
               {hasPublishedCompetitionData && (
-                <Button href={`/events/${event.id}/report`} variant="ghost" size="lg">
+                <Button href={`/events/${event.id}/report`} variant="ghost" size="lg" className="w-full whitespace-nowrap sm:w-auto">
                   赛事回顾
                 </Button>
               )}

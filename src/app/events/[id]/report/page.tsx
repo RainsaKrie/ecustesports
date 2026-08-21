@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
-import { useRegistration } from "@/lib/scheduling/useRegistration";
+import { usePublicRegistration } from "@/lib/scheduling/usePublicRegistration";
 import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -20,7 +20,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params);
   const event = useCurrentEventConfig(id);
   const { state: schedule } = useSchedule(id);
-  const { state: registration } = useRegistration(id);
+  const { state: registration } = usePublicRegistration(id);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [highlights, setHighlights] = useState("");
@@ -41,7 +41,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
       : finalMatch.teamAName
     : null;
 
-  const teamCount = registration.teams.length;
+  const teamCount = registration.teamCount;
   const totalMatches = schedule.matches.length;
   const completedCount = completed.length;
 

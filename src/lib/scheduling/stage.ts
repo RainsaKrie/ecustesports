@@ -25,11 +25,13 @@ export function getEventStage(params: {
 
   // 明确终态：已结束 / 已归档
   if (status === "completed" || status === "archived") return "赛后";
+  // 草稿不会因为填写了日期而自动公开或进入报名阶段。
+  if (status === "draft") return "筹备";
   // 进行中：有赛程 = 比赛期，没赛程 = 分组期
   if (status === "ongoing") return hasSchedule ? "比赛" : "分组";
   // 报名中
   if (status === "registration") return "报名";
-  // 筹备中：若报名时间窗口已开启，自动进报名期
+  // 兼容无明确状态的旧数据：若报名时间窗口已开启，判定为报名期。
   if (registrationStart && registrationEnd) {
     const now = Date.now();
     const start = new Date(registrationStart).getTime();

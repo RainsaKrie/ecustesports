@@ -5,7 +5,7 @@ import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
-import { useRegistration } from "@/lib/scheduling/useRegistration";
+import { useParticipant } from "@/lib/scheduling/useParticipant";
 import { currentStep, type BPAction } from "@/lib/scheduling/bp";
 import type { BPSession } from "@/lib/scheduling/bp-ops";
 import { mapImageOf } from "@/lib/maps";
@@ -13,15 +13,18 @@ import Badge from "@/components/ui/Badge";
 
 interface BPPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ eventId?: string }>;
 }
 
 const POLL_MS = 3000;
 
-export default function BPPage({ params }: BPPageProps) {
+export default function BPPage({ params, searchParams }: BPPageProps) {
   const { id: matchId } = use(params);
-  const event = useCurrentEventConfig();
-  const { state: schedule } = useSchedule();
-  const { state: registration, currentPlayerId } = useRegistration();
+  const { eventId: requestedEventId } = use(searchParams);
+  const event = useCurrentEventConfig(requestedEventId);
+  const eventId = requestedEventId || event.id;
+  const { state: schedule } = useSchedule(eventId);
+  const participant = useParticipant(eventId);
   const match = schedule.matches.find((m) => m.id === matchId);
   const pool = event.mapPool.map((m) => m.name);
 
@@ -33,7 +36,7 @@ export default function BPPage({ params }: BPPageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/data/bp?matchId=${encodeURIComponent(matchId)}`, { cache: "no-store" })
+    fetch(`/api/data/bp?eventId=${encodeURIComponent(eventId)}&matchId=${encodeURIComponent(matchId)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((json: { session?: BPSession | null }) => {
         if (!cancelled) setSession(json.session ?? null);
@@ -52,13 +55,13 @@ export default function BPPage({ params }: BPPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [matchId]);
+  }, [eventId, matchId]);
 
   const shouldPoll = session?.status === "进行中";
   useEffect(() => {
     if (!shouldPoll) return;
     const timer = setInterval(() => {
-      fetch(`/api/data/bp?matchId=${encodeURIComponent(matchId)}`, { cache: "no-store" })
+      fetch(`/api/data/bp?eventId=${encodeURIComponent(eventId)}&matchId=${encodeURIComponent(matchId)}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((json: { session?: BPSession | null }) => setSession(json.session ?? null))
         .catch(() => {
@@ -66,7 +69,7 @@ export default function BPPage({ params }: BPPageProps) {
         });
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [shouldPoll, matchId]);
+  }, [shouldPoll, eventId, matchId]);
 
   const post = useCallback(
     async (body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; session?: BPSession; swapped?: boolean }> => {
@@ -75,8 +78,11 @@ export default function BPPage({ params }: BPPageProps) {
       try {
         const res = await fetch("/api/data/bp", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...body, matchId, ...(currentPlayerId ? { playerId: currentPlayerId } : {}) }),
+          headers: {
+            "Content-Type": "application/json",
+            ...(participant.token ? { Authorization: `Bearer ${participant.token}` } : {}),
+          },
+          body: JSON.stringify({ ...body, eventId, matchId }),
         });
         const json = (await res.json()) as { ok: boolean; message?: string; session?: BPSession; swapped?: boolean };
         if (!res.ok || !json.ok) {
@@ -92,14 +98,14 @@ export default function BPPage({ params }: BPPageProps) {
         setBusy(false);
       }
     },
-    [matchId, currentPlayerId],
+    [eventId, matchId, participant.token],
   );
 
   // 当前身份
-  const me = registration.players.find((p) => p.id === currentPlayerId);
-  const myTeamId = me?.teamId;
-  const myTeam = myTeamId ? registration.teams.find((t) => t.id === myTeamId) : undefined;
-  const isCaptain = myTeam?.captainId === me?.id;
+  const me = participant.data?.player;
+  const myTeam = participant.data?.team;
+  const myTeamId = myTeam?.id;
+  const isCaptain = participant.data?.isCaptain === true;
   const inMatch =
     myTeamId === match?.teamAId || myTeamId === match?.teamBId;
 
@@ -109,7 +115,7 @@ export default function BPPage({ params }: BPPageProps) {
         <div className="mx-auto max-w-2xl px-4 py-20 text-center">
           <p className="text-lg font-bold">未找到比赛 {matchId}</p>
           <p className="mt-2 text-sm text-gray-400">请从「比赛执行」或 BP 列表进入。</p>
-          <Link href="/bp" className="mt-6 inline-block border border-gray-600 px-5 py-2.5 text-sm font-bold text-gray-300 hover:bg-gray-800">返回 BP 列表</Link>
+          <Link href={`/bp?eventId=${encodeURIComponent(eventId)}`} className="mt-6 inline-block border border-gray-600 px-5 py-2.5 text-sm font-bold text-gray-300 hover:bg-gray-800">返回 BP 列表</Link>
         </div>
       </div>
     );
@@ -158,7 +164,7 @@ export default function BPPage({ params }: BPPageProps) {
           </div>
           <div className="flex items-center gap-3">
             {admin && <Badge className="bg-[#ff4655] text-white">裁判模式</Badge>}
-            <Link href="/bp" className="border border-gray-600 px-4 py-2 text-xs font-bold text-gray-300 hover:bg-gray-800">← BP 列表</Link>
+            <Link href={`/bp?eventId=${encodeURIComponent(eventId)}`} className="border border-gray-600 px-4 py-2 text-xs font-bold text-gray-300 hover:bg-gray-800">← BP 列表</Link>
           </div>
         </div>
 

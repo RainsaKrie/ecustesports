@@ -1041,6 +1041,29 @@ summary:focus-visible {
   .site-header__inner {
     width: min(100% - 28px, 1440px);
     height: 72px;
+    padding-inline: 0;
+    gap: 16px;
+  }
+
+  .site-brand {
+    min-width: 0;
+  }
+
+  .site-brand__text strong {
+    overflow: hidden;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-brand__text small {
+    overflow: hidden;
+    max-width: 220px;
+    font-size: 0.4167rem;
+    letter-spacing: 0.12em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .site-nav {

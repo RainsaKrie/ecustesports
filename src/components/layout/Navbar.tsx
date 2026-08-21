@@ -4,7 +4,7 @@ import type { SiteConfig } from "@/lib/site-config-schema";
 export default function Navbar({ config }: { config: SiteConfig }) {
   const navItems = [
     { label: config.navigation.home, href: "/" },
-    { label: config.navigation.events, href: `/events/${config.currentEventId}` },
+    { label: config.navigation.events, href: "/events" },
     { label: config.navigation.bp, href: "/bp" },
   ];
   return (
