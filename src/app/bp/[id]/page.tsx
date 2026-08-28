@@ -213,7 +213,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
         {!session && (
           <div className="bg-gray-800/50 p-10 text-center">
             <p className="text-sm text-gray-400">BP 尚未开始</p>
-            <p className="mt-2 text-xs text-gray-500">先手方默认 A 侧队伍，可先掷硬币决定先手</p>
+            <p className="mt-2 text-xs text-gray-500">默认先手：A 侧</p>
             <div className="mt-6 flex justify-center gap-3">
               {((isCaptain && inMatch) || admin) && (
                 <button onClick={handleStart} disabled={busy} className="bg-[#ff4655] px-6 py-3 text-sm font-bold text-white hover:bg-[#d83b48] disabled:opacity-50">
@@ -235,7 +235,6 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
             <p className="mt-3 text-xl font-black">
               比赛地图：{session.finalMaps?.join("、") ?? "—"}
             </p>
-            <p className="mt-2 text-xs text-gray-400">结果已写入赛程并生成通知草稿，可开始比赛。</p>
           </div>
         )}
 
@@ -252,9 +251,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                 </div>
               ) : null}
               {session.boType !== "BO5" && session.order.length - session.actions.length === 1 && (
-                <p className="mt-2 text-xs text-yellow-400">
-                  最后一步完成后，{session.boType === "BO1" ? "唯一图" : "决胜图"}由剩余地图自动产生
-                </p>
+                <p className="mt-2 text-xs text-yellow-400">剩余地图为{session.boType === "BO1" ? "比赛地图" : "决胜图"}</p>
               )}
             </div>
 
@@ -394,10 +391,6 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
           </>
         )}
 
-        {/* 投屏提示 */}
-        <p className="mt-8 text-center text-xs text-gray-500">
-          双方队长在不同设备操作时，本页每 {POLL_MS / 1000} 秒自动同步一次状态
-        </p>
       </div>
     </div>
   );

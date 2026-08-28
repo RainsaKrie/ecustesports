@@ -7,12 +7,23 @@
 import { normalizeRegistrationState, type RegistrationState, type RegistrationPlayer, type RegistrationTeam } from "./registration-data.ts";
 import { createTeamOp, addMemberOp } from "./registration-ops.ts";
 import { buildSeedPots, drawGroups, generateMatchups } from "./format-data.ts";
-import { buildTournamentMatches, TBD } from "./bracket.ts";
-import type { ScheduleState, GameResult } from "./schedule-data.ts";
-import { initialSchedule } from "./schedule-data.ts";
 import {
+  buildDoubleEliminationMatches,
+  buildGslGroupMatches,
+  buildQualificationMatches,
+  buildSingleEliminationMatches,
+  buildTournamentMatches,
+  TBD,
+} from "./bracket-engine.ts";
+import type { ScheduleState, GameResult } from "./schedule-data.ts";
+import { emptySchedule, initialSchedule } from "./schedule-data.ts";
+import {
+  appendMatchesOp,
+  archiveAndClearScheduleOp,
   importMatchesOp,
   submitRequestOp,
+  submitCaptainRequestOp,
+  resolveCaptainRequestOp,
   approveRequestOp,
   reportGameResultsOp,
   setMatchTimeOp,
@@ -20,6 +31,9 @@ import {
   maxGames,
 } from "./schedule-ops.ts";
 import type { SchedulingConfig } from "./rule-engine.ts";
+import { buildKnockoutDrawOrder, resolveStagedDrawGate } from "./staged-format.ts";
+import { buildDefaultEventRules, resolveTemplateIdFromStages, type StageConfig } from "./format-templates.ts";
+import { bracketDataIssue, buildBracketBlueprint } from "./bracket-blueprint.ts";
 
 let pass = 0;
 let fail = 0;
@@ -42,14 +56,31 @@ function fmt(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
 }
 
+console.log("== 0. 新赛事模板与规程预填 ==");
+{
+  const eightTeamDouble: StageConfig[] = [
+    { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
+  ];
+  check("8 队双败匹配正确模板", resolveTemplateIdFromStages(eightTeamDouble) === "val-8de");
+  const rules = buildDefaultEventRules(eightTeamDouble, 5);
+  check("规程同时包含赛制生成与通用继承", rules.some((rule) => rule.source === "format") && rules.some((rule) => rule.source === "common"));
+  check("8 队双败不会错误出现小组赛条款", !rules.some((rule) => rule.title === "小组赛" || rule.detail.includes("GSL")));
+  check("高风险处罚条款默认等待负责人确认", rules.filter((rule) => rule.emphasis === "warning").every((rule) => rule.confirmed === false));
+  check("赛程改期规则使用办赛语言并归入通用规则", rules.some((rule) => rule.title === "赛程与改期生效" && rule.source === "common" && rule.detail.includes("赛事负责人确认")));
+  const customPresetRules = buildDefaultEventRules(eightTeamDouble, 5, [
+    { title: "校内通用纪律", detail: "适用于后续全部校内赛事。", category: "conduct", emphasis: "important" },
+  ]);
+  check("负责人维护的通用预设会被新赛事继承", customPresetRules.some((rule) => rule.title === "校内通用纪律" && rule.source === "common"));
+}
+
 // ---- 构造 16 支冻结队伍（每队 5 名首发，段位按池递减） ----
 const RANKS = [["无畏战魂", "神话"], ["钻石", "超凡", "铂金"], ["黄金", "白银"], ["青铜", "铁"]];
-function makeRegistration(): RegistrationState {
+function makeRegistration(teamCount = 16): RegistrationState {
   const players: RegistrationPlayer[] = [];
   const teams: RegistrationTeam[] = [];
   let seq = 0;
-  for (let i = 0; i < 16; i++) {
-    const potRanks = RANKS[Math.floor(i / 4)];
+  for (let i = 0; i < teamCount; i++) {
+    const potRanks = RANKS[Math.floor((i % 16) / 4)];
     const memberIds: string[] = [];
     for (let k = 0; k < 5; k++) {
       const id = `P-${seq++}`;
@@ -167,21 +198,126 @@ check(
 );
 
 const nameOf = (id: string) => reg.teams.find((t) => t.id === id)?.name ?? id;
+
+const singleMatches = buildSingleEliminationMatches(
+  frozenTeams.slice(0, 4).map((team) => team.id),
+  nameOf,
+  { phase: "测试单败", boType: "BO1" },
+);
+check("4 队单败生成 3 场", singleMatches.length === 3);
+check("单败首轮 2 场有真实队伍，决赛为待定", singleMatches.slice(0, 2).every((match) => match.teamAId !== TBD && match.teamBId !== TBD) && singleMatches[2].teamAId === TBD && singleMatches[2].teamBId === TBD);
+check("单败 3 场全部沿用 BO1", singleMatches.every((match) => match.boType === "BO1"));
+let singleState = importMatchesOp(initialSchedule(), singleMatches);
+singleState = reportGameResultsOp(singleState, "M01", [{ teamAScore: 13, teamBScore: 5 }]).state;
+singleState = reportGameResultsOp(singleState, "M02", [{ teamAScore: 13, teamBScore: 7 }]).state;
+check("两场半决赛结束后自动填充决赛双方", singleState.matches[2].teamAId !== TBD && singleState.matches[2].teamBId !== TBD);
+singleState = reportGameResultsOp(singleState, "M03", [{ teamAScore: 13, teamBScore: 9 }]).state;
+check("4 队单败决出冠军", Boolean(singleState.matches[2].winnerTeamId));
+
 const matches = buildTournamentMatches(groups, matchups, nameOf);
-check("总场次 26（首轮 8 + 次轮 4 + 双败淘汰 14）", matches.length === 26);
+check("总场次 34（GSL 小组赛 20 + 双败淘汰 14）", matches.length === 34);
 check("首轮 8 场全部有真实队伍", matches.slice(0, 8).every((m) => m.teamAId !== TBD && m.teamBId !== TBD));
-check("次轮与淘汰赛以 TBD 占位", matches.slice(8).every((m) => m.teamAId === TBD && m.teamBId === TBD));
+check("小组后续轮次与淘汰赛以 TBD 占位", matches.slice(8).every((m) => m.teamAId === TBD && m.teamBId === TBD));
+check("每组都有揭幕战、胜者出线战、败者淘汰战和最终出线战", ["A 组", "B 组", "C 组", "D 组"].every((group) => matches.filter((m) => m.phase === "小组赛" && m.round?.startsWith(group)).length === 5));
 check("败者组决赛与总决赛为 BO5", matches.find((m) => m.round === "败者组决赛")?.boType === "BO5" && matches.find((m) => m.round === "总决赛")?.boType === "BO5");
 check("其余比赛均为 BO3", matches.filter((m) => m.round !== "败者组决赛" && m.round !== "总决赛").every((m) => m.boType === "BO3"));
 const m09 = matches.find((m) => m.id === "M09")!;
-const m13 = matches.find((m) => m.id === "M13")!;
-const m15 = matches.find((m) => m.id === "M15")!;
-const m26 = matches.find((m) => m.id === "M26")!;
-check("小组次轮胜者晋级胜者组、败者交叉进入八强", m09.nextMatchId === "M13" && m09.nextSide === "A" && m09.nextLoserMatchId === "M15" && m09.nextLoserSide === "B");
-check("总决赛无后续晋级", m26.nextMatchId === undefined && m26.nextLoserMatchId === undefined);
-check("八强前置比赛为小组次轮", m13.prerequisiteId === "M09" && m15.prerequisiteId === "M11");
+const m17 = matches.find((m) => m.id === "M17")!;
+const m21 = matches.find((m) => m.id === "M21")!;
+const m23 = matches.find((m) => m.id === "M23")!;
+const m34 = matches.find((m) => m.id === "M34")!;
+check("胜者出线战胜者成为小组第一，败者进入最终出线战", m09.nextMatchId === "M21" && m09.nextSide === "A" && m09.nextLoserMatchId === "M17" && m09.nextLoserSide === "A");
+check("最终出线战胜者作为小组第二交叉进入八强", m17.nextMatchId === "M23" && m17.nextSide === "B");
+check("总决赛无后续晋级", m34.nextMatchId === undefined && m34.nextLoserMatchId === undefined);
+check("八强前置比赛来自不同小组出线链路", m21.prerequisiteId === "M09" && m23.prerequisiteId === "M11");
 
-console.log("== 4. 完整赛程闭环：排期 → 报分 → 晋级 → 冠军 ==");
+const stagedBlueprintConfig: StageConfig[] = [
+  { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
+  { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
+  { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
+];
+const stagedBlueprint = buildBracketBlueprint(stagedBlueprintConfig);
+check("抽签前骨架展示 16 场入围赛签位", stagedBlueprint.length === 16);
+check("抽签前骨架使用 BO1 且带轮次", stagedBlueprint.every((match) => match.boType === "BO1" && match.round === "入围赛"));
+check("正式骨架可识别为有效对阵数据", bracketDataIssue(stagedBlueprint, stagedBlueprintConfig) === null);
+check("旧演示列表被识别并阻止伪装为对阵图", Boolean(bracketDataIssue(initialSchedule().matches, stagedBlueprintConfig)));
+const archivedLegacy = archiveAndClearScheduleOp(initialSchedule());
+check("归档旧赛程后当前比赛清空", archivedLegacy.matches.length === 0);
+check("归档旧赛程后保留 6 场历史快照", archivedLegacy.versions.some((version) => version.matches.length === 6));
+
+console.log("== 4. 三阶段分批抽签：32 → 16 → 8 ==");
+{
+  const stagedRegistration = makeRegistration(32);
+  const stagedTeams = stagedRegistration.teams.filter((team) => team.status === "已冻结");
+  const stagedName = (id: string) => stagedTeams.find((team) => team.id === id)?.name ?? id;
+  const stages: [StageConfig, StageConfig, StageConfig] = [
+    { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
+    { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
+    { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
+  ];
+
+  const initialGate = resolveStagedDrawGate(stages, stagedTeams.map((team) => team.id), []);
+  check("32 支正式队伍只开放入围赛抽签", initialGate.status === "ready" && initialGate.stageIndex === 0 && initialGate.entrantIds.length === 32);
+
+  const qualification = buildQualificationMatches(
+    stagedTeams.map((team) => team.id),
+    stagedName,
+    { phase: "入围赛", boType: "BO1", advancingTeams: 16 },
+  );
+  let stagedState = appendMatchesOp(emptySchedule(), qualification, "入围赛抽签发布");
+  check("入围赛只生成 16 场，不提前生成小组赛", stagedState.matches.length === 16 && stagedState.matches.every((match) => match.phase === "入围赛"));
+  const waitingForGroups = resolveStagedDrawGate(stages, stagedTeams.map((team) => team.id), stagedState.matches);
+  check("入围赛未完成时锁定小组赛抽签", waitingForGroups.status === "waiting" && waitingForGroups.stageIndex === 0);
+
+  for (const match of qualification) {
+    stagedState = reportGameResultsOp(stagedState, match.id, [{ teamAScore: 13, teamBScore: 5 }]).state;
+  }
+  const groupGate = resolveStagedDrawGate(stages, stagedTeams.map((team) => team.id), stagedState.matches);
+  check("16 场入围赛完成后只读取 16 个真实胜者", groupGate.status === "ready" && groupGate.stageIndex === 1 && groupGate.entrantIds.length === 16 && !groupGate.entrantIds.includes(TBD));
+  if (groupGate.status !== "ready") throw new Error("小组赛阶段未按预期解锁");
+
+  const groupTeams = stagedTeams.filter((team) => groupGate.entrantIds.includes(team.id));
+  const stagedPots = buildSeedPots(groupTeams, stagedRegistration.players);
+  const stagedGroups = drawGroups(stagedPots);
+  const stagedMatchups = generateMatchups(stagedGroups, stagedPots);
+  const groupStageMatches = buildGslGroupMatches(stagedGroups, stagedMatchups, stagedName, {
+    startIndex: 17,
+    phase: "小组赛",
+    boType: "BO3",
+  });
+  stagedState = appendMatchesOp(stagedState, groupStageMatches, "小组赛抽签发布");
+  check("小组赛追加 20 场并保留 16 场入围赛结果", stagedState.matches.length === 36 && stagedState.matches.slice(0, 16).every((match) => match.status === "已完成"));
+
+  let guard = 0;
+  while (guard++ < 30) {
+    const ready = stagedState.matches.find((match) =>
+      match.phase === "小组赛" && match.status !== "已完成" && match.teamAId !== TBD && match.teamBId !== TBD,
+    );
+    if (!ready) break;
+    stagedState = reportGameResultsOp(stagedState, ready.id, [
+      { teamAScore: 13, teamBScore: 5 },
+      { teamAScore: 13, teamBScore: 7 },
+    ]).state;
+  }
+  const knockoutGate = resolveStagedDrawGate(stages, stagedTeams.map((team) => team.id), stagedState.matches);
+  check("20 场小组赛完成后识别四个小组的第一和第二", knockoutGate.status === "ready" && knockoutGate.stageIndex === 2 && knockoutGate.qualifiers?.length === 8);
+  if (knockoutGate.status !== "ready" || !knockoutGate.qualifiers) throw new Error("淘汰赛阶段未按预期解锁");
+
+  const knockoutOrder = buildKnockoutDrawOrder(knockoutGate.qualifiers, () => 0.42);
+  const qualifierByTeam = new Map(knockoutGate.qualifiers.map((item) => [item.teamId, item]));
+  check("淘汰赛首轮每场均为小组第一对小组第二", [0, 2, 4, 6].every((index) => qualifierByTeam.get(knockoutOrder[index])?.placement === 1 && qualifierByTeam.get(knockoutOrder[index + 1])?.placement === 2));
+  check("同组第一和第二被安排在不同半区", knockoutGate.qualifiers.filter((item) => item.placement === 1).every((winner) => {
+    const runner = knockoutGate.qualifiers!.find((item) => item.group === winner.group && item.placement === 2)!;
+    return Math.floor(Math.floor(knockoutOrder.indexOf(winner.teamId) / 2) / 2) !== Math.floor(Math.floor(knockoutOrder.indexOf(runner.teamId) / 2) / 2);
+  }));
+
+  const knockoutMatches = buildDoubleEliminationMatches(knockoutOrder, stagedName, { startIndex: 37, phase: "淘汰赛", boType: "BO3" });
+  stagedState = appendMatchesOp(stagedState, knockoutMatches, "淘汰赛抽签发布");
+  check("三个阶段合计 50 场且比赛编号不重复", stagedState.matches.length === 50 && new Set(stagedState.matches.map((match) => match.id)).size === 50);
+  check("三次阶段发布保留连续版本记录", stagedState.version === 3 && stagedState.versions.length === 3);
+}
+
+console.log("== 5. 完整赛程闭环：排期 → 报分 → 晋级 → 冠军 ==");
 const config: SchedulingConfig = {
   maxConcurrentMatches: 2,
   boDurations: { BO1: 45, BO3: 90, BO5: 150 },
@@ -245,17 +381,17 @@ const config: SchedulingConfig = {
   state = playAll(state);
 
   const completedCount = state.matches.filter((m) => m.status === "已完成").length;
-  check("全部 26 场比赛完成", completedCount === 26);
+  check("全部 34 场比赛完成", completedCount === 34);
   check("所有比赛都有真实队伍（无 TBD 残留）", state.matches.every((m) => m.teamAId !== TBD && m.teamBId !== TBD));
-  const finalM26 = state.matches.find((m) => m.id === "M26")!;
-  check("总决赛有胜者", finalM26.winnerTeamId !== undefined && finalM26.winnerTeamId !== TBD);
-  const champion = finalM26.winnerTeamId === finalM26.teamAId ? finalM26.teamAName : finalM26.teamBName;
-  check(`冠军产生：${champion}`, finalM26.winnerTeamId !== undefined);
+  const finalM34 = state.matches.find((m) => m.id === "M34")!;
+  check("总决赛有胜者", finalM34.winnerTeamId !== undefined && finalM34.winnerTeamId !== TBD);
+  const champion = finalM34.winnerTeamId === finalM34.teamAId ? finalM34.teamAName : finalM34.teamBName;
+  check(`冠军产生：${champion}`, finalM34.winnerTeamId !== undefined);
   check("赛程版本随排期递增", state.version > 1 && state.versions.length > 1);
-  check("淘汰赛全部场次有比分记录", state.matches.slice(8).every((m) => m.gameResults && m.gameResults.length > 0));
+  check("小组后续与淘汰赛全部有比分记录", state.matches.slice(8).every((m) => m.gameResults && m.gameResults.length > 0));
 }
 
-console.log("== 5. 改期闭环（提交 → 校验 → 批准 → 版本 → 通知） ==");
+console.log("== 6. 改期闭环（提交 → 校验 → 批准 → 版本 → 通知） ==");
 {
   let s = initialSchedule();
   const okReq = submitRequestOp(s, {
@@ -312,7 +448,7 @@ console.log("== 5. 改期闭环（提交 → 校验 → 批准 → 版本 → �
   check("被拦截后申请冲突说明已刷新", staleApprove.state.requests.some((r) => r.id === staleId && r.conflicts.some((c) => c.code === "HC-01")));
 }
 
-console.log("== 6. 排期校验（validateMatchTime 经 setMatchTimeOp） ==");
+console.log("== 7. 排期校验（validateMatchTime 经 setMatchTimeOp） ==");
 {
   const s = initialSchedule();
   const ok = setMatchTimeOp(s, "M04", "2026-10-07T12:00:00");
@@ -325,6 +461,44 @@ console.log("== 6. 排期校验（validateMatchTime 经 setMatchTimeOp） ==");
   const played = reportGameResultsOp(s, "M01", [{ teamAScore: 13, teamBScore: 5 }, { teamAScore: 13, teamBScore: 7 }]);
   const done = setMatchTimeOp(played.state, "M01", "2026-10-07T12:00:00");
   check("已完成比赛不能改时间", !done.value!.approved);
+}
+
+console.log("== 8. 双队长约赛（发起 → 对手确认 → 负责人审批） ==");
+{
+  let s = initialSchedule();
+  const proposed = submitCaptainRequestOp(s, {
+    matchId: "M04",
+    newStartTime: "2026-10-07T12:00:00",
+    reason: "双方晚一日参赛",
+    proposedByTeamId: "G",
+  });
+  check("队长可提交无冲突候选时间", proposed.value?.ok === true && proposed.value.request?.status === "待对手确认");
+  s = proposed.state;
+  const duplicate = submitCaptainRequestOp(s, {
+    matchId: "M04",
+    newStartTime: "2026-10-07T14:00:00",
+    reason: "重复申请",
+    proposedByTeamId: "G",
+  });
+  check("同场待处理申请不会重复创建", duplicate.value?.ok === false && duplicate.state.requests.length === 1);
+  const requestId = s.requests[0].id;
+  const unauthorized = resolveCaptainRequestOp(s, { requestId, actorTeamId: "G", decision: "accept" });
+  check("发起方不能代替对手确认", unauthorized.value?.ok === false && unauthorized.state.requests[0].status === "待对手确认");
+  const confirmed = resolveCaptainRequestOp(s, { requestId, actorTeamId: "H", decision: "accept" });
+  check("对手确认后进入负责人审批", confirmed.value?.ok === true && confirmed.state.requests[0].status === "待审批");
+  const approved = approveRequestOp(confirmed.state, requestId, confirmed.state.config);
+  check("负责人批准后时间生效并生成通知", approved.value?.approved === true && approved.state.requests[0].status === "已批准" && approved.state.notifications.length === 1);
+  check("约赛批准后比赛进入已排期", approved.state.matches.find((match) => match.id === "M04")?.status === "已排期");
+
+  const rejectedProposal = submitCaptainRequestOp(approved.state, {
+    matchId: "M05",
+    newStartTime: "2026-10-07T14:00:00",
+    reason: "测试拒绝",
+    proposedByTeamId: "I",
+  });
+  const rejectedId = rejectedProposal.value?.request?.id ?? "";
+  const rejected = resolveCaptainRequestOp(rejectedProposal.state, { requestId: rejectedId, actorTeamId: "J", decision: "reject" });
+  check("对手拒绝后申请不会进入审批", rejected.value?.ok === true && rejected.state.requests.find((item) => item.id === rejectedId)?.status === "已驳回");
 }
 
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);

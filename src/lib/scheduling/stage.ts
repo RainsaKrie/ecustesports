@@ -42,6 +42,8 @@ export function getEventStage(params: {
 }
 
 export interface StageConfig {
+  title: string;
+  description: string;
   cta: string; // 主 CTA 按钮文字
   ctaHref: string; // 主 CTA 链接（含 {id} 占位符）
   defaultTab: string; // 详情页默认选中的 tab
@@ -49,28 +51,38 @@ export interface StageConfig {
 
 export const STAGE_CONFIGS: Record<EventStage, StageConfig> = {
   筹备: {
-    cta: "查看参赛须知",
-    ctaHref: "/events/{id}",
-    defaultTab: "选手名单",
+    title: "竞赛规程与报名信息",
+    description: "竞赛赛制、参赛资格及报名时间以赛事组正式公告为准。",
+    cta: "查看竞赛规程",
+    ctaHref: "/events/{id}?tab=赛事手册#event-content",
+    defaultTab: "赛事手册",
   },
   报名: {
-    cta: "立即报名",
+    title: "参赛报名",
+    description: "参赛选手须在规定期限内完成个人登记与队伍申报。",
+    cta: "提交参赛报名",
     ctaHref: "/events/{id}/register",
     defaultTab: "队伍名单",
   },
   分组: {
-    cta: "查看分组",
-    ctaHref: "/events/{id}",
+    title: "分组与首轮对阵",
+    description: "赛事分组、种子顺位及首轮对阵以抽签结果为准。",
+    cta: "查看分组对阵",
+    ctaHref: "/events/{id}?tab=对阵图#event-content",
     defaultTab: "对阵图",
   },
   比赛: {
-    cta: "看今日赛程",
-    ctaHref: "/events/{id}",
-    defaultTab: "对阵图",
+    title: "赛事赛程与比赛状态",
+    description: "所有比赛以赛事平台公布的最新有效赛程为准。",
+    cta: "查看赛事赛程",
+    ctaHref: "/events/{id}?tab=赛程#event-content",
+    defaultTab: "赛程",
   },
   赛后: {
-    cta: "查看赛果",
-    ctaHref: "/events/{id}",
-    defaultTab: "对阵图",
+    title: "最终赛果与赛事排名",
+    description: "最终赛果、赛事排名及完整对阵以赛事组公布记录为准。",
+    cta: "查看最终赛果",
+    ctaHref: "/events/{id}?tab=赛程#event-content",
+    defaultTab: "赛程",
   },
 };

@@ -13,11 +13,10 @@ export default function AdminTopbar() {
           <span className="grid h-8 w-8 place-items-center bg-[#ff4655] font-mono text-[0.625rem]">SC</span>
           <span className="hidden sm:inline">赛事运营工作台</span>
         </Link>
-        <span className="hidden h-4 w-px bg-slate-700 md:block" />
-        <span className="hidden text-xs text-slate-400 md:block">共享管理账号 · 赛事数据相互独立</span>
       </div>
-      <nav className="flex items-center gap-4 text-xs font-bold" aria-label="工作台全局导航">
+      <nav className="flex items-center gap-3 text-xs font-bold sm:gap-4" aria-label="工作台全局导航">
         <Link href="/admin" className="text-slate-200 hover:text-white">全部赛事</Link>
+        <Link href="/admin/site-content" className="text-slate-400 hover:text-white">官网内容</Link>
         <Link href="/" className="text-slate-400 hover:text-white">返回官网</Link>
         <button
           type="button"

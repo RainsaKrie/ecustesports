@@ -40,16 +40,17 @@ export function estimateStageConfig(stages: StageConfig[]): { matchCount: number
   const DURATION: Record<string, number> = { BO1: 45, BO3: 90, BO5: 150 };
   let matchCount = 0;
   let minutes = 0;
-  for (const st of stages) {
+  for (const [index, st] of stages.entries()) {
     const dur = DURATION[st.boType] ?? 90;
     let matches = 0;
     switch (st.type) {
       case "single-elim":
-        matches = Math.max(0, st.teamCount - 1);
+        // 若后面还有阶段，本阶段只淘汰到下一阶段的队伍数。
+        matches = Math.max(0, st.teamCount - (stages[index + 1]?.teamCount ?? 1));
         break;
       case "double-elim":
-        // 双败：约 2n-1 场（含败者组），决赛不重置
-        matches = st.teamCount > 1 ? st.teamCount * 2 - 1 : 0;
+        // 双败：2n-2 场（含败者组，决赛不重置）
+        matches = st.teamCount > 1 ? st.teamCount * 2 - 2 : 0;
         break;
       case "gsl-groups": {
         const groups = st.groupCount ?? 1;
@@ -66,13 +67,17 @@ export function estimateStageConfig(stages: StageConfig[]): { matchCount: number
         break;
       }
     }
-    matchCount += Math.round(matches);
-    minutes += Math.round(matches) * dur;
+    const roundedMatches = Math.round(matches);
+    matchCount += roundedMatches;
+    // 8 队双败的败者组决赛与总决赛固定为 BO5，不能把 14 场全部按 BO3 估算。
+    minutes += st.type === "double-elim" && roundedMatches >= 2
+      ? Math.max(0, roundedMatches - 2) * dur + 2 * DURATION.BO5
+      : roundedMatches * dur;
   }
   return { matchCount, hourEstimate: Math.round(minutes / 60) };
 }
 
-/** 阶段配置 → 赛制摘要文案（写入赛事与策划案） */
+/** 阶段配置 → 赛制摘要文案（写入赛事与竞赛规程） */
 export function stageConfigSummary(stages: StageConfig[]): string {
   return stages.map((st) => {
     const label = STAGE_TYPE_LABELS[st.type];
@@ -134,8 +139,41 @@ export interface FormatTemplate {
   mapPoolIds: string[];
 }
 
-/** 内置赛制模板（首发 4 个，覆盖常见校园赛规模） */
+/** 内置赛制模板（覆盖当前真实赛与常见校园赛规模） */
 export const FORMAT_TEMPLATES: FormatTemplate[] = [
+  {
+    id: "val-32qual-16gsl-8de",
+    name: "32 队 · 入围赛 + GSL 小组赛 + 双败淘汰",
+    scale: "32 队",
+    description: "瓦理杯完整赛制。先进行 16 场 BO1 入围赛，再由真实晋级队伍进入 4 组 GSL，最后 8 队双败淘汰。各阶段结束后分别抽签发布。",
+    teamCount: 32,
+    teamSize: 5,
+    stages: [
+      { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1", advance: "16 支队伍晋级" },
+      { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3", advance: "每组 2 支队伍晋级" },
+      { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3", advance: "冠军产生" },
+    ],
+    stageSummary: "32 队单败入围（BO1）→ 16 队 GSL 小组赛 → 8 队双败淘汰",
+    matchCount: 50,
+    hourEstimate: 65,
+    defaultRules: [
+      { title: "参赛规模", detail: "赛事设置 32 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "入围赛", detail: "32 支队伍经随机抽签确定首轮对阵，采用单败淘汰制，比赛为 BO1；16 支胜者晋级小组赛。" },
+      { title: "小组赛", detail: "16 支晋级队伍分入 4 个小组，每组采用 GSL 双败赛制，所有比赛为 BO3；各组前两名晋级淘汰赛。" },
+      { title: "淘汰赛", detail: "8 支晋级队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。" },
+      { title: "种子分档", detail: "小组赛参赛队伍依据首发 5 名选手报名截止时的段位平均分划入 4 个种子池；每组分别抽取各档 1 支队伍。" },
+      { title: "淘汰赛抽签", detail: "小组第一对阵其他小组第二；同组晋级队伍分入不同半区。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
+    ],
+    constraints: {
+      maxConcurrent: 2,
+      durations: { BO1: 45, BO3: 90, BO5: 150 },
+      sessionStart: "12:00",
+      sessionEnd: "18:00",
+      matchdays: [6, 7],
+    },
+    mapPoolIds: DEFAULT_MAP_POOL.map((m) => m.id),
+  },
   {
     id: "val-32ko",
     name: "32 队 · 单败入围赛",
@@ -150,9 +188,9 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
     matchCount: 16,
     hourEstimate: 12,
     defaultRules: [
-      { title: "参赛规模", detail: "共 32 支队伍，每队 5 名首发选手" },
-      { title: "入围赛", detail: "32 支队伍随机配对，单败淘汰 BO1，16 支队伍晋级" },
-      { title: "赛程确认", detail: "比赛时间以赛事组发布的有效赛程为准" },
+      { title: "参赛规模", detail: "赛事设置 32 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "入围赛", detail: "32 支队伍经随机抽签确定首轮对阵，采用单败淘汰制，比赛为 BO1；16 支胜者晋级。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
     ],
     constraints: {
       maxConcurrent: 2,
@@ -175,17 +213,17 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
       { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3", advance: "冠军产生" },
     ],
     stageSummary: "16 队小组赛（4 组 GSL 双败）→ 8 队双败淘汰",
-    matchCount: 26,
-    hourEstimate: 39,
+    matchCount: 34,
+    hourEstimate: 53,
     defaultRules: [
-      { title: "参赛规模", detail: "共 16 支队伍，每队 5 名首发选手" },
-      { title: "小组赛", detail: "16 支队伍分为 4 组，进行 GSL 双败赛，全部比赛为 BO3；每组两支队伍晋级" },
-      { title: "淘汰赛", detail: "8 支队伍进行双败淘汰；败者组决赛和总决赛为 BO5，其余比赛为 BO3" },
-      { title: "种子分档", detail: "按首发 5 人报名截止时的当前段位平均分划分 4 个种子池，每组从每个种子池抽取 1 队" },
-      { title: "地图与 BP", detail: "地图池和具体 BP 顺序以参赛手册为准" },
-      { title: "赛程确认", detail: "两队可协商比赛时间，但最终时间以赛事组发布的有效赛程为准" },
-      { title: "比赛报到", detail: "参赛队伍应按通知提前进入赛事群和指定房间，配合裁判完成地图 BP" },
-      { title: "争议处理", detail: "如遇迟到、掉线或比赛争议，请第一时间联系当值裁判，不要自行判定赛果" },
+      { title: "参赛规模", detail: "赛事设置 16 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "小组赛", detail: "16 支队伍分入 4 个小组，每组采用 GSL 双败赛制，所有比赛为 BO3；各组前两名晋级淘汰赛。" },
+      { title: "淘汰赛", detail: "8 支晋级队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。" },
+      { title: "种子分档", detail: "参赛队伍依据首发 5 名选手报名截止时的段位平均分划入 4 个种子池；每组分别抽取各档 1 支队伍。" },
+      { title: "地图池与禁选", detail: "赛事地图池及地图禁选顺序以本届竞赛规程为准。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
+      { title: "比赛报到", detail: "参赛队伍须按规定时间完成报到、阵容核验、比赛房间确认及地图禁选。" },
+      { title: "争议处理", detail: "迟到、断线或比赛争议须立即报告当值裁判；未经裁决，双方不得自行变更赛果。" },
     ],
     constraints: {
       maxConcurrent: 2,
@@ -208,12 +246,12 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
     ],
     stageSummary: "8 队双败淘汰（败者组决赛与总决赛 BO5）",
     matchCount: 14,
-    hourEstimate: 21,
+    hourEstimate: 23,
     defaultRules: [
-      { title: "参赛规模", detail: "共 8 支队伍，每队 5 名首发选手" },
-      { title: "淘汰赛", detail: "8 支队伍进行双败淘汰；败者组决赛和总决赛为 BO5，其余比赛为 BO3" },
-      { title: "赛程确认", detail: "比赛时间以赛事组发布的有效赛程为准" },
-      { title: "争议处理", detail: "如遇迟到、掉线或比赛争议，请第一时间联系当值裁判" },
+      { title: "参赛规模", detail: "赛事设置 8 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "淘汰赛", detail: "8 支队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
+      { title: "争议处理", detail: "迟到、断线或比赛争议须立即报告当值裁判，并服从赛事组裁决。" },
     ],
     constraints: {
       maxConcurrent: 2,
@@ -239,10 +277,10 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
     matchCount: 16,
     hourEstimate: 13,
     defaultRules: [
-      { title: "参赛规模", detail: "共 6 支队伍，每队 5 名首发选手" },
-      { title: "小组赛", detail: "6 队单循环，每队 5 场 BO1；胜 1 分，负 0 分，按积分排名" },
-      { title: "决赛", detail: "积分前 2 名进行 BO3 决赛" },
-      { title: "赛程确认", detail: "比赛时间以赛事组发布的有效赛程为准" },
+      { title: "参赛规模", detail: "赛事设置 6 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "小组赛", detail: "6 支队伍进行单循环赛，每队完成 5 场 BO1；胜方积 1 分，负方积 0 分，并依据积分确定排名。" },
+      { title: "决赛", detail: "积分排名前两位的队伍晋级 BO3 总决赛。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
     ],
     constraints: {
       maxConcurrent: 2,
@@ -273,7 +311,7 @@ export interface NewEventInput {
   game: string;
   organizer: string;
   templateId: string;
-  /** 细致赛制配置（新建比赛向导第三步的产物）；缺省时由模板推导 */
+  /** 细致赛制配置（新建赛事第二步的产物）；缺省时由模板推导 */
   stageConfigs?: StageConfig[];
   description?: string;
   registrationStart?: string;
@@ -282,15 +320,146 @@ export interface NewEventInput {
   eventDateLabel?: string;
   prizePool?: string;
   coverColor?: string;
+  /** 负责人维护的平台通用规则；缺省时使用内置基线。 */
+  commonRules?: EditableRule[];
+}
+
+export const DEFAULT_COMMON_HANDBOOK_RULES: EditableRule[] = [
+  { title: "参赛资格", detail: "参赛选手须符合本届赛事公布的身份及报名条件，并使用真实、完整且可核验的信息完成登记。", category: "conduct", emphasis: "normal" },
+  { title: "名单与替补", detail: "参赛阵容以赛事平台最终审核记录为准。未经赛事组正式确认，任何队伍不得擅自更换或新增选手。", category: "conduct", emphasis: "important" },
+  { title: "地图池与禁选", detail: "比赛采用赛事平台公布的赛事地图池。双方队长须在当值裁判监督下，按规定顺序完成地图禁选。", category: "match-day", emphasis: "normal" },
+  { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。", category: "match-day", emphasis: "important" },
+  { title: "比赛报到", detail: "参赛队伍须于计划开赛时间前 15 分钟完成报到、阵容核验、房间确认及地图禁选。", category: "match-day", emphasis: "normal" },
+  { title: "录屏与证据", detail: "赛事组可要求参赛选手保留完整比赛录制。涉及技术故障、违规或赛果争议时，申请方须按要求提交有效证据。", category: "match-day", emphasis: "important" },
+  { title: "技术暂停", detail: "发生断线、设备或网络故障时，队长须立即向当值裁判报告。未经裁判许可，任何队伍不得擅自暂停、重开或退出比赛。", category: "incident", emphasis: "important" },
+  { title: "竞技行为规范", detail: "参赛人员须遵守竞技道德与赛事秩序。侮辱、挑衅、刷屏、恶意攻击及干扰比赛的行为将依据情节予以处理。", category: "conduct", emphasis: "important" },
+  { title: "迟到与弃赛", detail: "队伍无法按时参赛时须提前向赛事组报备。迟到、无故缺席或弃赛按照已公布竞赛规程及当值裁判裁决处理。", category: "incident", emphasis: "warning" },
+  { title: "竞赛完整性", detail: "严禁使用外挂、代打、窥屏、未经批准的换人或其他获取不当竞争优势的行为。经核实后，赛事组可判处地图判负、系列赛判负或取消参赛资格。", category: "conduct", emphasis: "warning" },
+  { title: "争议与申诉", detail: "赛果、判罚或比赛异常的申诉，仅由队长在规定时限内向当值裁判提出，并同时提交相关证据。", category: "appeal", emphasis: "important" },
+  { title: "判罚依据", detail: "赛事组依据竞赛规程、平台记录、裁判报告及有效证据作出裁决，并对本届赛事规则保留最终解释权。", category: "appeal", emphasis: "normal" },
+];
+
+function withRulePresentation(rule: EditableRule): EditableRule {
+  if (rule.category && rule.emphasis) return rule;
+  const category: NonNullable<EditableRule["category"]> = /申诉|判罚|裁决|异议/.test(rule.title)
+    ? "appeal"
+    : /迟到|弃赛|暂停|设备|网络|掉线|重赛|异常|争议处理/.test(rule.title)
+      ? "incident"
+      : /地图|BP|赛程确认|赛程与改期|比赛报到|赛前|录屏|证据/.test(rule.title)
+        ? "match-day"
+        : /规模|入围赛|小组赛|淘汰赛|赛制|种子|抽签|决赛/.test(rule.title)
+          ? "format"
+          : "conduct";
+  const emphasis: NonNullable<EditableRule["emphasis"]> = /作弊/.test(rule.title)
+    ? "warning"
+    : /确认|争议|名单|录屏|暂停/.test(rule.title)
+      ? "important"
+      : "normal";
+  return { ...rule, category, emphasis };
+}
+
+function sameStage(a: StageConfig, b: FormatTemplateStage): boolean {
+  return a.name === b.name
+    && a.type === b.type
+    && a.teamCount === b.teamCount
+    && a.boType === b.boType
+    && (a.groupCount ?? 0) === (b.groupCount ?? 0);
+}
+
+/** 根据实际阶段配置选择最匹配模板，避免所有非 32 队赛事错误继承 16 队 GSL 文案。 */
+export function resolveTemplateIdFromStages(stages: StageConfig[]): string {
+  const exact = FORMAT_TEMPLATES.find(
+    (template) => template.stages.length === stages.length
+      && stages.every((stage, index) => sameStage(stage, template.stages[index])),
+  );
+  if (exact) return exact.id;
+  if (stages.length === 1 && stages[0]?.type === "double-elim" && stages[0].teamCount === 8) return "val-8de";
+  if (stages.length === 1 && stages[0]?.type === "single-elim" && stages[0].teamCount === 32) return "val-32ko";
+  if (stages.some((stage) => stage.type === "gsl-groups")) return "val-16gsl-8de";
+  return FORMAT_TEMPLATES[0].id;
+}
+
+function formatRulesFromStages(stages: StageConfig[], teamSize: number): EditableRule[] {
+  const rules: EditableRule[] = [
+    {
+      title: "参赛规模",
+      detail: `赛事设置 ${stages[0]?.teamCount ?? 0} 个参赛席位，每支队伍注册 ${teamSize} 名首发选手。`,
+      category: "format",
+      emphasis: "normal",
+    },
+  ];
+
+  stages.forEach((stage, index) => {
+    const next = stages[index + 1];
+    let detail = "";
+    if (stage.type === "single-elim") {
+      detail = next
+        ? `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；${next.teamCount} 支胜者晋级${next.name}。`
+        : `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；负者淘汰，直至决出冠军。`;
+    } else if (stage.type === "gsl-groups") {
+      const groups = stage.groupCount ?? 1;
+      const advancingPerGroup = next ? Math.max(1, Math.round(next.teamCount / groups)) : 2;
+      detail = `${stage.teamCount} 支队伍分入 ${groups} 个小组，每组采用 GSL 双败赛制，比赛为 ${stage.boType}；每组前 ${advancingPerGroup} 名晋级${next?.name ?? "下一阶段"}。`;
+    } else if (stage.type === "double-elim") {
+      detail = stage.teamCount === 8
+        ? `8 支队伍采用双败淘汰制。败者组决赛与总决赛为 BO5，其余场次为 ${stage.boType}。`
+        : `${stage.teamCount} 支队伍采用双败淘汰制，比赛为 ${stage.boType}；获得两败的队伍淘汰。`;
+    } else {
+      const groups = stage.groupCount ?? 1;
+      detail = `${stage.teamCount} 支队伍分入 ${groups} 个小组进行单循环赛，比赛为 ${stage.boType}，排名及晋级依据本届积分规则确定。`;
+    }
+    rules.push({ title: stage.name, detail, category: "format", emphasis: "normal" });
+  });
+
+  if (stages.some((stage) => stage.type === "gsl-groups")) {
+    rules.push({
+      title: "种子分档",
+      detail: "小组赛队伍依据已确认的种子规则分档；同一种子池队伍分入不同小组，首轮按一号种子对四号种子、二号种子对三号种子生成对阵。",
+      category: "format",
+      emphasis: "important",
+    });
+  }
+  if (stages.some((stage) => stage.type === "gsl-groups") && stages.some((stage) => stage.type === "double-elim")) {
+    rules.push({
+      title: "淘汰赛抽签",
+      detail: "小组第一对阵其他小组第二；同组晋级队伍分入不同半区，避免在淘汰赛首轮再次相遇。",
+      category: "format",
+      emphasis: "important",
+    });
+  }
+  return rules;
+}
+
+/** 新赛事默认规程 = 赛制配置自动生成 + 赛事组织通用规则继承。 */
+export function buildDefaultEventRules(
+  stages: StageConfig[],
+  teamSize = 5,
+  commonPreset: EditableRule[] = DEFAULT_COMMON_HANDBOOK_RULES,
+): EditableRule[] {
+  const formatRules = formatRulesFromStages(stages, teamSize).map((rule) => ({
+    ...withRulePresentation(rule),
+    source: "format" as const,
+    customized: false,
+    confirmed: true,
+  }));
+  const formatTitles = new Set(formatRules.map((rule) => rule.title));
+  const commonRules = commonPreset
+    .filter((rule) => !formatTitles.has(rule.title))
+    .map((rule) => ({
+      ...withRulePresentation(rule),
+      source: "common" as const,
+      customized: false,
+      confirmed: rule.emphasis !== "warning",
+    }));
+  return [...formatRules, ...commonRules];
 }
 
 /**
- * 实例化一个新赛事（新建比赛三步流程的产物）：
- * 基础信息 + 赛制配置 + 策划案信息一次填写，
- * 产出赛事（规则/赛制摘要/阶段配置就绪）+ 策划案素材。
+ * 实例化一个新赛事（基础信息 + 赛制配置两步）：
+ * 产出规则、赛制摘要和阶段配置均已就绪的赛事。
  */
 export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
-  const template = getFormatTemplate(input.templateId) ?? FORMAT_TEMPLATES[1];
+  const template = getFormatTemplate(input.templateId) ?? FORMAT_TEMPLATES[0];
   const now = new Date().toISOString();
   // 赛制配置优先用办赛者细致配置，缺省时由模板阶段推导
   const stageConfigs: StageConfig[] = input.stageConfigs && input.stageConfigs.length > 0
@@ -307,26 +476,30 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
     name: input.name.trim() || "未命名赛事",
     game: input.game.trim() || "无畏契约",
     status: "draft",
+    visibility: "private",
     teamCount: stageConfigs[0]?.teamCount ?? template.teamCount,
     teamSize: template.teamSize,
-    description: input.description?.trim() || `${template.name}。报名时间、比赛日期和奖项将在确认后统一公布。`,
+    description: input.description?.trim() || `${template.name}。竞赛日期、报名安排及奖金奖项以赛事组正式公告为准。`,
     organizer: input.organizer.trim() || "赛事组",
     registrationStart: input.registrationStart ?? "",
     registrationEnd: input.registrationEnd ?? "",
     teamRegistrationEnd: input.teamRegistrationEnd ?? input.registrationEnd ?? "",
-    eventDateLabel: input.eventDateLabel?.trim() || "比赛时间待公布",
-    registrationLabel: "尚未开放",
+    eventDateLabel: input.eventDateLabel?.trim() || "竞赛日期待公布",
+    registrationLabel: "报名尚未开放",
     stageSummary: stageConfigSummary(stageConfigs),
-    prizePool: input.prizePool?.trim() || "奖项与奖品将在报名开启前公布",
+    prizePool: input.prizePool?.trim() || "奖金及奖品方案待公布",
     coverColor: input.coverColor ?? "#ff4655",
     posterImage: "",
     mapPool: resolveTemplateMapPool(input.templateId),
     preparationSteps: [
-      { number: "01", title: "准备队伍", detail: "报名开放前确认队伍名称、首发和有效联系方式。" },
-      { number: "02", title: "关注赛事公告", detail: "报名时间、比赛日期、地图池和奖项将由赛事组统一公布。" },
-      { number: "03", title: "按最新赛程参赛", detail: "分组抽签完成后公布比赛时间；临时调整以赛事组通知为准。" },
+      { number: "01", title: "选手注册", detail: "参赛选手须通过赛事报名页面提交真实、完整且可核验的信息，并妥善保管参赛管理码。" },
+      { number: "02", title: "队伍组建", detail: "队长须完成队伍创建与选手邀请；自由选手可向未满编队伍提交入队申请。" },
+      { number: "03", title: "阵容提交", detail: "队长须于队伍报名截止前提交正式参赛名单，经赛事组审核确认后进入抽签程序。" },
+      { number: "04", title: "查看分组与比赛时间", detail: "赛事组将分阶段公布分组、对阵和比赛时间。参赛队伍须查看平台发布的最新赛程。" },
+      { number: "05", title: "赛前报到", detail: "参赛队伍须于计划开赛时间前 15 分钟进入指定比赛房间并完成核验。" },
+      { number: "06", title: "地图禁选与开赛", detail: "双方队长须在当值裁判监督下完成地图禁选；裁判确认双方就绪后宣布比赛开始。" },
     ],
-    rules: template.defaultRules,
+    rules: buildDefaultEventRules(stageConfigs, template.teamSize, input.commonRules),
     formatTemplateId: template.id,
     stageConfigs,
     proposal: { background: "", purpose: "", budget: "", prizes: "", leader: "", contact: "" },

@@ -12,6 +12,14 @@ export interface EditableContentCard {
 export interface EditableRule {
   title: string;
   detail: string;
+  category?: "format" | "match-day" | "conduct" | "incident" | "appeal";
+  emphasis?: "normal" | "important" | "warning";
+  /** 通用规则由赛事组织继承，赛制规则按阶段配置生成，本届规则由负责人新增。 */
+  source?: "common" | "format" | "event";
+  /** 继承或生成后发生过本届赛事修改。 */
+  customized?: boolean;
+  /** 高风险处罚条款需负责人显式确认后才能发布。 */
+  confirmed?: boolean;
 }
 
 export interface EditableStep {
@@ -39,6 +47,9 @@ export interface EditableEvent {
   name: string;
   game: string;
   status: EventStatus;
+  /** 玩家侧可见性与赛事阶段分离；撤回公开不改变当前赛事阶段。 */
+  visibility: "private" | "public";
+  publishedAt?: string;
   teamCount: number;
   teamSize: number;
   description: string;
@@ -58,9 +69,9 @@ export interface EditableEvent {
   rules: EditableRule[];
   /** 赛制模板 id（新建比赛时选择的模板，用于赛制与抽签） */
   formatTemplateId: string;
-  /** 赛制阶段配置（新建比赛赛制配置器的产物，驱动对阵图与策划案） */
+  /** 赛制阶段配置（新建赛事赛制配置器的产物，驱动对阵图与竞赛规程） */
   stageConfigs: StageConfig[];
-  /** 策划案信息（新建比赛第三步填写；策划案模块据此生成文档） */
+  /** 3.47 及更早版本的策划案兼容字段；当前产品流程不再读取或编辑。 */
   proposal: {
     background: string;
     purpose: string;
@@ -189,34 +200,46 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       name: "第三届华理瓦理杯",
       game: "无畏契约",
       status: "draft",
+      visibility: "private",
       teamCount: 32,
       teamSize: 5,
-      description: "面向华东理工大学校内玩家的《无畏契约》赛事。叫上队友组成五人小队，从入围赛一路打进总决赛。报名时间、比赛日期和奖项将在确认后统一公布。",
+      description: "华东理工大学第三届《无畏契约》校内赛事。赛事设入围赛、小组赛与淘汰赛三个阶段，最终决出本届瓦理杯冠军。",
       organizer: "华东理工大学电竞社",
       registrationStart: "2026-08-01",
       registrationEnd: "2026-09-30",
       teamRegistrationEnd: "2026-10-03",
-      eventDateLabel: "比赛时间待公布",
-      registrationLabel: "尚未开放",
-      stageSummary: "32 队入围赛 → 16 队小组赛 → 8 队双败淘汰",
-      prizePool: "奖项与奖品将在报名开启前公布",
+      eventDateLabel: "竞赛日期待公布",
+      registrationLabel: "报名尚未开放",
+      stageSummary: "入围赛（32 队）→ 小组赛（16 队）→ 双败淘汰赛（8 队）",
+      prizePool: "奖金及奖品方案待公布",
       coverColor: "#ff4655",
       posterImage: "",
       mapPool: DEFAULT_MAP_POOL,
       preparationSteps: [
-        { number: "01", title: "准备五人小队", detail: "报名开放前确认队伍名称、五名首发和有效联系方式。" },
-        { number: "02", title: "关注赛事公告", detail: "报名时间、比赛日期、地图池和奖项将由赛事组统一公布。" },
-        { number: "03", title: "按最新赛程参赛", detail: "分组抽签完成后公布比赛时间；临时调整以赛事组通知为准。" },
+        { number: "01", title: "选手注册", detail: "参赛选手须通过赛事报名页面提交真实、完整且可核验的信息，并妥善保管参赛管理码。" },
+        { number: "02", title: "队伍组建", detail: "队长须完成队伍创建与选手邀请；自由选手可向未满编队伍提交入队申请，队伍确认后生效。" },
+        { number: "03", title: "阵容提交", detail: "队长须于队伍报名截止前提交正式参赛名单。名单经赛事组审核确认后，进入抽签及编排程序。" },
+        { number: "04", title: "查看分组与比赛时间", detail: "赛事组将分阶段公布分组、对阵和比赛时间。参赛队伍须查看平台发布的最新赛程。" },
+        { number: "05", title: "赛前报到", detail: "参赛队伍须于计划开赛时间前 15 分钟进入指定比赛房间，完成身份、阵容与裁判确认。" },
+        { number: "06", title: "地图禁选与开赛", detail: "双方队长须在当值裁判监督下完成地图禁选；裁判确认双方就绪后宣布比赛开始。" },
       ],
       rules: [
-        { title: "参赛规模", detail: "计划招募 32 支队伍，每队 5 名首发选手" },
-        { title: "入围赛", detail: "32 支队伍随机配对，进行单败淘汰 BO1，16 支队伍晋级" },
-        { title: "小组赛", detail: "16 支队伍分为 4 组，进行 GSL 双败赛，全部比赛为 BO3；每组两支队伍晋级" },
-        { title: "淘汰赛", detail: "8 支队伍进行双败淘汰；败者组决赛和总决赛为 BO5，其余比赛为 BO3" },
-        { title: "地图与 BP", detail: "地图池和具体 BP 顺序以报名开启前发布的参赛手册为准" },
-        { title: "赛程确认", detail: "两队可协商比赛时间，但最终时间以赛事组发布的有效赛程为准" },
-        { title: "比赛报到", detail: "参赛队伍应按通知提前进入赛事群和指定房间，配合裁判完成地图 BP" },
-        { title: "争议处理", detail: "如遇迟到、掉线或比赛争议，请第一时间联系当值裁判，不要自行判定赛果" },
+        { title: "参赛资格", detail: "参赛选手须符合本届赛事公布的校内身份及报名条件，并使用真实、完整且可核验的信息完成登记。", category: "conduct", emphasis: "normal" },
+        { title: "参赛规模", detail: "赛事计划设置 32 个参赛席位，每支队伍注册 5 名首发选手。", category: "format", emphasis: "normal" },
+        { title: "名单与替补", detail: "参赛阵容以赛事平台最终审核记录为准。未经赛事组正式确认，任何队伍不得擅自更换或新增选手；替补及教练名额以本届竞赛规程为准。", category: "conduct", emphasis: "important" },
+        { title: "入围赛", detail: "32 支队伍经随机抽签确定首轮对阵，采用单败淘汰制，比赛为 BO1；16 支胜者晋级小组赛。", category: "format", emphasis: "normal" },
+        { title: "小组赛", detail: "16 支队伍分入 4 个小组，每组采用 GSL 双败赛制，所有比赛为 BO3；各组前两名晋级淘汰赛。", category: "format", emphasis: "normal" },
+        { title: "淘汰赛", detail: "8 支晋级队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。", category: "format", emphasis: "normal" },
+        { title: "地图池与禁选", detail: "比赛采用赛事平台公布的赛事地图池。双方队长须在当值裁判监督下，按规定顺序完成地图禁选。", category: "match-day", emphasis: "normal" },
+        { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。", category: "match-day", emphasis: "important" },
+        { title: "比赛报到", detail: "参赛队伍须于计划开赛时间前 15 分钟完成报到、阵容核验、房间确认及地图禁选。", category: "match-day", emphasis: "normal" },
+        { title: "录屏与证据", detail: "赛事组可要求参赛选手保留完整比赛录制。涉及技术故障、违规或赛果争议时，申请方须按要求提交原始影像或截图证据。", category: "match-day", emphasis: "important" },
+        { title: "技术暂停", detail: "发生断线、设备或网络故障时，队长须立即向当值裁判报告。未经裁判许可，任何队伍不得擅自暂停、重开或退出比赛。", category: "incident", emphasis: "important" },
+        { title: "竞技行为规范", detail: "参赛人员须遵守竞技道德与赛事秩序。侮辱、挑衅、刷屏、恶意攻击及干扰比赛的行为将依据情节予以处理。", category: "conduct", emphasis: "important" },
+        { title: "迟到与弃赛", detail: "队伍无法按时参赛时须提前向赛事组报备。迟到、无故缺席或弃赛按照已公布竞赛规程及当值裁判裁决处理。", category: "incident", emphasis: "warning" },
+        { title: "竞赛完整性", detail: "严禁使用外挂、代打、窥屏、未经批准的换人或其他获取不当竞争优势的行为。经核实后，赛事组可判处地图判负、系列赛判负或取消参赛资格。", category: "conduct", emphasis: "warning" },
+        { title: "争议与申诉", detail: "赛果、判罚或比赛异常的申诉，仅由队长在规定时限内向当值裁判提出，并同时提交相关证据。争议处理期间，双方不得自行变更赛果。", category: "appeal", emphasis: "important" },
+        { title: "判罚依据", detail: "赛事组依据竞赛规程、平台记录、裁判报告及有效证据作出裁决。赛事组对本届赛事规则保留最终解释权。", category: "appeal", emphasis: "normal" },
       ],
       formatTemplateId: "val-16gsl-8de",
       proposal: {
@@ -259,8 +282,17 @@ function color(value: unknown, fallback: string): string {
 }
 
 function imagePath(value: unknown): string {
-  const v = typeof value === "string" ? value.trim().slice(0, 160) : "";
-  return v.startsWith("/") ? v : "";
+  const v = typeof value === "string" ? value.trim().slice(0, 500) : "";
+  if (v.startsWith("/")) return v;
+  try {
+    const url = new URL(v);
+    const supabaseAsset = url.protocol === "https:"
+      && url.hostname.endsWith(".supabase.co")
+      && url.pathname.startsWith("/storage/v1/object/public/event-assets/");
+    return supabaseAsset ? v : "";
+  } catch {
+    return "";
+  }
 }
 
 export function normalizeSiteConfig(value: unknown): SiteConfig {
@@ -315,7 +347,34 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
         .map((rawRule, ruleIndex) => {
           const rule = record(rawRule);
           const fb = fallback.rules[ruleIndex] ?? { title: `规则 ${ruleIndex + 1}`, detail: "待补充" };
-          return { title: text(rule.title, fb.title, 60), detail: text(rule.detail, fb.detail, 500) };
+          const title = text(rule.title, fb.title, 60);
+          const categoryValues: NonNullable<EditableRule["category"]>[] = ["format", "match-day", "conduct", "incident", "appeal"];
+          const emphasisValues: NonNullable<EditableRule["emphasis"]>[] = ["normal", "important", "warning"];
+          const sourceValues: NonNullable<EditableRule["source"]>[] = ["common", "format", "event"];
+          const inferredCategory: NonNullable<EditableRule["category"]> = /参赛规模|入围赛|小组赛|淘汰赛|赛制|种子|抽签|晋级/.test(title)
+            ? "format"
+            : /地图|BP|赛程确认|赛程与改期|比赛报到|赛前|录屏/.test(title)
+              ? "match-day"
+              : /暂停|设备|网络|掉线|迟到|弃赛/.test(title)
+                ? "incident"
+                : /争议|申诉|判罚|裁判/.test(title)
+                  ? "appeal"
+                  : "conduct";
+          return {
+            title,
+            detail: text(rule.detail, fb.detail, 500),
+            category: categoryValues.includes(rule.category as NonNullable<EditableRule["category"]>)
+              ? rule.category as NonNullable<EditableRule["category"]>
+              : fb.category ?? inferredCategory,
+            emphasis: emphasisValues.includes(rule.emphasis as NonNullable<EditableRule["emphasis"]>)
+              ? rule.emphasis as NonNullable<EditableRule["emphasis"]>
+              : fb.emphasis ?? (/作弊|处罚|判负|取消资格/.test(title) ? "warning" : "normal"),
+            source: sourceValues.includes(rule.source as NonNullable<EditableRule["source"]>)
+              ? rule.source as NonNullable<EditableRule["source"]>
+              : fb.source ?? (inferredCategory === "format" ? "format" : "common"),
+            customized: typeof rule.customized === "boolean" ? rule.customized : Boolean(fb.customized),
+            confirmed: typeof rule.confirmed === "boolean" ? rule.confirmed : fb.confirmed ?? true,
+          };
         })
         .slice(0, 30);
 
@@ -335,12 +394,17 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
       const status = allowedStatuses.includes(item.status as EventStatus)
         ? (item.status as EventStatus)
         : fallback.status;
+      const visibility: EditableEvent["visibility"] = item.visibility === "private" || item.visibility === "public"
+        ? item.visibility
+        : status === "draft" ? "private" : "public";
 
       return {
         id: text(item.id, fallback.id, 60),
         name: text(item.name, fallback.name, 80),
         game: text(item.game, fallback.game, 40),
         status,
+        visibility,
+        publishedAt: typeof item.publishedAt === "string" ? item.publishedAt.slice(0, 40) : undefined,
         teamCount: count(item.teamCount, fallback.teamCount),
         teamSize: count(item.teamSize, fallback.teamSize, 1, 20),
         description: text(item.description, fallback.description, 500),

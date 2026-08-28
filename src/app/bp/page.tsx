@@ -50,7 +50,7 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
     <Container className="py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">BP 工具</h1>
-        <p className="text-sm text-gray-500 mt-1">{event.name} · 无畏契约地图 Ban/Pick 交互工具</p>
+        <p className="text-sm text-gray-500 mt-1">{event.name}</p>
       </div>
 
       {/* How it works */}
@@ -75,7 +75,7 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
           ))}
         </div>
         <p className="mt-3 text-xs text-gray-400">
-          BO1 双方各禁 3 张剩唯一图；BO3 各禁 2 张后各选 1 张，剩 1 张为决胜图；BO5 各禁 1 张后选满 5 张。先手方默认 A 侧，可掷硬币决定。
+          BO1：各禁 3 张；BO3：各禁 2 张、各选 1 张；BO5：各禁 1 张。
         </p>
       </div>
 
@@ -84,7 +84,6 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
       {bpMatches.length === 0 ? (
         <div className="border border-gray-200 bg-white p-8 text-center">
           <p className="text-gray-400">暂无待 BP 的比赛</p>
-          <p className="mt-2 text-xs text-gray-400">比赛排期后将在这里开放 BP 房间。</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -129,14 +128,7 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
         </div>
       )}
 
-      {/* BP entrance */}
-      <div className="mt-6 text-center">
-        {bpMatches.length > 0 ? (
-          <Button href={`/bp/${bpMatches[0].id}?eventId=${encodeURIComponent(eventId)}`} variant="outline">进入第一场 BP 房间 →</Button>
-        ) : (
-          <p className="text-sm text-gray-500">赛程排期后开放 BP 房间</p>
-        )}
-      </div>
+      {bpMatches.length > 0 && <div className="mt-6 text-center"><Button href={`/bp/${bpMatches[0].id}?eventId=${encodeURIComponent(eventId)}`} variant="outline">进入第一场 BP 房间 →</Button></div>}
     </Container>
   );
 }

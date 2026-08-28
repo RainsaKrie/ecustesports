@@ -1283,22 +1283,3 @@ summary:focus-visible {
   border: 2px solid var(--ink);
   background: var(--red);
 }
-
-/* 策划案导出 PDF：打印时只保留策划案文档 */
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  .proposal-doc, .proposal-doc * {
-    visibility: visible;
-  }
-  .proposal-doc {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    max-height: none !important;
-    overflow: visible !important;
-    border: none !important;
-  }
-}

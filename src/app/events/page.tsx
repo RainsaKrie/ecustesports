@@ -21,7 +21,6 @@ export default async function EventsPage() {
       ) : (
         <div className="border border-slate-200 bg-white px-6 py-16 text-center">
           <p className="text-lg font-bold text-slate-900">暂无已发布赛事</p>
-          <p className="mt-2 text-sm text-slate-500">赛事组确认报名信息后，会在这里公开赛事入口。</p>
         </div>
       )}
     </Container>

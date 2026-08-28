@@ -5,16 +5,24 @@
 // =====================
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { isHostedRuntime } from "@/lib/deployment";
 
 export const SESSION_COOKIE_NAME = "admin_session";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 天
 
-// 会话签名密钥：生产环境用 AUTH_SECRET 覆盖
-const SECRET = process.env.AUTH_SECRET || "ecust-esports-admin-secret-2026";
+function requiredHostedSecret(name: "AUTH_SECRET" | "ADMIN_PASSWORD", localFallback: string, minLength: number): string {
+  const value = process.env[name]?.trim();
+  if (isHostedRuntime()) {
+    if (!value) throw new Error(`Vercel 环境缺少 ${name}`);
+    if (value.length < minLength) throw new Error(`${name} 长度不足，至少需要 ${minLength} 个字符`);
+  }
+  return value || localFallback;
+}
 
-// 管理员密码：生产环境用 ADMIN_PASSWORD 覆盖
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "ecust2026";
+// 本地保留固定值方便开发；任何 Vercel 环境都必须提供独立强密钥和强密码。
+const SECRET = requiredHostedSecret("AUTH_SECRET", "ecust-esports-admin-secret-2026", 32);
+const ADMIN_PASSWORD = requiredHostedSecret("ADMIN_PASSWORD", "ecust2026", 12);
 
 function sign(payload: string): string {
   return createHmac("sha256", SECRET).update(payload).digest("hex");

@@ -13,6 +13,7 @@ import {
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
+import { isEventPublic } from "@/lib/configured-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
       return Response.json({ message: "赛事不存在或已下线。" }, { status: 404 });
     }
     const event = config.events.find((item) => item.id === requestedEventId);
-    if (!event || event.status === "draft" || event.status === "archived") {
+    if (!event || !isEventPublic(event) || event.status === "archived") {
       return Response.json({ message: "赛事不存在或尚未公开。" }, { status: 404 });
     }
     if (event.status !== "registration") {

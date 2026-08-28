@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FORMAT_TEMPLATES, STAGE_TYPE_LABELS, STAGE_TYPE_DEFAULT_BO, estimateStageConfig, type StageConfig, type StageType } from "@/lib/scheduling/format-templates";
+import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 
 const inputClass = "h-11 w-full border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none transition focus:border-[#ff4655]";
-const textareaClass = "w-full border border-slate-300 bg-white px-3 py-3 text-sm font-normal leading-6 text-slate-900 outline-none transition focus:border-[#ff4655]";
 
 function StepHeader({ step, title }: { step: number; title: string }) {
   return (
@@ -43,15 +43,8 @@ export default function NewEventPage() {
     }));
   });
 
-  // ③ 策划案信息
-  const [background, setBackground] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [budget, setBudget] = useState("");
-  const [prizes, setPrizes] = useState("");
-  const [leader, setLeader] = useState("");
-  const [contact, setContact] = useState("");
-
   const estimate = useMemo(() => estimateStageConfig(stages), [stages]);
+  const formatSupport = useMemo(() => resolveSupportedFormat(stages), [stages]);
 
   function updateStage(index: number, patch: Partial<StageConfig>) {
     setStages((s) => s.map((st, i) => (i === index ? { ...st, ...patch } : st)));
@@ -72,6 +65,11 @@ export default function NewEventPage() {
       setError("至少配置一个比赛阶段。");
       return;
     }
+    if (formatSupport.kind === "unsupported") {
+      setError(formatSupport.message);
+      setStep(2);
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -81,12 +79,11 @@ export default function NewEventPage() {
         body: JSON.stringify({
           name, organizer, game, registrationStart, registrationEnd, eventDateLabel, coverColor,
           stageConfigs: stages,
-          proposal: { background, purpose, budget, prizes, leader, contact },
         }),
       });
       const result = await response.json() as { event?: { id: string }; message?: string };
       if (!response.ok || !result.event) throw new Error(result.message ?? "创建失败");
-      router.push(`/admin/events/${result.event.id}/planning`);
+      router.push(`/admin/events/${result.event.id}/settings`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "创建失败，请稍后重试。");
       setSaving(false);
@@ -96,7 +93,6 @@ export default function NewEventPage() {
   const steps = [
     { n: 1, label: "基础信息" },
     { n: 2, label: "赛制配置" },
-    { n: 3, label: "策划案信息" },
   ];
 
   return (
@@ -200,7 +196,7 @@ export default function NewEventPage() {
                     <input type="number" min={2} max={128} value={st.teamCount} onChange={(e) => updateStage(index, { teamCount: Number(e.target.value) })} className={inputClass} />
                   </label>
                   <label className="block text-xs font-bold text-slate-700">
-                    BO 几
+                    比赛局制
                     <select value={st.boType} onChange={(e) => updateStage(index, { boType: e.target.value as StageConfig["boType"] })} className={inputClass}>
                       <option value="BO1">BO1</option>
                       <option value="BO3">BO3</option>
@@ -217,63 +213,19 @@ export default function NewEventPage() {
               </div>
             ))}
             <button type="button" onClick={addStage} className="border border-dashed border-slate-300 px-4 py-3 text-xs font-bold text-slate-500 hover:border-slate-950">
-              ＋ 添加阶段（如半决赛、决赛）
+              ＋ 添加阶段
             </button>
           </div>
-          <div className="mt-5 flex items-center justify-between border border-slate-200 bg-white px-5 py-4">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-5 py-4">
             <p className="text-sm font-bold text-slate-700">
               预估：<span className="font-black text-slate-950">{estimate.matchCount} 场</span> · 约 {estimate.hourEstimate} 比赛小时
             </p>
-            <p className="text-xs text-slate-400">这份赛制会同时生成对阵图和策划案的赛制章节</p>
+            {formatSupport.kind === "unsupported" && <p className="text-xs font-bold text-amber-700">{formatSupport.message}</p>}
           </div>
           <div className="mt-6 flex justify-between">
             <button type="button" onClick={() => setStep(1)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600 hover:border-slate-950">← 上一步</button>
-            <button type="button" onClick={() => setStep(3)} className="bg-[#ff4655] px-6 py-2.5 text-xs font-black text-white">下一步 →</button>
-          </div>
-        </div>
-      )}
-
-      {/* ③ 策划案信息 */}
-      {step === 3 && (
-        <div>
-          <StepHeader step={3} title="策划案信息" />
-          <div className="grid gap-4 border border-slate-200 bg-white p-5">
-            <label className="block text-xs font-bold text-slate-700">
-              赛事背景 <span className="text-[#ff4655]">*</span>
-              <textarea rows={2} value={background} onChange={(e) => setBackground(e.target.value)} placeholder="为什么办这场比赛？如：丰富校园电竞氛围，为校队选拔苗子" className={textareaClass} />
-            </label>
-            <label className="block text-xs font-bold text-slate-700">
-              赛事目的 <span className="text-[#ff4655]">*</span>
-              <textarea rows={2} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="想达到什么效果？" className={textareaClass} />
-            </label>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-xs font-bold text-slate-700">
-                经费预算
-                <textarea rows={2} value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="如：奖品 800 元、宣传 200 元，合计 1000 元" className={textareaClass} />
-              </label>
-              <label className="block text-xs font-bold text-slate-700">
-                奖项设置
-                <textarea rows={2} value={prizes} onChange={(e) => setPrizes(e.target.value)} placeholder="如：冠军 500 元 + 奖杯，亚军 300 元 + 周边" className={textareaClass} />
-              </label>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-xs font-bold text-slate-700">
-                赛事负责人 <span className="text-[#ff4655]">*</span>
-                <input value={leader} onChange={(e) => setLeader(e.target.value)} className={inputClass} />
-              </label>
-              <label className="block text-xs font-bold text-slate-700">
-                联系方式 <span className="text-[#ff4655]">*</span>
-                <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="手机号或 QQ" className={inputClass} />
-              </label>
-            </div>
-            <p className="text-[0.625rem] leading-5 text-slate-400">
-              赛制章节不用填——刚才的赛制配置会自动写入策划案。创建后可在「01 策划案」模块查看、编辑并导出 PDF。
-            </p>
-          </div>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStep(2)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600 hover:border-slate-950">← 上一步</button>
-            <button type="button" onClick={handleCreate} disabled={saving} className="bg-[#ff4655] px-6 py-2.5 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60">
-              {saving ? "创建中…" : "创建比赛"}
+            <button type="button" onClick={handleCreate} disabled={saving || formatSupport.kind === "unsupported"} className="bg-[#ff4655] px-6 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50">
+              {saving ? "创建中…" : "创建赛事"}
             </button>
           </div>
         </div>

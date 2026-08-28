@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { getConfiguredEvents } from "@/lib/configured-events";
 import { getEvent, getSiteConfig } from "@/lib/site-config";
-import { getEventStage } from "@/lib/scheduling/stage";
+import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import EventsCarousel from "@/components/events/EventsCarousel";
@@ -26,6 +26,19 @@ export default async function Home() {
     registrationEnd: cfgEvent?.registrationEnd,
     hasSchedule,
   });
+  const stageConfig = STAGE_CONFIGS[stage];
+  const isPostEvent = stage === "赛后";
+  const journeyKicker = isPostEvent ? "TOURNAMENT COMPLETE" : config.home.journeyKicker;
+  const journeyTitleTop = isPostEvent ? "从报名，" : config.home.journeyTitleTop;
+  const journeyTitleBottom = isPostEvent ? "走到冠军诞生。" : config.home.journeyTitleBottom;
+  const closingKicker = isPostEvent ? "FINAL RESULT" : config.home.closingKicker;
+  const closingTitle = isPostEvent ? "本届冠军已经诞生。" : config.home.closingTitle;
+  const closingCta = isPostEvent ? "查看完整赛果" : config.home.closingCta;
+  const closingHref = cfgEvent
+    ? isPostEvent
+      ? stageConfig.ctaHref.replace("{id}", cfgEvent.id)
+      : `/events/${cfgEvent.id}`
+    : "/events";
 
   return (
     <div className="home-shell">
@@ -37,7 +50,6 @@ export default async function Home() {
           <div className="max-w-2xl">
             <p className="font-mono text-xs font-black tracking-[0.18em] text-[#ff4655]">ECUST ESPORTS</p>
             <h1 className="mt-5 text-4xl font-black sm:text-6xl">下一场校内赛，正在筹备</h1>
-            <p className="mt-5 leading-7 text-slate-300">报名时间、参赛规则和赛程确认后将在这里公开。</p>
             <Link href="/events" className="mt-8 inline-flex bg-[#ff4655] px-6 py-3 text-sm font-black">查看赛事</Link>
           </div>
         </section>
@@ -60,10 +72,9 @@ export default async function Home() {
         <Container>
           <div className="section-heading">
             <div>
-              <p className="section-kicker"><span /> {config.home.journeyKicker}</p>
-              <h2>{config.home.journeyTitleTop}<br />{config.home.journeyTitleBottom}</h2>
+              <p className="section-kicker"><span /> {journeyKicker}</p>
+              <h2>{journeyTitleTop}<br />{journeyTitleBottom}</h2>
             </div>
-            <p className="section-heading__aside">{config.home.journeyAside}</p>
           </div>
 
           <div className="capability-grid">
@@ -75,7 +86,6 @@ export default async function Home() {
                 </div>
                 <p className="capability-card__meta">{capability.meta}</p>
                 <h3>{capability.title}</h3>
-                <p>{capability.description}</p>
               </article>
             ))}
           </div>
@@ -107,11 +117,11 @@ export default async function Home() {
       <section className="closing-cta">
         <Container className="closing-cta__inner">
           <div>
-            <p className="section-kicker section-kicker--light"><span /> {config.home.closingKicker}</p>
-            <h2>{config.home.closingTitle}</h2>
+            <p className="section-kicker section-kicker--light"><span /> {closingKicker}</p>
+            <h2>{closingTitle}</h2>
           </div>
-          <Button href={cfgEvent ? `/events/${cfgEvent.id}` : "/events"} size="lg">
-            {config.home.closingCta} <span aria-hidden="true">↗</span>
+          <Button href={closingHref} size="lg">
+            {closingCta} <span aria-hidden="true">↗</span>
           </Button>
         </Container>
       </section>

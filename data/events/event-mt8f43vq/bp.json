@@ -1,0 +1,466 @@
+{
+  "M14": {
+    "id": "BP-M14",
+    "matchId": "M14",
+    "boType": "BO1",
+    "firstTeamId": "T-SEED-25",
+    "firstTeamSide": "A",
+    "firstTeamName": "烈焰战队",
+    "secondTeamId": "T-SEED-01",
+    "secondTeamName": "星火战队",
+    "order": [
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      }
+    ],
+    "actions": [
+      {
+        "mapId": "亚海悬城",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T12:57:30.116Z"
+      },
+      {
+        "mapId": "源工重镇",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T12:57:30.135Z"
+      },
+      {
+        "mapId": "隐士修所",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T12:57:30.166Z"
+      },
+      {
+        "mapId": "霓虹町",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T12:57:30.189Z"
+      },
+      {
+        "mapId": "森寒冬港",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T12:57:30.209Z"
+      },
+      {
+        "mapId": "微风岛屿",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T12:57:30.228Z"
+      }
+    ],
+    "status": "已完成",
+    "startedAt": "2026-08-26T12:57:30.067Z",
+    "completedAt": "2026-08-26T12:57:30.228Z",
+    "finalMaps": [
+      "莲华古城"
+    ]
+  },
+  "M24": {
+    "id": "BP-M24",
+    "matchId": "M24",
+    "boType": "BO3",
+    "firstTeamId": "T-SEED-11",
+    "firstTeamSide": "A",
+    "firstTeamName": "苍穹战队",
+    "secondTeamId": "T-SEED-25",
+    "secondTeamName": "烈焰战队",
+    "order": [
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      },
+      {
+        "side": "second",
+        "action": "pick"
+      }
+    ],
+    "actions": [
+      {
+        "mapId": "亚海悬城",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:39:35.921Z"
+      },
+      {
+        "mapId": "源工重镇",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:39:35.943Z"
+      },
+      {
+        "mapId": "隐士修所",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:39:35.964Z"
+      },
+      {
+        "mapId": "霓虹町",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:39:35.981Z"
+      },
+      {
+        "mapId": "森寒冬港",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:39:35.999Z"
+      },
+      {
+        "mapId": "微风岛屿",
+        "side": "second",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:39:36.026Z"
+      }
+    ],
+    "status": "已完成",
+    "startedAt": "2026-08-26T13:39:35.882Z",
+    "completedAt": "2026-08-26T13:39:36.027Z",
+    "finalMaps": [
+      "森寒冬港",
+      "微风岛屿",
+      "莲华古城"
+    ]
+  },
+  "M37": {
+    "id": "BP-M37",
+    "matchId": "M37",
+    "boType": "BO3",
+    "firstTeamId": "T-SEED-03",
+    "firstTeamSide": "A",
+    "firstTeamName": "赤霄战队",
+    "secondTeamId": "T-SEED-29",
+    "secondTeamName": "狂澜战队",
+    "order": [
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      },
+      {
+        "side": "second",
+        "action": "pick"
+      }
+    ],
+    "actions": [
+      {
+        "mapId": "亚海悬城",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.262Z"
+      },
+      {
+        "mapId": "源工重镇",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.279Z"
+      },
+      {
+        "mapId": "隐士修所",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.300Z"
+      },
+      {
+        "mapId": "霓虹町",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.321Z"
+      },
+      {
+        "mapId": "森寒冬港",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.344Z"
+      },
+      {
+        "mapId": "微风岛屿",
+        "side": "second",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.373Z"
+      }
+    ],
+    "status": "已完成",
+    "startedAt": "2026-08-26T13:49:44.217Z",
+    "completedAt": "2026-08-26T13:49:44.373Z",
+    "finalMaps": [
+      "森寒冬港",
+      "微风岛屿",
+      "莲华古城"
+    ]
+  },
+  "M49": {
+    "id": "BP-M49",
+    "matchId": "M49",
+    "boType": "BO5",
+    "firstTeamId": "T-SEED-07",
+    "firstTeamSide": "A",
+    "firstTeamName": "疾风战队",
+    "secondTeamId": "T-SEED-04",
+    "secondTeamName": "凌云战队",
+    "order": [
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      },
+      {
+        "side": "second",
+        "action": "pick"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      },
+      {
+        "side": "second",
+        "action": "pick"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      }
+    ],
+    "actions": [
+      {
+        "mapId": "亚海悬城",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.499Z"
+      },
+      {
+        "mapId": "源工重镇",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.521Z"
+      },
+      {
+        "mapId": "隐士修所",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.542Z"
+      },
+      {
+        "mapId": "霓虹町",
+        "side": "second",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.562Z"
+      },
+      {
+        "mapId": "森寒冬港",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.581Z"
+      },
+      {
+        "mapId": "微风岛屿",
+        "side": "second",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.600Z"
+      },
+      {
+        "mapId": "莲华古城",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.630Z"
+      }
+    ],
+    "status": "已完成",
+    "startedAt": "2026-08-26T13:49:44.476Z",
+    "completedAt": "2026-08-26T13:49:44.630Z",
+    "finalMaps": [
+      "隐士修所",
+      "霓虹町",
+      "森寒冬港",
+      "微风岛屿",
+      "莲华古城"
+    ]
+  },
+  "M50": {
+    "id": "BP-M50",
+    "matchId": "M50",
+    "boType": "BO5",
+    "firstTeamId": "T-SEED-03",
+    "firstTeamSide": "A",
+    "firstTeamName": "赤霄战队",
+    "secondTeamId": "T-SEED-07",
+    "secondTeamName": "疾风战队",
+    "order": [
+      {
+        "side": "first",
+        "action": "ban"
+      },
+      {
+        "side": "second",
+        "action": "ban"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      },
+      {
+        "side": "second",
+        "action": "pick"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      },
+      {
+        "side": "second",
+        "action": "pick"
+      },
+      {
+        "side": "first",
+        "action": "pick"
+      }
+    ],
+    "actions": [
+      {
+        "mapId": "亚海悬城",
+        "side": "first",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.759Z"
+      },
+      {
+        "mapId": "源工重镇",
+        "side": "second",
+        "action": "ban",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.779Z"
+      },
+      {
+        "mapId": "隐士修所",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.801Z"
+      },
+      {
+        "mapId": "霓虹町",
+        "side": "second",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.822Z"
+      },
+      {
+        "mapId": "森寒冬港",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.840Z"
+      },
+      {
+        "mapId": "微风岛屿",
+        "side": "second",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.859Z"
+      },
+      {
+        "mapId": "莲华古城",
+        "side": "first",
+        "action": "pick",
+        "operatorRole": "team",
+        "at": "2026-08-26T13:49:44.879Z"
+      }
+    ],
+    "status": "已完成",
+    "startedAt": "2026-08-26T13:49:44.741Z",
+    "completedAt": "2026-08-26T13:49:44.879Z",
+    "finalMaps": [
+      "隐士修所",
+      "霓虹町",
+      "森寒冬港",
+      "微风岛屿",
+      "莲华古城"
+    ]
+  }
+}

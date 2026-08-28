@@ -2,6 +2,7 @@
 
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import type { ScheduleMatch } from "@/lib/scheduling/schedule-data";
+import TournamentBracketCanvas, { advancementPath } from "@/components/events/TournamentBracketCanvas";
 
 function winCount(m: ScheduleMatch, side: "A" | "B"): number {
   if (!m.gameResults) return 0;
@@ -20,8 +21,9 @@ function MatchCell({ m }: { m: ScheduleMatch }) {
   const completed = m.status === "已完成";
   const aWin = completed && m.winnerTeamId === m.teamAId;
   const bWin = completed && m.winnerTeamId === m.teamBId;
+  const advancement = advancementPath(m);
   return (
-    <div className="w-28 shrink-0 border border-gray-200 bg-white p-1.5">
+    <div className="w-full border border-gray-200 bg-white p-2">
       <div className="mb-0.5 flex items-center justify-between gap-1">
         <span className="text-[0.5625rem] text-gray-400">{m.boType}</span>
         <StatusBadge status={m.status} />
@@ -37,12 +39,13 @@ function MatchCell({ m }: { m: ScheduleMatch }) {
           {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[#ff4655]" : "text-gray-400"}`}>{winCount(m, "B")}</span>}
         </div>
       </div>
+      {advancement && <div className="mt-1 border-t border-slate-100 pt-1 font-mono text-[0.45rem] text-slate-400">{advancement}</div>}
     </div>
   );
 }
 
-export default function ScheduleBracket({ eventId }: { eventId: string }) {
-  const { state } = useSchedule(eventId);
+export default function ScheduleBracket({ eventId, preview = false }: { eventId: string; preview?: boolean }) {
+  const { state } = useSchedule(eventId, preview ? "preview" : "public");
   const matches = state.matches;
 
   if (matches.length === 0) {
@@ -53,47 +56,5 @@ export default function ScheduleBracket({ eventId }: { eventId: string }) {
     );
   }
 
-  // 按阶段 → 轮次 分组，保持 matches 数组的出现顺序
-  const phases: string[] = [];
-  for (const m of matches) {
-    if (!phases.includes(m.phase)) phases.push(m.phase);
-  }
-
-  return (
-    <div className="overflow-x-auto pb-2">
-      <div className="flex flex-col gap-2">
-        {phases.map((phase) => {
-          const phaseMatches = matches.filter((m) => m.phase === phase);
-          const rounds: string[] = [];
-          for (const m of phaseMatches) {
-            const r = m.round ?? "未分组";
-            if (!rounds.includes(r)) rounds.push(r);
-          }
-          return (
-            <div key={phase}>
-              <h3 className="mb-1 text-[0.6875rem] font-bold text-gray-700">{phase}</h3>
-              <div className="flex gap-2 min-w-max">
-                {rounds.map((round) => {
-                  const roundMatches = phaseMatches.filter((m) => (m.round ?? "未分组") === round);
-                  return (
-                    <div key={round} className="flex flex-col">
-                      <div className="mb-1">
-                        <p className="text-[0.6875rem] font-semibold text-gray-700">{round}</p>
-                        <p className="text-[0.5rem] text-gray-400">{roundMatches.length} 场</p>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {roundMatches.map((m) => (
-                          <MatchCell key={m.id} m={m} />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <TournamentBracketCanvas matches={matches} renderMatch={(match) => <MatchCell m={match} />} />;
 }

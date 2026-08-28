@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { RegistrationPlayer, RegistrationTeam, TeamRequest } from "./registration-data";
-import type { ScheduleMatch } from "./schedule-data";
+import type { RescheduleRecord, ScheduleMatch } from "./schedule-data";
+import type { BOType, SchedulingConfig } from "./rule-engine";
 import { participantTokenKey } from "./usePublicRegistration";
 
 export interface ParticipantTeam extends RegistrationTeam {
@@ -16,13 +17,33 @@ export interface ParticipantTeamRequest extends TeamRequest {
   playerGameId: string;
 }
 
+export interface ParticipantScheduleRequest extends RescheduleRecord {
+  teamAName: string;
+  teamBName: string;
+  boType: BOType;
+  phase: string;
+  canConfirm: boolean;
+  initiatedByMyTeam: boolean;
+}
+
 export interface ParticipantView {
   player: RegistrationPlayer;
   team?: ParticipantTeam;
   isCaptain: boolean;
   requests: ParticipantTeamRequest[];
   nextMatch?: ScheduleMatch;
-  teams: Array<{ id: string; name: string; status: RegistrationTeam["status"]; starterCount: number }>;
+  scheduleRequests: ParticipantScheduleRequest[];
+  scheduleConfig: SchedulingConfig;
+  scheduleConfigConfirmed: boolean;
+  scheduleVersion: number;
+  teams: Array<{
+    id: string;
+    name: string;
+    status: RegistrationTeam["status"];
+    starterCount: number;
+    substituteCount: number;
+    coachCount: number;
+  }>;
   teamRegistrationClosed: boolean;
 }
 
@@ -38,7 +59,13 @@ export function useParticipant(eventId: string) {
       headers: { Authorization: `Bearer ${credential}` },
     });
     const result = await response.json() as ParticipantView & { message?: string };
-    if (!response.ok) throw new Error(result.message ?? "参赛管理码无效。");
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem(participantTokenKey(eventId));
+        setToken("");
+      }
+      throw new Error(result.message ?? "参赛管理码无效。");
+    }
     setData(result);
     return result;
   }, [eventId]);
@@ -112,5 +139,7 @@ export function useParticipant(eventId: string) {
     createTeam: (name: string) => mutate("/api/public/team", "POST", { name }),
     sendTeamRequest: (input: Record<string, unknown>) => mutate("/api/public/team/request", "POST", input),
     resolveTeamRequest: (requestId: string, decision: "accept" | "reject") => mutate("/api/public/team/request", "PATCH", { requestId, decision }),
+    createScheduleRequest: (matchId: string, newStartTime: string, reason: string) => mutate("/api/public/schedule/request", "POST", { matchId, newStartTime, reason }),
+    resolveScheduleRequest: (requestId: string, decision: "accept" | "reject") => mutate("/api/public/schedule/request", "PATCH", { requestId, decision }),
   };
 }

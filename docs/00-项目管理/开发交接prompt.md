@@ -6,9 +6,9 @@
 
 ## 项目
 
-《无畏契约》校园赛事 AI 排程协同助手（瓦理杯），Next.js 16.3.0 App Router + React 19 + TypeScript + Tailwind CSS 4，数据存本地 JSON（`data/site-config.json` + `data/events/{eventId}/`）。当前版本 3.27；本地 Git 重构前基线为 `ac0a306`。
+《无畏契约》校园赛事 AI 排程协同助手（瓦理杯），Next.js 16.3.0 App Router + React 19 + TypeScript + Tailwind CSS 4。当前本地开发仍读写 JSON（`data/site-config.json` + `data/events/{eventId}/`），生产环境使用 Supabase PostgreSQL + Storage。当前版本 3.77；本地 Git 重构前基线为 `ac0a306`。
 
-> 重要状态：负责人已否决“工作台 v0.2 完成并进入 AI”的判断。2026-08-20 双角色真实浏览器审计不通过；在玩家侧、工作台和真实数据闭环验收通过前，禁止进入 AI 接入。权威问题清单见 `docs/09-测试与复盘/2026-08-20-双角色全流程产品审计.md`。
+> 重要状态：匿名测试赛 `event-mt8f43vq` 已完成全部 50 场、完整双败、两场 BO5、冠军与结束赛事，不得重置、另建赛事或重复回放。负责人于 2026-08-27 确认 Gate 5 通过。2026-08-28 已确认 GitHub + Vercel Hobby + Supabase Free + 自购域名；Supabase `esports-staging` 已初始化，5 份匿名数据文档约 1.45 MB 已迁移并回读核对通过。当前尚无 GitHub remote，Vercel Preview 未部署；Gate 6 仍需完成预发布承载、备份恢复与网络验证。评测集 v0.1 与 AI 接入继续暂停。
 
 - 技术栈：Next.js 16.3.0（App Router）、React 19、TypeScript（strict）、Tailwind CSS 4、qrcode.react
 - 运行：`npm run dev`（端口 3000）
@@ -20,22 +20,24 @@
 
 设计文档：`docs/04-产品定义/工作台系统设计_v0.2.md`（已确认冻结）。所有开发严格照此文档。核心要点：
 
-1. **4 个模块**：01 策划案 / 02 报名与队伍 / 03 赛程（核心）/ 04 赛事设置
+1. **3 个模块**：01 报名与队伍 / 02 赛程（核心）/ 03 赛事设置
 2. **无独立总览页**：生命周期条 + 模块状态徽标溶解到侧边栏，点赛事直接进赛程
-3. **新建比赛 = 办赛申请**：三步流程（基础信息 + 赛制配置 + 策划案信息），一套填写产出赛事 + 策划案
+3. **新建比赛 = 建立赛事对象**：两步流程（基础信息 + 赛制配置），创建后进入赛事设置
 4. **抽签 = 裁判直播面板**：对阵图先有骨架空卡片，抽签逐队填位（种子池 + 对阵图 + 逐队揭示，支持一键抽完）
 5. **视觉**：无圆角、无黑卡片、品牌红 #ff4655、ink 结构线、白卡片
+6. **策划案独立**：不在系统中填写、生成或导出策划案；它继续使用独立文档完成
+7. **文案原则**：界面只保留规则、状态、时间、限制、风险、操作后果和真实结果；不展示系统架构、重复流程或无操作价值的解释性小字
 
 ## 开发进度（7 步计划）
 
 | 步骤 | 内容 | 状态 |
 |---|---|---|
-| 1 | 导航重构（4模块+生命周期入侧栏+并列列表） | ✅ 完成 |
-| 2 | 03 赛程对阵图（骨架+报分弹框） | ✅ 完成 |
+| 1 | 导航重构（3模块+生命周期入侧栏+并列列表） | ✅ 完成 |
+| 2 | 02 赛程对阵图（骨架+报分弹框） | ✅ 完成 |
 | 3 | 抽签面板（裁判直播） | ✅ 完成 |
-| 4 | 新建比赛三步流程 | ✅ 完成 |
-| 5 | 01 策划案（查看/编辑/导出PDF） | ✅ 完成 |
-| 6 | 02 报名单列切换 + 04 设置精简 | ✅ 完成 |
+| 4 | 新建比赛两步流程 | ✅ 完成 |
+| 5 | 策划案从系统移除，保留独立文档边界 | ✅ 完成 |
+| 6 | 01 报名单列切换 + 03 设置精简 | ✅ 完成 |
 | 7 | 全站删提示卡/统计卡/灰字 + 验证 | ✅ 完成 |
 
 ### 当前工程检查与产品验收状态
@@ -43,12 +45,28 @@
 - tsc：0 错误
 - ESLint：0 错误、0 警告
 - 规则测试：20 / 20
-- 完整闭环：64 / 64
+- 完整闭环：100 / 100
 - BP 测试：44 / 44
 - 既有关键页面“能打开”巡检曾为 0 控制台错误，但不构成产品验收
-- 双角色真实任务审计：不通过
+- 双角色真实任务审计：历史首轮不通过；核心约赛协同于 2026-08-26 代理验收通过
 - 2026-08-21 已修并实测：新赛事空数据、并发报名、玩家侧错误写请求、多赛事上下文、草稿发布边界、工作台独立壳、参赛管理码、资料更正、双向组队、BP 赛事隔离、手机端头部与主按钮
-- 仍确认阻断：赛制配置未驱动对阵骨架、抽签主要写死 16 队 GSL、后台异常运营操作不完整、桌面对阵树与阶段主任务未通过负责人体验验收
+- 已解除：赛制配置已驱动 4 队单败、8 队双败、16 队 GSL + 8 队双败，以及本届 32 队入围赛 → 16 队 GSL → 8 队双败的分阶段抽签；三阶段合计 50 场，后续阶段只读取已确认赛果中的真实晋级队伍。
+- 已解除：负责人异常运营操作与发布/撤回/玩家页预览边界。
+- 当前本届测试数据：160 名匿名测试选手、32 支正式队伍，每队 5 名首发；替补与教练名额为空。阵容界面固定展示 `5 首发 + 1 替补 + 1 教练`。
+- 生命周期主操作已改为真实状态操作：结束报名会校验公开状态、选手审核和正式队伍数量，关闭报名窗口并进入分组后直达抽签工作区；结束赛事会校验全部比赛完成且无待处理改期。不得将这类按钮退化为跳转赛事设置的普通链接。
+- 玩家侧不提供“填写比赛亮点／生成赛事回顾”等负责人编辑功能；旧 `/events/{id}/report` 页面和赛事页入口已删除。最终赛果统一通过赛事赛程与对阵展示。
+- 玩家赛事页采用身份感知入口：本设备已识别参赛身份时仅保留“进入参赛中心”主按钮；未识别身份时，比赛阶段不再显示重复的“查看赛事赛程”大按钮。参赛中心将我的比赛置前，队长在同一区域发起约赛或改期。
+- `docs/09-测试与复盘/本地参赛身份.md` 保存当前匿名赛事的两名对阵队长与一名普通队员测试管理码，可完整验收提交约赛、对手确认、负责人审批和队员查看；正式赛事不得复用。
+- 已验证约赛：M14 从未排期推进为 2026-10-06 12:00—12:45，申请已批准，赛程 v1→v2，并生成通知草稿；普通队员越权 403、发起队长自确认 400、对手队长确认 200、普通队员读取新时间成功。
+- 本轮发现并修复：`src/proxy.ts` 原本漏掉 `/api/public/schedule/request`，导致队长请求被错误要求管理员登录。该接口现由参赛管理码和队长身份在路由内部校验。
+- AI 验证已暂停：评测集 v0.1 已冻结并保留，AI 输出仍为空；不得继续模型选择或 A/B。
+- 当前只验证非 AI 产品闭环：建赛、发布、报名、组队、抽签、排期、BP、约赛/改期、报分、晋级、结束及负责人端/玩家端一致读取。
+- 并发容量已改按候选时段内的峰值计算；相邻但不同时发生的比赛不再被错误累加。HC-05 仍只验证前置比赛计划时间，实际完赛状态属于明确能力缺口。
+- 2026-08-26 入围赛闭环：赛程 v17，16 场均已排期并完赛；M14 双方队长完成 6 次 BO1 Ban，错误操作方被 403 拦截，最终地图“莲华古城”，赛果 13:9；玩家公开赛程同步通过，阶段门控只读取 16 支真实胜者并解锁小组赛。证据见 `docs/09-测试与复盘/当前匿名测试赛验收进度.md`。
+- 2026-08-26 小组赛闭环：赛程 v38，共 36 场全部完成；M24 双方队长完成 BO3 的 4 Ban + 2 Pick，最终地图“森寒冬港、微风岛屿、莲华古城”，赛果 2:1；四组各提取第一、第二共 8 支唯一队伍并解锁淘汰赛，玩家侧同步通过。
+- 2026-08-26 淘汰赛与终态：赛程 v53，共 50 场全部完成；M37 验证 BO3 双队长 BP，M49 与 M50 分别验证败者组决赛和总决赛 BO5 BP；疾风战队从败者组晋级并在总决赛 3:2 夺冠，无重置赛。正式结束接口通过，玩家页显示“已结束／查看最终赛果”。
+- 2026-08-27 官网内容收口：结束赛事后不直接覆写人工运营文案；工作台检测赛前内容并生成待办，`/admin/site-content` 提供赛果建议和统一确认保存。本届首页赛事简介、页脚状态及赛后收尾主按钮已同步，待办消除。
+- 2026-08-27 赛后赛事页视觉收口：最终排名由大面积深色横条改为暖白结构化排名板，比分改为冠军优先顺序；赛事资料五标签和竞赛规程四目录在手机端完整展示，不再依赖横向滑动。
 
 ## 2026-08-21 当前实现与实测证据
 
@@ -59,40 +77,52 @@
 - 同一临时赛事并发 10 条报名全部返回 200，最终人数从 2 精确变为 12；测试赛事和虚拟数据已清理。
 - 公开报名接口只返回人数汇总；公开赛程只返回 `version` 和 `matches`；完整报名/赛程与旧直接加队接口未登录返回 401。
 - 赛程、赛制、BP 后台接口必须显式携带赛事 ID；BP 队长身份改用参赛管理码，不再信任客户端 playerId。
-- lint、生产构建、20 条规则测试、64 条完整闭环测试和 44 条 BP 测试全部通过。
+- 赛事阶段 `status` 与玩家可见性 `visibility` 已分离；设置页可预览最近保存的玩家页面并显式发布/撤回，撤回不改变赛事阶段。公开赛事保存仍需通过完整性检查，比赛中但无赛程时拒绝保存。
+- 设置页发布概览提供赛事归档与永久删除。真实往届赛事归档保留资料；永久删除只允许未公开的筹备/归档赛事，要求输入完整名称，并同时清理 `data/events/{eventId}/`。
+- 工作台筹备阶段的“进入报名阶段”是实际状态操作，不再是设置页跳转：点击后二次确认，服务端重新检查当前阶段、公开状态与发布前检查，通过后仅把当前赛事推进到报名阶段并刷新侧栏。
+- 玩家参赛身份按赛事保存在当前浏览器；刷新和重新打开仍能自动识别，换设备、换浏览器或清理站点数据后使用参赛管理码恢复。已识别身份时，赛事页和报名页以“参赛信息管理”为主入口，不再展示重复报名表。
+- 赛事页参赛选手与参赛队伍使用真实公开名单，不再只显示人数；公开数据严格排除姓名、学号与联系方式。
+- lint、TypeScript、生产构建、9 条报名异常操作、20 条规则、100 条完整闭环、44 条 BP、7 条发布与 16 条阶段引导测试全部通过。
 - 权威回归记录仍是 `docs/09-测试与复盘/2026-08-20-双角色全流程产品审计.md`，其中已追加第二轮结果。
 
 ## 步骤 6 工程实现情况（产品验收未通过）
 
-### 6a. 02 报名页 — 已完成并验证
+### 6a. 01 报名页 — 异常运营闭环已完成并验证
 
-文件：`src/app/admin/events/[id]/registration/page.tsx`
+入口：`src/app/admin/events/[id]/registration/page.tsx`
+
+主体：`src/components/admin/RegistrationOperationsWorkspace.tsx`
 
 已完成的改动：
-- 改为单列 + tab 切换（选手/队伍），不再并排
-- 术语改为「选手报名截止」「队伍申报截止」（不用「冻结名单」）
-- 删除顶部提示卡、统计卡
+- 保留选手 / 队伍 tab，并新增操作记录 tab；选手区使用不横向溢出的操作卡片，支持搜索、审核筛选和每页 20 人。
+- 支持选手审核、资料更正、需修改/拒绝、代建/补人、正式名单确认、开放调整、换人、移出、个人/整队退赛。
+- 负责人操作通过 `/api/admin/registration` 原子写入并记录原因和前后状态；只有最新且未出现后续数据变化的操作可安全撤销。
+- 术语继续使用「选手报名截止」「队伍申报截止」；旧 `frozen` 队伍成员迁移为已审核通过，避免已有正式名单被全部打回待审核。
+- 旧 `useRegistration` 已停止读取后自动整表回写，`/api/data/registration` 的旧 POST 补充管理员校验。
 
-已验证页面加载、选手/队伍切换、代建入口与双截止状态。选手报名截止后已有选手仍可组队；队伍申报截止后停止建队和名单调整。旧 `frozen` 数据由 `normalizeRegistrationState` 兼容。
+已用 7 名虚拟选手真实跑通审核、代建、补齐 5 名首发、确认名单、资料更正、换人、操作记录和撤销；不完整名单会被拦截。临时赛事和虚拟数据已清理。
 
-### 6b. 04 设置页 — 已完成并验证
+### 6b. 03 设置页 — 已完成并验证
 
 文件：`src/app/admin/events/[id]/settings/page.tsx`
 
-当前状态：已改为 `MODULE 04 / SETTINGS`，使用 `EventSettingsEditor`，并通过 `PATCH /api/admin/events` 按 URL 中的赛事 ID 保存。
+当前状态：已改为 `MODULE 03 / SETTINGS`，使用 `EventSettingsWorkspace`，并通过 `PATCH /api/admin/events` 按 URL 中的赛事 ID 保存；发布概览独立维护玩家侧公开状态，可预览最近保存版本并显式发布或撤回。
 
-当前只保留 4 组可编辑项：
+设置页不再同时铺开全部字段，分为 5 个任务分区：
 
-| 分组 | 可编辑项 |
+| 分区 | 内容 |
 |---|---|
-| 赛事信息 | 名称、主办方、状态、报名起止、比赛日期 |
-| 参赛规则 | 规则列表（增删改） |
-| 地图池 | 启用/停用地图（缩略图卡片） |
-| 公开内容 | 本届赛事简介、奖项、海报、参赛准备事项 |
+| 发布概览 | 公开状态、发布前检查、各分区配置摘要 |
+| 赛事与报名 | 名称、项目、主办方、阶段、报名日期与公开标签 |
+| 赛事规程 | 参赛程序，以及按竞赛赛制、比赛程序、竞赛纪律、技术异常、申诉裁决分类的规则 |
+| 地图与 BP | 启用或停用赛事地图 |
+| 玩家页面 | 赛事简介、奖项和主视觉 |
+
+新建赛事不再产生空白规程：阶段配置自动生成赛制条款，平台通用规则自动继承，负责人可添加本届补充规则。通用规则可从任一赛事规程中维护并保存为后续赛事预设，独立存放于 `data/rule-library.json`。规则记录 `source`、`customized`、`confirmed`；警示及处罚条款默认须负责人确认，通过后才能公开赛事。
 
 站点品牌、SEO、导航文字等平台级字段已从单赛事设置移除。
 
-参考数据模型：`src/lib/site-config-schema.ts` 中的 `EditableEvent` 接口。赛事设置通过 `PATCH /api/admin/events` 保存；策划案继续使用 proposal API。
+参考数据模型：`src/lib/site-config-schema.ts` 中的 `EditableEvent` 接口。赛事设置通过 `PATCH /api/admin/events` 保存。旧数据中的 `proposal` 字段仅作向后兼容，现行产品流程不读取、不编辑，也不存在 proposal API。
 
 ## 步骤 7 工程清理情况（产品验收未通过）
 
@@ -102,8 +132,8 @@
 
 | 文件 | 作用 |
 |---|---|
-| `src/lib/operations-data.ts` | 4 模块定义 + 状态徽标 + 生命周期条 |
-| `src/lib/site-config-schema.ts` | 数据模型（EditableEvent 含 stageConfigs + proposal 字段） |
+| `src/lib/operations-data.ts` | 3 模块定义 + 状态徽标 + 生命周期条 |
+| `src/lib/site-config-schema.ts` | 数据模型（EditableEvent 含 stageConfigs；proposal 仅为旧数据兼容字段） |
 | `src/lib/scheduling/format-templates.ts` | 赛制模板（StageConfig 类型 + buildEventFromTemplate） |
 | `src/lib/scheduling/bracket.ts` | 对阵图生成逻辑 |
 | `src/components/admin/AdminSidebar.tsx` | 侧边栏（生命周期条 + 状态徽标 + 返回入口） |
@@ -111,25 +141,32 @@
 | `src/app/admin/page.tsx` | L1 赛事列表页 |
 | `src/app/admin/layout.tsx` | admin 布局 |
 | `src/app/admin/events/[id]/page.tsx` | 赛事入口（重定向到 /schedule） |
-| `src/app/admin/events/[id]/schedule/page.tsx` | 03 赛程（对阵图核心） |
+| `src/app/admin/events/[id]/schedule/page.tsx` | 02 赛程（对阵图核心） |
 | `src/app/admin/events/[id]/schedule/draw/page.tsx` | 抽签面板（裁判直播） |
-| `src/app/admin/events/new/page.tsx` | 新建比赛三步流程 |
-| `src/app/admin/events/[id]/planning/page.tsx` | 01 策划案 |
-| `src/app/admin/events/[id]/registration/page.tsx` | 02 报名（已改写待验证） |
-| `src/app/admin/events/[id]/settings/page.tsx` | 04 设置（已精简） |
-| `src/components/admin/EventSettingsEditor.tsx` | 单赛事四组设置编辑器 |
+| `src/app/admin/events/new/page.tsx` | 新建比赛两步流程 |
+| `src/app/admin/events/[id]/registration/page.tsx` | 01 报名路由入口 |
+| `src/components/admin/RegistrationOperationsWorkspace.tsx` | 报名审核、更正、代建/补人、名单确认、换人、退赛、操作记录和撤销工作台 |
+| `src/app/api/admin/registration/route.ts` | 赛事级原子化负责人报名操作接口 |
+| `src/lib/scheduling/registration-admin-ops.ts` | 负责人异常运营纯函数与安全撤销规则 |
+| `src/app/admin/events/[id]/settings/page.tsx` | 03 设置（已精简） |
+| `src/components/admin/EventSettingsWorkspace.tsx` | 单赛事分区设置工作区、规则继承与发布检查 |
 | `src/app/admin/events/[id]/format/page.tsx` | 重定向到 /schedule |
 | `src/app/admin/events/[id]/notifications/page.tsx` | 重定向到 /schedule |
 | `src/app/admin/events/[id]/report/page.tsx` | 重定向到 /schedule |
 | `src/app/api/admin/events/route.ts` | 赛事 CRUD API |
-| `src/app/api/admin/events/proposal/route.ts` | 策划案更新 API |
-| `src/app/globals.css` | 全局样式（含打印 PDF 样式） |
+| `src/app/api/admin/events/publication/route.ts` | 赛事显式发布/撤回 API 与赛程发布门槛 |
+| `src/app/events/[id]/page.tsx` | 玩家赛事页阶段主任务、唯一主按钮与当前安排 |
+| `src/components/events/EventDetailTabs.tsx` | 玩家赛事资料标签与后台数据驱动的赛事手册 |
+| `src/lib/scheduling/stage.ts` | 负责人端与玩家端共用的阶段判定、玩家阶段引导配置 |
+| `src/app/globals.css` | 全局样式 |
 
 ## 数据模型要点
 
 `EditableEvent`（在 `site-config-schema.ts`）新增字段：
+- `visibility: "private" | "public"` — 玩家侧可见性，与赛事阶段独立
+- `publishedAt?: string` — 最近一次首次/再次发布的时间记录
 - `stageConfigs: StageConfig[]` — 赛制阶段配置（新建比赛第二步产出）
-- `proposal: { background, purpose, budget, prizes, leader, contact }` — 策划案信息（第三步产出）
+- `proposal: { background, purpose, budget, prizes, leader, contact }` — 仅用于读取 3.47 及更早版本的数据；新流程不产出、不展示
 - `teamRegistrationEnd: string` — 队伍申报与名单调整截止日期
 
 `StageConfig`（在 `format-templates.ts`）：
@@ -172,21 +209,20 @@ const token=exp+"."+createHmac("sha256",S).update(exp).digest("hex");
   };
   await check("赛事列表","http://localhost:3000/admin",["赛事列表","新建比赛"]);
   await check("赛程页","http://localhost:3000/admin/events/event-1/schedule",["对阵图"]);
-  await check("策划案","http://localhost:3000/admin/events/event-1/planning",["策划案"]);
   await check("报名页","http://localhost:3000/admin/events/event-1/registration",["选手","队伍"]);
   await check("设置页","http://localhost:3000/admin/events/event-1/settings",[]);
   await check("抽签面板","http://localhost:3000/admin/events/event-1/schedule/draw",["抽签"]);
-  await check("新建比赛","http://localhost:3000/admin/events/new",["基础信息","赛制配置","策划案信息"]);
+  await check("新建比赛","http://localhost:3000/admin/events/new",["基础信息","赛制配置"]);
 })();
 '
 ```
 
 ## 立即开始
 
-当前不是 AI Gate，而是“产品稳定与真实验收阶段”。严格按以下顺序继续：
+当前处于“Gate 6 部署准备与安全加固”，严格按以下顺序继续：
 
-1. 打通 `stageConfigs` → 对阵骨架 → 抽签 → 赛程的真实数据链；先完成可验收的 4 队单败 BO1，再复核 16 队 GSL + 8 队双败。
-2. 补齐后台真实异常运营：选手审核、更正、退赛、换人、队伍确认和可恢复记录。
-3. 重做桌面对阵树空间布局，并由彭杰评审玩家详情的阶段主任务和 tab 密度。
-4. 使用临时小型赛事再次完成负责人 + 至少两个玩家的浏览器验收，达到 20 条并发报名标准。
-5. 只有 P0 为 0 且彭杰明确验收后，才决定是否允许进入 AI Gate。
+1. 读取 `docs/09-测试与复盘/Gate6-部署承载与安全审计.md`、`docs/08-MVP开发/Gate6-零预算部署替代评估.md` 和 `docs/08-MVP开发/Gate6-Vercel与Supabase部署架构.md`，不得把本地开发环境测试误当成公网放行证据。
+2. 保留 `event-mt8f43vq` 的终态证据，不新建、不回退、不重复 50 场回放。
+3. 部署形态和第一轮代码加固已完成；按 `docs/08-MVP开发/Gate6-Supabase与Vercel配置清单.md` 创建 staging、执行 SQL、配置 Vercel Preview 并导入匿名测试赛，不得要求用户在对话中提供密钥。
+4. 在预发布地址完成承载、安全、恢复与三种网络测试，由彭杰决定 Gate 6 是否通过。
+5. Gate 6 未通过前不进入真实赛事试用，也不恢复 AI 评测。

@@ -16,7 +16,6 @@ const subscribePlayerIdentity = (onStoreChange: () => void) => {
 
 export function useRegistration(eventId?: string) {
   const [state, setState] = useState<RegistrationState>(initialRegistration());
-  const [loaded, setLoaded] = useState(false);
 
   // 初始从后端加载
   useEffect(() => {
@@ -28,26 +27,14 @@ export function useRegistration(eventId?: string) {
       })
       .catch(() => {
         // 加载失败用默认值
-      })
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
       });
     return () => {
       cancelled = true;
     };
   }, [eventId]);
 
-  // 状态变化后保存到后端
-  useEffect(() => {
-    if (!loaded) return;
-    fetch(`/api/data/registration${eventId ? `?eventId=${encodeURIComponent(eventId)}` : ""}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state),
-    }).catch(() => {
-      // 保存失败不阻断交互
-    });
-  }, [state, loaded, eventId]);
+  // 禁止在读取后自动回写整份报名状态。负责人操作和玩家操作均由各自的
+  // 原子化接口落盘，避免抽签页或旧客户端覆盖刚发生的报名与审核记录。
 
   /** 当前选手身份（简易，报名时绑定） */
   const storedPlayerId = useSyncExternalStore(
@@ -58,7 +45,7 @@ export function useRegistration(eventId?: string) {
   const [submittedPlayerId, setSubmittedPlayerId] = useState<string | null>(null);
   const currentPlayerId = submittedPlayerId ?? storedPlayerId;
 
-  /** 选手报名，返回选手 id。优先通过公开接口落盘；服务端明确拒绝时抛错，网络失败退化为本地记录 */
+  /** 选手报名，返回选手 id。只有服务端确认写入后才视为报名成功。 */
   const submitPlayer = useCallback(
     async (data: Omit<RegistrationPlayer, "id" | "submittedAt" | "status">): Promise<string> => {
       let player: RegistrationPlayer | null = null;
@@ -88,18 +75,12 @@ export function useRegistration(eventId?: string) {
           }
         }
       } catch {
-        // 网络失败：退化为本地记录，不阻断报名流程
+        throw new Error("网络异常，报名尚未提交，请重试");
       }
 
       if (!player) {
         if (rejectedMessage) throw new Error(rejectedMessage);
-        player = {
-          ...data,
-          id: `P-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          submittedAt: new Date().toISOString(),
-          status: "已报名",
-        };
-        setState((s) => ({ ...s, players: [...s.players, player!] }));
+        throw new Error("报名未成功，请重试");
       }
 
       try {
@@ -182,31 +163,6 @@ export function useRegistration(eventId?: string) {
       }
     },
     [currentPlayerId, eventId],
-  );
-
-  /** 把选手加入队伍（公开接口落盘，供玩家人才市场使用），服务端拒绝时抛错 */
-  const joinTeamPublic = useCallback(
-    async (playerId: string, teamId: string, role: "首发" | "替补" | "教练"): Promise<void> => {
-      try {
-        const res = await fetch("/api/public/team/member", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teamId, playerId, role, eventId }),
-        });
-        if (!res.ok) {
-          const json = (await res.json()) as { message?: string };
-          throw new Error(json.message ?? "入队失败");
-        }
-        const json = (await res.json()) as { state?: RegistrationState };
-        if (json.state && Array.isArray(json.state.players)) {
-          setState(json.state);
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message) throw e;
-        throw new Error("入队失败，请稍后重试");
-      }
-    },
-    [eventId],
   );
 
   /** 审核通过队伍（名单锁定） */
@@ -304,7 +260,6 @@ export function useRegistration(eventId?: string) {
     createTeam,
     createTeamAsPlayer,
     assignPlayer,
-    joinTeamPublic,
     removePlayerFromTeam,
     approveTeam,
     removeTeam,

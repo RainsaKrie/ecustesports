@@ -26,6 +26,13 @@ export interface OpResult<T = never> {
   value?: T;
 }
 
+export interface CaptainRequestResult {
+  ok: boolean;
+  message: string;
+  request?: RescheduleRecord;
+  validation?: ValidationResult;
+}
+
 export function toScheduledMatch(m: ScheduleMatch): ScheduledMatch {
   return {
     id: m.id,
@@ -76,6 +83,8 @@ export function validateGames(
 /** 导入对阵生成比赛列表（重置版本与队列） */
 export function importMatchesOp(state: ScheduleState, matches: ScheduleMatch[]): ScheduleState {
   return {
+    config: state.config,
+    configConfirmed: state.configConfirmed,
     version: 1,
     matches,
     versions: [
@@ -83,6 +92,58 @@ export function importMatchesOp(state: ScheduleState, matches: ScheduleMatch[]):
     ],
     requests: [],
     notifications: [],
+  };
+}
+
+/** 清空当前赛程前保留完整快照，供旧数据迁移或负责人重新抽签。 */
+export function archiveAndClearScheduleOp(state: ScheduleState, note = "归档旧赛程并重新抽签"): ScheduleState {
+  if (state.matches.length === 0) return state;
+  const archivedVersion = Math.max(1, state.version);
+  const hasCurrentSnapshot = state.versions.some(
+    (version) => version.version === archivedVersion && version.matches.length === state.matches.length,
+  );
+  const archived = hasCurrentSnapshot
+    ? state.versions
+    : [
+        ...state.versions,
+        {
+          version: archivedVersion,
+          matches: state.matches,
+          note: "清空前自动归档",
+          createdAt: new Date().toISOString(),
+        },
+      ];
+  const nextVersion = archivedVersion + 1;
+  return {
+    config: state.config,
+    configConfirmed: state.configConfirmed,
+    version: nextVersion,
+    matches: [],
+    versions: [
+      ...archived,
+      { version: nextVersion, matches: [], note, createdAt: new Date().toISOString() },
+    ],
+    requests: [],
+    notifications: state.notifications,
+  };
+}
+
+/** 发布后续赛事阶段：保留既有排期、赛果、申请和通知，只追加新阶段比赛。 */
+export function appendMatchesOp(state: ScheduleState, matches: ScheduleMatch[], note: string): ScheduleState {
+  const existingIds = new Set(state.matches.map((match) => match.id));
+  if (matches.some((match) => existingIds.has(match.id))) {
+    throw new Error("新阶段比赛编号与现有赛程重复，已停止发布。");
+  }
+  const nextMatches = [...state.matches, ...matches];
+  const nextVersion = Math.max(0, state.version) + 1;
+  return {
+    ...state,
+    version: nextVersion,
+    matches: nextMatches,
+    versions: [
+      ...state.versions,
+      { version: nextVersion, matches: nextMatches, note, createdAt: new Date().toISOString() },
+    ],
   };
 }
 
@@ -118,6 +179,108 @@ export function submitRequestOp(
     conflicts: result.conflicts,
   };
   return { state: { ...state, requests: [record, ...state.requests] }, result, value: result };
+}
+
+/** 队长提出双方已协商的候选时间；先校验硬约束，再等待对手队长确认。 */
+export function submitCaptainRequestOp(
+  state: ScheduleState,
+  input: { matchId: string; newStartTime: string; reason: string; proposedByTeamId: string },
+  config: SchedulingConfig = state.config ?? DEFAULT_CONFIG,
+): OpResult<CaptainRequestResult> {
+  if (!state.configConfirmed) {
+    return { state, value: { ok: false, message: "赛事负责人尚未确认本届排程时间范围。" } };
+  }
+  const match = state.matches.find((item) => item.id === input.matchId);
+  if (!match || ![match.teamAId, match.teamBId].includes(input.proposedByTeamId)) {
+    return { state, value: { ok: false, message: "你不是本场比赛的参赛队长。" } };
+  }
+  if (match.status === "已完成") {
+    return { state, value: { ok: false, message: "比赛已完成，不能再提交约赛时间。" } };
+  }
+  const active = state.requests.find((request) =>
+    request.matchId === match.id && ["待对手确认", "待审批"].includes(request.status),
+  );
+  if (active) {
+    return { state, value: { ok: false, message: "本场已有待处理的约赛申请，请先处理原申请。", request: active } };
+  }
+
+  // 候选时间先按“两队最终均确认”预校验，避免把明显不可行的时间发给对手。
+  const validation = validateReschedule({
+    matchId: match.id,
+    newStartTime: input.newStartTime,
+    teamAConfirmed: true,
+    teamBConfirmed: true,
+    basedOnVersion: state.version,
+  }, state.matches.map(toScheduledMatch), state.version, config);
+  if (!validation.approved) {
+    return { state, result: validation, value: { ok: false, message: validation.conflicts[0]?.message ?? "该时间无法提交。", validation } };
+  }
+
+  const now = new Date().toISOString();
+  const request: RescheduleRecord = {
+    id: `REQ-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    matchId: match.id,
+    newStartTime: input.newStartTime,
+    reason: input.reason,
+    teamAConfirmed: input.proposedByTeamId === match.teamAId,
+    teamBConfirmed: input.proposedByTeamId === match.teamBId,
+    proposedByTeamId: input.proposedByTeamId,
+    basedOnVersion: state.version,
+    submittedAt: now,
+    status: "待对手确认",
+    conflicts: [],
+  };
+  return {
+    state: { ...state, requests: [request, ...state.requests] },
+    result: validation,
+    value: { ok: true, message: "约赛时间已提交，等待对手队长确认。", request, validation },
+  };
+}
+
+/** 对手队长确认或拒绝候选时间；确认后进入负责人审批队列。 */
+export function resolveCaptainRequestOp(
+  state: ScheduleState,
+  input: { requestId: string; actorTeamId: string; decision: "accept" | "reject" },
+  config: SchedulingConfig = state.config ?? DEFAULT_CONFIG,
+): OpResult<CaptainRequestResult> {
+  const request = state.requests.find((item) => item.id === input.requestId);
+  const match = request ? state.matches.find((item) => item.id === request.matchId) : undefined;
+  if (!request || !match || request.status !== "待对手确认") {
+    return { state, value: { ok: false, message: "该约赛申请已失效或已经处理。" } };
+  }
+  const opponentTeamId = request.proposedByTeamId === match.teamAId ? match.teamBId : match.teamAId;
+  if (!request.proposedByTeamId || input.actorTeamId !== opponentTeamId) {
+    return { state, value: { ok: false, message: "只有对手队长可以处理该申请。", request } };
+  }
+  const now = new Date().toISOString();
+  if (input.decision === "reject") {
+    const rejected = { ...request, status: "已驳回" as const, resolvedAt: now };
+    return {
+      state: { ...state, requests: state.requests.map((item) => item.id === request.id ? rejected : item) },
+      value: { ok: true, message: "已拒绝该约赛时间。", request: rejected },
+    };
+  }
+
+  const validation = validateReschedule({
+    matchId: match.id,
+    newStartTime: request.newStartTime,
+    teamAConfirmed: true,
+    teamBConfirmed: true,
+    basedOnVersion: request.basedOnVersion,
+  }, state.matches.map(toScheduledMatch), state.version, config);
+  const updated: RescheduleRecord = validation.approved
+    ? { ...request, teamAConfirmed: true, teamBConfirmed: true, status: "待审批", conflicts: [], confirmedAt: now }
+    : { ...request, teamAConfirmed: true, teamBConfirmed: true, status: "已失效", conflicts: validation.conflicts, resolvedAt: now };
+  return {
+    state: { ...state, requests: state.requests.map((item) => item.id === request.id ? updated : item) },
+    result: validation,
+    value: {
+      ok: validation.approved,
+      message: validation.approved ? "双方已确认，等待赛事负责人审批。" : validation.conflicts[0]?.message ?? "赛程已变化，请重新提交。",
+      request: updated,
+      validation,
+    },
+  };
 }
 
 /**
@@ -177,6 +340,7 @@ export function approveRequestOp(
     ...match,
     startTime: req.newStartTime,
     endTime,
+    status: "已排期",
   };
   const newMatches = state.matches.map((m) => (m.id === match.id ? updatedMatch : m));
   const newVersion = state.version + 1;
@@ -198,11 +362,13 @@ export function approveRequestOp(
 
   return {
     state: {
+      config: state.config,
+      configConfirmed: state.configConfirmed,
       version: newVersion,
       matches: newMatches,
       versions: [...state.versions, versionRecord],
       requests: state.requests.map((r) =>
-        r.id === requestId ? { ...r, status: "已批准" as const } : r,
+        r.id === requestId ? { ...r, status: "已批准" as const, resolvedAt: new Date().toISOString() } : r,
       ),
       notifications: [notification, ...state.notifications],
     },
@@ -215,7 +381,7 @@ export function approveRequestOp(
 export function rejectRequestOp(state: ScheduleState, requestId: string): ScheduleState {
   return {
     ...state,
-    requests: state.requests.map((r) => (r.id === requestId ? { ...r, status: "已驳回" as const } : r)),
+    requests: state.requests.map((r) => (r.id === requestId ? { ...r, status: "已驳回" as const, resolvedAt: new Date().toISOString() } : r)),
   };
 }
 
@@ -298,6 +464,7 @@ export function setMatchTimeOp(
   matchId: string,
   newStartTime: string,
   config: SchedulingConfig = DEFAULT_CONFIG,
+  reason = "",
 ): OpResult<ValidationResult> {
   const match = state.matches.find((m) => m.id === matchId);
   const scheduled = state.matches.map(toScheduledMatch);
@@ -321,7 +488,14 @@ export function setMatchTimeOp(
   const versionRecord = {
     version: newVersion,
     matches: newMatches,
-    note: `${match.id} ${isInitial ? "排期" : "调整时间"}至 ${newStartTime.replace("T", " ")}`,
+    note: `${match.id} ${isInitial ? "排期" : "调整时间"}至 ${newStartTime.replace("T", " ")}${reason ? `（${reason}）` : ""}`,
+    createdAt: new Date().toISOString(),
+  };
+  const notification: NotificationDraft | undefined = isInitial ? undefined : {
+    id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    version: newVersion,
+    content: `【赛程变更 v${newVersion}】${match.teamAName} vs ${match.teamBName} 已调整至 ${newStartTime.replace("T", " ")}${reason ? `，原因：${reason}` : ""}。请双方队伍与裁判知悉。`,
+    status: "草稿",
     createdAt: new Date().toISOString(),
   };
 
@@ -331,6 +505,7 @@ export function setMatchTimeOp(
       version: newVersion,
       matches: newMatches,
       versions: [...state.versions, versionRecord],
+      notifications: notification ? [notification, ...state.notifications] : state.notifications,
     },
     result: { approved: true, conflicts: [], primaryConflict: "" },
     value: { approved: true, conflicts: [], primaryConflict: "" },

@@ -85,7 +85,20 @@ export interface EsportEvent {
   registrationLabel?: string;
   stageSummary?: string;
   preparationSteps?: Array<{ number: string; title: string; detail: string }>;
-  rulesList?: Array<{ title: string; detail: string }>;
+  rulesList?: Array<{
+    title: string;
+    detail: string;
+    category?: "format" | "match-day" | "conduct" | "incident" | "appeal";
+    emphasis?: "normal" | "important" | "warning";
+  }>;
+  mapPool?: Array<{ id: string; name: string }>;
+  stageConfigs?: Array<{
+    name: string;
+    type: "single-elim" | "gsl-groups" | "double-elim" | "round-robin";
+    teamCount: number;
+    boType: "BO1" | "BO3" | "BO5";
+    groupCount?: number;
+  }>;
 }
 
 /** BP 操作类型 */

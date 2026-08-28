@@ -1,0 +1,166 @@
+{
+  "seedPots": [],
+  "groups": [],
+  "matchups": [],
+  "drawType": "staged-32-gsl-double-elim",
+  "stageConfigs": [
+    {
+      "name": "入围赛",
+      "type": "single-elim",
+      "teamCount": 32,
+      "boType": "BO1",
+      "groupCount": 4
+    },
+    {
+      "name": "小组赛",
+      "type": "gsl-groups",
+      "teamCount": 16,
+      "boType": "BO3",
+      "groupCount": 4
+    },
+    {
+      "name": "淘汰赛",
+      "type": "double-elim",
+      "teamCount": 8,
+      "boType": "BO3",
+      "groupCount": 4
+    }
+  ],
+  "stageDraws": [
+    {
+      "stageIndex": 0,
+      "kind": "qualifier",
+      "drawOrder": [
+        "T-SEED-26",
+        "T-SEED-22",
+        "T-SEED-04",
+        "T-SEED-24",
+        "T-SEED-03",
+        "T-SEED-23",
+        "T-SEED-16",
+        "T-SEED-10",
+        "T-SEED-02",
+        "T-SEED-30",
+        "T-SEED-08",
+        "T-SEED-19",
+        "T-SEED-09",
+        "T-SEED-06",
+        "T-SEED-20",
+        "T-SEED-18",
+        "T-SEED-07",
+        "T-SEED-14",
+        "T-SEED-31",
+        "T-SEED-05",
+        "T-SEED-29",
+        "T-SEED-28",
+        "T-SEED-11",
+        "T-SEED-12",
+        "T-SEED-21",
+        "T-SEED-15",
+        "T-SEED-25",
+        "T-SEED-01",
+        "T-SEED-17",
+        "T-SEED-13",
+        "T-SEED-32",
+        "T-SEED-27"
+      ],
+      "publishedAt": "2026-08-26T03:17:03.310Z"
+    },
+    {
+      "stageIndex": 1,
+      "kind": "groups",
+      "seedPots": [
+        {
+          "name": "一号种子池",
+          "teamIds": [
+            "T-SEED-02",
+            "T-SEED-03",
+            "T-SEED-04",
+            "T-SEED-07"
+          ]
+        },
+        {
+          "name": "二号种子池",
+          "teamIds": [
+            "T-SEED-08",
+            "T-SEED-09",
+            "T-SEED-11",
+            "T-SEED-16"
+          ]
+        },
+        {
+          "name": "三号种子池",
+          "teamIds": [
+            "T-SEED-17",
+            "T-SEED-20",
+            "T-SEED-21",
+            "T-SEED-25"
+          ]
+        },
+        {
+          "name": "四号种子池",
+          "teamIds": [
+            "T-SEED-26",
+            "T-SEED-29",
+            "T-SEED-31",
+            "T-SEED-32"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "name": "A 组",
+          "teamIds": [
+            "T-SEED-04",
+            "T-SEED-16",
+            "T-SEED-20",
+            "T-SEED-29"
+          ]
+        },
+        {
+          "name": "B 组",
+          "teamIds": [
+            "T-SEED-03",
+            "T-SEED-08",
+            "T-SEED-17",
+            "T-SEED-26"
+          ]
+        },
+        {
+          "name": "C 组",
+          "teamIds": [
+            "T-SEED-02",
+            "T-SEED-09",
+            "T-SEED-21",
+            "T-SEED-32"
+          ]
+        },
+        {
+          "name": "D 组",
+          "teamIds": [
+            "T-SEED-07",
+            "T-SEED-11",
+            "T-SEED-25",
+            "T-SEED-31"
+          ]
+        }
+      ],
+      "publishedAt": "2026-08-26T13:39:35.809Z"
+    },
+    {
+      "stageIndex": 2,
+      "kind": "knockout",
+      "drawOrder": [
+        "T-SEED-03",
+        "T-SEED-29",
+        "T-SEED-07",
+        "T-SEED-32",
+        "T-SEED-04",
+        "T-SEED-31",
+        "T-SEED-02",
+        "T-SEED-26"
+      ],
+      "publishedAt": "2026-08-26T13:49:44.134Z"
+    }
+  ]
+}

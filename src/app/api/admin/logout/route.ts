@@ -8,9 +8,10 @@ export async function POST() {
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 0,
+    secure: process.env.NODE_ENV === "production",
   });
   return response;
 }

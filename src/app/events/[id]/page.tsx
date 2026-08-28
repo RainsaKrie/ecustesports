@@ -1,26 +1,32 @@
-import { getConfiguredEvents } from "@/lib/configured-events";
+import { getConfiguredEvents, toConfiguredEvent } from "@/lib/configured-events";
 import { getEvent, getSiteConfig } from "@/lib/site-config";
 import { getStatusInfo } from "@/lib/utils";
-import { getEventStage } from "@/lib/scheduling/stage";
+import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import EventDetailTabs from "@/components/events/EventDetailTabs";
+import ParticipantStageActions from "@/components/events/ParticipantStageActions";
 import Container from "@/components/layout/Container";
 import Badge from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
 
 interface EventDetailPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; preview?: string }>;
 }
 
 export default async function EventDetailPage({ params, searchParams }: EventDetailPageProps) {
   const { id } = await params;
-  const { tab } = await searchParams;
+  const { tab, preview } = await searchParams;
   const config = await getSiteConfig();
-  const events = getConfiguredEvents(config);
-  const event = events.find((item) => item.id === id);
+  const configured = config.events.find((item) => item.id === id);
+  const publicEvent = getConfiguredEvents(config).find((item) => item.id === id);
+  const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
+  const previewMode = preview === "1" && Boolean(configured) && verifySessionToken(token);
+  const event = publicEvent ?? (previewMode && configured ? toConfiguredEvent(configured) : undefined);
   if (!event) notFound();
   const cfgEvent = getEvent(config, id);
   const statusInfo = getStatusInfo(event.status);
@@ -34,52 +40,101 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
     registrationEnd: cfgEvent.registrationEnd,
     hasSchedule,
   });
+  const stageConfig = STAGE_CONFIGS[stage];
+
+  const nextMatch = [...schedule.matches]
+    .filter((match) => match.status !== "已完成" && Boolean(match.startTime))
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+
+  const finalMatch = [...schedule.matches]
+    .reverse()
+    .find((match) => match.status === "已完成" && ["总决赛", "决赛"].includes(match.round ?? ""));
+  const finalScoreA = finalMatch?.gameResults?.filter((game) => game.teamAScore > game.teamBScore).length ?? 0;
+  const finalScoreB = finalMatch?.gameResults?.filter((game) => game.teamBScore > game.teamAScore).length ?? 0;
+
+  const formatMatchTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "时间待确认";
+    return new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  };
+
+  const stageContext = (() => {
+    if (stage === "报名") return event.registrationLabel || "报名时间待公布";
+    if (stage === "比赛" && nextMatch) {
+      return `${nextMatch.phase} · ${nextMatch.teamAName} vs ${nextMatch.teamBName} · ${formatMatchTime(nextMatch.startTime)}`;
+    }
+    if (stage === "赛后" && finalMatch?.winnerTeamId) {
+      const winnerIsA = finalMatch.winnerTeamId === finalMatch.teamAId;
+      const champion = winnerIsA ? finalMatch.teamAName : finalMatch.teamBName;
+      const runnerUp = winnerIsA ? finalMatch.teamBName : finalMatch.teamAName;
+      const championScore = winnerIsA ? finalScoreA : finalScoreB;
+      const runnerUpScore = winnerIsA ? finalScoreB : finalScoreA;
+      return `${champion}夺得冠军 · 总决赛 ${champion} ${championScore}:${runnerUpScore} ${runnerUp}`;
+    }
+    if (stage === "赛后") return event.stageSummary || "赛事结果已公布";
+    return [event.dateLabel, event.stageSummary].filter(Boolean).join(" · ") || "赛事信息待公布";
+  })();
+
+  const rawCtaHref = stageConfig.ctaHref.replace("{id}", event.id);
+  const ctaHref = previewMode && rawCtaHref.startsWith(`/events/${event.id}?`)
+    ? rawCtaHref.replace("?", "?preview=1&")
+    : rawCtaHref;
 
   const isPreparing = event.status === "draft";
-  const isArchive = event.status === "archived";
-  const hasPublishedCompetitionData = event.status === "ongoing" || event.status === "completed" || isArchive;
-
   return (
     <div>
+      {previewMode && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+          <Container className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-bold">负责人预览 · {configured?.visibility === "public" ? "已公开" : "未公开"}</p>
+            <Link href={`/admin/events/${id}/settings`} className="border border-amber-300 bg-white px-3 py-2 text-xs font-black">返回赛事设置</Link>
+          </Container>
+        </div>
+      )}
       {/* Event Header */}
       <div
         className="px-4 sm:px-6 lg:px-8 pt-8 pb-6"
         style={{ background: `linear-gradient(135deg, ${event.coverColor}22, ${event.coverColor}05)` }}
       >
         <Container>
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div>
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
-                <span className="text-sm text-gray-500">{event.game}</span>
+                <span className="text-sm font-bold text-slate-700">{event.game}</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{event.name}</h1>
-              <p className="text-gray-600 mt-2 max-w-2xl">{event.description}</p>
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-800">{event.description}</p>
             </div>
-            <div className="grid w-full flex-shrink-0 grid-cols-1 gap-2 sm:flex sm:w-auto">
-              <Button href={`/events/${event.id}/manage`} variant="outline" size="lg" className="w-full whitespace-nowrap sm:w-auto">
-                管理我的参赛
-              </Button>
-              {event.status === "registration" && (
-                <Button href={`/events/${event.id}/register`} size="lg" className="w-full whitespace-nowrap sm:w-auto">
-                  立即报名
-                </Button>
-              )}
-              {isPreparing && (
-                <Button href={`/events/${event.id}`} size="lg" className="w-full whitespace-nowrap sm:w-auto">
-                  查看参赛须知
-                </Button>
-              )}
-              {event.status === "ongoing" && (
-                <Button href={`/events/${event.id}/bracket`} variant="outline" size="lg" className="w-full whitespace-nowrap sm:w-auto">
-                  全屏对阵图
-                </Button>
-              )}
-              {hasPublishedCompetitionData && (
-                <Button href={`/events/${event.id}/report`} variant="ghost" size="lg" className="w-full whitespace-nowrap sm:w-auto">
-                  赛事回顾
-                </Button>
-              )}
+
+            <div className="mt-7 border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,25,35,0.08)]">
+              <div className="grid lg:grid-cols-[1fr_auto]">
+                <div className="border-b border-slate-200 p-5 sm:p-7 lg:border-b-0 lg:border-r">
+                  <p className="font-mono text-[11px] font-black tracking-[0.18em] text-[#ff4655]">当前阶段任务 · {stage}</p>
+                  <h2 className="mt-3 text-xl font-black text-slate-950 sm:text-2xl">{stageConfig.title}</h2>
+                  <div className="mt-5 border-l-2 border-[#ff4655] bg-slate-50 px-4 py-3">
+                    <p className="text-sm font-bold leading-6 text-slate-800">{stageContext}</p>
+                  </div>
+                </div>
+
+                <div className="flex min-w-0 flex-col justify-center gap-4 p-5 sm:p-7 lg:w-72">
+                  <ParticipantStageActions
+                    eventId={event.id}
+                    stage={stage}
+                    ctaHref={ctaHref}
+                    ctaLabel={stageConfig.cta}
+                    isPreparing={isPreparing}
+                    isOngoing={event.status === "ongoing"}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </Container>
@@ -87,7 +142,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
       {/* Tabs / Content */}
       <Container className="py-8">
-        <EventDetailTabs eventId={id} stage={stage} initialTab={tab} />
+        <EventDetailTabs key={`${stage}-${tab ?? "default"}`} eventId={id} stage={stage} event={event} initialTab={tab} preview={previewMode} />
       </Container>
     </div>
   );

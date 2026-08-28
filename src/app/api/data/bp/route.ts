@@ -5,13 +5,14 @@
 // - 管理员（会话 cookie）可代任意操作、手动交换先手、重置
 // =====================
 
-import { readEventData, writeEventData } from "@/lib/data-store";
+import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
 import type { NextRequest } from "next/server";
 import {
   emptySchedule,
+  normalizeScheduleState,
   type ScheduleState,
 } from "@/lib/scheduling/schedule-data";
 import {
@@ -59,24 +60,39 @@ async function resolveRequester(
 /** 完成 BP 后：把选图写入比赛记录 + 生成通知草稿 */
 async function commitBPMaps(session: BPSession, eventId: string) {
   if (!session.finalMaps || session.finalMaps.length === 0) return;
-  const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
-  const match = schedule.matches.find((m) => m.id === session.matchId);
-  if (!match) return;
-  const matches = schedule.matches.map((m) =>
-    m.id === session.matchId ? { ...m, bpMaps: session.finalMaps } : m,
-  );
-  const notification = {
-    id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    version: schedule.version,
-    content: `【BP 完成】${match.id} ${match.teamAName} vs ${match.teamBName} 比赛地图：${session.finalMaps.join("、")}。请裁判与双方确认后开赛。`,
-    status: "草稿" as const,
-    createdAt: new Date().toISOString(),
-  };
-  await writeEventData(eventId, "schedule", {
-    ...schedule,
-    matches,
-    notifications: [notification, ...schedule.notifications],
+  await updateEventData<ScheduleState>(eventId, "schedule", emptySchedule(), (raw) => {
+    const schedule = normalizeScheduleState(raw);
+    const match = schedule.matches.find((m) => m.id === session.matchId);
+    if (!match) return schedule;
+    const alreadyCommitted = Array.isArray(match.bpMaps)
+      && match.bpMaps.length === session.finalMaps!.length
+      && match.bpMaps.every((map, index) => map === session.finalMaps![index]);
+    if (alreadyCommitted) return schedule;
+    const notification = {
+      id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      version: schedule.version,
+      content: `【BP 完成】${match.id} ${match.teamAName} vs ${match.teamBName} 比赛地图：${session.finalMaps!.join("、")}。请裁判与双方确认后开赛。`,
+      status: "草稿" as const,
+      createdAt: new Date().toISOString(),
+    };
+    return {
+      ...schedule,
+      matches: schedule.matches.map((candidate) => candidate.id === session.matchId
+        ? { ...candidate, bpMaps: session.finalMaps }
+        : candidate),
+      notifications: [notification, ...schedule.notifications],
+    };
   });
+}
+
+class BPRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
+function fail(message: string, status = 400): never {
+  throw new BPRequestError(message, status);
 }
 
 export async function GET(request: NextRequest) {
@@ -116,8 +132,6 @@ export async function POST(request: NextRequest) {
     const pool = event.mapPool.map((m) => m.name);
     const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
     const match = schedule.matches.find((m) => m.id === matchId);
-    const store = await loadStore(eventId);
-    const session = store[matchId];
 
     if (!match) {
       return Response.json({ ok: false, message: "比赛不存在" }, { status: 400 });
@@ -134,139 +148,99 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    switch (action) {
-      case "start": {
-        // 赛程重置后旧会话对阵已失效：删除孤儿会话后重建
-        let baseStore = store;
-        if (session && !sessionMatchesMatch(session, match)) {
-          const next = { ...store };
-          delete next[matchId];
-          baseStore = next;
-        }
-        const result = startBP(baseStore, { match, pool });
-        if (!result.ok || !result.session) {
-          return Response.json({ ok: false, message: result.message ?? "启动失败" }, { status: 400 });
-        }
-        await writeEventData(eventId, "bp", { ...baseStore, [matchId]: result.session });
-        return Response.json({ ok: true, session: result.session });
-      }
+    let outputSession: BPSession | undefined;
+    let outputFinalMaps: string[] | undefined;
+    let outputSwapped: boolean | undefined;
 
-      case "advance": {
-        if (!session || session.status !== "进行中") {
-          return Response.json({ ok: false, message: "BP 会话不存在或已结束" }, { status: 400 });
-        }
-        if (!sessionMatchesMatch(session, match)) {
-          return Response.json({ ok: false, message: "对阵已变更，请重新开始 BP" }, { status: 409 });
-        }
-        const operatorTeam = stepTeam(session);
-        if (!isAdmin && operatorTeam !== teamId) {
-          return Response.json({ ok: false, message: "当前轮到对方队伍操作" }, { status: 403 });
-        }
-        const result = advanceBP(session, { mapId, operatorRole: isAdmin ? "referee" : "team" }, pool);
-        if (!result.ok || !result.session) {
-          return Response.json({ ok: false, message: result.message ?? "操作失败" }, { status: 400 });
-        }
-        await writeEventData(eventId, "bp", { ...store, [matchId]: result.session });
-        if (result.session.status === "已完成") {
-          await commitBPMaps(result.session, eventId);
-        }
-        return Response.json({ ok: true, session: result.session, finalMaps: result.finalMaps });
-      }
+    await updateEventData<BPStore>(eventId, "bp", {}, (latestStore) => {
+      const store = { ...latestStore };
+      const session = store[matchId];
 
-      case "undo": {
-        if (!session || session.status !== "进行中") {
-          return Response.json({ ok: false, message: "BP 会话不存在或已结束" }, { status: 400 });
+      switch (action) {
+        case "start": {
+          if (session && !sessionMatchesMatch(session, match)) delete store[matchId];
+          const result = startBP(store, { match, pool });
+          if (!result.ok || !result.session) fail(result.message ?? "启动失败");
+          outputSession = result.session;
+          return { ...store, [matchId]: result.session };
         }
-        if (!sessionMatchesMatch(session, match)) {
-          return Response.json({ ok: false, message: "对阵已变更，请重新开始 BP" }, { status: 409 });
+        case "advance": {
+          if (!session || session.status !== "进行中") fail("BP 会话不存在或已结束");
+          if (!sessionMatchesMatch(session, match)) fail("对阵已变更，请重新开始 BP", 409);
+          if (!isAdmin && stepTeam(session) !== teamId) fail("当前轮到对方队伍操作", 403);
+          const result = advanceBP(session, { mapId, operatorRole: isAdmin ? "referee" : "team" }, pool);
+          if (!result.ok || !result.session) fail(result.message ?? "操作失败");
+          outputSession = result.session;
+          outputFinalMaps = result.finalMaps;
+          return { ...store, [matchId]: result.session };
         }
-        const last = session.actions[session.actions.length - 1];
-        if (!last) {
-          return Response.json({ ok: false, message: "没有可回退的操作" }, { status: 400 });
+        case "undo": {
+          if (!session || session.status !== "进行中") fail("BP 会话不存在或已结束");
+          if (!sessionMatchesMatch(session, match)) fail("对阵已变更，请重新开始 BP", 409);
+          const last = session.actions[session.actions.length - 1];
+          if (!last) fail("没有可回退的操作");
+          const lastTeam = last.side === "first" ? session.firstTeamId : session.secondTeamId;
+          if (!isAdmin && lastTeam !== teamId) fail("上一步不是本方操作，无法回退", 403);
+          const result = undoBP(session);
+          if (!result.ok || !result.session) fail(result.message ?? "回退失败");
+          outputSession = result.session;
+          return { ...store, [matchId]: result.session };
         }
-        const lastTeam = last.side === "first" ? session.firstTeamId : session.secondTeamId;
-        if (!isAdmin && lastTeam !== teamId) {
-          return Response.json({ ok: false, message: "上一步不是本方操作，无法回退" }, { status: 403 });
-        }
-        const result = undoBP(session);
-        if (!result.ok || !result.session) {
-          return Response.json({ ok: false, message: result.message ?? "回退失败" }, { status: 400 });
-        }
-        await writeEventData(eventId, "bp", { ...store, [matchId]: result.session });
-        return Response.json({ ok: true, session: result.session });
-      }
-
-      case "coinflip": {
-        // 未建会话时先自动建会话再掷（队长/裁判均可发起）
-        let active = session;
-        let baseStore = store;
-        if (!active) {
-          const stale = baseStore[matchId];
-          if (stale && !sessionMatchesMatch(stale, match)) {
-            const next = { ...baseStore };
-            delete next[matchId];
-            baseStore = next;
+        case "coinflip": {
+          let active: BPSession | undefined = session;
+          if (active && !sessionMatchesMatch(active, match)) {
+            delete store[matchId];
+            active = undefined;
           }
-          const started = startBP(baseStore, { match, pool });
-          if (!started.ok || !started.session) {
-            return Response.json({ ok: false, message: started.message ?? "启动失败" }, { status: 400 });
+          if (!active) {
+            const started = startBP(store, { match, pool });
+            if (!started.ok || !started.session) fail(started.message ?? "启动失败");
+            active = started.session;
           }
-          active = started.session;
-        } else if (!sessionMatchesMatch(active, match)) {
-          return Response.json({ ok: false, message: "对阵已变更，请重新开始 BP" }, { status: 409 });
+          if (active.status !== "进行中") fail("BP 已结束，不能交换先手");
+          outputSwapped = Math.random() < 0.5;
+          const result = outputSwapped ? swapFirstBP(active) : { ok: true, session: active };
+          if (!result.ok || !result.session) fail(result.message ?? "掷硬币失败");
+          outputSession = result.session;
+          return { ...store, [matchId]: result.session };
         }
-        if (active.status !== "进行中") {
-          return Response.json({ ok: false, message: "BP 已结束，不能交换先手" }, { status: 400 });
+        case "swap": {
+          if (!isAdmin) fail("只有裁判可以手动交换先手", 403);
+          if (!session || session.status !== "进行中") fail("BP 会话不存在或已结束");
+          if (!sessionMatchesMatch(session, match)) fail("对阵已变更，请重新开始 BP", 409);
+          const result = swapFirstBP(session);
+          if (!result.ok || !result.session) fail(result.message ?? "交换失败");
+          outputSession = result.session;
+          return { ...store, [matchId]: result.session };
         }
-        const swapped = Math.random() < 0.5;
-        const result = swapped ? swapFirstBP(active) : { ok: true, session: active };
-        if (!result.ok || !result.session) {
-          return Response.json({ ok: false, message: result.message ?? "掷硬币失败" }, { status: 400 });
+        case "reset": {
+          if (!isAdmin) fail("只有裁判可以重置 BP", 403);
+          if (!session || session.status !== "进行中") fail("BP 会话不存在或已结束");
+          if (!sessionMatchesMatch(session, match)) fail("对阵已变更，请重新开始 BP", 409);
+          const result = resetBP(session);
+          if (!result.ok || !result.session) fail(result.message ?? "重置失败");
+          outputSession = result.session;
+          return { ...store, [matchId]: result.session };
         }
-        await writeEventData(eventId, "bp", { ...baseStore, [matchId]: result.session });
-        return Response.json({ ok: true, session: result.session, swapped });
+        default:
+          fail("未知操作");
       }
+    });
 
-      case "swap": {
-        if (!isAdmin) {
-          return Response.json({ ok: false, message: "只有裁判可以手动交换先手" }, { status: 403 });
-        }
-        if (!session || session.status !== "进行中") {
-          return Response.json({ ok: false, message: "BP 会话不存在或已结束" }, { status: 400 });
-        }
-        if (!sessionMatchesMatch(session, match)) {
-          return Response.json({ ok: false, message: "对阵已变更，请重新开始 BP" }, { status: 409 });
-        }
-        const result = swapFirstBP(session);
-        if (!result.ok || !result.session) {
-          return Response.json({ ok: false, message: result.message ?? "交换失败" }, { status: 400 });
-        }
-        await writeEventData(eventId, "bp", { ...store, [matchId]: result.session });
-        return Response.json({ ok: true, session: result.session });
-      }
-
-      case "reset": {
-        if (!isAdmin) {
-          return Response.json({ ok: false, message: "只有裁判可以重置 BP" }, { status: 403 });
-        }
-        if (!session || session.status !== "进行中") {
-          return Response.json({ ok: false, message: "BP 会话不存在或已结束" }, { status: 400 });
-        }
-        if (!sessionMatchesMatch(session, match)) {
-          return Response.json({ ok: false, message: "对阵已变更，请重新开始 BP" }, { status: 409 });
-        }
-        const result = resetBP(session);
-        if (!result.ok || !result.session) {
-          return Response.json({ ok: false, message: result.message ?? "重置失败" }, { status: 400 });
-        }
-        await writeEventData(eventId, "bp", { ...store, [matchId]: result.session });
-        return Response.json({ ok: true, session: result.session });
-      }
-
-      default:
-        return Response.json({ ok: false, message: "未知操作" }, { status: 400 });
+    if (!outputSession) fail("操作未产生有效状态", 500);
+    if (action === "advance" && outputSession.status === "已完成") {
+      await commitBPMaps(outputSession, eventId);
     }
-  } catch {
-    return Response.json({ ok: false, message: "操作失败，请稍后重试" }, { status: 400 });
+    return Response.json({
+      ok: true,
+      session: outputSession,
+      ...(outputFinalMaps ? { finalMaps: outputFinalMaps } : {}),
+      ...(outputSwapped !== undefined ? { swapped: outputSwapped } : {}),
+    });
+  } catch (error) {
+    if (error instanceof BPRequestError) {
+      return Response.json({ ok: false, message: error.message }, { status: error.status });
+    }
+    return Response.json({ ok: false, message: "操作失败，请稍后重试" }, { status: 500 });
   }
 }

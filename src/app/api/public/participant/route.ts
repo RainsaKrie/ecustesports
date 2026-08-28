@@ -3,13 +3,14 @@ import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { findParticipant, readParticipantToken, withoutParticipantSecret } from "@/lib/participant-auth";
 import { RANK_VALUE } from "@/lib/scheduling/format-data";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import {
   initialRegistration,
   normalizeRegistrationState,
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
+import { isEventPublic } from "@/lib/configured-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ function text(value: unknown, max: number): string | undefined {
 
 async function resolveEvent(eventId: string) {
   const config = await getSiteConfig();
-  return config.events.find((event) => event.id === eventId && event.status !== "draft" && event.status !== "archived");
+  return config.events.find((event) => event.id === eventId && isEventPublic(event) && event.status !== "archived");
 }
 
 async function participantView(eventId: string, state: RegistrationState, player: RegistrationPlayer) {
@@ -45,7 +46,7 @@ async function participantView(eventId: string, state: RegistrationState, player
       playerGameId: requestPlayer?.gameId ?? "未知选手",
     };
   });
-  const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
+  const schedule = normalizeScheduleState(await readEventData<ScheduleState>(eventId, "schedule", emptySchedule()));
   const nextMatch = team
     ? [...schedule.matches]
         .filter((match) => match.status !== "已完成" && (match.teamAId === team.id || match.teamBId === team.id))
@@ -60,6 +61,25 @@ async function participantView(eventId: string, state: RegistrationState, player
       role: member!.role,
     })),
   } : undefined;
+  const scheduleRequests = team
+    ? schedule.requests
+        .filter((request) => {
+          const match = schedule.matches.find((candidate) => candidate.id === request.matchId);
+          return match?.teamAId === team.id || match?.teamBId === team.id;
+        })
+        .map((request) => {
+          const match = schedule.matches.find((candidate) => candidate.id === request.matchId)!;
+          return {
+            ...request,
+            teamAName: match.teamAName,
+            teamBName: match.teamBName,
+            boType: match.boType,
+            phase: match.phase,
+            canConfirm: Boolean(isCaptain && request.status === "待对手确认" && request.proposedByTeamId !== team.id),
+            initiatedByMyTeam: request.proposedByTeamId === team.id,
+          };
+        })
+    : [];
 
   return {
     player: withoutParticipantSecret(player),
@@ -67,12 +87,23 @@ async function participantView(eventId: string, state: RegistrationState, player
     isCaptain,
     requests,
     nextMatch,
-    teams: state.teams.filter((item) => item.status !== "已退赛").map((item) => ({
-      id: item.id,
-      name: item.name,
-      status: item.status,
-      starterCount: item.memberIds.filter((id) => state.players.find((candidate) => candidate.id === id)?.role === "首发").length,
-    })),
+    scheduleRequests,
+    scheduleConfig: schedule.config,
+    scheduleConfigConfirmed: schedule.configConfirmed,
+    scheduleVersion: schedule.version,
+    teams: state.teams.filter((item) => item.status !== "已退赛").map((item) => {
+      const members = item.memberIds
+        .map((id) => state.players.find((candidate) => candidate.id === id))
+        .filter((candidate) => candidate !== undefined);
+      return {
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        starterCount: members.filter((candidate) => candidate.role === "首发").length,
+        substituteCount: members.filter((candidate) => candidate.role === "替补").length,
+        coachCount: members.filter((candidate) => candidate.role === "教练").length,
+      };
+    }),
     teamRegistrationClosed: state.teamRegistrationClosed,
   };
 }

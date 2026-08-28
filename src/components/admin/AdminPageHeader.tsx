@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 interface AdminPageHeaderProps {
   eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   status?: string;
   actions?: ReactNode;
 }
@@ -21,7 +21,7 @@ export default function AdminPageHeader({ eyebrow, title, description, status, a
             <span className="bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{status}</span>
           )}
         </div>
-        <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
+        {description && <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </header>

@@ -74,6 +74,38 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): b
     new Date(bStart).getTime() < new Date(aEnd).getTime();
 }
 
+/**
+ * 计算候选比赛持续期间的峰值并发，而不是把所有曾与候选比赛相交的场次直接相加。
+ * 例如两场比赛分别占用 12:00-12:45 和 12:45-13:30，候选比赛横跨整个时段时，
+ * 峰值是 2 场，不是 3 场。相同时间点先处理结束事件，保持半开区间语义。
+ */
+function peakConcurrentMatches(
+  candidateStart: string,
+  candidateEnd: string,
+  otherMatches: ScheduledMatch[],
+): number {
+  const start = new Date(candidateStart).getTime();
+  const end = new Date(candidateEnd).getTime();
+  const events: Array<{ time: number; delta: 1 | -1 }> = [];
+
+  for (const match of otherMatches) {
+    if (!overlaps(candidateStart, candidateEnd, match.startTime, match.endTime)) continue;
+    events.push(
+      { time: Math.max(start, new Date(match.startTime).getTime()), delta: 1 },
+      { time: Math.min(end, new Date(match.endTime).getTime()), delta: -1 },
+    );
+  }
+
+  events.sort((a, b) => a.time - b.time || a.delta - b.delta);
+  let active = 1;
+  let peak = 1;
+  for (const event of events) {
+    active += event.delta;
+    peak = Math.max(peak, active);
+  }
+  return peak;
+}
+
 /** 首要原因排序：越靠前越优先作为"首要阻塞" */
 const PRIORITY = ["HC-01", "HC-02", "HC-08", "HC-06", "HC-04", "HC-05", "HC-07", "HC-03"];
 
@@ -152,14 +184,11 @@ export function validateReschedule(
   }
 
   // HC-06：时段并发不超过裁判容量
-  const concurrent = otherMatches.filter((m) =>
-    overlaps(newStart, newEnd, m.startTime, m.endTime),
-  );
-  const totalConcurrent = concurrent.length + 1;
-  if (totalConcurrent > config.maxConcurrentMatches) {
+  const peakConcurrent = peakConcurrentMatches(newStart, newEnd, otherMatches);
+  if (peakConcurrent > config.maxConcurrentMatches) {
     conflicts.push({
       code: "HC-06",
-      message: `该时段并发 ${totalConcurrent} 场，超过裁判容量 ${config.maxConcurrentMatches}`,
+      message: `该时段峰值并发 ${peakConcurrent} 场，超过裁判容量 ${config.maxConcurrentMatches}`,
     });
   }
 
@@ -240,14 +269,15 @@ export function validateMatchTime(
   }
 
   // HC-06：时段并发不超过裁判容量
-  const concurrent = matches.filter(
-    (m) => m.id !== target.id && m.startTime && overlaps(newStart, newEnd, m.startTime, m.endTime),
+  const peakConcurrent = peakConcurrentMatches(
+    newStart,
+    newEnd,
+    matches.filter((m) => m.id !== target.id && m.startTime),
   );
-  const totalConcurrent = concurrent.length + 1;
-  if (totalConcurrent > config.maxConcurrentMatches) {
+  if (peakConcurrent > config.maxConcurrentMatches) {
     conflicts.push({
       code: "HC-06",
-      message: `该时段并发 ${totalConcurrent} 场，超过裁判容量 ${config.maxConcurrentMatches}`,
+      message: `该时段峰值并发 ${peakConcurrent} 场，超过裁判容量 ${config.maxConcurrentMatches}`,
     });
   }
 

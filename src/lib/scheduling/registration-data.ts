@@ -16,6 +16,8 @@ export interface RegistrationPlayer {
   college?: string; // 学院（可选）
   submittedAt: string;
   status: "已报名" | "已入队" | "已退赛";
+  /** 负责人审核状态；与是否组队分开，避免一个 status 承担两种语义。 */
+  reviewStatus?: "待审核" | "已通过" | "需修改" | "已拒绝";
   teamId?: string; // 所属队伍
   role?: "首发" | "替补" | "教练"; // 队内角色
   /** 参赛管理码摘要；原始管理码只在报名成功时返回给本人。 */
@@ -48,11 +50,34 @@ export interface TeamRequest {
   resolvedAt?: string;
 }
 
+export interface RegistrationSnapshot {
+  players: RegistrationPlayer[];
+  teams: RegistrationTeam[];
+  teamRequests: TeamRequest[];
+  playerRegistrationClosed: boolean;
+  teamRegistrationClosed: boolean;
+  frozen: boolean;
+}
+
+export interface RegistrationAuditLog {
+  id: string;
+  action: string;
+  summary: string;
+  reason?: string;
+  actor: "赛事负责人";
+  createdAt: string;
+  undoneAt?: string;
+  /** 用于安全撤销；仅后台返回，不进入公开接口。 */
+  before: RegistrationSnapshot;
+  after: RegistrationSnapshot;
+}
+
 /** 报名状态 */
 export interface RegistrationState {
   players: RegistrationPlayer[];
   teams: RegistrationTeam[];
   teamRequests?: TeamRequest[];
+  operationLogs?: RegistrationAuditLog[];
   /** 是否停止接收新的个人报名 */
   playerRegistrationClosed: boolean;
   /** 是否停止建队、入队与名单调整 */
@@ -66,6 +91,7 @@ export function initialRegistration(): RegistrationState {
     players: [],
     teams: [],
     teamRequests: [],
+    operationLogs: [],
     playerRegistrationClosed: false,
     teamRegistrationClosed: false,
     frozen: false,
@@ -80,10 +106,19 @@ export function normalizeRegistrationState(value: unknown): RegistrationState {
   const legacyFrozen = source.frozen === true;
   const hasPlayerClosedFlag = typeof source.playerRegistrationClosed === "boolean";
   const hasTeamClosedFlag = typeof source.teamRegistrationClosed === "boolean";
+  const reviewStatuses = new Set(["待审核", "已通过", "需修改", "已拒绝"]);
+  const teams = Array.isArray(source.teams) ? source.teams : [];
+  const legacyConfirmedTeamIds = new Set(teams.filter((team) => team.status === "已冻结").map((team) => team.id));
   return {
-    players: Array.isArray(source.players) ? source.players : [],
-    teams: Array.isArray(source.teams) ? source.teams : [],
+    players: Array.isArray(source.players) ? source.players.map((player) => ({
+      ...player,
+      reviewStatus: reviewStatuses.has(player.reviewStatus ?? "")
+        ? player.reviewStatus
+        : player.teamId && legacyConfirmedTeamIds.has(player.teamId) ? "已通过" : "待审核",
+    })) : [],
+    teams,
     teamRequests: Array.isArray(source.teamRequests) ? source.teamRequests : [],
+    operationLogs: Array.isArray(source.operationLogs) ? source.operationLogs : [],
     playerRegistrationClosed: hasPlayerClosedFlag ? source.playerRegistrationClosed === true : legacyFrozen,
     teamRegistrationClosed: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,
     frozen: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,

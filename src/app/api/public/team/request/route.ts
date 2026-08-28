@@ -11,6 +11,7 @@ import {
   type TeamRequest,
   type TeamRequestType,
 } from "@/lib/scheduling/registration-data";
+import { isEventPublic } from "@/lib/configured-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ const ROLES: PlayerRole[] = ["首发", "替补", "教练"];
 
 async function resolveEvent(eventId: string) {
   const config = await getSiteConfig();
-  return config.events.find((event) => event.id === eventId && event.status !== "draft" && event.status !== "archived");
+  return config.events.find((event) => event.id === eventId && isEventPublic(event) && event.status !== "archived");
 }
 
 export async function POST(request: NextRequest) {

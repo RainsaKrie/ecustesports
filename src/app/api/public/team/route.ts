@@ -8,6 +8,7 @@ import { getSiteConfig } from "@/lib/site-config";
 import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
 import { createTeamOp } from "@/lib/scheduling/registration-ops";
+import { isEventPublic } from "@/lib/configured-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     if (eventId && !config.events.some((event) => event.id === eventId)) {
       return Response.json({ message: "赛事不存在或已下线。" }, { status: 404 });
     }
-    const event = config.events.find((item) => item.id === eventId && item.status !== "draft" && item.status !== "archived");
+    const event = config.events.find((item) => item.id === eventId && isEventPublic(item) && item.status !== "archived");
     if (!event) return Response.json({ message: "赛事不存在或尚未公开。" }, { status: 404 });
     const { registrationStart, teamRegistrationEnd } = event;
     if (registrationStart && teamRegistrationEnd) {

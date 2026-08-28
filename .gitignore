@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-build/
 /out/
 
 # production
@@ -34,9 +35,15 @@ yarn-error.log*
 # local development tools
 /.playwright-cli/
 /.workbuddy/
+/output/
+
+# local acceptance credentials and one-off state mutation scripts
+/docs/09-测试与复盘/本地参赛身份.md
+/tools/acceptance/
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

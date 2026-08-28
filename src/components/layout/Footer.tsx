@@ -10,7 +10,6 @@ export default function Footer({ config }: { config: SiteConfig }) {
           <span className="brand-mark" aria-hidden="true">{config.brand.mark}</span>
           <div>
             <strong>{config.brand.name}</strong>
-            <p>{config.brand.footerDescription}</p>
           </div>
         </div>
         <div>

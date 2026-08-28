@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { participantTokenKey, usePublicRegistration } from "@/lib/scheduling/usePublicRegistration";
+import { useParticipant } from "@/lib/scheduling/useParticipant";
 
 const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
 
@@ -15,6 +16,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params);
   const event = useCurrentEventConfig(id);
   const { state } = usePublicRegistration(id);
+  const participant = useParticipant(id);
 
   const now = new Date();
   const start = event.registrationStart ? new Date(`${event.registrationStart}T00:00:00`) : null;
@@ -72,6 +74,24 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
     setDone(true);
   }
 
+  if (participant.data && !done) {
+    return (
+      <Container className="py-10">
+        <div className="mx-auto max-w-lg border border-black/10 bg-[#fffdf8] p-7 text-center sm:p-9">
+          <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">REGISTRATION COMPLETE</p>
+          <h1 className="mt-3 text-2xl font-black text-[#171a1f]">已完成参赛报名</h1>
+          <p className="mt-2 text-sm font-bold text-[#34383f]">{participant.data.player.gameId}</p>
+          <Link href={`/events/${id}/manage`} className="mt-7 block bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
+            进入参赛管理
+          </Link>
+          <Link href={`/events/${id}`} className="mt-3 block border border-black/15 px-5 py-3 text-sm font-black text-[#34383f]">
+            返回赛事页
+          </Link>
+        </div>
+      </Container>
+    );
+  }
+
   if (done) {
     return (
       <Container className="py-8">
@@ -82,15 +102,11 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </svg>
           </div>
           <h2 className="text-lg font-bold text-gray-900">报名成功</h2>
-          <p className="mt-2 text-sm text-gray-500">
-            你已进入选手池。可以创建队伍、申请加入已有队伍，或由队长输入你的完整游戏 ID 发出邀请。
-          </p>
           <div className="mt-5 bg-slate-50 p-4 text-left">
-            <p className="text-xs font-bold text-slate-700">请保存你的参赛管理码</p>
+            <p className="text-xs font-bold text-slate-700">参赛管理码</p>
             <code className="mt-2 block break-all text-xs text-slate-600">{manageToken}</code>
-            <p className="mt-2 text-[0.6875rem] leading-5 text-slate-400">用于修改报名、申请或邀请组队。系统已在本设备保存，换设备时仍需此码。</p>
+            <p className="mt-2 text-[0.6875rem] font-bold text-slate-500">本设备已保存 · 换设备或浏览器时使用</p>
           </div>
-          <p className="mt-4 text-xs text-gray-400">当前已报名 {state.playerCount + 1} 名选手</p>
           <div className="mt-6 flex justify-center gap-3">
             <Link href={`/events/${id}/manage`} className="bg-[#ff4655] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#d83b48]">
               管理报名与组队 →
@@ -109,7 +125,6 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
       <div className="mx-auto max-w-xl">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">{event.name} · 选手报名</h1>
-          <p className="mt-2 text-sm text-gray-500">填写报名信息，进入选手池后自由组队</p>
           {phase !== "open" && (
             <div className={`mx-auto mt-4 max-w-md px-4 py-3 text-sm font-bold ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
               {phase === "not-open"
@@ -142,7 +157,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             <div className="border-t border-gray-100 pt-4">
-              <p className="mb-3 text-xs font-medium text-gray-500">联系方式（至少填一种，用于赛事通知）</p>
+              <p className="mb-3 text-xs font-medium text-gray-500">联系方式（至少一项）</p>
               <div className="space-y-3">
                 <input type="text" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
                 <input type="text" value={wechat} onChange={(e) => setWechat(e.target.value)} placeholder="微信号" className={inputClass} />

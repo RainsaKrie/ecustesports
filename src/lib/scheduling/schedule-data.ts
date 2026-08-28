@@ -2,7 +2,7 @@
 // 赛程数据模型与初始演示数据（改期闭环 MVP）
 // =====================
 
-import type { BOType, Conflict } from "./rule-engine";
+import { DEFAULT_CONFIG, type BOType, type Conflict, type SchedulingConfig } from "./rule-engine";
 
 export type MatchStatus = "待排期" | "已排期" | "已完成";
 
@@ -48,8 +48,12 @@ export interface RescheduleRecord {
   teamBConfirmed: boolean;
   basedOnVersion: number; // 申请基于的赛程版本号（AC-03：旧版本申请不能直接批准）
   submittedAt: string;
-  status: "待审批" | "已批准" | "已驳回";
+  /** 发起队伍；旧的负责人代录申请可能没有该字段。 */
+  proposedByTeamId?: string;
+  status: "待对手确认" | "待审批" | "已批准" | "已驳回" | "已失效";
   conflicts: Conflict[]; // 提交或批准前校验时的冲突结果
+  confirmedAt?: string;
+  resolvedAt?: string;
 }
 
 /** 赛程版本快照 */
@@ -71,6 +75,10 @@ export interface NotificationDraft {
 
 /** 完整赛程状态 */
 export interface ScheduleState {
+  /** 本届赛事实际使用的排程约束；由赛程工作区维护，不再使用固定演示日期。 */
+  config: SchedulingConfig;
+  /** 新赛事必须由负责人确认一次，避免把演示日期误当作本届规则。 */
+  configConfirmed: boolean;
   version: number;
   matches: ScheduleMatch[];
   versions: ScheduleVersion[];
@@ -81,11 +89,37 @@ export interface ScheduleState {
 /** 新赛事的真实空状态。演示赛程只能由负责人主动载入，不能作为读失败兜底。 */
 export function emptySchedule(): ScheduleState {
   return {
+    config: { ...DEFAULT_CONFIG, boDurations: { ...DEFAULT_CONFIG.boDurations } },
+    configConfirmed: false,
     version: 0,
     matches: [],
     versions: [],
     requests: [],
     notifications: [],
+  };
+}
+
+/** 兼容早期没有 config 的赛程文件。 */
+export function normalizeScheduleState(value: unknown): ScheduleState {
+  const source = typeof value === "object" && value !== null
+    ? value as Partial<ScheduleState>
+    : {};
+  const savedConfig = source.config;
+  return {
+    config: {
+      ...DEFAULT_CONFIG,
+      ...(savedConfig ?? {}),
+      boDurations: {
+        ...DEFAULT_CONFIG.boDurations,
+        ...(savedConfig?.boDurations ?? {}),
+      },
+    },
+    configConfirmed: source.configConfirmed === true,
+    version: typeof source.version === "number" ? source.version : 0,
+    matches: Array.isArray(source.matches) ? source.matches : [],
+    versions: Array.isArray(source.versions) ? source.versions : [],
+    requests: Array.isArray(source.requests) ? source.requests : [],
+    notifications: Array.isArray(source.notifications) ? source.notifications : [],
   };
 }
 
@@ -138,6 +172,8 @@ export function initialSchedule(): ScheduleState {
     mk("M06", "入围赛", "K", "破晓之光", "L", "暗夜行者", "BO3", "2026-10-06T16:00:00", 90),
   ];
   return {
+    config: { ...DEFAULT_CONFIG, boDurations: { ...DEFAULT_CONFIG.boDurations } },
+    configConfirmed: true,
     version: 1,
     matches,
     versions: [

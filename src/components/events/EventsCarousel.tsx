@@ -19,6 +19,9 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
   const total = events.length;
   const active = events[activeIndex];
   const stageConfig = STAGE_CONFIGS[stage];
+  const primaryHref = stageConfig.ctaHref.replace("{id}", active.id);
+  const primaryOpensEventDetail = primaryHref === `/events/${active.id}`
+    || primaryHref.startsWith(`/events/${active.id}?`);
 
   // prev/next 按列表当前顺序 ±1，循环
   const prev = () => setActiveIndex((i) => (i - 1 + total) % total);
@@ -96,8 +99,10 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
             {active.description}
           </p>
           <div className="mt-7 flex flex-wrap gap-4">
-            <Button href={stageConfig.ctaHref.replace("{id}", active.id)} size="xl">{stageConfig.cta}</Button>
-            <Button href={`/events/${active.id}`} variant="dark-outline" size="xl">赛事详情</Button>
+            <Button href={primaryHref} size="xl">{stageConfig.cta}</Button>
+            {!primaryOpensEventDetail && (
+              <Button href={`/events/${active.id}`} variant="dark-outline" size="xl">赛事详情</Button>
+            )}
           </div>
         </div>
 
