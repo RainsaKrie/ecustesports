@@ -1,24 +1,26 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { getConfiguredEvents } from "@/lib/configured-events";
-import { getEvent, getSiteConfig } from "@/lib/site-config";
+import { getEvent } from "@/lib/site-config";
 import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
-import { readEventData } from "@/lib/data-store";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import {
+  getPublicSchedule,
+  getPublicSiteConfig,
+} from "@/lib/public-data-cache";
 import EventsCarousel from "@/components/events/EventsCarousel";
 import EventCard from "@/components/events/EventCard";
 import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
 
+export const revalidate = 5;
+
 export default async function Home() {
-  const config = await getSiteConfig();
+  const config = await getPublicSiteConfig();
   const events = getConfiguredEvents(config);
   const current = events[0];
   const cfgEvent = current ? getEvent(config, current.id) : null;
   // 阶段判定（自动 + 手动覆盖）
-  const schedule = cfgEvent
-    ? await readEventData<ScheduleState>(cfgEvent.id, "schedule", emptySchedule())
-    : emptySchedule();
+  const schedule = cfgEvent ? await getPublicSchedule(cfgEvent.id) : { version: 1, matches: [] };
   const hasSchedule = Array.isArray(schedule.matches) && schedule.matches.length > 0;
   const stage = getEventStage({
     status: current?.status ?? "draft",

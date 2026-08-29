@@ -13,6 +13,8 @@ interface DocumentRow<T> {
 }
 
 const MAX_UPDATE_ATTEMPTS = 8;
+const MAX_READ_ATTEMPTS = 3;
+const READ_RETRY_DELAYS_MS = [80, 180];
 
 function config(): { url: string; secret: string } {
   const url = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL);
@@ -56,21 +58,55 @@ async function responseError(response: Response): Promise<Error> {
   return new Error(`Supabase 数据请求失败（HTTP ${response.status}）${detail ? `：${detail.slice(0, 300)}` : ""}`);
 }
 
+function isRetryableReadStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+async function waitBeforeReadRetry(attempt: number): Promise<void> {
+  const baseDelay = READ_RETRY_DELAYS_MS[attempt] ?? READ_RETRY_DELAYS_MS.at(-1) ?? 180;
+  const jitter = Math.floor(Math.random() * 40);
+  await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
+}
+
 async function readRow<T>(scope: "site" | "event", eventId: string, name: string): Promise<DocumentRow<T> | null> {
   const id = identity(scope, eventId, name);
-  const response = await fetch(
-    documentsUrl({
-      scope: `eq.${id.scope}`,
-      event_id: `eq.${id.eventId}`,
-      name: `eq.${id.name}`,
-      select: "payload,version",
-      limit: "1",
-    }),
-    { headers: headers(), cache: "no-store" },
-  );
-  if (!response.ok) throw await responseError(response);
-  const rows = (await response.json()) as DocumentRow<T>[];
-  return rows[0] ?? null;
+  const url = documentsUrl({
+    scope: `eq.${id.scope}`,
+    event_id: `eq.${id.eventId}`,
+    name: `eq.${id.name}`,
+    select: "payload,version",
+    limit: "1",
+  });
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_READ_ATTEMPTS; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: headers(),
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_READ_ATTEMPTS - 1) throw error;
+      await waitBeforeReadRetry(attempt);
+      continue;
+    }
+
+    if (response.ok) {
+      const rows = (await response.json()) as DocumentRow<T>[];
+      return rows[0] ?? null;
+    }
+
+    lastError = await responseError(response);
+    if (!isRetryableReadStatus(response.status) || attempt === MAX_READ_ATTEMPTS - 1) {
+      throw lastError;
+    }
+    await waitBeforeReadRetry(attempt);
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Supabase 数据读取失败");
 }
 
 async function insertIfMissing<T>(scope: "site" | "event", eventId: string, name: string, value: T): Promise<boolean> {

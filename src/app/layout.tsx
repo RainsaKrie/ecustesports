@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppChrome from "@/components/layout/AppChrome";
-import { getSiteConfig } from "@/lib/site-config";
+import { getPublicSiteConfig } from "@/lib/public-data-cache";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const dynamic = "force-dynamic";
+export const revalidate = 5;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const config = await getPublicSiteConfig();
   return {
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
     title: config.seo.title,
@@ -43,7 +43,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const config = await getSiteConfig();
+  const config = await getPublicSiteConfig();
   return (
     <html
       lang="zh-CN"
