@@ -71,7 +71,13 @@ export async function proxy(request: NextRequest) {
     const origin = request.headers.get("origin");
     const configuredOrigin = process.env.APP_ORIGIN?.replace(/\/$/, "");
     const deploymentOrigin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "";
-    const allowedOrigins = new Set([configuredOrigin, deploymentOrigin].filter(Boolean));
+    const productionOrigin = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "";
+    const branchOrigin = process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : "";
+    const allowedOrigins = new Set(
+      [configuredOrigin, deploymentOrigin, productionOrigin, branchOrigin].filter(Boolean),
+    );
     if (allowedOrigins.size === 0) {
       return NextResponse.json({ message: "服务端缺少来源配置" }, { status: 503 });
     }
