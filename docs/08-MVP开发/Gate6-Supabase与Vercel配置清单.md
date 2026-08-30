@@ -2,7 +2,7 @@
 
 - 日期：2026-08-28
 - 用途：将当前匿名测试赛部署到隔离的预发布环境
-- 当前状态：Supabase staging 初始化与匿名数据迁移完成，等待 GitHub 与 Vercel Preview
+- 当前状态：Supabase staging、私有 GitHub 与 Vercel 预发布已完成，正在收口 Gate 6 现场验证
 - 放行边界：本清单完成不等于 Gate 6 通过；压测、恢复和网络验证仍需单独记录
 
 ## A. 负责人只需完成的账号操作
@@ -103,5 +103,23 @@ npm run data:migrate:apply
 - `app_documents`、`operation_audit`、`rate_limit_buckets` 与 `event-assets` 已建立；
 - 站点配置及匿名测试赛 `bp`、`format`、`registration`、`schedule` 共 5 份文档已导入；
 - 迁移量约 1.45 MB，写入后回读核对 5/5 通过；
-- 本地 `.env.local` 保持 Git 忽略且 `DATA_BACKEND=file`，localhost 未切换为云端事实源；
-- 下一步：建立私有 GitHub 仓库，提交当前完整工作树并导入 Vercel Preview。
+- 本地 `.env.local` 保持 Git 忽略且 `DATA_BACKEND=file`，localhost 未切换为云端事实源。
+
+### 2026-08-30 云端直连验证（针对 Supabase staging）
+
+以下三项直接读写 `esports-staging`，属于 Gate 6 阻塞项证据；脚本均使用临时赛事或对象并在结束时清理。
+
+| 阻塞项 | 验证 | 结果 |
+|---|---|---|
+| G6-05 备份与恢复 | `tools/gate6/backup-restore.ts` | 5 份文档导出 0.87 MB；160 名选手、32 支队伍、50 场比赛；恢复到临时赛事后校验和 5/5 匹配；临时赛事已删除，通过 |
+| G6-02 并发写入 | `tools/gate6/write-concurrency.ts` | 30 并发写入全部成功，存储请求 ID 30 个且全部唯一，无丢失、无重复、无错误，通过 |
+| G6-04 限流 / G6-08 上传校验 | `tools/gate6/storage-rate-security.ts` | 704,536-byte JPEG 上传并公开读取 200；伪造图片签名被拒；超过 5 MB 被拒；限流前 10 次允许、第 11 次拒绝；临时对象与限流行已清理，通过 |
+
+### 代码与推送状态
+
+- 私有 GitHub 仓库 `RainsaKrie/esports-operations-assistant` 已存在，默认分支 `main`，可见性为私有；
+- 本地工作树已提交并推送到 `main`，包含 Vercel 生产与分支来源的同源校验，以及上述三个 Gate 6 验证脚本；
+- 类型检查、ESLint、规则 20/20、完整闭环 100/100、发布 7/7、阶段引导 16/16 通过；
+- Vercel 预发布地址：`https://esports-operations-assistant-stagin.vercel.app`；公开读取、安全端点、上传限流与健康检查均已实测；
+- 100 客户端持续 10 分钟共 12,001 次请求全部成功，P95 95 ms；30 个同时读取与 300 人/10 秒进入通过；300 个同一时刻读取全部成功但 P95 1,553 ms，未达到严格的 1 秒目标；
+- 下一步：完成校园网、宿舍网、移动网络实测，确认备份与巡检值守，再建立 production 数据项目并绑定正式域名。
