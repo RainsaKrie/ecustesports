@@ -44,7 +44,7 @@ async function request(scenario) {
       durationMs: Math.round(performance.now() - started),
       bytes: body.byteLength,
       cacheStatus: response.headers.get("x-vercel-cache") ?? "",
-      edge: response.headers.get("x-vercel-id") ?? "",
+      edge: (response.headers.get("x-vercel-id") ?? "").split("::").slice(0, 2).join("::"),
     };
   } catch (error) {
     return {
@@ -90,19 +90,22 @@ function summarize(rows) {
   };
 }
 
-async function runLevel(concurrency) {
-  const baseCount = Math.floor(concurrency / scenarios.length);
-  const remainder = concurrency % scenarios.length;
-  const tasks = scenarios.flatMap((scenario, scenarioIndex) =>
-    Array.from(
-      { length: baseCount + (scenarioIndex < remainder ? 1 : 0) },
-      () => request(scenario),
-    ),
-  );
+async function runLevel(concurrency, launchWindowMs = 0) {
+  const launchIntervalMs = concurrency > 1 ? launchWindowMs / (concurrency - 1) : 0;
+  const tasks = Array.from({ length: concurrency }, (_, index) => {
+    const scenario = scenarios[index % scenarios.length];
+    return (async () => {
+      if (launchIntervalMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, Math.round(index * launchIntervalMs)));
+      }
+      return request(scenario);
+    })();
+  });
   const started = performance.now();
   const rows = await Promise.all(tasks);
   return {
     concurrency,
+    launchWindowMs,
     wallTimeMs: Math.round(performance.now() - started),
     overall: summarize(rows),
     scenarios: Object.fromEntries(
@@ -113,9 +116,16 @@ async function runLevel(concurrency) {
 
 const warmup = await runLevel(3);
 const level30 = await runLevel(30);
-const level300 = level30.overall.gate.passed ? await runLevel(300) : null;
+const level300Spike = level30.overall.gate.passed ? await runLevel(300) : null;
+const level300Ramp = level30.overall.gate.passed ? await runLevel(300, 10_000) : null;
+const strictPassed = Boolean(level300Spike?.overall.gate.passed);
+const operationallyAcceptable = Boolean(
+  level300Spike?.overall.gate.noFailedRequests
+  && level300Spike?.overall.gate.serverErrorRateBelowOnePercent
+  && level300Ramp?.overall.gate.passed,
+);
 const report = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   recordedAt: new Date().toISOString(),
   base,
   source: "GitHub Actions hosted runner",
@@ -132,11 +142,18 @@ const report = {
     p95MsBelow: 1_000,
   },
   warmup,
-  levels: { "30": level30, "300": level300 },
-  passed: Boolean(level300?.overall.gate.passed),
-  note: level300 ? "30 并发通过后执行 300 并发。" : "30 并发未通过，按测试规则停止放大。",
+  levels: {
+    "30-spike": level30,
+    "300-spike": level300Spike,
+    "300-ramp-10s": level300Ramp,
+  },
+  strictPassed,
+  operationallyAcceptable,
+  note: level300Spike
+    ? "同时保留 300 瞬时并发与 300 用户 10 秒渐进访问结果；渐进测试不替代瞬时并发标准。"
+    : "30 并发未通过，按测试规则停止放大。",
 };
 
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-if (!report.passed) process.exitCode = 2;
+if (!report.strictPassed) process.exitCode = 2;
