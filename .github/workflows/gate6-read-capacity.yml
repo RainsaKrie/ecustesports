@@ -1,0 +1,45 @@
+name: Gate 6 Read Capacity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gate6-read-capacity.yml"
+      - "tools/gate6/read-capacity.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gate6-read-capacity
+  cancel-in-progress: true
+
+jobs:
+  read-capacity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run staged read-capacity test
+        id: capacity
+        continue-on-error: true
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: node tools/gate6/read-capacity.mjs "https://esports-operations-assistant-stagin.vercel.app" gate6-read-result.json
+
+      - name: Publish evidence tag
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag="gate6-read-${GITHUB_RUN_ID}"
+          git tag -a "$tag" -F gate6-read-result.json
+          git push origin "$tag"
