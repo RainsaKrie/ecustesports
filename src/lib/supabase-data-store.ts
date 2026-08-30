@@ -12,7 +12,7 @@ interface DocumentRow<T> {
   version: number;
 }
 
-const MAX_UPDATE_ATTEMPTS = 8;
+const MAX_UPDATE_ATTEMPTS = 40;
 const MAX_READ_ATTEMPTS = 3;
 const READ_RETRY_DELAYS_MS = [80, 180];
 
@@ -65,6 +65,12 @@ function isRetryableReadStatus(status: number): boolean {
 async function waitBeforeReadRetry(attempt: number): Promise<void> {
   const baseDelay = READ_RETRY_DELAYS_MS[attempt] ?? READ_RETRY_DELAYS_MS.at(-1) ?? 180;
   const jitter = Math.floor(Math.random() * 40);
+  await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
+}
+
+async function waitBeforeUpdateRetry(attempt: number): Promise<void> {
+  const baseDelay = Math.min(8 + attempt * 4, 80);
+  const jitter = Math.floor(Math.random() * 60);
   await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
 }
 
@@ -166,9 +172,11 @@ export const supabaseDataStore: DataStoreDriver = {
       const row = await readRow<T>(scope, eventId, name);
       if (!row) {
         if (await insertIfMissing(scope, eventId, name, value)) return;
+        await waitBeforeUpdateRetry(attempt);
         continue;
       }
       if (await compareAndSwap(scope, eventId, name, row.version, value)) return;
+      await waitBeforeUpdateRetry(attempt);
     }
     throw new Error("数据已被其他操作连续修改，请刷新后重试");
   },
@@ -188,10 +196,12 @@ export const supabaseDataStore: DataStoreDriver = {
 
       if (!row) {
         if (await insertIfMissing(scope, eventId, name, next)) return next;
+        await waitBeforeUpdateRetry(attempt);
         continue;
       }
 
       if (await compareAndSwap(scope, eventId, name, row.version, next)) return next;
+      await waitBeforeUpdateRetry(attempt);
     }
     throw new Error("数据已被其他操作连续修改，请刷新后重试");
   },
