@@ -28,7 +28,8 @@ type Modal =
   | { kind: "remove-player"; player: RegistrationPlayer }
   | { kind: "reopen-team"; team: RegistrationTeam }
   | { kind: "replace-player"; team: RegistrationTeam; outgoing?: RegistrationPlayer }
-  | { kind: "withdraw-team"; team: RegistrationTeam };
+  | { kind: "withdraw-team"; team: RegistrationTeam }
+  | { kind: "reset-token"; player: RegistrationPlayer; newToken?: string };
 
 const inputClass = "w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15";
 const subscribeStatic = () => () => {};
@@ -217,6 +218,29 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
     if (modal.kind === "withdraw-team") return runOperation("withdraw-team", { teamId: modal.team.id, reason: form.reason });
   }
 
+  async function resetToken() {
+    if (!modal || modal.kind !== "reset-token") return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/admin/registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, action: "reset-player-token", payload: { playerId: modal.player.id } }),
+      });
+      const data = await response.json().catch(() => ({})) as { message?: string; state?: RegistrationState; newToken?: string };
+      if (data.state) setState(normalizeRegistrationState(data.state));
+      if (!response.ok || !data.newToken) throw new Error(data.message ?? "生成参赛码失败");
+      setModal({ ...modal, newToken: data.newToken });
+      setNotice({ kind: "success", text: "已生成新参赛码，请复制后转告选手。" });
+      router.refresh();
+    } catch (reason) {
+      setNotice({ kind: "error", text: reason instanceof Error ? reason.message : "操作失败，请重试" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function captainReplacementOptions(player: RegistrationPlayer) {
     if (!player.teamId) return [];
     const team = state.teams.find((candidate) => candidate.id === player.teamId);
@@ -325,6 +349,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                       {player.status !== "已退赛" && player.reviewStatus !== "需修改" && <button type="button" onClick={() => openModal({ kind: "review-player", player, status: "需修改" })} className="text-amber-700 hover:underline">要求修改</button>}
                       {player.status !== "已退赛" && player.reviewStatus !== "已拒绝" && <button type="button" onClick={() => openModal({ kind: "review-player", player, status: "已拒绝" })} className="text-red-700 hover:underline">拒绝报名</button>}
                       <button type="button" onClick={() => openModal({ kind: "edit-player", player })} className="text-slate-700 hover:underline">编辑资料</button>
+                      {player.status !== "已退赛" && <button type="button" onClick={() => openModal({ kind: "reset-token", player })} className="text-slate-700 hover:underline">重置参赛码</button>}
                       {player.status === "已报名" && player.reviewStatus === "已通过" && !state.teamRegistrationClosed && <button type="button" onClick={() => openModal({ kind: "assign-player", player })} className="text-[#c83242] hover:underline">安排进队</button>}
                       {player.status !== "已退赛" && <button type="button" onClick={() => openModal({ kind: "withdraw-player", player })} className="text-red-700 hover:underline">办理退赛</button>}
                     </div>
@@ -420,6 +445,17 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         <Field label="自我介绍"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.intro ?? ""} onChange={(event) => setForm({ ...form, intro: event.target.value })} placeholder="选填" /></Field>
         <Field label="修改原因"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：选手联系负责人更正游戏 ID" /></Field>
       </ModalShell>}
+
+      {modal?.kind === "reset-token" && (modal.newToken ? (
+        <ModalShell title={`新参赛码 · ${modal.player.gameId}`} subtitle="旧码已失效，请把新码发给选手，选手用新码重新进入参赛管理。" onClose={() => setModal(null)} footer={<button type="button" onClick={() => setModal(null)} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white">完成</button>}>
+          <code className="block break-all border border-slate-300 bg-white p-4 text-sm font-bold leading-6 text-slate-900">{modal.newToken}</code>
+          <button type="button" onClick={() => navigator.clipboard.writeText(modal.newToken ?? "").then(() => setNotice({ kind: "success", text: "已复制" }))} className="mt-3 border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700">复制新码</button>
+        </ModalShell>
+      ) : (
+        <ModalShell title={`重置参赛码 · ${modal.player.gameId}`} subtitle="选手丢失参赛码时使用。生成后旧码立即失效，选手需用新码重新登录。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={resetToken} disabled={busy} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">生成新码</button></>}>
+          <p className="text-sm leading-6 text-slate-700">确定要为 <span className="font-black text-slate-900">{modal.player.gameId}</span>（{modal.player.name}）重置参赛码吗？</p>
+        </ModalShell>
+      ))}
 
       {modal?.kind === "review-player" && <ModalShell title={`${modal.status} · ${modal.player.gameId}`} subtitle={modal.status === "已拒绝" ? "拒绝后不能进入正式名单。" : undefined} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">确认</button></>}><Field label="处理说明"><textarea autoFocus className={`${inputClass} min-h-28 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="请填写明确原因" /></Field></ModalShell>}
 

@@ -9,6 +9,7 @@ import {
   removePlayerFromTeamAdminOp,
   reopenTeamAdminOp,
   replacePlayerAdminOp,
+  resetPlayerTokenAdminOp,
   reviewPlayerAdminOp,
   toggleRegistrationAdminOp,
   undoRegistrationAdminOp,
@@ -19,6 +20,7 @@ import {
   type ReviewStatus,
   type RosterRole,
 } from "@/lib/scheduling/registration-admin-ops";
+import { issueParticipantToken } from "@/lib/participant-auth";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -52,6 +54,11 @@ function dispatch(
   payload: Record<string, unknown>,
 ): AdminRegistrationResult {
   switch (action) {
+    case "reset-player-token": {
+      const playerId = text(payload.playerId, 80);
+      const credential = issueParticipantToken();
+      return resetPlayerTokenAdminOp(state, { playerId, tokenHash: credential.tokenHash, newToken: credential.token });
+    }
     case "review-player":
       return reviewPlayerAdminOp(state, {
         playerId: text(payload.playerId, 80),
@@ -150,7 +157,7 @@ export async function POST(request: NextRequest) {
     });
     if (!operation) return Response.json({ message: "操作未执行" }, { status: 500 });
     return Response.json(
-      { message: operation.message, state },
+      { message: operation.message, state, ...(operation.newToken ? { newToken: operation.newToken } : {}) },
       { status: operation.ok ? 200 : 400 },
     );
   } catch {

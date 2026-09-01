@@ -19,6 +19,8 @@ export interface AdminRegistrationResult {
   ok: boolean;
   message: string;
   state: RegistrationState;
+  /** 仅重置参赛码时返回的明文新码；不参与持久化，只透传给负责人展示一次。 */
+  newToken?: string;
 }
 
 function snapshot(state: RegistrationState): RegistrationSnapshot {
@@ -175,6 +177,22 @@ export function updatePlayerAdminOp(
     intro: input.intro?.trim().slice(0, 500) || undefined,
   };
   return commit(state, { ...state, players: state.players.map((candidate) => candidate.id === player.id ? nextPlayer : candidate) }, "update-player", `更正 ${player.gameId} 的报名资料`, input.reason);
+}
+
+export function resetPlayerTokenAdminOp(
+  rawState: RegistrationState,
+  input: { playerId: string; tokenHash: string; newToken: string },
+): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const player = state.players.find((candidate) => candidate.id === input.playerId);
+  if (!player) return fail(state, "选手不存在。");
+  if (!input.tokenHash || !input.newToken) return fail(state, "生成参赛码失败。");
+  const next = {
+    ...state,
+    players: state.players.map((candidate) => candidate.id === player.id ? { ...candidate, manageTokenHash: input.tokenHash } : candidate),
+  };
+  const result = commit(state, next, "reset-player-token", `重置 ${player.gameId} 的参赛管理码`);
+  return result.ok ? { ...result, newToken: input.newToken } : result;
 }
 
 export function withdrawPlayerAdminOp(

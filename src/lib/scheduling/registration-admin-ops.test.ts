@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   confirmTeamAdminOp,
   replacePlayerAdminOp,
+  resetPlayerTokenAdminOp,
   reviewPlayerAdminOp,
   undoRegistrationAdminOp,
   updatePlayerAdminOp,
@@ -157,4 +158,18 @@ test("操作后出现外部数据变化时拒绝撤销", () => {
   assert.match(result.message, /不能自动撤销/);
 });
 
-console.log(`\n${passed}/9 registration admin tests passed`);
+test("重置参赛码更新哈希并返回明文新码", () => {
+  const result = resetPlayerTokenAdminOp(fixture(), { playerId: "1", tokenHash: "new-hash", newToken: "new-token" });
+  assert.equal(result.ok, true);
+  assert.equal(result.newToken, "new-token");
+  assert.equal(result.state.players.find((candidate) => candidate.id === "1")?.manageTokenHash, "new-hash");
+  assert.ok(result.state.operationLogs?.some((log) => log.action === "reset-player-token"));
+});
+
+test("重置参赛码对不存在的选手失败", () => {
+  const result = resetPlayerTokenAdminOp(fixture(), { playerId: "missing", tokenHash: "x", newToken: "y" });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /不存在/);
+});
+
+console.log(`\n${passed}/11 registration admin tests passed`);
