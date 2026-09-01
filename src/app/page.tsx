@@ -11,6 +11,7 @@ import EventsCarousel from "@/components/events/EventsCarousel";
 import EventCard from "@/components/events/EventCard";
 import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
+import GameDirectory from "@/components/legacy/GameDirectory";
 
 export const revalidate = 5;
 
@@ -93,6 +94,8 @@ export default async function Home() {
           </div>
         </Container>
       </section>
+
+      <GameDirectory />
 
       {events.length > 1 && (
         <section className="event-section">

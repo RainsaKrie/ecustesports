@@ -1,0 +1,18 @@
+{
+  "config": {
+    "maxConcurrentMatches": 2,
+    "boDurations": {
+      "BO1": 45,
+      "BO3": 90,
+      "BO5": 150
+    },
+    "stageStart": "2026-10-06T12:00:00",
+    "stageEnd": "2026-10-08T18:00:00"
+  },
+  "configConfirmed": true,
+  "version": 3,
+  "matches": [],
+  "versions": [],
+  "requests": [],
+  "notifications": []
+}

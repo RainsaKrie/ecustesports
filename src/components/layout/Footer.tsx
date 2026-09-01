@@ -16,6 +16,8 @@ export default function Footer({ config }: { config: SiteConfig }) {
           <p className="site-footer__label">NAVIGATION / 导航</p>
           <div className="site-footer__links">
             <Link href="/events">{config.navigation.events}</Link>
+            <Link href="/news">公告</Link>
+            <Link href="/contact">社群</Link>
             <Link href="/bp">{config.navigation.bp}</Link>
             <Link href="/admin">{config.navigation.admin}</Link>
           </div>
