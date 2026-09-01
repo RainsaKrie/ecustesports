@@ -19,7 +19,20 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
-        setError("密码错误，请重试");
+        let message = "密码错误，请重试";
+        if (res.status === 403) {
+          message = "请求来源不被允许。请用不带 www 的地址 ecustesports.top 登录。";
+        } else if (res.status === 429) {
+          message = "登录尝试过于频繁，请稍后再试。";
+        } else if (res.status >= 500) {
+          message = "服务端暂时不可用，请稍后再试。";
+        } else {
+          try {
+            const data = await res.json() as { message?: string };
+            if (data?.message) message = data.message;
+          } catch { /* 忽略非 JSON 响应 */ }
+        }
+        setError(message);
         setLoading(false);
         return;
       }
