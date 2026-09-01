@@ -135,7 +135,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
     <Container className="py-6 md:py-8">
       <div className="mx-auto max-w-xl">
         <div className="mb-4 text-center md:mb-6">
-          <h1 className="text-lg font-bold text-gray-900 md:text-2xl">{event.name} · 选手报名</h1>
+          <h1 className="text-xs font-bold text-gray-900 md:text-2xl">{event.name} · 选手报名</h1>
           {phase !== "open" && (
             <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
               {phase === "not-open"
@@ -148,19 +148,19 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
         <div className="border border-gray-200 bg-white p-5 shadow-sm md:p-6">
           <div className="space-y-3 md:space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">姓名 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">姓名 <span className="text-red-500">*</span></label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="真实姓名（仅负责人可见）" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">学号 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">学号 <span className="text-red-500">*</span></label>
               <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="用于身份核验（仅负责人可见）" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">游戏 ID <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">游戏 ID <span className="text-red-500">*</span></label>
               <input type="text" value={gameId} onChange={(e) => setGameId(e.target.value)} placeholder="如：玩家昵称#1234" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">当前段位 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">当前段位 <span className="text-red-500">*</span></label>
               <select value={rank} onChange={(e) => setRank(e.target.value)} className={inputClass}>
                 <option value="">请选择段位</option>
                 {RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -171,18 +171,18 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <p className="mb-3 text-xs font-medium text-gray-500">联系方式（必填）</p>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">QQ 号 <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">QQ 号 <span className="text-red-500">*</span></label>
                   <input type="text" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">手机号 <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">手机号 <span className="text-red-500">*</span></label>
                   <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">擅长位置 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">擅长位置 <span className="text-red-500">*</span></label>
               <p className="mb-2 text-xs text-gray-500">可多选，将用于分组与队伍位置协调</p>
               <div className="flex flex-wrap gap-2">
                 {POSITIONS.map((pos) => {
@@ -202,7 +202,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700 md:text-sm">自我介绍（选填）</label>
+              <label className="mb-1 block text-[8px] font-medium text-gray-700 md:text-sm">自我介绍（选填）</label>
               <textarea value={intro} onChange={(e) => setIntro(e.target.value)} placeholder="简单介绍自己，比如擅长英雄、参赛经历等" rows={4} className={inputClass} />
             </div>
 
