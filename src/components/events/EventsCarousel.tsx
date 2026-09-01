@@ -90,18 +90,18 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
           </button>
         )}
 
-        {/* 主文字：左侧居中 */}
-        <div className="absolute left-24 top-1/2 z-10 -translate-y-1/2 max-w-2xl md:left-36">
-          <h1 className="text-4xl font-black tracking-[-0.04em] text-white md:text-6xl lg:text-7xl">
+        {/* 主文字：移动端铺满左右，桌面左侧偏移 */}
+        <div className="absolute inset-x-4 top-1/2 z-10 -translate-y-1/2 max-w-xl md:left-36 md:right-auto md:inset-x-auto md:max-w-2xl">
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-white md:text-6xl lg:text-7xl">
             {active.name}
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-white/75 md:text-base">
+          <p className="mt-3 max-w-md text-sm leading-6 text-white/75 md:mt-4 md:max-w-xl md:text-base md:leading-7">
             {active.description}
           </p>
-          <div className="mt-7 flex flex-wrap gap-4">
-            <Button href={primaryHref} size="xl">{stageConfig.cta}</Button>
+          <div className="mt-5 flex flex-wrap gap-3 md:mt-7 md:gap-4">
+            <Button href={primaryHref} size="lg">{stageConfig.cta}</Button>
             {!primaryOpensEventDetail && (
-              <Button href={`/events/${active.id}`} variant="dark-outline" size="xl">赛事详情</Button>
+              <Button href={`/events/${active.id}`} variant="dark-outline" size="lg">赛事详情</Button>
             )}
           </div>
         </div>

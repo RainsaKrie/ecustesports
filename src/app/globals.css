@@ -1051,7 +1051,8 @@ summary:focus-visible {
 
   .site-brand__text strong {
     overflow: hidden;
-    font-size: 0.75rem;
+    max-width: 160px;
+    font-size: 0.6875rem;
     letter-spacing: 0.04em;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1059,9 +1060,9 @@ summary:focus-visible {
 
   .site-brand__text small {
     overflow: hidden;
-    max-width: 220px;
+    max-width: 160px;
     font-size: 0.4167rem;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -1166,14 +1167,24 @@ summary:focus-visible {
 
   .signal-strip__inner {
     min-height: 54px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     justify-content: flex-start;
     white-space: nowrap;
+    scrollbar-width: none;
+    gap: 14px;
   }
 
-  .signal-strip__inner span:nth-of-type(n+4),
-  .signal-strip__inner i:nth-of-type(n+4) {
+  .signal-strip__inner::-webkit-scrollbar {
     display: none;
+  }
+
+  .signal-strip__inner i {
+    display: none;
+  }
+
+  .signal-strip__inner a {
+    flex-shrink: 0;
   }
 
   .capability-section,
