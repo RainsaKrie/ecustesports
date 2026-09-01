@@ -260,6 +260,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         status={waitingReview > 0 ? `${waitingReview} 人待审核` : `${confirmedTeams}/${activeTeams.length} 队已确认`}
         actions={(
           <>
+            <a href={`/api/admin/registration/export?eventId=${encodeURIComponent(eventId)}`} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">导出报名</a>
             <button type="button" onClick={() => openModal({ kind: "create-team" })} disabled={busy || state.teamRegistrationClosed} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300">代建队伍</button>
             <button type="button" onClick={() => runOperation("toggle-player-registration")} disabled={busy} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:opacity-50">{state.playerRegistrationClosed ? "开放选手报名" : "截止选手报名"}</button>
             <button type="button" onClick={() => runOperation("toggle-team-registration")} disabled={busy} className={`px-4 py-2.5 text-xs font-bold disabled:opacity-50 ${state.teamRegistrationClosed ? "border border-slate-300 bg-white text-slate-700" : "bg-[#ff4655] text-white hover:bg-[#d83b48]"}`}>{state.teamRegistrationClosed ? "开放队伍申报" : "截止队伍申报"}</button>
