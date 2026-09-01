@@ -1,7 +1,9 @@
 import {
   MAX_COACH,
   MAX_SUBSTITUTE,
+  POSITIONS,
   TEAM_SIZE,
+  type Position,
   type RegistrationAuditLog,
   type RegistrationPlayer,
   type RegistrationSnapshot,
@@ -141,7 +143,7 @@ export function reviewPlayerAdminOp(
 
 export function updatePlayerAdminOp(
   rawState: RegistrationState,
-  input: { playerId: string; name: string; studentId: string; gameId: string; rank: string; qq?: string; wechat?: string; phone?: string; college?: string; reason?: string },
+  input: { playerId: string; name: string; studentId: string; gameId: string; rank: string; qq?: string; phone?: string; positions?: string[]; intro?: string; reason?: string },
 ): AdminRegistrationResult {
   const state = normalizeRegistrationState(rawState);
   const player = state.players.find((candidate) => candidate.id === input.playerId);
@@ -151,6 +153,13 @@ export function updatePlayerAdminOp(
   const gameId = input.gameId.trim();
   const rank = input.rank.trim();
   if (!name || !studentId || !gameId || !rank) return fail(state, "姓名、学号、游戏 ID 和段位不能为空。");
+  const qq = input.qq?.trim().slice(0, 60);
+  const phone = input.phone?.trim().slice(0, 60);
+  if (!qq || !phone) return fail(state, "QQ 号和手机号不能为空。");
+  const positions = (input.positions ?? [])
+    .filter((item): item is Position => POSITIONS.includes(item as Position))
+    .slice(0, POSITIONS.length);
+  if (positions.length === 0) return fail(state, "请至少选择一个擅长位置。");
   if (state.players.some((candidate) => candidate.id !== player.id && candidate.gameId.toLowerCase() === gameId.toLowerCase())) {
     return fail(state, "该游戏 ID 已被其他选手使用。");
   }
@@ -160,10 +169,10 @@ export function updatePlayerAdminOp(
     studentId: studentId.slice(0, 40),
     gameId: gameId.slice(0, 40),
     rank: rank.slice(0, 20),
-    qq: input.qq?.trim().slice(0, 60) || undefined,
-    wechat: input.wechat?.trim().slice(0, 60) || undefined,
-    phone: input.phone?.trim().slice(0, 60) || undefined,
-    college: input.college?.trim().slice(0, 60) || undefined,
+    qq,
+    phone,
+    positions,
+    intro: input.intro?.trim().slice(0, 500) || undefined,
   };
   return commit(state, { ...state, players: state.players.map((candidate) => candidate.id === player.id ? nextPlayer : candidate) }, "update-player", `更正 ${player.gameId} 的报名资料`, input.reason);
 }

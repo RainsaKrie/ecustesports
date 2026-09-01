@@ -93,11 +93,14 @@ test("资料更正保留原数据并留下操作记录", () => {
     studentId: "20280001",
     gameId: "PJ#2028",
     rank: "超凡",
-    college: "商学院",
+    qq: "123456789",
+    phone: "13800138000",
+    positions: ["一突", "哨位"],
     reason: "选手主动更正",
   });
   assert.equal(result.ok, true);
   assert.equal(result.state.players[0].gameId, "PJ#2028");
+  assert.equal(result.state.players[0].positions?.join(","), "一突,哨位");
   assert.equal(result.state.operationLogs?.[0].reason, "选手主动更正");
   assert.equal(result.state.operationLogs?.[0].before.players[0].gameId, "Player-1");
 });

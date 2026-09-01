@@ -6,6 +6,7 @@ import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { participantTokenKey, usePublicRegistration } from "@/lib/scheduling/usePublicRegistration";
 import { useParticipant } from "@/lib/scheduling/useParticipant";
+import { POSITIONS } from "@/lib/scheduling/registration-data";
 
 const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
 
@@ -29,12 +30,18 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   const [gameId, setGameId] = useState("");
   const [rank, setRank] = useState("");
   const [qq, setQq] = useState("");
-  const [wechat, setWechat] = useState("");
   const [phone, setPhone] = useState("");
-  const [college, setCollege] = useState("");
+  const [positions, setPositions] = useState<string[]>([]);
+  const [intro, setIntro] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [manageToken, setManageToken] = useState("");
+
+  function togglePosition(position: string) {
+    setPositions((current) =>
+      current.includes(position) ? current.filter((item) => item !== position) : [...current, position],
+    );
+  }
 
   async function handleSubmit() {
     if (phase !== "open") return;
@@ -42,8 +49,12 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
       setError("姓名、学号、游戏 ID 和段位为必填项。");
       return;
     }
-    if (!qq.trim() && !wechat.trim() && !phone.trim()) {
-      setError("请至少填写一种联系方式（QQ / 微信 / 手机号），用于后续通知。");
+    if (!qq.trim() || !phone.trim()) {
+      setError("QQ 号和手机号为必填项，用于后续通知。");
+      return;
+    }
+    if (positions.length === 0) {
+      setError("请至少选择一个擅长位置。");
       return;
     }
     try {
@@ -56,10 +67,10 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           studentId: studentId.trim(),
           gameId: gameId.trim(),
           rank,
-          qq: qq.trim() || undefined,
-          wechat: wechat.trim() || undefined,
-          phone: phone.trim() || undefined,
-          college: college.trim() || undefined,
+          qq: qq.trim(),
+          phone: phone.trim(),
+          positions,
+          intro: intro.trim() || undefined,
         }),
       });
       const result = await response.json() as { manageToken?: string; message?: string };
@@ -157,17 +168,42 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             <div className="border-t border-gray-100 pt-4">
-              <p className="mb-3 text-xs font-medium text-gray-500">联系方式（至少一项）</p>
-              <div className="space-y-3">
-                <input type="text" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
-                <input type="text" value={wechat} onChange={(e) => setWechat(e.target.value)} placeholder="微信号" className={inputClass} />
-                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
+              <p className="mb-3 text-xs font-medium text-gray-500">联系方式（必填）</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">QQ 号 <span className="text-red-500">*</span></label>
+                  <input type="text" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">手机号 <span className="text-red-500">*</span></label>
+                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
+                </div>
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">学院（可选）</label>
-              <input type="text" value={college} onChange={(e) => setCollege(e.target.value)} placeholder="如：信息科学与工程学院" className={inputClass} />
+              <label className="mb-1 block text-sm font-medium text-gray-700">擅长位置 <span className="text-red-500">*</span></label>
+              <p className="mb-2 text-xs text-gray-500">可多选，将用于分组与队伍位置协调</p>
+              <div className="flex flex-wrap gap-2">
+                {POSITIONS.map((pos) => {
+                  const active = positions.includes(pos);
+                  return (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => togglePosition(pos)}
+                      className={`border px-4 py-2 text-sm transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-gray-300 bg-white text-gray-700 hover:border-[#ff4655]"}`}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">自我介绍（选填）</label>
+              <textarea value={intro} onChange={(e) => setIntro(e.target.value)} placeholder="简单介绍自己，比如擅长英雄、参赛经历等" rows={4} className={inputClass} />
             </div>
 
             {error && (

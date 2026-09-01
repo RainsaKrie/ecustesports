@@ -1,10 +1,11 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  RegistrationPlayer,
-  RegistrationState,
-  RegistrationTeam,
+import {
+  POSITIONS,
+  type RegistrationPlayer,
+  type RegistrationState,
+  type RegistrationTeam,
 } from "../src/lib/scheduling/registration-data";
 
 const TEAM_NAMES = [
@@ -15,7 +16,6 @@ const TEAM_NAMES = [
 ] as const;
 
 const RANKS = ["无畏战魂", "神话", "超凡", "钻石"] as const;
-const COLLEGES = ["商学院", "信息学院", "机械学院", "艺术学院"] as const;
 
 async function main() {
 const eventId = process.argv[2]?.trim() ?? "";
@@ -55,7 +55,8 @@ TEAM_NAMES.forEach((teamName, teamIndex) => {
       gameId: `ECUST${String(playerNumber).padStart(3, "0")}#${String(1000 + playerNumber).slice(-4)}`,
       rank: RANKS[Math.floor(teamIndex / 8)],
       qq: String(900000000 + playerNumber),
-      college: COLLEGES[teamIndex % COLLEGES.length],
+      phone: String(13800000000 + playerNumber),
+      positions: [POSITIONS[memberIndex % POSITIONS.length]],
       submittedAt: createdAt,
       status: "已入队",
       reviewStatus: "已通过",

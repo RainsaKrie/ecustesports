@@ -41,6 +41,11 @@ function bodyObject(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
 }
 
+function arrayOfStrings(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+}
+
 function dispatch(
   state: RegistrationState,
   action: string,
@@ -61,9 +66,9 @@ function dispatch(
         gameId: text(payload.gameId, 40),
         rank: text(payload.rank, 20),
         qq: text(payload.qq, 60),
-        wechat: text(payload.wechat, 60),
         phone: text(payload.phone, 60),
-        college: text(payload.college, 60),
+        positions: arrayOfStrings(payload.positions),
+        intro: text(payload.intro, 500),
         reason: text(payload.reason),
       });
     case "withdraw-player":

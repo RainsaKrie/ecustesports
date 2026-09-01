@@ -10,6 +10,8 @@ import { RANK_VALUE } from "@/lib/scheduling/format-data";
 import {
   initialRegistration,
   normalizeRegistrationState,
+  POSITIONS,
+  type Position,
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
@@ -24,13 +26,30 @@ const LIMITS = {
   gameId: 40,
   rank: 20,
   contact: 60,
-  college: 60,
+  intro: 500,
 };
 
 function text(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, max) : undefined;
+}
+
+/** 规范化擅长位置：去重、只保留合法位置、保持给定顺序。 */
+function normalizePositions(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed || !POSITIONS.includes(trimmed as Position)) continue;
+    if (!seen.has(trimmed)) {
+      seen.add(trimmed);
+      result.push(trimmed);
+    }
+  }
+  return result;
 }
 
 export async function POST(request: Request) {
@@ -52,11 +71,14 @@ export async function POST(request: Request) {
       return Response.json({ message: "段位不在有效范围内。" }, { status: 400 });
     }
     const qq = text(body.qq, LIMITS.contact);
-    const wechat = text(body.wechat, LIMITS.contact);
     const phone = text(body.phone, LIMITS.contact);
-    const college = text(body.college, LIMITS.college);
-    if (!qq && !wechat && !phone) {
-      return Response.json({ message: "请至少填写一种联系方式（QQ / 微信 / 手机号）。" }, { status: 400 });
+    const positions = normalizePositions(body.positions);
+    const intro = text(body.intro, LIMITS.intro);
+    if (!qq || !phone) {
+      return Response.json({ message: "QQ 号和手机号为必填项。" }, { status: 400 });
+    }
+    if (positions.length === 0) {
+      return Response.json({ message: "请至少选择一个擅长位置。" }, { status: 400 });
     }
 
     // 报名时间窗口校验（与前台一致）
@@ -89,10 +111,10 @@ export async function POST(request: Request) {
       studentId,
       gameId,
       rank,
-      ...(qq ? { qq } : {}),
-      ...(wechat ? { wechat } : {}),
-      ...(phone ? { phone } : {}),
-      ...(college ? { college } : {}),
+      qq,
+      phone,
+      positions,
+      ...(intro ? { intro } : {}),
       submittedAt: new Date().toISOString(),
       status: "已报名",
       manageTokenHash: credential.tokenHash,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useParticipant } from "@/lib/scheduling/useParticipant";
+import { POSITIONS } from "@/lib/scheduling/registration-data";
 
 const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
 const inputClass = "h-10 w-full border border-black/15 bg-[#fffdf8] px-3 text-sm font-semibold text-[#171a1f] outline-none focus:border-[#ff4655]";
@@ -27,7 +28,7 @@ export default function ParticipantManagePage({ params }: { params: Promise<{ id
   const [role, setRole] = useState<"首发" | "替补" | "教练">("首发");
   const [proposedTime, setProposedTime] = useState("");
   const [proposedReason, setProposedReason] = useState("");
-  const [profileDraft, setProfileDraft] = useState<Partial<{ gameId: string; rank: string; qq: string; wechat: string; phone: string; college: string }>>({});
+  const [profileDraft, setProfileDraft] = useState<Partial<{ gameId: string; rank: string; qq: string; phone: string; positions: string[]; intro: string }>>({});
 
   function disconnect() {
     participant.disconnect();
@@ -85,9 +86,9 @@ export default function ParticipantManagePage({ params }: { params: Promise<{ id
     gameId: profileDraft.gameId ?? data.player.gameId,
     rank: profileDraft.rank ?? data.player.rank,
     qq: profileDraft.qq ?? data.player.qq ?? "",
-    wechat: profileDraft.wechat ?? data.player.wechat ?? "",
     phone: profileDraft.phone ?? data.player.phone ?? "",
-    college: profileDraft.college ?? data.player.college ?? "",
+    positions: profileDraft.positions ?? data.player.positions ?? [],
+    intro: profileDraft.intro ?? data.player.intro ?? "",
   };
   return (
     <Container className="py-8 sm:py-10">
@@ -123,10 +124,27 @@ export default function ParticipantManagePage({ params }: { params: Promise<{ id
               <label className="text-xs font-bold text-slate-600">游戏 ID<input value={profile.gameId} onChange={(e) => setProfileDraft({ ...profileDraft, gameId: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-slate-600">当前段位<select value={profile.rank} onChange={(e) => setProfileDraft({ ...profileDraft, rank: e.target.value })} className={inputClass}>{RANKS.map((item) => <option key={item}>{item}</option>)}</select></label>
               <label className="text-xs font-bold text-slate-600">QQ<input value={profile.qq} onChange={(e) => setProfileDraft({ ...profileDraft, qq: e.target.value })} className={inputClass} /></label>
-              <label className="text-xs font-bold text-slate-600">微信<input value={profile.wechat} onChange={(e) => setProfileDraft({ ...profileDraft, wechat: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-slate-600">手机号<input value={profile.phone} onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })} className={inputClass} /></label>
-              <label className="text-xs font-bold text-slate-600">学院<input value={profile.college} onChange={(e) => setProfileDraft({ ...profileDraft, college: e.target.value })} className={inputClass} /></label>
             </div>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-slate-600">擅长位置</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {POSITIONS.map((pos) => {
+                  const active = profile.positions.includes(pos);
+                  return (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })}
+                      className={`border px-3 py-1.5 text-xs transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-[#fffdf8] text-[#34383f] hover:border-[#ff4655]"}`}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <label className="mt-4 block text-xs font-bold text-slate-600">自我介绍<textarea value={profile.intro} onChange={(e) => setProfileDraft({ ...profileDraft, intro: e.target.value })} rows={3} className="w-full border border-black/15 bg-[#fffdf8] px-3 py-2 text-sm font-semibold text-[#171a1f] outline-none focus:border-[#ff4655]" placeholder="选填" /></label>
             <button onClick={() => run(() => participant.saveProfile(profile), "报名信息已更新。") } disabled={busy} className="mt-5 bg-[#ff4655] px-5 py-2.5 text-xs font-black text-white disabled:opacity-50">保存修改</button>
           </section>
 

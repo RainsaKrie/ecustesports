@@ -9,6 +9,7 @@ import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import {
   initialRegistration,
   normalizeRegistrationState,
+  POSITIONS,
   type RegistrationAuditLog,
   type RegistrationPlayer,
   type RegistrationState,
@@ -53,7 +54,7 @@ function formatTime(value: string) {
 }
 
 function contactOf(player: RegistrationPlayer) {
-  return player.qq || player.wechat || player.phone || "未填写";
+  return player.qq || player.phone || "未填写";
 }
 
 function ModalShell({ title, subtitle, onClose, children, footer }: {
@@ -104,6 +105,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const [playerPage, setPlayerPage] = useState(1);
   const [modal, setModal] = useState<Modal | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [editPositions, setEditPositions] = useState<string[]>([]);
 
   const registerUrl = origin ? `${origin}/events/${eventId}/register` : "";
 
@@ -133,7 +135,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
     return state.players.filter((player) => {
       if (reviewFilter !== "全部" && (player.reviewStatus ?? "待审核") !== reviewFilter) return false;
       if (!keyword) return true;
-      return [player.gameId, player.name, player.studentId, player.rank, player.college]
+      return [player.gameId, player.name, player.studentId, player.rank, ...(player.positions ?? [])]
         .some((value) => value?.toLowerCase().includes(keyword));
     });
   }, [query, reviewFilter, state.players]);
@@ -153,11 +155,11 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         gameId: next.player.gameId,
         rank: next.player.rank,
         qq: next.player.qq ?? "",
-        wechat: next.player.wechat ?? "",
         phone: next.player.phone ?? "",
-        college: next.player.college ?? "",
+        intro: next.player.intro ?? "",
         reason: "",
       });
+      setEditPositions(next.player.positions ?? []);
       return;
     }
     if (next.kind === "create-team") {
@@ -204,7 +206,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
 
   function submitModal() {
     if (!modal) return;
-    if (modal.kind === "edit-player") return runOperation("update-player", { playerId: modal.player.id, ...form });
+    if (modal.kind === "edit-player") return runOperation("update-player", { playerId: modal.player.id, ...form, positions: editPositions });
     if (modal.kind === "review-player") return runOperation("review-player", { playerId: modal.player.id, reviewStatus: modal.status, reason: form.reason });
     if (modal.kind === "withdraw-player") return runOperation("withdraw-player", { playerId: modal.player.id, reason: form.reason, replacementCaptainId: form.replacementCaptainId });
     if (modal.kind === "create-team") return runOperation("create-team", form);
@@ -314,7 +316,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                       <span className={`shrink-0 border px-2 py-1 text-[0.5625rem] font-bold ${reviewTone(player.reviewStatus)}`}>{player.reviewStatus ?? "待审核"}</span>
                     </div>
                     <div className="mt-3 grid gap-2 border-y border-slate-100 py-3 text-xs sm:grid-cols-2 xl:grid-cols-4">
-                      <div><p className="text-[0.5625rem] font-bold text-slate-400">段位 / 学院</p><p className="mt-1">{player.rank} · {player.college || "学院未填"}</p></div>
+                      <div><p className="text-[0.5625rem] font-bold text-slate-400">段位 / 位置</p><p className="mt-1">{player.rank} · {(player.positions ?? []).join("、") || "未填"}</p></div>
                       <div><p className="text-[0.5625rem] font-bold text-slate-400">联系方式</p><p className="mt-1">{contactOf(player)}</p></div>
                       <div className="sm:col-span-2"><p className="text-[0.5625rem] font-bold text-slate-400">队伍状态</p><p className="mt-1">{team ? <><span className="font-bold text-slate-800">{team.name}</span><span className="ml-1 text-slate-400">· {player.role}</span></> : player.status === "已退赛" ? "已退赛" : "未组队"}</p></div>
                     </div>
@@ -413,7 +415,10 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
       </section>
 
       {modal?.kind === "edit-player" && <ModalShell title={`编辑报名 · ${modal.player.gameId}`} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">保存更正</button></>}>
-        <div className="grid gap-4 sm:grid-cols-2"><Field label="姓名"><input className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field><Field label="学号"><input className={inputClass} value={form.studentId ?? ""} onChange={(event) => setForm({ ...form, studentId: event.target.value })} /></Field><Field label="游戏 ID"><input className={inputClass} value={form.gameId ?? ""} onChange={(event) => setForm({ ...form, gameId: event.target.value })} /></Field><Field label="段位"><input className={inputClass} value={form.rank ?? ""} onChange={(event) => setForm({ ...form, rank: event.target.value })} /></Field><Field label="学院"><input className={inputClass} value={form.college ?? ""} onChange={(event) => setForm({ ...form, college: event.target.value })} /></Field><Field label="QQ"><input className={inputClass} value={form.qq ?? ""} onChange={(event) => setForm({ ...form, qq: event.target.value })} /></Field><Field label="微信"><input className={inputClass} value={form.wechat ?? ""} onChange={(event) => setForm({ ...form, wechat: event.target.value })} /></Field><Field label="手机号"><input className={inputClass} value={form.phone ?? ""} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field></div><Field label="修改原因"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：选手联系负责人更正游戏 ID" /></Field>
+        <div className="grid gap-4 sm:grid-cols-2"><Field label="姓名"><input className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field><Field label="学号"><input className={inputClass} value={form.studentId ?? ""} onChange={(event) => setForm({ ...form, studentId: event.target.value })} /></Field><Field label="游戏 ID"><input className={inputClass} value={form.gameId ?? ""} onChange={(event) => setForm({ ...form, gameId: event.target.value })} /></Field><Field label="段位"><input className={inputClass} value={form.rank ?? ""} onChange={(event) => setForm({ ...form, rank: event.target.value })} /></Field><Field label="QQ"><input className={inputClass} value={form.qq ?? ""} onChange={(event) => setForm({ ...form, qq: event.target.value })} /></Field><Field label="手机号"><input className={inputClass} value={form.phone ?? ""} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field></div>
+        <div className="mt-4"><p className="mb-1.5 block text-xs font-bold text-slate-700">擅长位置</p><div className="flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = editPositions.includes(pos); return <button key={pos} type="button" onClick={() => setEditPositions((current) => current.includes(pos) ? current.filter((item) => item !== pos) : [...current, pos])} className={`border px-3 py-1.5 text-xs transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-slate-300 bg-white text-slate-700 hover:border-[#ff4655]"}`}>{pos}</button>; })}</div></div>
+        <Field label="自我介绍"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.intro ?? ""} onChange={(event) => setForm({ ...form, intro: event.target.value })} placeholder="选填" /></Field>
+        <Field label="修改原因"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：选手联系负责人更正游戏 ID" /></Field>
       </ModalShell>}
 
       {modal?.kind === "review-player" && <ModalShell title={`${modal.status} · ${modal.player.gameId}`} subtitle={modal.status === "已拒绝" ? "拒绝后不能进入正式名单。" : undefined} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">确认</button></>}><Field label="处理说明"><textarea autoFocus className={`${inputClass} min-h-28 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="请填写明确原因" /></Field></ModalShell>}

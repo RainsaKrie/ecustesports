@@ -3,6 +3,10 @@
 // 对齐 docs/03-需求定义/05-报名与队伍.md
 // =====================
 
+/** 无畏契约擅长位置（多选） */
+export const POSITIONS = ["一突", "二突", "烟位", "先锋", "哨位"] as const;
+export type Position = (typeof POSITIONS)[number];
+
 /** 选手（报名最小单元） */
 export interface RegistrationPlayer {
   id: string;
@@ -10,10 +14,10 @@ export interface RegistrationPlayer {
   studentId: string; // 学号（必填，仅负责人可见）
   gameId: string; // 游戏 ID（必填，公开显示）
   rank: string; // 段位（必填，用于种子计算）
-  qq?: string; // 可选
-  wechat?: string; // 可选
-  phone?: string; // 可选
-  college?: string; // 学院（可选）
+  qq?: string; // QQ（报名必填；字段保持可选以兼容旧数据）
+  phone?: string; // 手机号（报名必填；字段保持可选以兼容旧数据）
+  positions?: string[]; // 擅长位置（报名必填，多选，仅负责人可见）
+  intro?: string; // 自我介绍（选填）
   submittedAt: string;
   status: "已报名" | "已入队" | "已退赛";
   /** 负责人审核状态；与是否组队分开，避免一个 status 承担两种语义。 */

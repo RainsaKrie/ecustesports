@@ -7,6 +7,8 @@ import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib
 import {
   initialRegistration,
   normalizeRegistrationState,
+  POSITIONS,
+  type Position,
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
@@ -19,6 +21,23 @@ function text(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, max) : undefined;
+}
+
+/** 规范化擅长位置：去重、只保留合法位置、保持给定顺序。 */
+function normalizePositions(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed || !POSITIONS.includes(trimmed as Position)) continue;
+    if (!seen.has(trimmed)) {
+      seen.add(trimmed);
+      result.push(trimmed);
+    }
+  }
+  return result;
 }
 
 async function resolveEvent(eventId: string) {
@@ -138,22 +157,26 @@ export async function PATCH(request: NextRequest) {
       const gameId = text(body.gameId, 40);
       const rank = text(body.rank, 20);
       const qq = text(body.qq, 60);
-      const wechat = text(body.wechat, 60);
       const phone = text(body.phone, 60);
-      const college = text(body.college, 60);
+      const positions = normalizePositions(body.positions);
+      const intro = text(body.intro, 500);
       if (!gameId || !rank || !(rank in RANK_VALUE)) {
         message = "游戏 ID 和有效段位为必填项。";
         return state;
       }
-      if (!qq && !wechat && !phone) {
-        message = "请至少保留一种联系方式。";
+      if (!qq || !phone) {
+        message = "QQ 号和手机号为必填项。";
+        return state;
+      }
+      if (positions.length === 0) {
+        message = "请至少选择一个擅长位置。";
         return state;
       }
       if (state.players.some((item) => item.id !== player.id && item.gameId.toLowerCase() === gameId.toLowerCase())) {
         message = "该游戏 ID 已被其他报名使用。";
         return state;
       }
-      updatedPlayer = { ...player, gameId, rank, qq, wechat, phone, college };
+      updatedPlayer = { ...player, gameId, rank, qq, phone, positions, intro };
       return { ...state, players: state.players.map((item) => item.id === player.id ? updatedPlayer! : item) };
     });
     if (message || !updatedPlayer) return Response.json({ message: message || "修改失败。" }, { status: message.includes("无效") ? 401 : 400 });
