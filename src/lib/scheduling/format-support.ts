@@ -3,8 +3,11 @@ import type { StageConfig } from "./format-templates";
 export type SupportedFormat =
   | { kind: "slot-draw"; bracket: "single-elim" | "double-elim"; stage: StageConfig; requiredTeams: number }
   | { kind: "gsl-double-elim"; groupStage: StageConfig; knockoutStage: StageConfig; requiredTeams: 16 }
-  | { kind: "staged-32-gsl-double-elim"; stages: [StageConfig, StageConfig, StageConfig]; requiredTeams: 32 }
+  | { kind: "staged-32-gsl-double-elim"; stages: [StageConfig, StageConfig, StageConfig]; requiredTeams: 32; minTeams: number }
   | { kind: "unsupported"; message: string; requiredTeams: number };
+
+/** 32 队入围赛允许的最少真实队伍数：不足 17 队时应降级到 16 队赛制，而非用大量轮空硬凑 32 强。 */
+export const QUALIFIER_MIN_TEAMS = 17;
 
 function isPowerOfTwo(value: number): boolean {
   return value >= 2 && (value & (value - 1)) === 0;
@@ -30,6 +33,7 @@ export function resolveSupportedFormat(stages: StageConfig[]): SupportedFormat {
       kind: "staged-32-gsl-double-elim",
       stages: [stages[0], stages[1], stages[2]],
       requiredTeams: 32,
+      minTeams: QUALIFIER_MIN_TEAMS,
     };
   }
   if (stages.length === 1 && stages[0]?.type === "single-elim") {

@@ -1,6 +1,8 @@
 import type { Group, SeedPot } from "./format-data";
 import type { StageConfig } from "./format-templates";
 import type { ScheduleMatch } from "./schedule-data";
+import { QUALIFIER_MIN_TEAMS } from "./format-support";
+import { BYE } from "./bracket-engine";
 
 export interface StageDrawRecord {
   stageIndex: number;
@@ -18,6 +20,8 @@ export interface StagedFormatState {
   groups?: Group[];
   stageDraws?: StageDrawRecord[];
   stageConfigs?: StageConfig[];
+  /** 入围赛轮空直接晋级的队伍 id（32 强签位中与 BYE 相邻的队伍）。 */
+  qualifierByes?: string[];
 }
 
 export interface GroupQualifier {
@@ -66,44 +70,47 @@ export function resolveStagedDrawGate(
   stages: [StageConfig, StageConfig, StageConfig],
   frozenTeamIds: string[],
   matches: ScheduleMatch[],
+  qualifierByes: string[] = [],
 ): StagedDrawGate {
   const [qualifierStage, groupStage, knockoutStage] = stages;
   const qualifierMatches = stageMatches(matches, qualifierStage.name);
 
   if (qualifierMatches.length === 0) {
-    if (frozenTeamIds.length !== qualifierStage.teamCount) {
+    const realTeamCount = frozenTeamIds.length;
+    if (realTeamCount < QUALIFIER_MIN_TEAMS || realTeamCount > qualifierStage.teamCount) {
       return {
         status: "blocked",
         stageIndex: 0,
         stage: qualifierStage,
-        message: `入围赛需要 ${qualifierStage.teamCount} 支已确认队伍，当前为 ${frozenTeamIds.length} 支。`,
+        message: `入围赛需要 ${QUALIFIER_MIN_TEAMS} 到 ${qualifierStage.teamCount} 支已确认队伍，当前为 ${realTeamCount} 支。不足 ${QUALIFIER_MIN_TEAMS} 队请先调整赛制。`,
       };
     }
     return { status: "ready", stageIndex: 0, stage: qualifierStage, entrantIds: frozenTeamIds };
   }
 
-  const qualifierExpected = qualifierStage.teamCount - groupStage.teamCount;
-  if (qualifierMatches.length !== qualifierExpected) {
-    return { status: "blocked", stageIndex: 0, stage: qualifierStage, message: `入围赛应有 ${qualifierExpected} 场，当前赛程为 ${qualifierMatches.length} 场，请先核对赛程。` };
+  const expectedMatches = groupStage.teamCount - qualifierByes.length;
+  if (qualifierMatches.length !== expectedMatches) {
+    return { status: "blocked", stageIndex: 0, stage: qualifierStage, message: `入围赛应有 ${expectedMatches} 场，当前赛程为 ${qualifierMatches.length} 场，请先核对赛程。` };
   }
   const qualifierWinners = completedWinners(qualifierMatches);
-  if (qualifierWinners.length < qualifierExpected) {
+  const qualifiedIds = [...qualifierWinners, ...qualifierByes];
+  if (qualifiedIds.length < groupStage.teamCount) {
     return {
       status: "waiting",
       stageIndex: 0,
       stage: qualifierStage,
       completedMatches: qualifierWinners.length,
-      totalMatches: qualifierExpected,
-      message: `完成全部 ${qualifierExpected} 场入围赛并提交赛果后，才会开放小组赛抽签。`,
+      totalMatches: expectedMatches,
+      message: `完成全部 ${expectedMatches} 场入围赛并提交赛果后，才会开放小组赛抽签。`,
     };
   }
-  if (new Set(qualifierWinners).size !== groupStage.teamCount) {
+  if (new Set(qualifiedIds).size !== groupStage.teamCount) {
     return { status: "blocked", stageIndex: 1, stage: groupStage, message: "入围赛胜者数据存在重复或缺失，无法生成 16 支小组赛队伍。" };
   }
 
   const groupMatches = stageMatches(matches, groupStage.name);
   if (groupMatches.length === 0) {
-    return { status: "ready", stageIndex: 1, stage: groupStage, entrantIds: qualifierWinners };
+    return { status: "ready", stageIndex: 1, stage: groupStage, entrantIds: qualifiedIds };
   }
   const groupExpected = (groupStage.groupCount ?? 4) * 5;
   if (groupMatches.length !== groupExpected) {
@@ -162,6 +169,26 @@ function permutations<T>(values: T[]): T[][] {
   return values.flatMap((value, index) =>
     permutations([...values.slice(0, index), ...values.slice(index + 1)]).map((rest) => [value, ...rest]),
   );
+}
+
+/**
+ * 构造入围赛签位：真实队伍按抽签顺序排列，轮空（BYE）补到末尾场次的客队位。
+ * 例如 28 队 → 前 12 场真实对阵 + 后 4 场「真实 vs BYE」，正好 16 队晋级。
+ */
+export function buildQualifierSlots(drawOrder: string[], totalSlots: number, advancingTeams: number): string[] {
+  const byes = totalSlots - drawOrder.length;
+  if (byes < 0 || byes > advancingTeams) {
+    throw new Error(`入围赛签位数量不合法：${drawOrder.length} 支队伍，总签位 ${totalSlots}。`);
+  }
+  const realMatches = advancingTeams - byes;
+  const slots: string[] = [];
+  for (let index = 0; index < realMatches; index++) {
+    slots.push(drawOrder[index * 2], drawOrder[index * 2 + 1]);
+  }
+  for (let index = 0; index < byes; index++) {
+    slots.push(drawOrder[realMatches * 2 + index], BYE);
+  }
+  return slots;
 }
 
 /** 生成合法八强签位：每场小组第一对小组第二，同组队伍分处不同半区。 */

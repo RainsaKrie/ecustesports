@@ -17,6 +17,7 @@ import type { ScheduleMatch, ScheduleState } from "@/lib/scheduling/schedule-dat
 import { appendMatchesOp } from "@/lib/scheduling/schedule-ops";
 import {
   buildKnockoutDrawOrder,
+  buildQualifierSlots,
   nextMatchStartIndex,
   resolveStagedDrawGate,
   type GroupQualifier,
@@ -24,6 +25,7 @@ import {
   type StagedFormatState,
 } from "@/lib/scheduling/staged-format";
 import type { StageConfig } from "@/lib/scheduling/format-templates";
+import { FORMAT_TEMPLATES } from "@/lib/scheduling/format-templates";
 import type { EditableEvent } from "@/lib/site-config-schema";
 
 type DrawMode = "slot" | "groups" | "locked";
@@ -89,6 +91,9 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   const [loaded, setLoaded] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  const [formatModalOpen, setFormatModalOpen] = useState(false);
+  const [targetTemplate, setTargetTemplate] = useState("");
+  const [changingFormat, setChangingFormat] = useState(false);
 
   const teamName = useMemo(() => {
     const names = new Map(reg.teams.map((team) => [team.id, team.name]));
@@ -123,7 +128,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
       const frozenIds = frozenTeams.map((team) => team.id);
 
       if (resolved.kind === "staged-32-gsl-double-elim") {
-        const gate = resolveStagedDrawGate(resolved.stages, frozenIds, loadedSchedule.matches);
+        const gate = resolveStagedDrawGate(resolved.stages, frozenIds, loadedSchedule.matches, loadedFormat.qualifierByes ?? []);
         setStagedGate(gate);
         if (gate.status !== "ready") {
           setDrawMode("locked");
@@ -291,6 +296,28 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     setLastGroupIndex(null);
   }
 
+  async function changeFormat() {
+    if (!event || !targetTemplate || changingFormat) return;
+    setChangingFormat(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/events/format", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, templateId: targetTemplate }),
+      });
+      const data = await response.json().catch(() => ({})) as { message?: string };
+      if (!response.ok) throw new Error(data.message ?? "调整赛制失败");
+      setFormatModalOpen(false);
+      router.refresh();
+      window.location.reload();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "调整赛制失败，请重试");
+    } finally {
+      setChangingFormat(false);
+    }
+  }
+
   async function publish() {
     if (!event || !format || format.kind === "unsupported" || !activeStage || !done || publishing) return;
     setPublishing(true);
@@ -300,20 +327,24 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
       if (format.kind === "staged-32-gsl-double-elim") {
         if (activeStageIndex === null) throw new Error("当前阶段信息缺失，请刷新后重试。");
         const frozenIds = reg.teams.filter((team) => team.status === "已冻结").map((team) => team.id);
-        const currentGate = resolveStagedDrawGate(format.stages, frozenIds, currentSchedule.matches);
+        const currentGate = resolveStagedDrawGate(format.stages, frozenIds, currentSchedule.matches, savedFormat.qualifierByes ?? []);
         if (currentGate.status !== "ready" || currentGate.stageIndex !== activeStageIndex) {
           throw new Error("赛事阶段已经变化，请刷新页面后再操作。");
         }
 
         const startIndex = nextMatchStartIndex(currentSchedule.matches);
         let stageMatches: ScheduleMatch[];
+        let qualifierByes: string[] = [];
         if (activeStageIndex === 0) {
-          stageMatches = buildQualificationMatches(drawOrder, teamName, {
+          const slots = buildQualifierSlots(drawOrder, format.stages[0].teamCount, format.stages[1].teamCount);
+          const built = buildQualificationMatches(slots, teamName, {
             startIndex,
             phase: activeStage.name,
             boType: activeStage.boType,
             advancingTeams: format.stages[1].teamCount,
           });
+          stageMatches = built.matches;
+          qualifierByes = built.byes;
         } else if (activeStageIndex === 1) {
           stageMatches = buildGslGroupMatches(groups, generateMatchups(groups, pots), teamName, {
             startIndex,
@@ -339,6 +370,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           ...savedFormat,
           drawType: "staged-32-gsl-double-elim",
           stageConfigs: event.stageConfigs,
+          qualifierByes: activeStageIndex === 0 ? qualifierByes : savedFormat.qualifierByes,
           stageDraws: [
             ...(savedFormat.stageDraws ?? []).filter((record) => record.stageIndex !== activeStageIndex),
             nextRecord,
@@ -443,7 +475,10 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         description={drawDescription}
         status={done ? "抽签完成" : `已抽 ${drawnCount} / ${totalSlots}`}
         actions={
-          <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回对阵图</button>
+          <>
+            <button type="button" onClick={() => { setTargetTemplate(event?.formatTemplateId ?? FORMAT_TEMPLATES[0].id); setFormatModalOpen(true); }} disabled={done} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:opacity-40">调整赛制</button>
+            <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回对阵图</button>
+          </>
         }
       />
 
@@ -531,6 +566,35 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           </section>
         </div>
       ) : null}
+
+      {formatModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-slate-300 bg-[#f8f6f1] shadow-2xl">
+            <div className="flex items-start justify-between gap-5 border-b border-slate-200 bg-white px-5 py-4">
+              <div>
+                <h2 className="text-base font-black text-slate-950">调整赛制</h2>
+                <p className="mt-1 text-xs leading-5 text-slate-500">报名人数与预期不符时，可在生成赛程前调整赛制；已生成赛程后将无法调整。</p>
+              </div>
+              <button type="button" onClick={() => setFormatModalOpen(false)} className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-900">关闭</button>
+            </div>
+            <div className="space-y-3 p-5">
+              {FORMAT_TEMPLATES.filter((template) => template.teamCount >= 8).map((template) => (
+                <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[#ff4655] bg-[#fff1f2]" : "border-slate-200 bg-white hover:border-slate-400"}`}>
+                  <input type="radio" name="template" value={template.id} checked={targetTemplate === template.id} onChange={() => setTargetTemplate(template.id)} className="mt-0.5" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-black text-slate-900">{template.name}</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">{template.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4">
+              <button type="button" onClick={() => setFormatModalOpen(false)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button>
+              <button type="button" onClick={changeFormat} disabled={changingFormat || !targetTemplate} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{changingFormat ? "调整中…" : "确认调整"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

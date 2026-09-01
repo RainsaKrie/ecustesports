@@ -9,6 +9,9 @@ import type { ScheduleMatch } from "./schedule-data";
 /** 待定占位（晋级推进后由真实队伍填充） */
 export const TBD = "TBD";
 
+/** 轮空占位：签位中该位置直接晋级，不生成比赛。 */
+export const BYE = "BYE";
+
 interface Slot {
   id: string;
   side: "A" | "B";
@@ -113,26 +116,39 @@ export function buildSingleEliminationMatches(
   return matches;
 }
 
-/** 只生成一轮淘汰赛；用于 32 队入围赛淘汰至 16 队，不提前生成后续阶段。 */
+/** 生成入围赛对阵；签位中含 BYE 时该队直接晋级，返回比赛列表与轮空晋级队伍。 */
 export function buildQualificationMatches(
   teamIds: string[],
   teamName: (id: string) => string,
   options: MatchFactoryOptions & { advancingTeams: number },
-): ScheduleMatch[] {
+): { matches: ScheduleMatch[]; byes: string[] } {
   if (teamIds.length !== options.advancingTeams * 2) {
-    throw new Error(`入围赛要求参赛队伍数正好是晋级名额的两倍，当前为 ${teamIds.length} → ${options.advancingTeams}。`);
+    throw new Error(`入围赛要求签位数正好是晋级名额的两倍，当前为 ${teamIds.length} → ${options.advancingTeams}。`);
   }
   const start = options.startIndex ?? 1;
-  return Array.from({ length: options.advancingTeams }, (_, index) => {
+  const matches: ScheduleMatch[] = [];
+  const byes: string[] = [];
+  let matchOffset = 0;
+  for (let index = 0; index < options.advancingTeams; index++) {
     const teamAId = teamIds[index * 2];
     const teamBId = teamIds[index * 2 + 1];
-    return createMatch(matchId(start + index), options.phase, "入围赛", options.boType, {
+    if (teamAId === BYE) {
+      byes.push(teamBId);
+      continue;
+    }
+    if (teamBId === BYE) {
+      byes.push(teamAId);
+      continue;
+    }
+    matches.push(createMatch(matchId(start + matchOffset), options.phase, "入围赛", options.boType, {
       teamAId,
       teamBId,
       teamAName: teamName(teamAId),
       teamBName: teamName(teamBId),
-    });
-  });
+    }));
+    matchOffset++;
+  }
+  return { matches, byes };
 }
 
 /** 生成 8 队双败（14 场、总决赛不重置）。 */

@@ -41,7 +41,7 @@ export function buildBracketBlueprint(stages: StageConfig[]): ScheduleMatch[] {
       phase: qualification.name,
       boType: qualification.boType,
       advancingTeams: groups.teamCount,
-    });
+    }).matches;
   }
 
   if (format.kind === "slot-draw") {

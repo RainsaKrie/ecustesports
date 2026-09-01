@@ -263,7 +263,7 @@ console.log("== 4. 三阶段分批抽签：32 → 16 → 8 ==");
     stagedTeams.map((team) => team.id),
     stagedName,
     { phase: "入围赛", boType: "BO1", advancingTeams: 16 },
-  );
+  ).matches;
   let stagedState = appendMatchesOp(emptySchedule(), qualification, "入围赛抽签发布");
   check("入围赛只生成 16 场，不提前生成小组赛", stagedState.matches.length === 16 && stagedState.matches.every((match) => match.phase === "入围赛"));
   const waitingForGroups = resolveStagedDrawGate(stages, stagedTeams.map((team) => team.id), stagedState.matches);
