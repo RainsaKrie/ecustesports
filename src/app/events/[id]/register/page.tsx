@@ -132,12 +132,12 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <Container className="py-8">
+    <Container className="py-6 md:py-8">
       <div className="mx-auto max-w-xl">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">{event.name} · 选手报名</h1>
+        <div className="mb-4 text-center md:mb-6">
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">{event.name} · 选手报名</h1>
           {phase !== "open" && (
-            <div className={`mx-auto mt-4 max-w-md px-4 py-3 text-sm font-bold ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+            <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
               {phase === "not-open"
                 ? `报名未开放，开始时间：${event.registrationStart || "待公布"}`
                 : `报名已截止（截止 ${event.registrationEnd || ""}）`}
@@ -145,8 +145,8 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           )}
         </div>
 
-        <div className="border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="space-y-4">
+        <div className="border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="space-y-3 md:space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">姓名 <span className="text-red-500">*</span></label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="真实姓名（仅负责人可见）" className={inputClass} />
@@ -167,7 +167,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               </select>
             </div>
 
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-gray-100 pt-3 md:pt-4">
               <p className="mb-3 text-xs font-medium text-gray-500">联系方式（必填）</p>
               <div className="space-y-4">
                 <div>
