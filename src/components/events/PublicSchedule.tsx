@@ -69,7 +69,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
   const runnerUpScore = finalMatch?.winnerTeamId === finalMatch?.teamAId ? finalWinsB : finalWinsA;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {allCompleted && finalMatch && champion && runnerUp && (
         <section className="overflow-hidden border border-black/15 bg-[#fffdf8]">
           <header className="flex items-center justify-between gap-4 border-b border-black/10 px-5 py-4 sm:px-7">
@@ -117,19 +117,19 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
 
       {completed.length > 0 && (
         <section>
-          <div className="mb-3 flex items-end justify-between gap-4">
+          <div className="mb-2 flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">MATCH RESULTS</p>
               <h3 className="mt-1 text-lg font-black text-[#171a1f]">比赛结果</h3>
             </div>
             <span className="font-mono text-[0.6875rem] font-black text-[#7b766f]">{completed.length} MATCHES</span>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {completedPhases.map((phase) => {
               const phaseMatches = completed.filter((match) => match.phase === phase);
               return (
                 <details key={phase} open={phase === latestCompletedPhase} className="group border border-black/10 bg-[#fffdf8]">
-                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 bg-[#f2eee6] px-5 py-4 transition hover:bg-[#ebe5dc]">
+                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-4 bg-[#f2eee6] px-4 py-2.5 transition hover:bg-[#ebe5dc]">
                     <span className="text-sm font-black text-[#171a1f]">{phase}</span>
                     <span className="flex items-center gap-4">
                       <span className="font-mono text-[0.625rem] font-black text-[#7b766f]">{phaseMatches.length} 场</span>
@@ -138,25 +138,23 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                   </summary>
                   <div className="divide-y divide-black/10 border-t border-black/10">
                     {phaseMatches.map((m) => (
-                      <div key={m.id} className="px-5 py-4 transition hover:bg-black/[0.025]">
-                        <div className="grid gap-2 sm:grid-cols-[8rem_1fr_auto] sm:items-center sm:gap-4">
+                      <div key={m.id} className="px-4 py-2 transition hover:bg-black/[0.025]">
+                        <div className="grid gap-1.5 sm:grid-cols-[6rem_minmax(0,1fr)_minmax(8rem,1.1fr)_auto] sm:items-center sm:gap-3">
                           <p className="font-mono text-[0.625rem] font-black text-[#96918a]">{m.id} · {m.round || m.boType}</p>
-                          <p className="text-sm font-bold text-[#171a1f]">
-                            {m.teamAName} <span className="mx-2 text-[#96918a]">VS</span> {m.teamBName}
+                          <p className="text-xs font-bold text-[#171a1f]">
+                            {m.teamAName} <span className="mx-1.5 text-[#96918a]">VS</span> {m.teamBName}
                           </p>
-                          <span className="font-mono text-lg font-black text-[#171a1f]">
-                            {winCount(m.gameResults, "A")} : {winCount(m.gameResults, "B")}
-                          </span>
-                        </div>
-                        {m.gameResults && m.gameResults.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2 sm:pl-[9rem]">
-                            {m.gameResults.map((g, i) => (
-                              <span key={i} className="border border-black/10 bg-[#f2eee6] px-2 py-1 text-[0.6875rem] font-bold text-[#60656d]">
+                          <div className="flex flex-wrap gap-1">
+                            {m.gameResults?.map((g, i) => (
+                              <span key={i} className="border border-black/10 bg-[#f2eee6] px-1.5 py-0.5 text-[0.625rem] font-bold text-[#60656d]">
                                 {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
                               </span>
                             ))}
                           </div>
-                        )}
+                          <span className="font-mono text-base font-black text-[#171a1f]">
+                            {winCount(m.gameResults, "A")} : {winCount(m.gameResults, "B")}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -176,7 +174,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
           <div className="overflow-hidden border border-black/10 bg-[#fffdf8]">
             <div className="divide-y divide-black/10">
               {rest.map((m) => (
-                <div key={m.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
                   <div>
                     <p className="text-sm font-bold text-[#171a1f]">
                       {m.teamAName} vs {m.teamBName}

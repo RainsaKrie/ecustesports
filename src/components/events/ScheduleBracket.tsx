@@ -23,7 +23,7 @@ function MatchCell({ m }: { m: ScheduleMatch }) {
   const bWin = completed && m.winnerTeamId === m.teamBId;
   const advancement = advancementPath(m);
   return (
-    <div className="w-full border border-gray-200 bg-white p-2">
+    <div className="w-full min-w-0 border border-gray-200 bg-white p-1.5">
       <div className="mb-0.5 flex items-center justify-between gap-1">
         <span className="text-[0.5625rem] text-gray-400">{m.boType}</span>
         <StatusBadge status={m.status} />
