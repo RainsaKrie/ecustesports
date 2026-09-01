@@ -6,9 +6,9 @@
 
 ## 项目
 
-《无畏契约》校园赛事 AI 排程协同助手（瓦理杯），Next.js 16.3.0 App Router + React 19 + TypeScript + Tailwind CSS 4。当前本地开发仍读写 JSON（`data/site-config.json` + `data/events/{eventId}/`），生产环境使用 Supabase PostgreSQL + Storage。当前版本 3.79；本地 Git 重构前基线为 `ac0a306`。
+《无畏契约》校园赛事 AI 排程协同助手（瓦理杯），Next.js 16.3.0 App Router + React 19 + TypeScript + Tailwind CSS 4。当前本地开发仍读写 JSON（`data/site-config.json` + `data/events/{eventId}/`），生产环境使用 Supabase PostgreSQL + Storage。当前版本 3.80；本地 Git 重构前基线为 `ac0a306`。
 
-> 重要状态：匿名测试赛 `event-mt8f43vq` 已完成全部 50 场、完整双败、两场 BO5、冠军与结束赛事，不得重置、另建赛事或重复回放。Gate 5、Gate 6 已通过。私有 GitHub、Vercel 与 Supabase staging 已上线，预发布地址为 `https://esports-operations-assistant-stagin.vercel.app`；匿名终态数据、承载、并发写、备份恢复、上传限流、同源授权、健康检查与安全响应头已有云端证据。校内三种网络、赛事期备份值守、站外监控和正式域名复测降级为真实办赛前检查。负责人于 2026-09-01 决定先完成公开部署上线，AI 继续暂停，网站仍无 AI 入口。
+> 重要状态：匿名测试赛 `event-mt8f43vq` 已完成全部 50 场、完整双败、两场 BO5、冠军与结束赛事，不得重置、另建赛事或重复回放。Gate 5、Gate 6 已通过。私有 GitHub、Vercel 与 Supabase staging 已上线，预发布地址为 `https://esports-operations-assistant-stagin.vercel.app`；匿名终态数据、承载、并发写、备份恢复、上传限流、同源授权、健康检查与安全响应头已有云端证据。校内三种网络、赛事期备份值守、站外监控和正式域名复测降级为真实办赛前检查。负责人于 2026-09-01 确认域名 `ecustesports.top`（阿里云）为**真实办赛入口**而非作品集演示，需建立独立 `esports-production` 并以空数据承载第三届华理瓦理杯；DNS 使用 Vercel nameservers。AI 继续暂停，网站仍无 AI 入口。
 
 - 技术栈：Next.js 16.3.0（App Router）、React 19、TypeScript（strict）、Tailwind CSS 4、qrcode.react
 - 运行：`npm run dev`（端口 3000）
@@ -223,10 +223,12 @@ const token=exp+"."+createHmac("sha256",S).update(exp).digest("hex");
 
 ## 立即开始
 
-当前处于“公开部署上线”，严格按以下顺序继续：
+当前处于“Gate 7 生产环境与正式域名上线”，严格按 `docs/08-MVP开发/Gate7-正式域名与生产环境上线清单.md` 执行：
 
-1. 先确认今天上线的用途：匿名作品集演示，或直接承载真实选手报名；两者不得混用同一数据环境。
-2. 匿名作品集演示沿用 staging 终态赛事，完成首页、赛事页、赛程、对阵、工作台登录和健康检查的公网冒烟；不得重置 `event-mt8f43vq`。
-3. 若直接承载真实报名，必须建立独立 production Supabase 与 Vercel Production 环境，初始化空数据并重新核对权限、域名、备份和值守；不得把真实个人信息写入 staging。
-4. AI 继续暂停，不运行 B 方案、不选择模型、不增加网页 AI 入口。
-5. 上线完成后记录公开地址、部署版本、环境用途和冒烟结果；真实办赛网络、监控、备份值守和正式域名复测在实际开放报名前完成。
+1. 用途已由负责人确认为**真实办赛入口**：域名 `ecustesports.top`（阿里云），DNS 使用 Vercel nameservers，生产赛事为「第三届华理瓦理杯」且数据全部重置。匿名测试赛 `event-mt8f43vq` 只留在 staging，不进生产。
+2. 执行顺序不可颠倒：**先建 `esports-production` 并配好 Vercel Production 环境变量、验证生产地址干净，最后才绑域名。** 若 Production 环境变量仍指向 staging 就绑域名，正式域名会直接展示匿名测试赛。
+3. 生产初始化使用 `npx tsx tools/data/migrate-local-to-supabase.ts --site-only --apply`，只写入站点配置并清空 `events`、`currentEventId`、`archives`；写入前脚本会打印目标 host 并等待 5 秒。默认全量迁移行为未改变，staging 流程不受影响。
+4. `supabase/migrations/202608280001_gate6_data_store.sql` 只建表和限流函数，Storage bucket `event-assets` 必须手动创建并设为 public。
+5. `APP_ORIGIN` 必须为 `https://ecustesports.top` 并重新部署，否则同源校验会让所有写接口返回 403。
+6. AI 继续暂停，不运行 B 方案、不选择模型、不增加网页 AI 入口。
+7. 第三届华理瓦理杯的真实起止日期与报名截止日期仍未确定，开放报名前必须在赛事设置里填实；校园网/宿舍网/移动网络实测、备份值守和站外监控同样在开放报名前完成。

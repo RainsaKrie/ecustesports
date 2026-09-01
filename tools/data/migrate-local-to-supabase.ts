@@ -15,11 +15,34 @@ const root = process.cwd();
 loadEnvConfig(root);
 const dataRoot = path.join(root, "data");
 const apply = process.argv.includes("--apply");
+const siteOnly = process.argv.includes("--site-only");
 const eventArg = process.argv.find((arg) => arg.startsWith("--event="));
 const selectedEvent = eventArg?.slice("--event=".length).trim();
 
 function documentName(fileName: string): string {
   return fileName.replace(/\.json$/i, "");
+}
+
+// 只导站点配置时清空赛事引用，避免把匿名测试赛带进生产环境。
+function sanitize(name: string, value: unknown): unknown {
+  if (!siteOnly || name !== "site-config" || !value || typeof value !== "object") return value;
+  const config = value as Record<string, unknown>;
+  console.log("  已清空 events / currentEventId / archives（生产初始化模式）");
+  return { ...config, events: [], currentEventId: "", archives: [] };
+}
+
+function targetHost(): string {
+  const raw = process.env.SUPABASE_URL?.trim();
+  if (!raw) return "(未设置 SUPABASE_URL)";
+  try {
+    return new URL(raw).host || "(无法解析)";
+  } catch {
+    return "(SUPABASE_URL 格式错误)";
+  }
+}
+
+function countdown(seconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 }
 
 async function jsonFiles(directory: string): Promise<string[]> {
@@ -39,6 +62,8 @@ async function collect(): Promise<Candidate[]> {
       bytes: (await stat(filePath)).size,
     });
   }
+
+  if (siteOnly) return candidates;
 
   const eventEntries = await readdir(path.join(dataRoot, "events"), { withFileTypes: true }).catch(() => []);
   for (const eventEntry of eventEntries) {
@@ -84,8 +109,14 @@ async function main() {
     throw new Error("执行迁移前必须设置 SUPABASE_URL 与 SUPABASE_SECRET_KEY");
   }
 
+  console.log(`\n即将写入目标：${targetHost()}`);
+  console.log(siteOnly ? "模式：--site-only（生产初始化，不含任何赛事数据）" : "模式：全量迁移（含所有赛事数据）");
+  console.log("目标错误请立即按 Ctrl+C 取消。");
+  await countdown(5);
+
   for (const candidate of candidates) {
-    const value = JSON.parse(await readFile(candidate.filePath, "utf8")) as unknown;
+    const parsed = JSON.parse(await readFile(candidate.filePath, "utf8")) as unknown;
+    const value = sanitize(candidate.name, parsed);
     await supabaseDataStore.write(candidate.scope, candidate.eventId, candidate.name, value);
     const stored = await supabaseDataStore.read(candidate.scope, candidate.eventId, candidate.name, null);
     if (stable(stored) !== stable(value)) {
