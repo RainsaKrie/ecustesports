@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-27T03:17:58.125Z",
+  "updatedAt": "2026-09-01T12:56:56.564Z",
   "brand": {
     "name": "华东理工大学电竞部",
     "englishName": "ECUST ESPORTS DEPT",
@@ -12,6 +12,8 @@
   "navigation": {
     "home": "首页",
     "events": "赛事",
+    "community": "社群",
+    "news": "公告",
     "bp": "工具",
     "admin": "工作台"
   },
@@ -352,6 +354,270 @@
         }
       ],
       "createdAt": "2026-08-25T08:43:33.159Z"
+    },
+    {
+      "id": "event-mtio5q5y",
+      "name": "海斗杯（test",
+      "game": "英雄联盟",
+      "status": "registration",
+      "visibility": "public",
+      "publishedAt": "2026-09-01T12:56:53.045Z",
+      "teamCount": 16,
+      "teamSize": 5,
+      "description": "16 队 · GSL 小组赛 + 8 队双败淘汰。竞赛日期、报名安排及奖金奖项以赛事组正式公告为准。",
+      "organizer": "华东理工大学电竞社",
+      "registrationStart": "2026-09-16",
+      "registrationEnd": "2026-09-22",
+      "teamRegistrationEnd": "2026-09-22",
+      "eventDateLabel": "竞赛日期待公布",
+      "registrationLabel": "报名尚未开放",
+      "stageSummary": "小组赛（16 队 · GSL 小组双败 · BO3） → 淘汰赛（8 队 · 双败淘汰 · BO3）",
+      "prizePool": "奖金及奖品方案待公布",
+      "coverColor": "#476cff",
+      "posterImage": "",
+      "mapPool": [
+        {
+          "id": "ascent",
+          "name": "亚海悬城"
+        },
+        {
+          "id": "bind",
+          "name": "源工重镇"
+        },
+        {
+          "id": "haven",
+          "name": "隐士修所"
+        },
+        {
+          "id": "split",
+          "name": "霓虹町"
+        },
+        {
+          "id": "icebox",
+          "name": "森寒冬港"
+        },
+        {
+          "id": "breeze",
+          "name": "微风岛屿"
+        },
+        {
+          "id": "lotus",
+          "name": "莲华古城"
+        }
+      ],
+      "preparationSteps": [
+        {
+          "number": "01",
+          "title": "选手注册",
+          "detail": "参赛选手须通过赛事报名页面提交真实、完整且可核验的信息，并妥善保管参赛管理码。"
+        },
+        {
+          "number": "02",
+          "title": "队伍组建",
+          "detail": "队长须完成队伍创建与选手邀请；自由选手可向未满编队伍提交入队申请。"
+        },
+        {
+          "number": "03",
+          "title": "阵容提交",
+          "detail": "队长须于队伍报名截止前提交正式参赛名单，经赛事组审核确认后进入抽签程序。"
+        },
+        {
+          "number": "04",
+          "title": "查看分组与比赛时间",
+          "detail": "赛事组将分阶段公布分组、对阵和比赛时间。参赛队伍须查看平台发布的最新赛程。"
+        },
+        {
+          "number": "05",
+          "title": "赛前报到",
+          "detail": "参赛队伍须于计划开赛时间前 15 分钟进入指定比赛房间并完成核验。"
+        },
+        {
+          "number": "06",
+          "title": "地图禁选与开赛",
+          "detail": "双方队长须在当值裁判监督下完成地图禁选；裁判确认双方就绪后宣布比赛开始。"
+        }
+      ],
+      "rules": [
+        {
+          "title": "参赛规模",
+          "detail": "赛事设置 16 个参赛席位，每支队伍注册 5 名首发选手。",
+          "category": "format",
+          "emphasis": "normal",
+          "source": "format",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "小组赛",
+          "detail": "16 支队伍分入 4 个小组，每组采用 GSL 双败赛制，比赛为 BO3；每组前 2 名晋级淘汰赛。",
+          "category": "format",
+          "emphasis": "normal",
+          "source": "format",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "淘汰赛",
+          "detail": "8 支队伍采用双败淘汰制。败者组决赛与总决赛为 BO5，其余场次为 BO3。",
+          "category": "format",
+          "emphasis": "normal",
+          "source": "format",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "种子分档",
+          "detail": "小组赛队伍依据已确认的种子规则分档；同一种子池队伍分入不同小组，首轮按一号种子对四号种子、二号种子对三号种子生成对阵。",
+          "category": "format",
+          "emphasis": "important",
+          "source": "format",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "淘汰赛抽签",
+          "detail": "小组第一对阵其他小组第二；同组晋级队伍分入不同半区，避免在淘汰赛首轮再次相遇。",
+          "category": "format",
+          "emphasis": "important",
+          "source": "format",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "参赛资格",
+          "detail": "参赛选手须符合本届赛事公布的身份及报名条件，并使用真实、完整且可核验的信息完成登记。",
+          "category": "conduct",
+          "emphasis": "normal",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "名单与替补",
+          "detail": "参赛阵容以赛事平台最终审核记录为准。未经赛事组正式确认，任何队伍不得擅自更换或新增选手。",
+          "category": "conduct",
+          "emphasis": "important",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "地图池与禁选",
+          "detail": "比赛采用赛事平台公布的赛事地图池。双方队长须在当值裁判监督下，按规定顺序完成地图禁选。",
+          "category": "match-day",
+          "emphasis": "normal",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "赛程与改期生效",
+          "detail": "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。",
+          "category": "match-day",
+          "emphasis": "important",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "比赛报到",
+          "detail": "参赛队伍须于计划开赛时间前 15 分钟完成报到、阵容核验、房间确认及地图禁选。",
+          "category": "match-day",
+          "emphasis": "normal",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "录屏与证据",
+          "detail": "赛事组可要求参赛选手保留完整比赛录制。涉及技术故障、违规或赛果争议时，申请方须按要求提交有效证据。",
+          "category": "match-day",
+          "emphasis": "important",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "技术暂停",
+          "detail": "发生断线、设备或网络故障时，队长须立即向当值裁判报告。未经裁判许可，任何队伍不得擅自暂停、重开或退出比赛。",
+          "category": "incident",
+          "emphasis": "important",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "竞技行为规范",
+          "detail": "参赛人员须遵守竞技道德与赛事秩序。侮辱、挑衅、刷屏、恶意攻击及干扰比赛的行为将依据情节予以处理。",
+          "category": "conduct",
+          "emphasis": "important",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "迟到与弃赛",
+          "detail": "队伍无法按时参赛时须提前向赛事组报备。迟到、无故缺席或弃赛按照已公布竞赛规程及当值裁判裁决处理。",
+          "category": "incident",
+          "emphasis": "warning",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "竞赛完整性",
+          "detail": "严禁使用外挂、代打、窥屏、未经批准的换人或其他获取不当竞争优势的行为。经核实后，赛事组可判处地图判负、系列赛判负或取消参赛资格。",
+          "category": "conduct",
+          "emphasis": "warning",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "争议与申诉",
+          "detail": "赛果、判罚或比赛异常的申诉，仅由队长在规定时限内向当值裁判提出，并同时提交相关证据。",
+          "category": "appeal",
+          "emphasis": "important",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        },
+        {
+          "title": "判罚依据",
+          "detail": "赛事组依据竞赛规程、平台记录、裁判报告及有效证据作出裁决，并对本届赛事规则保留最终解释权。",
+          "category": "appeal",
+          "emphasis": "normal",
+          "source": "common",
+          "customized": false,
+          "confirmed": true
+        }
+      ],
+      "formatTemplateId": "val-16gsl-8de",
+      "proposal": {
+        "background": "",
+        "purpose": "",
+        "budget": "",
+        "prizes": "",
+        "leader": "",
+        "contact": ""
+      },
+      "stageConfigs": [
+        {
+          "name": "小组赛",
+          "type": "gsl-groups",
+          "teamCount": 16,
+          "boType": "BO3",
+          "groupCount": 4
+        },
+        {
+          "name": "淘汰赛",
+          "type": "double-elim",
+          "teamCount": 8,
+          "boType": "BO3",
+          "groupCount": 4
+        }
+      ],
+      "createdAt": "2026-09-01T12:54:27.004Z"
     }
   ],
   "currentEventId": "event-mt8f43vq",

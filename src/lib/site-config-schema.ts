@@ -98,6 +98,8 @@ export interface SiteConfig {
   navigation: {
     home: string;
     events: string;
+    community: string;
+    news: string;
     bp: string;
     admin: string;
   };
@@ -154,6 +156,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   navigation: {
     home: "首页",
     events: "赛事",
+    community: "社群",
+    news: "公告",
     bp: "工具",
     admin: "工作台",
   },
@@ -496,6 +500,8 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
     navigation: {
       home: text(navigation.home, DEFAULT_SITE_CONFIG.navigation.home, 16),
       events: text(navigation.events, DEFAULT_SITE_CONFIG.navigation.events, 16),
+      community: text(navigation.community, DEFAULT_SITE_CONFIG.navigation.community, 16),
+      news: text(navigation.news, DEFAULT_SITE_CONFIG.navigation.news, 16),
       bp: text(navigation.bp, DEFAULT_SITE_CONFIG.navigation.bp, 16),
       admin: text(navigation.admin, DEFAULT_SITE_CONFIG.navigation.admin, 20),
     },

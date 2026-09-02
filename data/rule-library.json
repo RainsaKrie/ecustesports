@@ -1,0 +1,110 @@
+[
+  {
+    "title": "参赛资格",
+    "detail": "参赛选手须符合本届赛事公布的身份及报名条件，并使用真实、完整且可核验的信息完成登记。",
+    "category": "conduct",
+    "emphasis": "normal",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "名单与替补",
+    "detail": "参赛阵容以赛事平台最终审核记录为准。未经赛事组正式确认，任何队伍不得擅自更换或新增选手。",
+    "category": "conduct",
+    "emphasis": "important",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "地图池与禁选",
+    "detail": "比赛采用赛事平台公布的赛事地图池。双方队长须在当值裁判监督下，按规定顺序完成地图禁选。",
+    "category": "match-day",
+    "emphasis": "normal",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "赛程与改期生效",
+    "detail": "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。",
+    "category": "match-day",
+    "emphasis": "important",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "比赛报到",
+    "detail": "参赛队伍须于计划开赛时间前 15 分钟完成报到、阵容核验、房间确认及地图禁选。",
+    "category": "match-day",
+    "emphasis": "normal",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "录屏与证据",
+    "detail": "赛事组可要求参赛选手保留完整比赛录制。涉及技术故障、违规或赛果争议时，申请方须按要求提交有效证据。",
+    "category": "match-day",
+    "emphasis": "important",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "技术暂停",
+    "detail": "发生断线、设备或网络故障时，队长须立即向当值裁判报告。未经裁判许可，任何队伍不得擅自暂停、重开或退出比赛。",
+    "category": "incident",
+    "emphasis": "important",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "竞技行为规范",
+    "detail": "参赛人员须遵守竞技道德与赛事秩序。侮辱、挑衅、刷屏、恶意攻击及干扰比赛的行为将依据情节予以处理。",
+    "category": "conduct",
+    "emphasis": "important",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "迟到与弃赛",
+    "detail": "队伍无法按时参赛时须提前向赛事组报备。迟到、无故缺席或弃赛按照已公布竞赛规程及当值裁判裁决处理。",
+    "category": "incident",
+    "emphasis": "warning",
+    "source": "common",
+    "customized": false,
+    "confirmed": false
+  },
+  {
+    "title": "竞赛完整性",
+    "detail": "严禁使用外挂、代打、窥屏、未经批准的换人或其他获取不当竞争优势的行为。经核实后，赛事组可判处地图判负、系列赛判负或取消参赛资格。",
+    "category": "conduct",
+    "emphasis": "warning",
+    "source": "common",
+    "customized": false,
+    "confirmed": false
+  },
+  {
+    "title": "争议与申诉",
+    "detail": "赛果、判罚或比赛异常的申诉，仅由队长在规定时限内向当值裁判提出，并同时提交相关证据。",
+    "category": "appeal",
+    "emphasis": "important",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  },
+  {
+    "title": "判罚依据",
+    "detail": "赛事组依据竞赛规程、平台记录、裁判报告及有效证据作出裁决，并对本届赛事规则保留最终解释权。",
+    "category": "appeal",
+    "emphasis": "normal",
+    "source": "common",
+    "customized": false,
+    "confirmed": true
+  }
+]
