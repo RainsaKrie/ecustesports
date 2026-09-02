@@ -127,7 +127,7 @@ export async function POST(request: Request) {
         return state;
       }
       if (state.players.some((item) => item.studentId.toLowerCase() === studentId.toLowerCase())) {
-        rejection = "该学号已经提交过报名。如需修改，请使用参赛管理码。";
+        rejection = "该学号已经报名，请使用学号和报名手机号找回参赛信息。";
         return state;
       }
       if (state.players.some((item) => item.gameId.toLowerCase() === gameId.toLowerCase())) {

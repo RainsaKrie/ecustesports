@@ -28,7 +28,9 @@ export default function Navbar({ config }: { config: SiteConfig }) {
         </Link>
 
         <details className="mobile-nav">
-          <summary aria-label="打开导航菜单">MENU</summary>
+          <summary aria-label="打开导航菜单">
+            <span className="mobile-nav__icon" aria-hidden><i /><i /><i /></span>
+          </summary>
           <nav className="mobile-nav__menu" aria-label="移动端导航">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}>{item.label}</Link>

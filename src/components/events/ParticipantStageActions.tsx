@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { participantTokenKey } from "@/lib/scheduling/usePublicRegistration";
+import { useParticipant } from "@/lib/scheduling/useParticipant";
 import type { EventStage } from "@/lib/scheduling/stage";
 
 function ActionLink({ href, children, emphasis = false }: { href: string; children: React.ReactNode; emphasis?: boolean }) {
@@ -21,11 +20,6 @@ function ActionLink({ href, children, emphasis = false }: { href: string; childr
   );
 }
 
-function subscribeToParticipantStorage(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
-  return () => window.removeEventListener("storage", onStoreChange);
-}
-
 export default function ParticipantStageActions({
   eventId,
   stage,
@@ -41,25 +35,28 @@ export default function ParticipantStageActions({
   isPreparing: boolean;
   isOngoing: boolean;
 }) {
-  const getParticipantSnapshot = useCallback(
-    () => Boolean(localStorage.getItem(participantTokenKey(eventId))),
-    [eventId],
-  );
-  const hasParticipant = useSyncExternalStore(subscribeToParticipantStorage, getParticipantSnapshot, () => false);
-
-  const participantPrimary = !isPreparing && hasParticipant;
+  const participant = useParticipant(eventId);
+  const participantPrimary = !isPreparing && Boolean(participant.data);
 
   return (
     <>
       {participantPrimary ? (
-        <Button href={`/events/${eventId}/manage`} size="lg" className="w-full">进入参赛中心</Button>
+        <>
+          <Button href={`/events/${eventId}/manage?section=team`} size="lg" className="w-full">
+            {participant.data?.team ? "我的队伍" : "创建或加入队伍"}
+          </Button>
+          <div className="grid w-full grid-cols-2 gap-2">
+            <ActionLink href={`/events/${eventId}/manage?section=matches`}>我的比赛</ActionLink>
+            <ActionLink href={`/events/${eventId}/manage?section=profile`}>报名信息</ActionLink>
+          </div>
+        </>
       ) : stage === "报名" ? (
         <Button href={ctaHref} size="lg" className="w-full">{ctaLabel}</Button>
       ) : null}
       {!participantPrimary && (
         <div className="grid w-full gap-2">
           {!isPreparing ? (
-          <ActionLink href={`/events/${eventId}/manage`} emphasis>参赛中心</ActionLink>
+            <ActionLink href={`/events/${eventId}/manage?recover=1`} emphasis>已报名 · 找回参赛信息</ActionLink>
           ) : null}
           {isOngoing && <ActionLink href={`/events/${eventId}/bracket`}>全屏赛事对阵</ActionLink>}
         </div>

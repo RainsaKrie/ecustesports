@@ -36,6 +36,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [manageToken, setManageToken] = useState("");
+  const [copied, setCopied] = useState(false);
 
   function togglePosition(position: string) {
     setPositions((current) =>
@@ -92,8 +93,8 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">REGISTRATION COMPLETE</p>
           <h1 className="mt-3 text-2xl font-black text-[#171a1f]">已完成参赛报名</h1>
           <p className="mt-2 text-sm font-bold text-[#34383f]">{participant.data.player.gameId}</p>
-          <Link href={`/events/${id}/manage`} className="mt-7 block bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
-            进入参赛管理
+          <Link href={`/events/${id}/manage?section=team`} className="mt-7 block bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
+            {participant.data.team ? "查看我的队伍" : "创建或加入队伍"}
           </Link>
           <Link href={`/events/${id}`} className="mt-3 block border border-black/15 px-5 py-3 text-sm font-black text-[#34383f]">
             返回赛事页
@@ -113,18 +114,31 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </svg>
           </div>
           <h2 className="text-lg font-bold text-gray-900">报名成功</h2>
-          <div className="mt-5 bg-slate-50 p-4 text-left">
-            <p className="text-xs font-bold text-slate-700">参赛管理码</p>
-            <code className="mt-2 block break-all text-xs text-slate-600">{manageToken}</code>
-            <p className="mt-2 text-[0.6875rem] font-bold text-slate-500">本设备已保存 · 换设备或浏览器时使用</p>
+          <p className="mt-3 text-sm font-medium text-slate-600">参赛身份已保存在当前浏览器</p>
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <Link href={`/events/${id}/manage?section=team&mode=create`} className="bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
+              创建队伍
+            </Link>
+            <Link href={`/events/${id}/manage?section=team`} className="border border-[#ff4655] px-5 py-3 text-sm font-black text-[#c83242] transition hover:bg-red-50">
+              加入队伍
+            </Link>
           </div>
-          <div className="mt-6 flex justify-center gap-3">
-            <Link href={`/events/${id}/manage`} className="bg-[#ff4655] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#d83b48]">
-              管理报名与组队 →
-            </Link>
-            <Link href="/" className="border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:border-gray-500">
-              返回首页
-            </Link>
+          <Link href={`/events/${id}/manage?section=profile`} className="mt-2 block border border-gray-300 px-5 py-3 text-sm font-bold text-gray-700 transition hover:border-gray-500">
+            查看报名信息
+          </Link>
+          <details className="mt-5 border-t border-slate-200 pt-4 text-left">
+            <summary className="cursor-pointer text-xs font-bold text-slate-500">备用参赛码</summary>
+            <code className="mt-3 block break-all bg-slate-50 p-3 text-xs text-slate-600">{manageToken}</code>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(manageToken).then(() => setCopied(true))}
+              className="mt-2 w-full border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700"
+            >
+              {copied ? "已复制" : "复制参赛码"}
+            </button>
+          </details>
+          <div className="mt-5 text-xs font-medium text-slate-500">
+            换设备时可用学号和报名手机号找回
           </div>
         </div>
       </Container>
@@ -136,6 +150,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
       <div className="mx-auto max-w-xl">
         <div className="mb-4 text-center md:mb-6">
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl">{event.name} · 选手报名</h1>
+          <Link href={`/events/${id}/manage?recover=1`} className="mt-3 inline-block text-xs font-bold text-[#c83242]">已经报过名？找回参赛信息</Link>
           {phase !== "open" && (
             <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
               {phase === "not-open"
