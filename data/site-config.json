@@ -357,10 +357,10 @@
     },
     {
       "id": "event-mtio5q5y",
-      "name": "海斗杯（test",
+      "name": "海斗杯（测试）",
       "game": "英雄联盟",
-      "status": "registration",
-      "visibility": "public",
+      "status": "draft",
+      "visibility": "private",
       "publishedAt": "2026-09-01T12:56:53.045Z",
       "teamCount": 16,
       "teamSize": 5,

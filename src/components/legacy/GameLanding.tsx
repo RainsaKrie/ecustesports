@@ -56,17 +56,15 @@ export default function GameLanding({ game }: { game: LegacyGame }) {
 
           {/* CTA 按钮 */}
           <div className="flex flex-wrap gap-4">
-            <a href={`https://qm.qq.com/cgi-bin/qm/qr?k=${game.community}`}
-               target="_blank"
-               rel="noopener noreferrer"
+            <Link href="/contact"
                className="rounded-full px-8 py-3 font-black transition-all hover:scale-105"
                style={{
                  backgroundColor: game.accent,
                  color: '#0f1923',
                  boxShadow: `0 4px 20px ${game.accent}40`
                }}>
-              加入社群
-            </a>
+              查看社群
+            </Link>
             <Link href="/events"
                   className="rounded-full border-2 px-8 py-3 font-black text-white transition-all hover:bg-white/10"
                   style={{ borderColor: game.accent }}>
@@ -91,16 +89,14 @@ export default function GameLanding({ game }: { game: LegacyGame }) {
                 </h2>
                 <span className="rounded-full px-3 py-1 text-xs font-bold"
                       style={{
-                        backgroundColor: game.status === "报名中" ? `${game.accent}20` : "#e5e5e5",
-                        color: game.status === "报名中" ? game.accent : "#666"
+                        backgroundColor: `${game.accent}20`,
+                        color: game.accent,
                       }}>
                   {game.status}
                 </span>
               </div>
               <p className="mb-6 text-sm text-[var(--ink)]/60">
-                {game.status === "报名中" && "赛事报名正在进行中，立即组队参赛！"}
-                {game.status === "已结束" && "赛事已圆满结束，期待下一届的精彩对决。"}
-                {game.status === "即将开始" && "赛事即将开启，敬请期待！"}
+                赛事报名与赛程以赛事页面的最新状态为准。
               </p>
               <Link href="/events"
                     className="inline-flex items-center gap-2 font-bold transition-colors"
@@ -127,16 +123,14 @@ export default function GameLanding({ game }: { game: LegacyGame }) {
                   {game.community}
                 </code>
               </div>
-              <a href={`https://qm.qq.com/cgi-bin/qm/qr?k=${game.community}`}
-                 target="_blank"
-                 rel="noopener noreferrer"
+              <Link href="/contact"
                  className="inline-block rounded-full border-2 px-6 py-2 text-sm font-black transition-all hover:bg-black/5"
                  style={{
                    borderColor: game.accent,
                    color: game.accent
                  }}>
-                点击加群
-              </a>
+                查看全部社群
+              </Link>
             </div>
           </div>
         </div>

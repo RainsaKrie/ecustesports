@@ -5,7 +5,7 @@ export default function Navbar({ config }: { config: SiteConfig }) {
   const navItems = [
     { label: config.navigation.home, href: "/" },
     { label: config.navigation.events, href: "/events" },
-    { label: config.navigation.community, href: "/community" },
+    { label: config.navigation.community, href: "/contact" },
     { label: config.navigation.news, href: "/news" },
     { label: config.navigation.bp, href: "/bp" },
   ];
