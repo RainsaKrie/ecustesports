@@ -48,6 +48,24 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
   );
 }
 
+function RosterLine({ role, members, limit }: { role: string; members: Array<{ gameId: string }>; limit: number }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="w-8 shrink-0 pt-[3px] text-[0.625rem] font-black text-[#60656d]">{role}</span>
+      <div className="flex flex-wrap gap-1">
+        {Array.from({ length: limit }, (_, index) => {
+          const member = members[index];
+          return member ? (
+            <span key={member.gameId} className="max-w-[10rem] truncate whitespace-nowrap border border-black/10 bg-white px-1.5 py-[3px] text-[0.625rem] font-semibold leading-none text-[#34383f]">{member.gameId}</span>
+          ) : (
+            <span key={`${role}-空缺-${index}`} className="whitespace-nowrap border border-dashed border-black/15 px-1.5 py-[3px] text-[0.625rem] leading-none text-[#96918a]">空缺</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TeamList({ teams }: { teams: PublicRegistrationSummary["teams"] }) {
   return (
     <section className="border border-black/10 bg-[#fffdf8]">
@@ -76,19 +94,19 @@ function TeamList({ teams }: { teams: PublicRegistrationSummary["teams"] }) {
                     </div>
                     <span className="shrink-0 border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{team.status}</span>
                   </summary>
-                  <div className="grid gap-1 border-t border-black/5 bg-black/[0.02] px-4 py-2 text-[0.6875rem] leading-4 text-[#34383f]">
-                    <p className="font-semibold"><span className="mr-1.5 font-black text-[#60656d]">首发</span>{starters.map((member) => member.gameId).join("、") || "空缺"}</p>
-                    <p className="font-semibold"><span className="mr-1.5 font-black text-[#60656d]">替补</span>{substitute?.gameId ?? "空缺"}</p>
-                    <p className="font-semibold"><span className="mr-1.5 font-black text-[#60656d]">教练</span>{coach?.gameId ?? "空缺"}</p>
+                  <div className="space-y-1.5 border-t border-black/5 bg-black/[0.02] px-4 py-2.5">
+                    <RosterLine role="首发" members={starters} limit={5} />
+                    <RosterLine role="替补" members={substitute ? [substitute] : []} limit={1} />
+                    <RosterLine role="教练" members={coach ? [coach] : []} limit={1} />
                   </div>
                 </details>
-                <div className="hidden gap-1.5 px-5 py-2 md:grid md:grid-cols-[2.5rem_minmax(0,0.9fr)_minmax(0,3.4fr)_0.6fr] md:items-center md:gap-3">
+                <div className="hidden gap-1.5 px-5 py-2.5 md:grid md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,3.4fr)_0.6fr] md:items-start md:gap-3">
                   <span className="font-mono text-[0.625rem] font-black text-[#96918a]">{String(index + 1).padStart(2, "0")}</span>
-                  <strong className="text-xs text-[#171a1f]">{team.name}</strong>
-                  <div className="grid gap-1 text-[0.6875rem] leading-4 text-[#34383f] lg:grid-cols-[minmax(0,3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:gap-3">
-                    <p className="font-semibold"><span className="mr-1.5 font-black text-[#60656d]">首发 {starters.length}/5</span>{starters.map((member) => member.gameId).join("、") || "空缺"}</p>
-                    <p className="font-semibold"><span className="mr-1.5 font-black text-[#60656d]">替补 {substitute ? "1/1" : "0/1"}</span>{substitute?.gameId ?? "空缺"}</p>
-                    <p className="font-semibold"><span className="mr-1.5 font-black text-[#60656d]">教练 {coach ? "1/1" : "0/1"}</span>{coach?.gameId ?? "空缺"}</p>
+                  <strong className="pt-[3px] text-xs text-[#171a1f]">{team.name}</strong>
+                  <div className="space-y-1.5">
+                    <RosterLine role="首发" members={starters} limit={5} />
+                    <RosterLine role="替补" members={substitute ? [substitute] : []} limit={1} />
+                    <RosterLine role="教练" members={coach ? [coach] : []} limit={1} />
                   </div>
                   <span className="w-fit border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{team.status}</span>
                 </div>
