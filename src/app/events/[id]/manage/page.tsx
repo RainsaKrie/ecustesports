@@ -146,6 +146,11 @@ export default function ParticipantManagePage({
     ? data.teams.filter((team) => team.name.toLowerCase().includes(teamKeyword))
     : data.teams;
   const pendingRequests = data.requests.filter((item) => item.status === "pending");
+  const appliedTeamIds = new Set(
+    data.requests
+      .filter((item) => item.status === "pending" && item.type === "application" && item.playerId === data.player.id)
+      .map((item) => item.teamId),
+  );
 
   return (
     <Container className="py-5 sm:py-10">
@@ -225,11 +230,14 @@ export default function ParticipantManagePage({
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {filteredTeams.map((team) => {
+                    const applied = appliedTeamIds.has(team.id);
                     return (
                       <div key={team.id} className="grid gap-3 border border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-black text-slate-900">{team.name}</p><p className="mt-1 text-xs text-slate-500">首发 {team.starterCount}/5 · 替补 {team.substituteCount}/1 · 教练 {team.coachCount}/1</p></div>
                         {data.teamRegistrationClosed ? (
                           <span className="border border-slate-200 px-3 py-2 text-center text-xs font-black text-slate-400">组队已结束</span>
+                        ) : applied ? (
+                          <span className="whitespace-nowrap border border-slate-200 bg-slate-50 px-3 py-2 text-center text-xs font-black text-slate-500">等待队长处理</span>
                         ) : (
                           <div className="grid grid-cols-3 gap-1.5">
                             {APPLICATION_ROLES.map(({ role, limit }) => {
