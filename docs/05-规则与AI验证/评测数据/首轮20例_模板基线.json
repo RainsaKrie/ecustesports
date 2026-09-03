@@ -1,0 +1,1670 @@
+{
+  "datasetVersion": "0.1",
+  "status": "已冻结，等待模型运行",
+  "createdAt": "2026-08-26",
+  "frozenAt": "2026-08-26",
+  "purpose": "比较固定模板与未来AI输出；规则结论只来自确定性规则与流程状态。",
+  "referenceProvenance": {
+    "ownerReviewed": 5,
+    "derivedFromOwnerPolicy": 15
+  },
+  "referencePolicy": [
+    "校验通过不等于已批准或已生效",
+    "同一队伍时间重叠不可由增加裁判解除",
+    "复合冲突必须完整列出",
+    "不得把计划时间依赖表述成实际完赛状态"
+  ],
+  "prohibitedUses": [
+    "不得用AI输出替换规则结论",
+    "不得自动审批",
+    "不得把推导答案表述为负责人逐条撰写"
+  ],
+  "distribution": {
+    "可批准时间": 4,
+    "超出赛事时间范围": 3,
+    "队伍时间冲突": 3,
+    "并发容量冲突": 3,
+    "前置依赖": 2,
+    "赛程版本过期": 2,
+    "复合冲突": 3
+  },
+  "checks": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0
+  },
+  "cases": [
+    {
+      "id": "A01",
+      "category": "可批准时间",
+      "title": "首次排期无冲突",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO1",
+          "startTime": "",
+          "endTime": "",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO1｜2026-10-06T12:00:00—2026-10-06T12:45:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "候选时间未发现硬约束冲突，可进入负责人审批；当前尚未形成正式赛程。",
+        "action": "核对双方确认状态与现场裁判安排，由负责人决定是否批准；批准后才更新赛程并发布通知。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "A02",
+      "category": "可批准时间",
+      "title": "已排期比赛改期",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-07T14:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "review": true,
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO3｜2026-10-07T14:00:00—2026-10-07T15:30:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "负责人逐条审核",
+        "explanation": "M01 的候选时间通过硬约束检查，可进入负责人审批；当前尚未形成正式赛程。",
+        "action": "审批前核对双方队长确认状态及裁判安排；负责人批准后更新正式赛程并发布通知。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "A03",
+      "category": "可批准时间",
+      "title": "BO3恰好在阶段结束时完成",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-08T16:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO3｜2026-10-08T16:30:00—2026-10-08T18:00:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "候选时间未发现硬约束冲突，可进入负责人审批；当前尚未形成正式赛程。",
+        "action": "核对双方确认状态与现场裁判安排，由负责人决定是否批准；批准后才更新赛程并发布通知。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "A04",
+      "category": "可批准时间",
+      "title": "BO5恰好在阶段结束时完成",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO5",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T18:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-08T15:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO5｜2026-10-08T15:30:00—2026-10-08T18:00:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "候选时间未发现硬约束冲突，可进入负责人审批；当前尚未形成正式赛程。",
+        "action": "核对双方确认状态与现场裁判安排，由负责人决定是否批准；批准后才更新赛程并发布通知。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "R01",
+      "category": "超出赛事时间范围",
+      "title": "开始早于阶段开放",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO1",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T16:45:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T11:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-07"
+        ]
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-07",
+            "message": "约赛时间超出赛事阶段起止范围"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO1｜2026-10-06T11:30:00—2026-10-06T12:15:00｜申请v2/当前v2\nHC-07：约赛时间超出赛事阶段起止范围",
+        "nextSteps": [
+          "在阶段范围内重新选择时间，并计入完整BO时长"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。约赛时间超出赛事阶段起止范围。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-07：约赛时间超出赛事阶段起止范围",
+        "action": "在阶段范围内重新选择时间，并计入完整BO时长"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "R02",
+      "category": "超出赛事时间范围",
+      "title": "开始不早于结束但BO1越界",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO1",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T16:45:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-08T18:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-07"
+        ]
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-07",
+            "message": "约赛时间超出赛事阶段起止范围"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO1｜2026-10-08T18:00:00—2026-10-08T18:45:00｜申请v2/当前v2\nHC-07：约赛时间超出赛事阶段起止范围",
+        "nextSteps": [
+          "在阶段范围内重新选择时间，并计入完整BO时长"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。约赛时间超出赛事阶段起止范围。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-07：约赛时间超出赛事阶段起止范围",
+        "action": "在阶段范围内重新选择时间，并计入完整BO时长"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "R03",
+      "category": "超出赛事时间范围",
+      "title": "BO5占用时长越过阶段结束",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO5",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T18:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-08T17:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-07"
+        ]
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-07",
+            "message": "约赛时间超出赛事阶段起止范围"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO5｜2026-10-08T17:00:00—2026-10-08T19:30:00｜申请v2/当前v2\nHC-07：约赛时间超出赛事阶段起止范围",
+        "nextSteps": [
+          "在阶段范围内重新选择时间，并计入完整BO时长"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。约赛时间超出赛事阶段起止范围。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-07：约赛时间超出赛事阶段起止范围",
+        "action": "在阶段范围内重新选择时间，并计入完整BO时长"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "T01",
+      "category": "队伍时间冲突",
+      "title": "本队已有比赛",
+      "version": 2,
+      "config": {
+        "maxConcurrentMatches": 3,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-A",
+          "teamBId": "T-C",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-04"
+        ]
+      },
+      "review": true,
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-04",
+            "message": "参赛队伍在申请时段已有比赛 M02"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:30:00—2026-10-06T14:00:00｜申请v2/当前v2\nHC-04：参赛队伍在申请时段已有比赛 M02",
+        "nextSteps": [
+          "避开相关队伍的其他比赛时段"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。参赛队伍在申请时段已有比赛 M02。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "负责人逐条审核",
+        "explanation": "T-A 在候选时段已有 M02，同一支队伍不能同时参加两场比赛；裁判数量不能解除该冲突。",
+        "action": "双方重新协商不与 M02 重叠的时间，再次提交校验。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "T02",
+      "category": "队伍时间冲突",
+      "title": "对手已有比赛",
+      "version": 2,
+      "config": {
+        "maxConcurrentMatches": 3,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-C",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-04"
+        ]
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-04",
+            "message": "参赛队伍在申请时段已有比赛 M02"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:30:00—2026-10-06T14:00:00｜申请v2/当前v2\nHC-04：参赛队伍在申请时段已有比赛 M02",
+        "nextSteps": [
+          "避开相关队伍的其他比赛时段"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。参赛队伍在申请时段已有比赛 M02。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-04：参赛队伍在申请时段已有比赛 M02",
+        "action": "避开相关队伍的其他比赛时段"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "T03",
+      "category": "队伍时间冲突",
+      "title": "双方各自已有比赛",
+      "version": 2,
+      "config": {
+        "maxConcurrentMatches": 4,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-A",
+          "teamBId": "T-C",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M03",
+          "teamAId": "T-D",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:30:00",
+          "endTime": "2026-10-06T14:00:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-04",
+          "HC-04"
+        ]
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-04",
+            "message": "参赛队伍在申请时段已有比赛 M02"
+          },
+          {
+            "code": "HC-04",
+            "message": "参赛队伍在申请时段已有比赛 M03"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:30:00—2026-10-06T14:00:00｜申请v2/当前v2\nHC-04：参赛队伍在申请时段已有比赛 M02；HC-04：参赛队伍在申请时段已有比赛 M03",
+        "nextSteps": [
+          "避开相关队伍的其他比赛时段"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。参赛队伍在申请时段已有比赛 M02；参赛队伍在申请时段已有比赛 M03。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-04：参赛队伍在申请时段已有比赛 M02；HC-04：参赛队伍在申请时段已有比赛 M03",
+        "action": "避开相关队伍的其他比赛时段"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "C01",
+      "category": "并发容量冲突",
+      "title": "达到并发上限但不超限",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO3｜2026-10-06T12:00:00—2026-10-06T13:30:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "候选时间未发现硬约束冲突，可进入负责人审批；当前尚未形成正式赛程。",
+        "action": "核对双方确认状态与现场裁判安排，由负责人决定是否批准；批准后才更新赛程并发布通知。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "C02",
+      "category": "并发容量冲突",
+      "title": "峰值并发超过裁判容量",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M03",
+          "teamAId": "T-E",
+          "teamBId": "T-F",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:30:00",
+          "endTime": "2026-10-06T14:00:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-06"
+        ]
+      },
+      "review": true,
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-06",
+            "message": "该时段峰值并发 3 场，超过裁判容量 2"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:00:00—2026-10-06T13:30:00｜申请v2/当前v2\nHC-06：该时段峰值并发 3 场，超过裁判容量 2",
+        "nextSteps": [
+          "调整时间，或修改并重新确认裁判并发容量"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。该时段峰值并发 3 场，超过裁判容量 2。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "负责人逐条审核",
+        "explanation": "12:30—13:30 将同时进行 3 场比赛，超过当前 2 场的裁判容量。",
+        "action": "优先调整 M01 时间；如确有额外裁判，负责人先修改并重新确认并发容量，再重新校验。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "C03",
+      "category": "并发容量冲突",
+      "title": "相邻时段不累计为同时并发",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO1",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T12:45:00",
+          "frozen": false
+        },
+        {
+          "id": "M03",
+          "teamAId": "T-E",
+          "teamBId": "T-F",
+          "boType": "BO1",
+          "startTime": "2026-10-06T12:45:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO3｜2026-10-06T12:00:00—2026-10-06T13:30:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "候选时间未发现硬约束冲突，可进入负责人审批；当前尚未形成正式赛程。",
+        "action": "核对双方确认状态与现场裁判安排，由负责人决定是否批准；批准后才更新赛程并发布通知。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "D01",
+      "category": "前置依赖",
+      "title": "后续比赛早于前置比赛计划结束",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false,
+          "prerequisiteMatchId": "P01"
+        },
+        {
+          "id": "P01",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-05"
+        ]
+      },
+      "limitations": [
+        "当前规则只比较计划时间，不检查前置比赛是否实际完赛。"
+      ],
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-05",
+            "message": "前置比赛 P01 尚未结束"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:30:00—2026-10-06T14:00:00｜申请v2/当前v2\nHC-05：前置比赛 P01 尚未结束",
+        "nextSteps": [
+          "调整至前置比赛计划结束之后，并核对晋级状态"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。前置比赛 P01 尚未结束。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": [
+          "当前规则只比较计划时间，不检查前置比赛是否实际完赛。"
+        ]
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-05：前置比赛 P01 尚未结束；当前规则只比较计划时间，不检查前置比赛是否实际完赛。",
+        "action": "调整至前置比赛计划结束之后，并核对晋级状态"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "D02",
+      "category": "前置依赖",
+      "title": "晋级队伍未确定但时间依赖满足",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "WINNER-P01",
+          "teamBId": "TBD",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false,
+          "prerequisiteMatchId": "P01"
+        },
+        {
+          "id": "P01",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T13:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "codes": []
+      },
+      "limitations": [
+        "晋级队伍尚未确定；只说明计划时间关系可行，不能生成实名队伍通知。"
+      ],
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "可进入人工审批",
+        "approved": true,
+        "conflicts": []
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "可进入人工审批",
+        "summary": "M01｜BO3｜2026-10-06T13:30:00—2026-10-06T15:00:00｜申请v2/当前v2\n未发现硬约束冲突，等待赛事负责人审批。",
+        "nextSteps": [
+          "核对双方确认与现场裁判安排后，由负责人决定是否批准"
+        ],
+        "notificationDrafts": [],
+        "uncertainty": [
+          "晋级队伍尚未确定；只说明计划时间关系可行，不能生成实名队伍通知。"
+        ]
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "候选时间未发现硬约束冲突，可进入负责人审批；晋级队伍尚未确定；只说明计划时间关系可行，不能生成实名队伍通知。",
+        "action": "待晋级队伍确定后核对双方确认状态与裁判安排，再由负责人决定是否批准。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "V01",
+      "category": "赛程版本过期",
+      "title": "提交后赛程版本变化",
+      "version": 3,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-07T14:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-01"
+        ]
+      },
+      "review": true,
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-01",
+            "message": "申请基于旧版本 v2，当前为 v3，需刷新后重新提交"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-07T14:00:00—2026-10-07T15:30:00｜申请v2/当前v3\nHC-01：申请基于旧版本 v2，当前为 v3，需刷新后重新提交",
+        "nextSteps": [
+          "刷新当前赛程版本后重新提交"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。申请基于旧版本 v2，当前为 v3，需刷新后重新提交。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "负责人逐条审核",
+        "explanation": "该申请基于 v2，当前正式赛程为 v3，不能沿用原校验结果。",
+        "action": "查看 v3 中 M01 及相关比赛的最新时间，再按当前版本重新提交。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "V02",
+      "category": "赛程版本过期",
+      "title": "已批准申请被重复审批",
+      "operation": "重复审批",
+      "version": 3,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-07T14:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 3
+      },
+      "expected": {
+        "decision": "无需重复处理",
+        "approved": null,
+        "codes": [
+          "WF-01"
+        ]
+      },
+      "limitations": [
+        "这是流程幂等校验，不属于时间规则冲突。"
+      ],
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "无需重复处理",
+        "approved": null,
+        "conflicts": [
+          {
+            "code": "WF-01",
+            "message": "申请已经处理，不重复写入赛程"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "无需重复处理",
+        "summary": "M01｜BO3｜2026-10-07T14:00:00—2026-10-07T15:30:00｜申请v3/当前v3\n该申请已经处理，不重复更新赛程。",
+        "nextSteps": [],
+        "notificationDrafts": [],
+        "uncertainty": [
+          "这是流程幂等校验，不属于时间规则冲突。"
+        ]
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "该申请已处理，重复审批不应再次修改赛程或生成新版本。",
+        "action": "保留当前赛程状态，不执行重复操作。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "X01",
+      "category": "复合冲突",
+      "title": "旧版本、未确认、冻结且越界",
+      "version": 3,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO1",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T16:45:00",
+          "frozen": true
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T11:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": false,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-01",
+          "HC-02",
+          "HC-08",
+          "HC-07"
+        ]
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-01",
+            "message": "申请基于旧版本 v2，当前为 v3，需刷新后重新提交"
+          },
+          {
+            "code": "HC-02",
+            "message": "两队队长未都确认同一约赛开始时间"
+          },
+          {
+            "code": "HC-08",
+            "message": "比赛处于冻结状态，须先由负责人解除冻结"
+          },
+          {
+            "code": "HC-07",
+            "message": "约赛时间超出赛事阶段起止范围"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO1｜2026-10-06T11:00:00—2026-10-06T11:45:00｜申请v2/当前v3\nHC-01：申请基于旧版本 v2，当前为 v3，需刷新后重新提交；HC-02：两队队长未都确认同一约赛开始时间；HC-08：比赛处于冻结状态，须先由负责人解除冻结；HC-07：约赛时间超出赛事阶段起止范围",
+        "nextSteps": [
+          "刷新当前赛程版本后重新提交",
+          "由另一方队长确认同一开始时间",
+          "由负责人解除冻结后重新校验",
+          "在阶段范围内重新选择时间，并计入完整BO时长"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。申请基于旧版本 v2，当前为 v3，需刷新后重新提交；两队队长未都确认同一约赛开始时间；比赛处于冻结状态，须先由负责人解除冻结；约赛时间超出赛事阶段起止范围。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-01：申请基于旧版本 v2，当前为 v3，需刷新后重新提交；HC-02：两队队长未都确认同一约赛开始时间；HC-08：比赛处于冻结状态，须先由负责人解除冻结；HC-07：约赛时间超出赛事阶段起止范围",
+        "action": "刷新当前赛程版本后重新提交；由另一方队长确认同一开始时间；由负责人解除冻结后重新校验；在阶段范围内重新选择时间，并计入完整BO时长"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "X02",
+      "category": "复合冲突",
+      "title": "队伍重叠且峰值并发超限",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-A",
+          "teamBId": "T-C",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M03",
+          "teamAId": "T-D",
+          "teamBId": "T-E",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:00:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-06",
+          "HC-04"
+        ]
+      },
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-06",
+            "message": "该时段峰值并发 3 场，超过裁判容量 2"
+          },
+          {
+            "code": "HC-04",
+            "message": "参赛队伍在申请时段已有比赛 M02"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:00:00—2026-10-06T13:30:00｜申请v2/当前v2\nHC-06：该时段峰值并发 3 场，超过裁判容量 2；HC-04：参赛队伍在申请时段已有比赛 M02",
+        "nextSteps": [
+          "调整时间，或修改并重新确认裁判并发容量",
+          "避开相关队伍的其他比赛时段"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。该时段峰值并发 3 场，超过裁判容量 2；参赛队伍在申请时段已有比赛 M02。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": []
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "按负责人确认口径推导",
+        "explanation": "HC-06：该时段峰值并发 3 场，超过裁判容量 2；HC-04：参赛队伍在申请时段已有比赛 M02",
+        "action": "调整时间，或修改并重新确认裁判并发容量；避开相关队伍的其他比赛时段"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    },
+    {
+      "id": "X03",
+      "category": "复合冲突",
+      "title": "依赖、队伍和容量同时冲突",
+      "version": 2,
+      "matches": [
+        {
+          "id": "M01",
+          "teamAId": "T-A",
+          "teamBId": "T-B",
+          "boType": "BO3",
+          "startTime": "2026-10-07T16:00:00",
+          "endTime": "2026-10-07T17:30:00",
+          "frozen": false,
+          "prerequisiteMatchId": "P01"
+        },
+        {
+          "id": "P01",
+          "teamAId": "T-C",
+          "teamBId": "T-D",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M02",
+          "teamAId": "T-B",
+          "teamBId": "T-E",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        },
+        {
+          "id": "M03",
+          "teamAId": "T-F",
+          "teamBId": "T-G",
+          "boType": "BO3",
+          "startTime": "2026-10-06T12:00:00",
+          "endTime": "2026-10-06T13:30:00",
+          "frozen": false
+        }
+      ],
+      "request": {
+        "matchId": "M01",
+        "newStartTime": "2026-10-06T12:30:00",
+        "teamAConfirmed": true,
+        "teamBConfirmed": true,
+        "basedOnVersion": 2
+      },
+      "expected": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "codes": [
+          "HC-06",
+          "HC-04",
+          "HC-05"
+        ]
+      },
+      "limitations": [
+        "只比较前置比赛计划结束时间，不代表前置比赛已经完赛。"
+      ],
+      "review": true,
+      "config": {
+        "maxConcurrentMatches": 2,
+        "boDurations": {
+          "BO1": 45,
+          "BO3": 90,
+          "BO5": 150
+        },
+        "stageStart": "2026-10-06T12:00:00",
+        "stageEnd": "2026-10-08T18:00:00"
+      },
+      "actual": {
+        "decision": "暂不可批准",
+        "approved": false,
+        "conflicts": [
+          {
+            "code": "HC-06",
+            "message": "该时段峰值并发 4 场，超过裁判容量 2"
+          },
+          {
+            "code": "HC-04",
+            "message": "参赛队伍在申请时段已有比赛 M02"
+          },
+          {
+            "code": "HC-05",
+            "message": "前置比赛 P01 尚未结束"
+          }
+        ]
+      },
+      "engineCheck": "通过",
+      "templateBaseline": {
+        "ruleDecision": "暂不可批准",
+        "summary": "M01｜BO3｜2026-10-06T12:30:00—2026-10-06T14:00:00｜申请v2/当前v2\nHC-06：该时段峰值并发 4 场，超过裁判容量 2；HC-04：参赛队伍在申请时段已有比赛 M02；HC-05：前置比赛 P01 尚未结束",
+        "nextSteps": [
+          "调整时间，或修改并重新确认裁判并发容量",
+          "避开相关队伍的其他比赛时段",
+          "调整至前置比赛计划结束之后，并核对晋级状态"
+        ],
+        "notificationDrafts": [
+          {
+            "role": "双方队长",
+            "content": "【约赛待调整】M01 当前时间暂不能进入审批。该时段峰值并发 4 场，超过裁判容量 2；参赛队伍在申请时段已有比赛 M02；前置比赛 P01 尚未结束。请调整后重新提交。"
+          }
+        ],
+        "uncertainty": [
+          "只比较前置比赛计划结束时间，不代表前置比赛已经完赛。"
+        ]
+      },
+      "referenceStandard": {
+        "status": "已冻结",
+        "provenance": "负责人逐条审核",
+        "explanation": "M01 同时存在三项阻塞：峰值并发超过裁判容量、T-B 与 M02 时间重叠、开始时间早于前置比赛 P01 的计划结束时间。",
+        "action": "在 P01 计划结束后，避开 T-B 的既有赛程并控制同时比赛数，再重新提交；P01 是否实际完赛由负责人核对。"
+      },
+      "futureAiOutput": null,
+      "errorLabels": [],
+      "ownerScore": null
+    }
+  ]
+}
