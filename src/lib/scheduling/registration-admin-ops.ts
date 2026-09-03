@@ -143,6 +143,23 @@ export function reviewPlayerAdminOp(
   return commit(state, next, "review-player", `${player.gameId}：审核状态改为${input.reviewStatus}`, input.reason);
 }
 
+/** 一键全部通过：把所有待审核/需修改的有效选手置为已通过，只记一条操作记录。 */
+export function approveAllPlayersAdminOp(rawState: RegistrationState): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const pending = state.players.filter((player) =>
+    player.status !== "已退赛" && (player.reviewStatus === "待审核" || player.reviewStatus === "需修改"),
+  );
+  if (pending.length === 0) return fail(state, "没有待审核的选手。");
+  const pendingIds = new Set(pending.map((player) => player.id));
+  const next = {
+    ...state,
+    players: state.players.map((candidate) =>
+      pendingIds.has(candidate.id) ? { ...candidate, reviewStatus: "已通过" as const } : candidate,
+    ),
+  };
+  return commit(state, next, "approve-all-players", `批量通过 ${pending.length} 名选手审核`);
+}
+
 export function updatePlayerAdminOp(
   rawState: RegistrationState,
   input: { playerId: string; name: string; studentId: string; gameId: string; rank: string; qq?: string; phone?: string; positions?: string[]; intro?: string; reason?: string },

@@ -292,6 +292,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
           </div>
           {tab === "players" && (
             <div className="flex gap-2 px-3 pb-3 md:pb-0">
+              <button type="button" onClick={() => runOperation("approve-all-players")} disabled={busy || waitingReview + needsChanges === 0} className="shrink-0 bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">全部通过{waitingReview + needsChanges > 0 ? `（${waitingReview + needsChanges} 人）` : ""}</button>
               <input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名或学号" className="min-w-0 border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#ff4655] md:w-56" />
               <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="border border-slate-200 bg-white px-2 py-2 text-xs outline-none">
                 {(["全部", "待审核", "已通过", "需修改", "已拒绝"] as const).map((status) => <option key={status}>{status}</option>)}

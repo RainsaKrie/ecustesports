@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import {
+  approveAllPlayersAdminOp,
   confirmTeamAdminOp,
   deletePlayerAdminOp,
   replacePlayerAdminOp,
@@ -242,4 +243,34 @@ test("删除不存在的选手失败", () => {
   assert.match(result.message, /不存在/);
 });
 
-console.log(`\n${passed}/17 registration admin tests passed`);
+test("一键全部通过放行所有待审核与需修改选手并只记一条记录", () => {
+  const state = fixture();
+  state.players = state.players.map((candidate) => candidate.id === "2" ? { ...candidate, reviewStatus: "需修改" as const } : candidate);
+  state.players = [...state.players, player("7", { status: "已退赛", teamId: undefined, role: undefined })];
+  const result = approveAllPlayersAdminOp(state);
+  assert.equal(result.ok, true);
+  assert.equal(result.state.players.filter((candidate) => candidate.reviewStatus === "已通过").length, 6);
+  // 已退赛选手不参与批量通过
+  assert.equal(result.state.players.find((candidate) => candidate.id === "7")?.reviewStatus, "待审核");
+  assert.equal(result.state.operationLogs?.filter((log) => log.action === "approve-all-players").length, 1);
+  assert.match(result.message, /批量通过 5 名/);
+});
+
+test("一键全部通过可一次撤销", () => {
+  const result = approveAllPlayersAdminOp(fixture());
+  assert.equal(result.ok, true);
+  const undone = undoRegistrationAdminOp(result.state, result.state.operationLogs?.[0].id ?? "");
+  assert.equal(undone.ok, true);
+  assert.equal(undone.state.players.filter((candidate) => candidate.reviewStatus === "待审核").length, 5);
+  assert.equal(undone.state.players.find((candidate) => candidate.id === "6")?.reviewStatus, "已通过");
+});
+
+test("没有待审核选手时一键全部通过失败", () => {
+  const state = fixture();
+  for (const candidate of state.players) candidate.reviewStatus = "已通过";
+  const result = approveAllPlayersAdminOp(state);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /没有待审核/);
+});
+
+console.log(`\n${passed}/20 registration admin tests passed`);

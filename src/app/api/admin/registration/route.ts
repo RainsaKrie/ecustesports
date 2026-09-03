@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import {
+  approveAllPlayersAdminOp,
   assignPlayerAdminOp,
   confirmTeamAdminOp,
   createTeamAdminOp,
@@ -66,6 +67,8 @@ function dispatch(
         reviewStatus: text(payload.reviewStatus, 20) as ReviewStatus,
         reason: text(payload.reason),
       });
+    case "approve-all-players":
+      return approveAllPlayersAdminOp(state);
     case "update-player":
       return updatePlayerAdminOp(state, {
         playerId: text(payload.playerId, 80),
