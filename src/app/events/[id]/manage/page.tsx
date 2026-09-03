@@ -225,10 +225,11 @@ export default function ParticipantManagePage({
                     const count = joinRole === "首发" ? team.starterCount : joinRole === "替补" ? team.substituteCount : team.coachCount;
                     const limit = joinRole === "首发" ? 5 : 1;
                     const canApply = !data.teamRegistrationClosed && count < limit;
+                    const actionLabel = data.teamRegistrationClosed ? "组队已结束" : canApply ? `申请${joinRole}` : `${joinRole}已满`;
                     return (
                       <div key={team.id} className="flex flex-col gap-3 border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0"><p className="truncate text-sm font-black text-slate-900">{team.name}</p><p className="mt-1 text-xs text-slate-500">首发 {team.starterCount}/5 · 替补 {team.substituteCount}/1 · 教练 {team.coachCount}/1</p></div>
-                        <button onClick={() => run(() => participant.sendTeamRequest({ type: "application", teamId: team.id, role: joinRole }), "申请已发送。") } disabled={busy || !canApply} className="h-9 w-full shrink-0 whitespace-nowrap border border-[#ff4655] px-3 text-xs font-black text-[#c83242] disabled:border-slate-200 disabled:text-slate-400 sm:w-auto">{canApply ? `申请${joinRole}` : `${joinRole}已满`}</button>
+                        <button onClick={() => run(() => participant.sendTeamRequest({ type: "application", teamId: team.id, role: joinRole }), "申请已发送。") } disabled={busy || !canApply} className="h-9 w-full shrink-0 whitespace-nowrap border border-[#ff4655] px-3 text-xs font-black text-[#c83242] disabled:border-slate-200 disabled:text-slate-400 sm:w-auto">{actionLabel}</button>
                       </div>
                     );
                   })}
