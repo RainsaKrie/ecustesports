@@ -11,6 +11,11 @@ const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡"
 const inputClass = "h-11 w-full border border-black/15 bg-white px-3 text-sm font-semibold text-[#171a1f] outline-none focus:border-[#ff4655]";
 type Section = "team" | "matches" | "profile";
 type RosterRole = "首发" | "替补" | "教练";
+const APPLICATION_ROLES: Array<{ role: RosterRole; limit: number }> = [
+  { role: "首发", limit: 5 },
+  { role: "替补", limit: 1 },
+  { role: "教练", limit: 1 },
+];
 
 function formatMatchTime(value: string): string {
   if (!value) return "时间待定";
@@ -42,7 +47,6 @@ export default function ParticipantManagePage({
   const [teamSearch, setTeamSearch] = useState("");
   const [inviteGameId, setInviteGameId] = useState("");
   const [inviteRole, setInviteRole] = useState<RosterRole>("首发");
-  const [joinRole, setJoinRole] = useState<RosterRole>("首发");
   const [proposedTime, setProposedTime] = useState("");
   const [proposedReason, setProposedReason] = useState("");
   const [profileDraft, setProfileDraft] = useState<Partial<{
@@ -216,20 +220,35 @@ export default function ParticipantManagePage({
                     <button onClick={() => run(() => participant.createTeam(teamName), "队伍已创建，你已成为队长。") } disabled={busy || !teamName.trim()} className="h-11 bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50">创建队伍</button>
                   </div>
                 )}
-                <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_8rem]">
+                <div className="mt-5">
                   <input value={teamSearch} onChange={(e) => setTeamSearch(e.target.value)} placeholder="搜索队伍" className={inputClass} />
-                  <select value={joinRole} onChange={(e) => setJoinRole(e.target.value as RosterRole)} className={inputClass}><option>首发</option><option>替补</option><option>教练</option></select>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {filteredTeams.map((team) => {
-                    const count = joinRole === "首发" ? team.starterCount : joinRole === "替补" ? team.substituteCount : team.coachCount;
-                    const limit = joinRole === "首发" ? 5 : 1;
-                    const canApply = !data.teamRegistrationClosed && count < limit;
-                    const actionLabel = data.teamRegistrationClosed ? "组队已结束" : canApply ? `申请${joinRole}` : `${joinRole}已满`;
                     return (
-                      <div key={team.id} className="flex flex-col gap-3 border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div key={team.id} className="grid gap-3 border border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                         <div className="min-w-0"><p className="truncate text-sm font-black text-slate-900">{team.name}</p><p className="mt-1 text-xs text-slate-500">首发 {team.starterCount}/5 · 替补 {team.substituteCount}/1 · 教练 {team.coachCount}/1</p></div>
-                        <button onClick={() => run(() => participant.sendTeamRequest({ type: "application", teamId: team.id, role: joinRole }), "申请已发送。") } disabled={busy || !canApply} className="h-9 w-full shrink-0 whitespace-nowrap border border-[#ff4655] px-3 text-xs font-black text-[#c83242] disabled:border-slate-200 disabled:text-slate-400 sm:w-auto">{actionLabel}</button>
+                        {data.teamRegistrationClosed ? (
+                          <span className="border border-slate-200 px-3 py-2 text-center text-xs font-black text-slate-400">组队已结束</span>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {APPLICATION_ROLES.map(({ role, limit }) => {
+                              const count = role === "首发" ? team.starterCount : role === "替补" ? team.substituteCount : team.coachCount;
+                              const canApply = count < limit;
+                              return (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => run(() => participant.sendTeamRequest({ type: "application", teamId: team.id, role }), `已申请${role}。`) }
+                                  disabled={busy || !canApply}
+                                  className="h-9 whitespace-nowrap border border-[#ff4655] px-1.5 text-[0.6875rem] font-black text-[#c83242] disabled:border-slate-200 disabled:text-slate-400"
+                                >
+                                  {canApply ? `申请${role}` : `${role}已满`}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
