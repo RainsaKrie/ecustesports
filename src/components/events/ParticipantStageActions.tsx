@@ -23,24 +23,24 @@ function ActionLink({ href, children, emphasis = false }: { href: string; childr
 export default function ParticipantStageActions({
   eventId,
   stage,
-  ctaHref,
-  ctaLabel,
   isPreparing,
   isOngoing,
 }: {
   eventId: string;
   stage: EventStage;
-  ctaHref: string;
-  ctaLabel: string;
   isPreparing: boolean;
   isOngoing: boolean;
 }) {
   const participant = useParticipant(eventId);
-  const participantPrimary = !isPreparing && Boolean(participant.data);
+  const isConnected = Boolean(participant.data);
+
+  if (participant.loading) {
+    return <div className="h-[7.5rem] w-full" aria-hidden />;
+  }
 
   return (
     <>
-      {participantPrimary ? (
+      {isConnected ? (
         <>
           <Button href={`/events/${eventId}/manage?section=team`} size="lg" className="w-full">
             {participant.data?.team ? "我的队伍" : "创建或加入队伍"}
@@ -50,17 +50,15 @@ export default function ParticipantStageActions({
             <ActionLink href={`/events/${eventId}/manage?section=profile`}>报名信息</ActionLink>
           </div>
         </>
-      ) : stage === "报名" ? (
-        <Button href={ctaHref} size="lg" className="w-full">{ctaLabel}</Button>
+      ) : !isPreparing ? (
+        <>
+          <Button href={`/events/${eventId}/manage?recover=1`} size="lg" className="w-full">参赛登录</Button>
+          <div className="grid w-full gap-2">
+            {stage === "报名" && <ActionLink href={`/events/${eventId}/manage?section=team&recover=1`} emphasis>创建或加入队伍</ActionLink>}
+            {isOngoing && <ActionLink href={`/events/${eventId}/bracket`}>全屏赛事对阵</ActionLink>}
+          </div>
+        </>
       ) : null}
-      {!participantPrimary && (
-        <div className="grid w-full gap-2">
-          {!isPreparing ? (
-            <ActionLink href={`/events/${eventId}/manage?recover=1`} emphasis>已报名 · 找回参赛信息</ActionLink>
-          ) : null}
-          {isOngoing && <ActionLink href={`/events/${eventId}/bracket`}>全屏赛事对阵</ActionLink>}
-        </div>
-      )}
     </>
   );
 }

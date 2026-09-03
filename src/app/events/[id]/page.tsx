@@ -82,11 +82,6 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
     return [event.dateLabel, event.stageSummary].filter(Boolean).join(" · ") || "赛事信息待公布";
   })();
 
-  const rawCtaHref = stageConfig.ctaHref.replace("{id}", event.id);
-  const ctaHref = previewMode && rawCtaHref.startsWith(`/events/${event.id}?`)
-    ? rawCtaHref.replace("?", "?preview=1&")
-    : rawCtaHref;
-
   const isPreparing = event.status === "draft";
   return (
     <div>
@@ -128,8 +123,6 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                   <ParticipantStageActions
                     eventId={event.id}
                     stage={stage}
-                    ctaHref={ctaHref}
-                    ctaLabel={stageConfig.cta}
                     isPreparing={isPreparing}
                     isOngoing={event.status === "ongoing"}
                   />

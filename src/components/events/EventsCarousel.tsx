@@ -5,6 +5,7 @@ import Image from "next/image";
 import { EsportEvent } from "@/types";
 import { getStatusInfo } from "@/lib/utils";
 import { STAGE_CONFIGS, type EventStage } from "@/lib/scheduling/stage";
+import { useParticipant } from "@/lib/scheduling/useParticipant";
 import Button from "@/components/ui/Button";
 
 interface Props {
@@ -20,8 +21,15 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
   const active = events[activeIndex];
   const stageConfig = STAGE_CONFIGS[stage];
   const primaryHref = stageConfig.ctaHref.replace("{id}", active.id);
-  const primaryOpensEventDetail = primaryHref === `/events/${active.id}`
-    || primaryHref.startsWith(`/events/${active.id}?`);
+  const participant = useParticipant(active.id);
+  const participantTeamHref = `/events/${active.id}/manage?section=team`;
+  const participantPrimary = stage === "报名" && Boolean(participant.data);
+  const resolvedPrimaryHref = participantPrimary ? participantTeamHref : primaryHref;
+  const resolvedPrimaryLabel = participantPrimary
+    ? participant.data?.team ? "我的队伍" : "创建或加入队伍"
+    : stageConfig.cta;
+  const primaryOpensEventDetail = resolvedPrimaryHref === `/events/${active.id}`
+    || resolvedPrimaryHref.startsWith(`/events/${active.id}?`);
 
   // prev/next 按列表当前顺序 ±1，循环
   const prev = () => setActiveIndex((i) => (i - 1 + total) % total);
@@ -99,10 +107,14 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
             {active.description}
           </p>
           <div className="mt-5 flex flex-wrap gap-3 md:mt-7 md:gap-4">
-            <Button href={primaryHref} size="lg">{stageConfig.cta}</Button>
-            {!primaryOpensEventDetail && (
-              <Button href={`/events/${active.id}`} variant="dark-outline" size="lg">赛事详情</Button>
-            )}
+            {stage !== "报名" || !participant.loading ? (
+              <>
+                <Button href={resolvedPrimaryHref} size="lg">{resolvedPrimaryLabel}</Button>
+                {!primaryOpensEventDetail && (
+                  <Button href={`/events/${active.id}`} variant="dark-outline" size="lg">赛事详情</Button>
+                )}
+              </>
+            ) : <span className="h-12 w-36" aria-hidden />}
           </div>
         </div>
 
