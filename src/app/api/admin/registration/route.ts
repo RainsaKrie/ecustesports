@@ -6,6 +6,7 @@ import {
   assignPlayerAdminOp,
   confirmTeamAdminOp,
   createTeamAdminOp,
+  deletePlayerAdminOp,
   removePlayerFromTeamAdminOp,
   reopenTeamAdminOp,
   replacePlayerAdminOp,
@@ -84,6 +85,8 @@ function dispatch(
         replacementCaptainId: text(payload.replacementCaptainId, 80) || undefined,
         reason: text(payload.reason),
       });
+    case "delete-player":
+      return deletePlayerAdminOp(state, { playerId: text(payload.playerId, 80) });
     case "create-team":
       return createTeamAdminOp(state, {
         name: text(payload.name, 40),

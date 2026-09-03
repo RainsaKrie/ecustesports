@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   confirmTeamAdminOp,
+  deletePlayerAdminOp,
   replacePlayerAdminOp,
   resetPlayerTokenAdminOp,
   reviewPlayerAdminOp,
@@ -172,4 +173,73 @@ test("重置参赛码对不存在的选手失败", () => {
   assert.match(result.message, /不存在/);
 });
 
-console.log(`\n${passed}/11 registration admin tests passed`);
+test("删除未组队选手直接移除且清理相关请求", () => {
+  const state = fixture();
+  state.teamRequests = [{
+    id: "TR-1",
+    type: "application",
+    teamId: "T-1",
+    playerId: "6",
+    role: "替补",
+    initiatedByPlayerId: "6",
+    status: "pending",
+    createdAt: "2026-08-21T00:00:00.000Z",
+  }];
+  const result = deletePlayerAdminOp(state, { playerId: "6" });
+  assert.equal(result.ok, true);
+  assert.equal(result.state.players.some((candidate) => candidate.id === "6"), false);
+  assert.equal(result.state.teamRequests?.length, 0);
+  assert.ok(result.state.operationLogs?.some((log) => log.action === "delete-player"));
+});
+
+test("删除普通成员腾出队内位置", () => {
+  const result = deletePlayerAdminOp(fixture(), { playerId: "3" });
+  assert.equal(result.ok, true);
+  const team = result.state.teams.find((candidate) => candidate.id === "T-1");
+  assert.ok(team);
+  assert.deepEqual(team.memberIds, ["1", "2", "4", "5"]);
+  assert.equal(team.captainId, "1");
+  assert.equal(team.status, "报名中");
+  assert.equal(result.state.players.some((candidate) => candidate.id === "3"), false);
+});
+
+test("删除队长自动移交给队内首发", () => {
+  const result = deletePlayerAdminOp(fixture(), { playerId: "1" });
+  assert.equal(result.ok, true);
+  const team = result.state.teams.find((candidate) => candidate.id === "T-1");
+  assert.ok(team);
+  assert.equal(team.memberIds.length, 4);
+  assert.equal(team.captainId, "2");
+});
+
+test("删除最后一名成员队伍标记退赛", () => {
+  const state = fixture();
+  state.teams[0].memberIds = ["1"];
+  state.players = state.players.filter((candidate) => candidate.id === "1");
+  const result = deletePlayerAdminOp(state, { playerId: "1" });
+  assert.equal(result.ok, true);
+  assert.equal(result.state.teams.find((candidate) => candidate.id === "T-1")?.status, "已退赛");
+  assert.equal(result.state.teams.find((candidate) => candidate.id === "T-1")?.captainId, "");
+  assert.equal(result.state.players.length, 0);
+});
+
+test("删除选手连带清理其发起和收到的组队请求", () => {
+  const state = fixture();
+  state.teamRequests = [
+    { id: "TR-1", type: "application", teamId: "T-1", playerId: "6", role: "替补", initiatedByPlayerId: "6", status: "pending", createdAt: "2026-08-21T00:00:00.000Z" },
+    { id: "TR-2", type: "invitation", teamId: "T-1", playerId: "6", role: "首发", initiatedByPlayerId: "1", status: "pending", createdAt: "2026-08-21T00:00:00.000Z" },
+    { id: "TR-3", type: "invitation", teamId: "T-1", playerId: "2", role: "替补", initiatedByPlayerId: "1", status: "pending", createdAt: "2026-08-21T00:00:00.000Z" },
+  ];
+  const result = deletePlayerAdminOp(state, { playerId: "1" });
+  assert.equal(result.ok, true);
+  // 队长发起的 TR-3 与收到的 TR-2（涉及被删队长）都清理，TR-1 不涉及队长本人则保留
+  assert.deepEqual((result.state.teamRequests ?? []).map((request) => request.id), ["TR-1"]);
+});
+
+test("删除不存在的选手失败", () => {
+  const result = deletePlayerAdminOp(fixture(), { playerId: "missing" });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /不存在/);
+});
+
+console.log(`\n${passed}/17 registration admin tests passed`);

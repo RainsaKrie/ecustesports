@@ -227,6 +227,42 @@ export function withdrawPlayerAdminOp(
   return commit(state, next, "withdraw-player", `${player.gameId} 退出比赛`, input.reason);
 }
 
+/** 删除选手：彻底移除报名数据，自动腾出队伍位置、移交队长、清理相关组队请求。 */
+export function deletePlayerAdminOp(
+  rawState: RegistrationState,
+  input: { playerId: string },
+): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const player = state.players.find((candidate) => candidate.id === input.playerId);
+  if (!player) return fail(state, "选手不存在。");
+  const team = player.teamId ? state.teams.find((candidate) => candidate.id === player.teamId) : undefined;
+
+  let nextTeams = state.teams;
+  if (team) {
+    const remainingIds = team.memberIds.filter((id) => id !== player.id);
+    // 删除队长时自动移交：优先给队内首发，其次按名单顺序取第一位，队空则无队长。
+    const nextCaptainId = team.captainId === player.id
+      ? remainingIds.find((id) => state.players.find((candidate) => candidate.id === id)?.role === "首发") ?? remainingIds[0] ?? ""
+      : team.captainId;
+    nextTeams = state.teams.map((candidate) => candidate.id === team.id ? {
+      ...candidate,
+      captainId: nextCaptainId,
+      memberIds: remainingIds,
+      status: remainingIds.length === 0 ? "已退赛" as const : "报名中" as const,
+    } : candidate);
+  }
+
+  const next = {
+    ...state,
+    players: state.players.filter((candidate) => candidate.id !== player.id),
+    teams: nextTeams,
+    teamRequests: (state.teamRequests ?? []).filter((request) =>
+      request.playerId !== player.id && request.initiatedByPlayerId !== player.id,
+    ),
+  };
+  return commit(state, next, "delete-player", `删除选手 ${player.gameId}${team ? `（原 ${team.name} ${player.role ?? "成员"}）` : ""}`);
+}
+
 export function confirmTeamAdminOp(rawState: RegistrationState, teamId: string): AdminRegistrationResult {
   const state = normalizeRegistrationState(rawState);
   const team = state.teams.find((candidate) => candidate.id === teamId);
