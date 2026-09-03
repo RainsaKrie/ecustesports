@@ -1257,24 +1257,29 @@ summary:focus-visible {
 
   .site-brand {
     min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+  }
+
+  .site-brand__text {
+    min-width: 0;
   }
 
   .site-brand__text strong {
     overflow: hidden;
-    max-width: 230px;
-    font-size: 1rem;
+    font-size: 0.9375rem;
     line-height: 1.15;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .site-brand__text small {
     overflow: hidden;
-    max-width: 230px;
-    font-size: 0.625rem;
+    margin-top: 4px;
+    font-size: 0.5625rem;
     line-height: 1;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
