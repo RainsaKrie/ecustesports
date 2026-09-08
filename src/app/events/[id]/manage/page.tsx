@@ -45,8 +45,14 @@ export default function ParticipantManagePage({
   const [showCode, setShowCode] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamSearch, setTeamSearch] = useState("");
+  const [createRole, setCreateRole] = useState<RosterRole>("首发");
+  const [myRole, setMyRole] = useState<RosterRole>("首发");
+  const [editingTeamName, setEditingTeamName] = useState("");
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
   const [inviteGameId, setInviteGameId] = useState("");
   const [inviteRole, setInviteRole] = useState<RosterRole>("首发");
+  const [confirmTeamAction, setConfirmTeamAction] = useState<"leave" | "dissolve" | null>(null);
   const [proposedTime, setProposedTime] = useState("");
   const [proposedReason, setProposedReason] = useState("");
   const [profileDraft, setProfileDraft] = useState<Partial<{
@@ -187,9 +193,48 @@ export default function ParticipantManagePage({
             {data.team ? (
               <div className="mt-4">
                 <div className="flex flex-col gap-2 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div><p className="font-black text-slate-900">{data.team.name}</p><p className="mt-1 text-xs text-slate-500">{data.isCaptain ? "队长" : "队员"} · {data.team.status}</p></div>
+                  <div><p className="font-black text-slate-900">{data.team.name}</p><p className="mt-1 text-xs text-slate-500">{data.isCaptain ? "队长" : "队员"} · {data.team.status} · 我的角色：{data.player.role ?? "未定"}</p></div>
                   <span className="text-xs font-bold text-slate-500">5 首发 · 1 替补 · 1 教练</span>
                 </div>
+                {data.team.status === "报名中" && (
+                  <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                    {roleOpen ? (
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                        <select value={myRole} onChange={(e) => setMyRole(e.target.value as RosterRole)} className={inputClass}><option>首发</option><option>替补</option><option>教练</option></select>
+                        <button type="button" onClick={() => setRoleOpen(false)} disabled={busy} className="h-11 border border-slate-300 bg-white px-4 text-xs font-bold">取消</button>
+                        <button type="button" onClick={() => run(() => participant.setMyRole(myRole), "角色已更新。").then(() => setRoleOpen(false))} disabled={busy} className="h-11 bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">确认改角色</button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => { setMyRole(data.player.role ?? "首发"); setRoleOpen(true); setRenameOpen(false); }} className="border border-black/15 px-3 py-2 text-xs font-bold text-[#34383f] hover:bg-[#fff1f2]">调整我的角色</button>
+                    )}
+
+                    {data.isCaptain && (renameOpen ? (
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                        <input value={editingTeamName} onChange={(e) => setEditingTeamName(e.target.value)} placeholder="新队名（≤40 字）" className={inputClass} />
+                        <button type="button" onClick={() => setRenameOpen(false)} disabled={busy} className="h-11 border border-slate-300 bg-white px-4 text-xs font-bold">取消</button>
+                        <button type="button" onClick={() => run(() => participant.renameTeam(editingTeamName), "队名已更新。").then(() => setRenameOpen(false))} disabled={busy || !editingTeamName.trim()} className="h-11 bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">确认改名</button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => { setEditingTeamName(data.team!.name); setRenameOpen(true); setRoleOpen(false); }} className="border border-black/15 px-3 py-2 text-xs font-bold text-[#34383f] hover:bg-[#fff1f2]">修改队名</button>
+                    ))}
+
+                    {confirmTeamAction ? (
+                      <div className="border border-amber-200 bg-amber-50 p-4">
+                        <p className="text-sm font-bold text-amber-900">{confirmTeamAction === "leave" ? "确定退出这支队伍吗？" : "确定解散这支队伍吗？"}</p>
+                        <p className="mt-1 text-xs text-amber-700">{confirmTeamAction === "leave" ? "你将回到未组队状态，之后可以重新申请其他队伍。" : "整支队伍会被删除，所有成员回到未组队状态，此操作不可撤销。"}</p>
+                        <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
+                          <button type="button" onClick={() => setConfirmTeamAction(null)} disabled={busy} className="h-10 border border-slate-300 bg-white px-4 text-xs font-bold">取消</button>
+                          <button type="button" onClick={() => run(() => (confirmTeamAction === "leave" ? participant.leaveTeam() : participant.dissolveTeam()), confirmTeamAction === "leave" ? "已退出队伍。" : "队伍已解散。").then(() => setConfirmTeamAction(null))} disabled={busy} className="h-10 bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">{confirmTeamAction === "leave" ? "确认退出" : "确认解散"}</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-bold text-slate-500">{data.isCaptain ? "组队期可随时解散重来" : "组队期可退出并重新加入其他队伍"}</p>
+                        <button type="button" onClick={() => setConfirmTeamAction(data.isCaptain ? "dissolve" : "leave")} className="shrink-0 border border-red-200 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-50">{data.isCaptain ? "解散队伍" : "退出队伍"}</button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="mt-3 grid gap-3">
                   {([["首发", 5], ["替补", 1], ["教练", 1]] as Array<[RosterRole, number]>).map(([rosterRole, limit]) => {
                     const roleMembers = data.team!.members.filter((member) => member.role === rosterRole);
@@ -220,9 +265,10 @@ export default function ParticipantManagePage({
             ) : (
               <div className="mt-4">
                 {!data.teamRegistrationClosed && (
-                  <div className="grid gap-2 border-b border-black/10 pb-5 sm:grid-cols-[1fr_auto]">
+                  <div className="grid gap-2 border-b border-black/10 pb-5 sm:grid-cols-[1fr_8rem_auto]">
                     <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="输入队伍名称" autoFocus={query.mode === "create"} className={inputClass} />
-                    <button onClick={() => run(() => participant.createTeam(teamName), "队伍已创建，你已成为队长。") } disabled={busy || !teamName.trim()} className="h-11 bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50">创建队伍</button>
+                    <select value={createRole} onChange={(e) => setCreateRole(e.target.value as RosterRole)} className={inputClass}><option>首发</option><option>替补</option><option>教练</option></select>
+                    <button onClick={() => run(() => participant.createTeam(teamName, createRole), "队伍已创建，你已成为队长。") } disabled={busy || !teamName.trim()} className="h-11 bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50">创建队伍</button>
                   </div>
                 )}
                 <div className="mt-5">

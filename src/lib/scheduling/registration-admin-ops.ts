@@ -10,7 +10,8 @@ import {
   type RegistrationState,
 } from "./registration-data";
 import { normalizeRegistrationState } from "./registration-data";
-import { addMemberOp, createTeamOp } from "./registration-ops";
+import { addMemberOp, createTeamOp, renameTeamOp, setMemberRoleOp, type PlayerRole } from "./registration-ops";
+import { dissolveTeamOp } from "./registration-ops";
 
 export type ReviewStatus = NonNullable<RegistrationPlayer["reviewStatus"]>;
 export type RosterRole = NonNullable<RegistrationPlayer["role"]>;
@@ -77,14 +78,15 @@ function reopenPlayerTeam(state: RegistrationState, playerId: string) {
 
 export function createTeamAdminOp(
   rawState: RegistrationState,
-  input: { name: string; captainId: string },
+  input: { name: string; captainId: string; captainRole?: PlayerRole },
 ): AdminRegistrationResult {
   const state = normalizeRegistrationState(rawState);
   const captain = state.players.find((player) => player.id === input.captainId);
   if (captain?.reviewStatus !== "已通过") return fail(state, "队长必须先审核通过。");
   const result = createTeamOp(state, input);
   if (!result.ok || !result.state || !result.team) return fail(state, result.message ?? "代建队伍失败。");
-  return commit(state, result.state, "create-team", `代建队伍 ${result.team.name}`);
+  const roleLabel = result.team ? state.players.find((p) => p.id === result.team!.captainId)?.role : undefined;
+  return commit(state, result.state, "create-team", `代建队伍 ${result.team.name}（队长 ${roleLabel ?? ""}）`);
 }
 
 export function assignPlayerAdminOp(
@@ -344,6 +346,48 @@ export function withdrawTeamAdminOp(rawState: RegistrationState, teamId: string,
     teamRequests: (state.teamRequests ?? []).map((request) => request.teamId === team.id && request.status === "pending" ? { ...request, status: "cancelled" as const, resolvedAt: new Date().toISOString() } : request),
   };
   return commit(state, next, "withdraw-team", `${team.name} 退出比赛`, reason);
+}
+
+/** 负责人解散队伍：仅限"报名中"，删除队伍对象、全员回池，记审计日志、可撤销。与退赛分开。 */
+export function dissolveTeamAdminOp(rawState: RegistrationState, teamId: string, reason: string): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const team = state.teams.find((candidate) => candidate.id === teamId);
+  if (!team) return fail(state, "队伍不存在。");
+  if (team.status !== "报名中") return fail(state, "只有报名中的队伍可以解散。");
+  if (!reason.trim()) return fail(state, "解散队伍必须填写原因。");
+  const result = dissolveTeamOp(state, { teamId });
+  if (!result.ok || !result.state) return fail(state, result.message ?? "解散队伍失败。");
+  return commit(state, result.state, "dissolve-team", `解散队伍 ${team.name}（${team.memberIds.length} 人回到未组队）`, reason);
+}
+
+/** 负责人修改队名：仅限"报名中"队伍。 */
+export function renameTeamAdminOp(
+  rawState: RegistrationState,
+  input: { teamId: string; name: string; reason: string },
+): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const team = state.teams.find((candidate) => candidate.id === input.teamId);
+  if (!team) return fail(state, "队伍不存在。");
+  if (!input.reason.trim()) return fail(state, "修改队名必须填写原因。");
+  const result = renameTeamOp(state, { teamId: input.teamId, name: input.name });
+  if (!result.ok || !result.state) return fail(state, result.message ?? "修改队名失败。");
+  return commit(state, result.state, "rename-team", `队伍 ${team.name} 更名为 ${result.team?.name ?? input.name}`, input.reason);
+}
+
+/** 负责人调整队内角色：仅限"报名中"队伍。 */
+export function setMemberRoleAdminOp(
+  rawState: RegistrationState,
+  input: { playerId: string; role: RosterRole; reason: string },
+): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const player = state.players.find((candidate) => candidate.id === input.playerId);
+  const team = player?.teamId ? state.teams.find((candidate) => candidate.id === player.teamId) : undefined;
+  if (!player || !team) return fail(state, "选手当前不在任何队伍。");
+  if (!input.reason.trim()) return fail(state, "调整角色必须填写原因。");
+  const previousRole = player.role ?? "";
+  const result = setMemberRoleOp(state, { teamId: team.id, playerId: input.playerId, role: input.role });
+  if (!result.ok || !result.state) return fail(state, result.message ?? "调整角色失败。");
+  return commit(state, result.state, "set-member-role", `${player.gameId} 角色由 ${previousRole || "未定"} 调整为 ${input.role}`, input.reason);
 }
 
 export function toggleRegistrationAdminOp(rawState: RegistrationState, target: "player" | "team"): AdminRegistrationResult {
