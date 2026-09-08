@@ -3,10 +3,14 @@ import assert from "node:assert/strict";
 import {
   approveAllPlayersAdminOp,
   confirmTeamAdminOp,
+  createTeamAdminOp,
   deletePlayerAdminOp,
+  dissolveTeamAdminOp,
+  renameTeamAdminOp,
   replacePlayerAdminOp,
   resetPlayerTokenAdminOp,
   reviewPlayerAdminOp,
+  setMemberRoleAdminOp,
   undoRegistrationAdminOp,
   updatePlayerAdminOp,
   withdrawPlayerAdminOp,
@@ -138,6 +142,37 @@ test("整队退赛释放队员但保留队伍退赛记录", () => {
   assert.equal(result.state.teams[0].status, "已退赛");
   assert.equal(result.state.teams[0].memberIds.length, 0);
   assert.equal(result.state.players.find((candidate) => candidate.id === "2")?.status, "已报名");
+});
+
+test("解散队伍删除队伍对象并让全员回池", () => {
+  const result = dissolveTeamAdminOp(fixture(), "T-1", "重复报名清理");
+  assert.equal(result.ok, true);
+  assert.equal(result.state.teams.length, 0);
+  assert.ok(result.state.players.filter((candidate) => candidate.teamId === "T-1").length === 0);
+  assert.ok(result.state.players.every((candidate) => candidate.teamId === undefined));
+  assert.equal(result.state.operationLogs?.[0].action, "dissolve-team");
+});
+
+test("解散队伍记审计日志并可撤销", () => {
+  const dissolved = dissolveTeamAdminOp(fixture(), "T-1", "组队失败");
+  assert.equal(dissolved.ok, true);
+  const undone = undoRegistrationAdminOp(dissolved.state, dissolved.state.operationLogs?.[0].id ?? "");
+  assert.equal(undone.ok, true);
+  assert.equal(undone.state.teams.length, 1);
+  assert.equal(undone.state.teams[0].name, "瓦理一队");
+});
+
+test("冻结队伍不能解散", () => {
+  let state = fixture();
+  for (const id of ["1", "2", "3", "4", "5"]) {
+    const result = reviewPlayerAdminOp(state, { playerId: id, reviewStatus: "已通过" });
+    state = result.state;
+  }
+  const confirmed = confirmTeamAdminOp(state, "T-1");
+  assert.equal(confirmed.ok, true);
+  const result = dissolveTeamAdminOp(confirmed.state, "T-1", "试试");
+  assert.equal(result.ok, false);
+  assert.match(result.message, /报名中/);
 });
 
 test("仅可安全撤销最新操作", () => {
@@ -273,4 +308,29 @@ test("没有待审核选手时一键全部通过失败", () => {
   assert.match(result.message, /没有待审核/);
 });
 
-console.log(`\n${passed}/20 registration admin tests passed`);
+test("代建队伍可指定队长角色", () => {
+  const state = fixture();
+  state.players = state.players.map((candidate) => candidate.id === "6" ? { ...candidate, reviewStatus: "已通过" } : candidate);
+  const result = createTeamAdminOp(state, { name: "新队", captainId: "6", captainRole: "替补" });
+  assert.equal(result.ok, true);
+  const team = result.state.teams.find((candidate) => candidate.name === "新队");
+  assert.ok(team);
+  assert.equal(result.state.players.find((candidate) => candidate.id === "6")?.role, "替补");
+});
+
+test("负责人可修改队名并记审计日志", () => {
+  const result = renameTeamAdminOp(fixture(), { teamId: "T-1", name: "改名为瓦理之星", reason: "队长申请更名" });
+  assert.equal(result.ok, true);
+  assert.equal(result.state.teams[0].name, "改名为瓦理之星");
+  assert.equal(result.state.operationLogs?.[0].action, "rename-team");
+  assert.equal(result.state.operationLogs?.[0].reason, "队长申请更名");
+});
+
+test("负责人可调整成员角色并记审计日志", () => {
+  const result = setMemberRoleAdminOp(fixture(), { playerId: "2", role: "替补", reason: "位置协商" });
+  assert.equal(result.ok, true);
+  assert.equal(result.state.players.find((candidate) => candidate.id === "2")?.role, "替补");
+  assert.equal(result.state.operationLogs?.[0].action, "set-member-role");
+});
+
+console.log(`\n${passed}/26 registration admin tests passed`);

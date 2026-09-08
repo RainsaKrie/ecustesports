@@ -8,11 +8,14 @@ import {
   confirmTeamAdminOp,
   createTeamAdminOp,
   deletePlayerAdminOp,
+  dissolveTeamAdminOp,
   removePlayerFromTeamAdminOp,
+  renameTeamAdminOp,
   reopenTeamAdminOp,
   replacePlayerAdminOp,
   resetPlayerTokenAdminOp,
   reviewPlayerAdminOp,
+  setMemberRoleAdminOp,
   toggleRegistrationAdminOp,
   undoRegistrationAdminOp,
   updatePlayerAdminOp,
@@ -94,6 +97,7 @@ function dispatch(
       return createTeamAdminOp(state, {
         name: text(payload.name, 40),
         captainId: text(payload.captainId, 80),
+        captainRole: (text(payload.captainRole, 20) || undefined) as RosterRole | undefined,
       });
     case "assign-player":
       return assignPlayerAdminOp(state, {
@@ -120,6 +124,20 @@ function dispatch(
       });
     case "withdraw-team":
       return withdrawTeamAdminOp(state, text(payload.teamId, 80), text(payload.reason));
+    case "dissolve-team":
+      return dissolveTeamAdminOp(state, text(payload.teamId, 80), text(payload.reason));
+    case "rename-team":
+      return renameTeamAdminOp(state, {
+        teamId: text(payload.teamId, 80),
+        name: text(payload.name, 40),
+        reason: text(payload.reason),
+      });
+    case "set-member-role":
+      return setMemberRoleAdminOp(state, {
+        playerId: text(payload.playerId, 80),
+        role: text(payload.role, 20) as RosterRole,
+        reason: text(payload.reason),
+      });
     case "toggle-player-registration":
       return toggleRegistrationAdminOp(state, "player");
     case "toggle-team-registration":
