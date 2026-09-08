@@ -59,6 +59,41 @@ function contactOf(player: RegistrationPlayer) {
   return player.qq || player.phone || "未填写";
 }
 
+function RosterMemberRow({
+  player,
+  team,
+  role,
+  index,
+  onReplace,
+  onRemove,
+  onChangeRole,
+}: {
+  player: RegistrationPlayer;
+  team: RegistrationTeam;
+  role: Role;
+  index: number;
+  onReplace: () => void;
+  onRemove: () => void;
+  onChangeRole?: () => void;
+}) {
+  const rosterLabel = team.captainId === player.id ? "队长" : `${role} ${index + 1}`;
+
+  return (
+    <div className="grid min-h-12 gap-2 border border-slate-200 bg-white px-3 py-2.5 text-xs sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+      <div className="min-w-0">
+        <p className="truncate font-black text-slate-950" title={player.gameId}>{player.gameId}</p>
+        <p className="mt-1 truncate text-[0.625rem] font-bold text-slate-400">{rosterLabel}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:flex-nowrap sm:justify-end">
+        <span className={`shrink-0 whitespace-nowrap border px-1.5 py-0.5 text-[0.5rem] font-bold ${reviewTone(player.reviewStatus)}`}>{player.reviewStatus ?? "待审核"}</span>
+        {team.status === "报名中" && onChangeRole && <button type="button" onClick={onChangeRole} className="shrink-0 whitespace-nowrap font-bold text-slate-700 hover:underline">改角色</button>}
+        {team.status !== "已退赛" && <button type="button" onClick={onReplace} className="shrink-0 whitespace-nowrap font-bold text-[#c83242] hover:underline">换人</button>}
+        {team.status === "报名中" && <button type="button" onClick={onRemove} className="shrink-0 whitespace-nowrap font-bold text-red-700 hover:underline">移出</button>}
+      </div>
+    </div>
+  );
+}
+
 function ModalShell({ title, subtitle, onClose, children, footer }: {
   title: string;
   subtitle?: string;
@@ -387,14 +422,20 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         return (
                           <div key={role} className="grid gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)]">
                             <div className="pt-2 text-[0.625rem] font-black text-slate-500">{role} {roleMembers.length}/{limit}</div>
-                            <div className={`grid gap-2 ${role === "首发" ? "sm:grid-cols-2" : ""}`}>
+                            <div className="grid min-w-0 gap-2">
                               {Array.from({ length: limit }, (_, index) => {
                                 const player = roleMembers[index];
                                 return player ? (
-                                  <div key={player.id} className="flex min-h-11 items-center justify-between gap-3 border border-slate-200 bg-white px-3 py-2 text-xs">
-                                    <div className="min-w-0"><span className="font-bold text-slate-900">{player.gameId}</span><span className="ml-2 text-slate-400">{team.captainId === player.id ? "队长" : `${role} ${index + 1}`}</span></div>
-                                    <div className="flex shrink-0 items-center gap-2"><span className={`border px-1.5 py-0.5 text-[0.5rem] font-bold ${reviewTone(player.reviewStatus)}`}>{player.reviewStatus ?? "待审核"}</span>{team.status === "报名中" && <button type="button" onClick={() => openModal({ kind: "set-member-role", player })} className="text-slate-700 hover:underline">改角色</button>}{team.status !== "已退赛" && <button type="button" onClick={() => openModal({ kind: "replace-player", team, outgoing: player })} className="text-[#c83242] hover:underline">换人</button>}{team.status === "报名中" && <button type="button" onClick={() => openModal({ kind: "remove-player", player })} className="text-red-700 hover:underline">移出</button>}</div>
-                                  </div>
+                                  <RosterMemberRow
+                                    key={player.id}
+                                    player={player}
+                                    team={team}
+                                    role={role}
+                                    index={index}
+                                    onChangeRole={() => openModal({ kind: "set-member-role", player })}
+                                    onReplace={() => openModal({ kind: "replace-player", team, outgoing: player })}
+                                    onRemove={() => openModal({ kind: "remove-player", player })}
+                                  />
                                 ) : (
                                   <button key={`${role}-${index}`} type="button" onClick={() => openModal({ kind: "assign-player", team, role })} disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0} className="min-h-11 border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs font-bold text-slate-400 enabled:hover:border-[#ff4655] enabled:hover:text-[#c83242] disabled:cursor-default">
                                     {role === "首发" ? `首发 ${index + 1}` : role} · 空缺
