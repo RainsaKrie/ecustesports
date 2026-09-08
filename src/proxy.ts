@@ -15,6 +15,9 @@ const PUBLIC_WRITE_PATHS = [
   "/api/public/team/request",
   "/api/public/schedule/request",
   "/api/data/bp",
+  "/api/referee/login",
+  "/api/referee/submit",
+  "/api/referee/upload",
 ];
 
 const WRITE_LIMITS: Array<{ prefix: string; action: string; limit: number; windowSeconds: number }> = [
@@ -25,6 +28,8 @@ const WRITE_LIMITS: Array<{ prefix: string; action: string; limit: number; windo
   { prefix: "/api/public/team", action: "team-operation", limit: 40, windowSeconds: 10 * 60 },
   { prefix: "/api/public/schedule/request", action: "schedule-request", limit: 30, windowSeconds: 10 * 60 },
   { prefix: "/api/data/bp", action: "bp-operation", limit: 90, windowSeconds: 60 },
+  { prefix: "/api/referee/login", action: "referee-login", limit: 10, windowSeconds: 15 * 60 },
+  { prefix: "/api/referee", action: "referee-write", limit: 60, windowSeconds: 10 * 60 },
   { prefix: "/api", action: "admin-write", limit: 180, windowSeconds: 10 * 60 },
 ];
 

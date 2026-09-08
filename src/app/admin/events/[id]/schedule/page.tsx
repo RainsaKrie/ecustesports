@@ -115,6 +115,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
 
   const [selected, setSelected] = useState<ScheduleMatch | null>(null);
   const [mode, setMode] = useState<DialogMode>("overview");
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
   // 排期
   const [scheduleTime, setScheduleTime] = useState("");
@@ -162,6 +163,22 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       })
       .catch(() => {
         if (!cancelled) setEventConfig(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // 异常赛果待裁决数（仅作入口徽标，0 则不显示）
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/admin/review?eventId=${encodeURIComponent(id)}`, { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("异常队列读取失败")))
+      .then((data: { queue?: unknown[] }) => {
+        if (!cancelled) setPendingReviewCount(Array.isArray(data.queue) ? data.queue.length : 0);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingReviewCount(0);
       });
     return () => {
       cancelled = true;
@@ -273,6 +290,11 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           <div className="flex gap-2">
             <button type="button" onClick={() => void refresh()} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600">刷新约赛</button>
             <Link href={`/admin/events/${id}/schedule/draw`} className="bg-[#ff4655] px-4 py-2.5 text-xs font-black text-white transition hover:bg-[#d83b48]">开始抽签</Link>
+            <Link href={`/admin/events/${id}/referees`} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 hover:border-slate-950">裁判管理</Link>
+            <Link href={`/admin/events/${id}/review`} className="flex items-center gap-2 border border-[#ff4655]/40 bg-[#fff1f2] px-4 py-2.5 text-xs font-black text-[#c83242] transition hover:bg-[#ff4655] hover:text-white">
+              异常赛果
+              {pendingReviewCount > 0 && <span className="bg-[#ff4655] px-1.5 py-0.5 text-[0.625rem] font-bold text-white">{pendingReviewCount}</span>}
+            </Link>
             {state.matches.length > 0 && (
               <button
                 onClick={() => {
