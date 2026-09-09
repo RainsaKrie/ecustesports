@@ -54,6 +54,10 @@ console.log("== 组1 · 文件校验 ==");
     const r = checkEvidenceFile({ mimeType: "image/png", sizeBytes: 0, sha256: SHA });
     return !r.ok && r.code === "EMPTY_FILE";
   })());
+  check("非整数文件大小被拒", (() => {
+    const r = checkEvidenceFile({ mimeType: "image/png", sizeBytes: 1.5, sha256: SHA });
+    return !r.ok && r.code === "INVALID_FILE_SIZE";
+  })());
   check("超 5MB 被拒", (() => {
     const r = checkEvidenceFile({ mimeType: "image/png", sizeBytes: 5 * 1024 * 1024 + 1, sha256: SHA });
     return !r.ok && r.code === "FILE_TOO_LARGE";
@@ -99,6 +103,10 @@ console.log("\n== 组3 · 注册与数量上限 ==");
     const diff = new Date(exp).getTime() - new Date(EVENT_ENDS).getTime();
     return diff === 7 * 24 * 60 * 60 * 1000;
   })());
+  check("赛事结束时间无效时拒绝注册", (() => {
+    const result = registerEvidenceOp(input({ eventEndsAt: "not-a-date" }), emptyEvidenceLedger());
+    return !result.ok && result.code === "INVALID_EVENT_END";
+  })());
   check("单场最多 5 张，第 6 张被拒", (() => {
     let l = emptyEvidenceLedger();
     for (let i = 0; i < 5; i++) {
@@ -125,6 +133,11 @@ console.log("\n== 组4 · 查重幂等 ==");
     l = first.state!;
     const again = registerEvidenceOp(input({ evidenceId: "EVD-fixed" }), l);
     return again.ok && again.state!.evidence.length === 1;
+  })());
+  check("同 ID 但不同文件被拒绝", (() => {
+    const first = registerEvidenceOp(input({ evidenceId: "EVD-fixed" }), emptyEvidenceLedger());
+    const conflict = registerEvidenceOp(input({ evidenceId: "EVD-fixed", sha256: "b".repeat(64) }), first.state!);
+    return !conflict.ok && conflict.code === "EVIDENCE_ID_CONFLICT";
   })());
   check("同场同散列重复上传 → 复用已上传", (() => {
     let l = emptyEvidenceLedger();

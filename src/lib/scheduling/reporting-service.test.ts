@@ -69,7 +69,7 @@ function setupReferee(matchId = "M1") {
 
 /** 组装初始 ReportingState */
 function initState(matches: ScheduleMatch[], referee: RefereeLedger, scheduleVersion = 1) {
-  const base = emptyReportingState(matches, scheduleVersion);
+  const base = emptyReportingState(matches, scheduleVersion, EVENT_ENDS);
   return { ...base, referee };
 }
 
@@ -133,10 +133,10 @@ console.log("\n== 组3 · 证据先传后挂 ==");
   const state = initState([match("M1")], referee);
 
   // 先传证据草稿
-  const ev = uploadRefereeEvidenceOp({ credential, eventId: EVENT, matchId: "M1", mimeType: "image/png", sizeBytes: 64, sha256: SHA, eventEndsAt: EVENT_ENDS }, state);
+  const ev = uploadRefereeEvidenceOp({ credential, eventId: EVENT, matchId: "M1", mimeType: "image/png", sizeBytes: 64, sha256: SHA }, state);
   check("上传证据草稿成功", ev.ok && ev.value!.evidenceId !== undefined);
   check("未分配比赛上传证据被拒", (() => {
-    const r = uploadRefereeEvidenceOp({ credential, eventId: EVENT, matchId: "M2", mimeType: "image/png", sizeBytes: 64, sha256: SHA, eventEndsAt: EVENT_ENDS }, initState([match("M1"), match("M2")], referee));
+    const r = uploadRefereeEvidenceOp({ credential, eventId: EVENT, matchId: "M2", mimeType: "image/png", sizeBytes: 64, sha256: SHA }, initState([match("M1"), match("M2")], referee));
     return !r.ok && r.code === "NOT_ASSIGNED";
   })());
 

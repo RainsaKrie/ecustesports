@@ -79,6 +79,9 @@ export function checkEvidenceFile(input: {
   if (input.sizeBytes <= 0) {
     return { ok: false, error: "文件为空", code: "EMPTY_FILE" };
   }
+  if (!Number.isSafeInteger(input.sizeBytes)) {
+    return { ok: false, error: "文件大小不合法", code: "INVALID_FILE_SIZE" };
+  }
   if (input.sizeBytes > MAX_EVIDENCE_BYTES) {
     return { ok: false, error: `单张凭证不能超过 ${MAX_EVIDENCE_BYTES / 1024 / 1024}MB`, code: "FILE_TOO_LARGE" };
   }
@@ -102,7 +105,8 @@ export function buildOpaqueObjectPath(eventId: string, mimeType: EvidenceMimeTyp
 
 /** 删除期限 = 当届结束 + 申诉保留期（ADR 决策 8：当届结束 + 7 天） */
 export function computeEvidenceExpiry(eventEndsAt: string): string {
-  const end = new Date(eventEndsAt).getTime();
+  const end = Date.parse(eventEndsAt);
+  if (!Number.isFinite(end)) throw new Error("赛事结束时间格式不合法");
   const expiry = end + APPEAL_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   return new Date(expiry).toISOString();
 }
@@ -134,10 +138,16 @@ export function registerEvidenceOp(
 ): EvidenceOpResult<{ evidenceId: string; objectPath: string; expiresAt: string }> {
   const mime = checkEvidenceFile({ mimeType: input.mimeType, sizeBytes: input.sizeBytes, sha256: input.sha256 });
   if (!mime.ok) return { ok: false, error: mime.error, code: mime.code };
+  if (!Number.isFinite(Date.parse(input.eventEndsAt))) {
+    return { ok: false, error: "赛事结束时间未配置或格式不合法", code: "INVALID_EVENT_END" };
+  }
 
   // 同凭证 ID 已存在 → 幂等返回（重试不重复注册）
   const byId = ledger.evidence.find((e) => e.id === input.evidenceId);
   if (byId) {
+    if (byId.eventId !== input.eventId || byId.matchId !== input.matchId || byId.sha256 !== input.sha256) {
+      return { ok: false, error: "凭证 ID 已被其他文件占用", code: "EVIDENCE_ID_CONFLICT" };
+    }
     return { ok: true, state: ledger, value: { evidenceId: byId.id, objectPath: byId.objectPath, expiresAt: byId.expiresAt }, reason: "已存在" };
   }
 

@@ -35,6 +35,8 @@ import type { EvidenceLedger } from "./evidence-domain";
 export interface ReportingState {
   matches: ScheduleMatch[];
   scheduleVersion: number;
+  /** 赛事结束时间，用于服务端计算凭证保留期限。 */
+  eventEndsAt: string;
   referee: RefereeLedger;
   result: ResultLedger;
   evidence: EvidenceLedger;
@@ -45,10 +47,11 @@ export type ReportingOpResult<T = undefined> =
   | { ok: true; state: ReportingState; value?: T; reason?: string }
   | { ok: false; error: string; code?: string; state?: undefined; value?: undefined };
 
-export function emptyReportingState(matches: ScheduleMatch[], scheduleVersion: number): ReportingState {
+export function emptyReportingState(matches: ScheduleMatch[], scheduleVersion: number, eventEndsAt = ""): ReportingState {
   return {
     matches,
     scheduleVersion,
+    eventEndsAt,
     referee: emptyRefereeLedger(),
     result: emptyResultLedger(),
     evidence: emptyEvidenceLedger(),
@@ -177,7 +180,6 @@ export interface RefereeEvidenceInput {
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  eventEndsAt: string;
 }
 
 /**
@@ -199,7 +201,7 @@ export function uploadRefereeEvidenceOp(
       sizeBytes: input.sizeBytes,
       sha256: input.sha256,
       uploadedByRefereeId: auth.refereeId,
-      eventEndsAt: input.eventEndsAt,
+      eventEndsAt: state.eventEndsAt,
     },
     state.evidence,
   );

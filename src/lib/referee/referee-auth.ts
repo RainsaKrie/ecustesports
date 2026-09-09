@@ -4,6 +4,8 @@
 // 每个请求由凭证 → 身份 → 分配关系推导权限，不信任客户端 refereeId。
 // =====================
 
+import "server-only";
+
 export function readRefereeCredential(request: Request): string {
   const authorization = request.headers.get("authorization") ?? "";
   if (authorization.startsWith("Bearer ")) return authorization.slice(7).trim();

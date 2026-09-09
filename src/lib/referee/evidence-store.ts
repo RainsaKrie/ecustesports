@@ -3,13 +3,15 @@
 //
 // 与公开海报空间（asset-store 的 event-assets bucket）隔离：
 //   - 本地：写入 data/evidence/<eventId>/<不透明文件名>，绝不进 public/uploads。
-//   - 生产：写入 Supabase 私有 bucket `match-evidence`（无公开 URL，读取走鉴权签名）。
+//   - 生产：写入 Supabase 私有 bucket `match-evidence`（无公开 URL）。
 //
 // 对象名重复使用 evidence-ops 的 buildOpaqueObjectPath 结果，只含 eventId + 不透明 ID，
 // 不含 displayName / refereeId / matchId（ADR §3 冻结）。
 // =====================
 
-import { mkdir, writeFile } from "node:fs/promises";
+import "server-only";
+
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { assertSafeEventId } from "@/lib/data-store-types";
 import { isHostedRuntime } from "@/lib/deployment";
@@ -71,8 +73,35 @@ export async function storeEvidenceObject(input: {
     body,
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`凭证存储失败（HTTP ${response.status}）${detail ? `：${detail.slice(0, 200)}` : ""}`);
+    console.error("凭证存储失败", { status: response.status, eventId });
+    throw new Error("凭证存储失败，请稍后重试");
   }
   return { stored: true };
+}
+
+/** 上传后的台账提交失败时回滚对象，避免留下无法追踪的私有文件。 */
+export async function deleteEvidenceObject(input: { eventId: string; objectName: string }): Promise<void> {
+  const eventId = assertSafeEventId(input.eventId);
+  const fileName = input.objectName.split("/").pop() ?? input.objectName;
+
+  if (selectedBackend() === "file") {
+    const filePath = path.join(process.cwd(), "data", "evidence", eventId, fileName);
+    await rm(filePath, { force: true });
+    return;
+  }
+
+  const { url, secret } = supabaseConfig();
+  const objectName = input.objectName.startsWith(`${EVIDENCE_BUCKET}/`)
+    ? input.objectName.slice(EVIDENCE_BUCKET.length + 1)
+    : input.objectName;
+  const response = await fetch(`${url}/storage/v1/object/${EVIDENCE_BUCKET}/${objectName}`, {
+    method: "DELETE",
+    headers: {
+      apikey: secret,
+      Authorization: `Bearer ${secret}`,
+    },
+  });
+  if (!response.ok && response.status !== 404) {
+    console.error("凭证回滚删除失败", { status: response.status, eventId });
+  }
 }

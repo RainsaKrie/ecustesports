@@ -28,10 +28,10 @@ type ConfirmPayload = {
   declaredWinnerSide: "A" | "B";
 };
 
-export default function RefereeWorkbench() {
+export default function RefereeWorkbench({ initialEventId }: { initialEventId: string }) {
   const [stage, setStage] = useState<Stage>("login");
   const [credential, setCredential] = useState("");
-  const [eventId, setEventId] = useState("demo-referee");
+  const [eventId, setEventId] = useState(initialEventId);
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [activeMatch, setActiveMatch] = useState<MatchSummary | null>(null);
   const [games, setGames] = useState<GameDraft[]>([]);
@@ -47,6 +47,7 @@ export default function RefereeWorkbench() {
 
   const boType = activeMatch?.boType ?? "BO3";
   const winTarget = useMemo(() => ({ BO1: 1, BO3: 2, BO5: 3 }[boType] ?? 2), [boType]);
+  const maxGames = winTarget * 2 - 1;
 
   function winsOf(games: GameDraft[], side: "A" | "B"): number {
     return games.filter((g) => (side === "A" ? g.teamAScore > g.teamBScore : g.teamBScore > g.teamAScore)).length;
@@ -57,6 +58,7 @@ export default function RefereeWorkbench() {
     setError("");
     setBanner("");
     if (credential.trim().length < 3) { setError("请输入裁判凭证"); return; }
+    if (!eventId.trim()) { setError("请输入赛事 ID，或使用管理员发给你的裁判链接"); return; }
     try {
       const res = await fetch("/api/referee/login", {
         method: "POST",
@@ -81,10 +83,6 @@ export default function RefereeWorkbench() {
       const data = (await res.json()) as { matches: MatchSummary[]; scheduleVersion?: number };
       setMatches(data.matches);
       if (typeof data.scheduleVersion === "number") setLastScheduleVersion(data.scheduleVersion);
-      // 默认聚焦最近一场（列表首项即被分配场次，服务端已只返回分配场）
-      if (data.matches.length > 0) {
-        openMatch(data.matches[0]);
-      }
     } catch {
       setError("网络连接失败");
     }
@@ -100,7 +98,7 @@ export default function RefereeWorkbench() {
   }
 
   function addGame() {
-    if (games.length >= 5) return;
+    if (games.length >= maxGames) return;
     setGames([...games, { map: "", teamAScore: 0, teamBScore: 0 }]);
   }
 
@@ -112,8 +110,8 @@ export default function RefereeWorkbench() {
     setGames((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function currentMapOptions(): string[] {
-    const used = new Set(games.map((g) => g.map).filter(Boolean));
+  function currentMapOptions(index: number): string[] {
+    const used = new Set(games.filter((_, gameIndex) => gameIndex !== index).map((g) => g.map).filter(Boolean));
     return VALORANT_MAPS.filter((m) => !used.has(m.name)).map((m) => m.name);
   }
 
@@ -134,6 +132,7 @@ export default function RefereeWorkbench() {
     if (games.length === 0) { setError("请至少录入一局比分"); return null; }
     // 每局须无平局且分数非负
     for (const g of games) {
+      if (!Number.isSafeInteger(g.teamAScore) || !Number.isSafeInteger(g.teamBScore)) { setError("比分必须是整数"); return null; }
       if (g.teamAScore === g.teamBScore) { setError("每局比分不能平局"); return null; }
       if (g.teamAScore < 0 || g.teamBScore < 0) { setError("比分不能为负"); return null; }
     }
@@ -261,6 +260,7 @@ export default function RefereeWorkbench() {
             <input
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
+              placeholder="例如 event-1"
               autoComplete="off"
               className="h-12 border border-[#0f1923]/25 bg-white px-4 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
               style={{ borderRadius: 0 }}
@@ -274,9 +274,7 @@ export default function RefereeWorkbench() {
             进入工作台
           </button>
         </form>
-        <p className="mt-6 text-xs leading-relaxed text-[#667078]">
-          本地演示凭证：referee-demo-credential-2026-09（赛事 demo-referee）。接正式后由管理员在后端分配真实凭证，此处不变。
-        </p>
+        <p className="mt-6 text-xs leading-relaxed text-[#667078]">凭证只保存在当前页面内存中，刷新或关闭页面后需要重新输入。</p>
       </div>
     );
   }
@@ -357,7 +355,7 @@ export default function RefereeWorkbench() {
               style={{ borderRadius: 0 }}
             >
               <option value="">选择地图</option>
-              {currentMapOptions().map((m) => <option key={m} value={m}>{m}</option>)}
+              {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
               {g.map && !VALORANT_MAPS.some((m) => m.name === g.map) && <option value={g.map}>{g.map}</option>}
             </select>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -367,6 +365,7 @@ export default function RefereeWorkbench() {
                   type="number"
                   inputMode="numeric"
                   min={0}
+                  step={1}
                   value={g.teamAScore}
                   onChange={(e) => updateGame(i, { teamAScore: Number(e.target.value) || 0 })}
                   className="h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
@@ -379,6 +378,7 @@ export default function RefereeWorkbench() {
                   type="number"
                   inputMode="numeric"
                   min={0}
+                  step={1}
                   value={g.teamBScore}
                   onChange={(e) => updateGame(i, { teamBScore: Number(e.target.value) || 0 })}
                   className="h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
@@ -391,11 +391,11 @@ export default function RefereeWorkbench() {
 
         <button
           onClick={addGame}
-          disabled={games.length >= 5}
+          disabled={games.length >= maxGames}
           className="mt-4 w-full border border-dashed border-[#0f1923]/30 bg-transparent px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-40"
           style={{ borderRadius: 0 }}
         >
-          + 添加一局（最多 5 局）
+          + 添加一局（最多 {maxGames} 局）
         </button>
 
         {winner && (

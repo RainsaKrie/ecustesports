@@ -149,7 +149,7 @@ console.log("\n== 组5b · 受控更正 ==");
   ledger.submissions.push({ id: "s1", matchId: "M7", submittedByRefereeId: REF, basedOnScheduleVersion: 1, games: A_WINS, declaredWinnerTeamId: "M7-A", evidenceIds: [], source: "manual", status: "accepted", submittedAt: new Date().toISOString() });
   ledger.resultVersion = 1;
   const c = { matches: [up, down], ledger, scheduleVersion: 1, assignments: [assign("M7")], reviewPolicy: REVIEW_POLICY };
-  const r = correctResultOp({ matchId: "M7", actorId: "admin", reason: "更正", newGames: B_WINS, newWinnerTeamId: "M7-B" }, c);
+  const r = correctResultOp({ matchId: "M7", actorId: "admin", reason: "更正", newGames: B_WINS }, c);
   check("下游已 BP 更正被阻止", !r.ok && r.code === "DOWNSTREAM_PROGRESSED");
 
   // 无下游进度 → 允许更正
@@ -158,10 +158,19 @@ console.log("\n== 组5b · 受控更正 ==");
   ledger2.submissions.push({ id: "s2", matchId: "M9", submittedByRefereeId: REF, basedOnScheduleVersion: 1, games: A_WINS, declaredWinnerTeamId: "M9-A", evidenceIds: [], source: "manual", status: "accepted", submittedAt: new Date().toISOString() });
   ledger2.resultVersion = 1;
   const c2 = { matches: [up2], ledger: ledger2, scheduleVersion: 1, assignments: [assign("M9")], reviewPolicy: REVIEW_POLICY };
-  const r2 = correctResultOp({ matchId: "M9", actorId: "admin", reason: "更正", newGames: B_WINS, newWinnerTeamId: "M9-B" }, c2);
+  const r2 = correctResultOp({ matchId: "M9", actorId: "admin", reason: "更正", newGames: B_WINS }, c2);
   check("无下游进度允许更正", r2.ok);
   check("更正后胜者翻转", r2.state!.matches.find((m) => m.id === "M9")?.winnerTeamId === "M9-B");
   check("旧提交被标记 superseded", r2.state!.ledger.submissions.find((s) => s.id === "s2")?.status === "superseded");
+  check("更正胜者由比分推导", r2.state!.ledger.submissions.find((s) => s.status === "accepted")?.declaredWinnerTeamId === "M9-B");
+  check("非法更正比分被拒绝", (() => {
+    const invalid = correctResultOp({ matchId: "M9", actorId: "admin", reason: "更正", newGames: [g(-1, 13), g(7, 13)] }, c2);
+    return !invalid.ok && invalid.code === "INVALID_GAMES";
+  })());
+  check("空更正原因被拒绝", (() => {
+    const invalid = correctResultOp({ matchId: "M9", actorId: "admin", reason: "  ", newGames: B_WINS }, c2);
+    return !invalid.ok && invalid.code === "REASON_REQUIRED";
+  })());
 }
 
 console.log("\n== 组6 · 晋级正确性与裁决 ==");

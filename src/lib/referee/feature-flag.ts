@@ -9,6 +9,8 @@
 // 开启二字永远由产品负责人确认，不由代码自行放开。
 // =====================
 
+import "server-only";
+
 import { isHostedRuntime } from "@/lib/deployment";
 
 /** 裁判报分写操作是否开放。未显式配置时回退：本地开 / 托管关。 */

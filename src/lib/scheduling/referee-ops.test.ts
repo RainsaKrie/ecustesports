@@ -51,17 +51,17 @@ console.log("== 组1 · 明细存储与生成 ==");
 console.log("\n== 组2 · 凭证校验（防枚举统一失败） ==");
 {
   const { ledger, credential } = newReferee(emptyRefereeLedger());
-  check("正确凭证通过", checkCredential(credential, EVENT, ledger).ok);
+  check("正确凭证通过", checkCredential(credential, ledger).ok);
   check("错误凭证统一返回 INVALID_CREDENTIAL", (() => {
-    const r = checkCredential("wrong-credential-abcde-fghij", EVENT, ledger);
+    const r = checkCredential("wrong-credential-abcde-fghij", ledger);
     return !r.ok && r.reason === "INVALID_CREDENTIAL";
   })());
   check("不存在的裁判与错误凭证无法区分", (() => {
-    const a = checkCredential("no-such-credential-xxxxx", EVENT, ledger);
-    const b = checkCredential("wrong-credential-abcde-fghij", EVENT, ledger);
+    const a = checkCredential("no-such-credential-xxxxx", ledger);
+    const b = checkCredential("wrong-credential-abcde-fghij", ledger);
     return !a.ok && !b.ok && a.reason === b.reason;
   })());
-  check("过短凭证直接拒绝", !checkCredential("abc", EVENT, ledger).ok);
+  check("过短凭证直接拒绝", !checkCredential("abc", ledger).ok);
 }
 
 console.log("\n== 组3 · 权限推导（不依赖客户端 refereeId） ==");
@@ -161,6 +161,26 @@ console.log("\n== 组6 · 不加入选手名单 / 边界 ==");
     l = assignMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId, actorId: ADMIN }, l).state!;
     const again = assignMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId, actorId: ADMIN }, l);
     return again.ok && again.state!.assignments.filter((a) => a.matchId === "M1" && a.refereeId === made.refereeId && a.status === "assigned").length === 1;
+  })());
+  check("跨赛事分配被拒绝", (() => {
+    const made = newReferee(emptyRefereeLedger());
+    const result = assignMatchOp({ eventId: OTHER_EVENT, matchId: "M1", refereeId: made.refereeId, actorId: ADMIN }, made.ledger);
+    return !result.ok && result.code === "WRONG_EVENT";
+  })());
+  check("无效凭证有效期被拒绝", (() => {
+    const result = createRefereeOp(
+      { eventId: EVENT, displayName: "裁判乙", actorId: ADMIN, credentialExpiresAt: "not-a-date" },
+      emptyRefereeLedger(),
+    );
+    return !result.ok && result.code === "INVALID_EXPIRY";
+  })());
+  check("重复撤销不追加审计", (() => {
+    const made = newReferee(emptyRefereeLedger());
+    const assigned = assignMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId, actorId: ADMIN }, made.ledger);
+    const first = revokeAssignmentOp({ assignmentId: assigned.value!.assignmentId, actorId: ADMIN }, assigned.state!);
+    const auditCount = first.state!.audit.length;
+    const again = revokeAssignmentOp({ assignmentId: assigned.value!.assignmentId, actorId: ADMIN }, first.state!);
+    return again.ok && again.reason === "已撤销" && again.state!.audit.length === auditCount;
   })());
 }
 

@@ -66,6 +66,14 @@ export function validateGames(
   if (games.length === 0 || games.length > maxGames(boType)) {
     return { ok: false, message: `局数应在 1~${maxGames(boType)} 之间` };
   }
+  if (games.some((g) =>
+    !Number.isSafeInteger(g.teamAScore)
+    || !Number.isSafeInteger(g.teamBScore)
+    || g.teamAScore < 0
+    || g.teamBScore < 0
+  )) {
+    return { ok: false, message: "比分必须是非负整数" };
+  }
   if (games.some((g) => g.teamAScore === g.teamBScore)) {
     return { ok: false, message: "每局比分不能平局" };
   }
@@ -77,7 +85,67 @@ export function validateGames(
   if (winsA > target || winsB > target) {
     return { ok: false, message: "比分超过该赛制最大局数" };
   }
+  const completedBeforeLast = games.slice(0, -1);
+  const earlyWinsA = completedBeforeLast.filter((g) => g.teamAScore > g.teamBScore).length;
+  const earlyWinsB = completedBeforeLast.length - earlyWinsA;
+  if (earlyWinsA >= target || earlyWinsB >= target) {
+    return { ok: false, message: "系列赛已提前决出胜负，不能继续录入后续局" };
+  }
   return { ok: true };
+}
+
+/** 从已校验的逐局比分推导胜者；客户端无须也不得另传胜者。 */
+export function determineWinnerTeamId(match: ScheduleMatch, games: GameResult[]): string {
+  const winsA = games.filter((g) => g.teamAScore > g.teamBScore).length;
+  return winsA > games.length - winsA ? match.teamAId : match.teamBId;
+}
+
+/**
+ * 把已校验赛果写入比赛并推进胜者/败者路径。
+ * 管理员手工报分与裁判报分共用这一处，避免两套晋级逻辑逐渐分叉。
+ */
+export function applyGameResultsToBracket(
+  source: ScheduleMatch[],
+  match: ScheduleMatch,
+  gameResults: GameResult[],
+): ScheduleMatch[] {
+  const winnerTeamId = determineWinnerTeamId(match, gameResults);
+  const loserTeamId = winnerTeamId === match.teamAId ? match.teamBId : match.teamAId;
+  let matches = source.map((item) =>
+    item.id === match.id
+      ? { ...item, gameResults, winnerTeamId, status: "已完成" as const }
+      : item,
+  );
+
+  const fill = (targetId: string | undefined, side: "A" | "B" | undefined, teamId: string, teamName: string) => {
+    if (!targetId || !side) return;
+    matches = matches.map((item) =>
+      item.id === targetId
+        ? side === "A"
+          ? { ...item, teamAId: teamId, teamAName: teamName }
+          : { ...item, teamBId: teamId, teamBName: teamName }
+        : item,
+    );
+  };
+
+  if (match.nextMatchId) {
+    fill(
+      match.nextMatchId,
+      match.nextSide,
+      winnerTeamId,
+      winnerTeamId === match.teamAId ? match.teamAName : match.teamBName,
+    );
+  }
+  if (match.nextLoserMatchId) {
+    fill(
+      match.nextLoserMatchId,
+      match.nextLoserSide,
+      loserTeamId,
+      loserTeamId === match.teamAId ? match.teamAName : match.teamBName,
+    );
+  }
+
+  return matches;
 }
 
 /** 导入对阵生成比赛列表（重置版本与队列） */
@@ -419,39 +487,7 @@ export function reportGameResultsOp(
     return { state, result: { approved: false, conflicts: [{ code: "HC-01", message: check.message ?? "比分不合法" }], primaryConflict: "HC-01" }, value: { ok: false, message: check.message } };
   }
 
-  const winsA = gameResults.filter((g) => g.teamAScore > g.teamBScore).length;
-  const winsB = gameResults.length - winsA;
-  const winnerTeamId = winsA > winsB ? match.teamAId : match.teamBId;
-  const loserTeamId = winnerTeamId === match.teamAId ? match.teamBId : match.teamAId;
-
-  let matches = state.matches.map((m) =>
-    m.id === matchId
-      ? { ...m, gameResults, winnerTeamId, status: "已完成" as const }
-      : m,
-  );
-
-  const fill = (targetId: string | undefined, side: "A" | "B" | undefined, teamId: string, teamName: string) => {
-    if (!targetId || !side) return;
-    matches = matches.map((m) =>
-      m.id === targetId
-        ? side === "A"
-          ? { ...m, teamAId: teamId, teamAName: teamName }
-          : { ...m, teamBId: teamId, teamBName: teamName }
-        : m,
-    );
-  };
-
-  // 胜者晋级（胜者路径）
-  if (match.nextMatchId) {
-    fill(match.nextMatchId, match.nextSide, winnerTeamId,
-      winnerTeamId === match.teamAId ? match.teamAName : match.teamBName);
-  }
-  // 败者进入败者组（双败路径）
-  if (match.nextLoserMatchId) {
-    fill(match.nextLoserMatchId, match.nextLoserSide, loserTeamId,
-      loserTeamId === match.teamAId ? match.teamAName : match.teamBName);
-  }
-
+  const matches = applyGameResultsToBracket(state.matches, match, gameResults);
   return { state: { ...state, matches }, value: { ok: true } };
 }
 

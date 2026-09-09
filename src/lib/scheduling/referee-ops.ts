@@ -53,17 +53,26 @@ function now(): string {
   return new Date().toISOString();
 }
 
+function validIsoTime(value: string): boolean {
+  return value.trim().length > 0 && Number.isFinite(Date.parse(value));
+}
+
 // ---------------------------------------------------------------
 // 管理员操作
 // ---------------------------------------------------------------
 
 /** 创建裁判 + 一次性展示凭证明文 */
 export function createRefereeOp(input: CreateRefereeInput, ledger: RefereeLedger): RefereeOpResult<{ refereeId: string; credential: string }> {
+  const displayName = input.displayName.trim();
+  if (!displayName) return { ok: false, error: "裁判姓名不能为空", code: "DISPLAY_NAME_REQUIRED" };
+  if (!validIsoTime(input.credentialExpiresAt)) {
+    return { ok: false, error: "凭证有效期格式不合法", code: "INVALID_EXPIRY" };
+  }
   const { credential, credentialHash } = issueCredential();
   const referee: RefereeIdentity = {
     id: newId("REF"),
     eventId: input.eventId,
-    displayName: input.displayName,
+    displayName,
     status: "active",
     credentialHash,
     credentialExpiresAt: input.credentialExpiresAt,
@@ -99,6 +108,9 @@ export function disableRefereeOp(refereeId: string, actorId: string, ledger: Ref
 export function resetCredentialOp(input: ResetCredentialInput, ledger: RefereeLedger): RefereeOpResult<{ credential: string }> {
   const referee = ledger.referees.find((r) => r.id === input.refereeId);
   if (!referee) return { ok: false, error: "裁判不存在", code: "REFEREE_NOT_FOUND" };
+  if (!validIsoTime(input.newCredentialExpiresAt)) {
+    return { ok: false, error: "凭证有效期格式不合法", code: "INVALID_EXPIRY" };
+  }
   const { credential, credentialHash } = issueCredential();
   return {
     ok: true,
@@ -123,6 +135,9 @@ export function assignMatchOp(input: AssignMatchInput, ledger: RefereeLedger): R
   const referee = ledger.referees.find((r) => r.id === input.refereeId);
   if (!referee) return { ok: false, error: "裁判不存在", code: "REFEREE_NOT_FOUND" };
   if (referee.status === "disabled") return { ok: false, error: "裁判已停用", code: "REFEREE_DISABLED" };
+  if (referee.eventId !== input.eventId) {
+    return { ok: false, error: "裁判与比赛不属于同一赛事", code: "WRONG_EVENT" };
+  }
 
   // 同一裁判、同一比赛不重复分配
   const existing = ledger.assignments.find(
@@ -153,6 +168,7 @@ export function assignMatchOp(input: AssignMatchInput, ledger: RefereeLedger): R
 export function revokeAssignmentOp(input: RevokeAssignmentInput, ledger: RefereeLedger): RefereeOpResult {
   const assignment = ledger.assignments.find((a) => a.id === input.assignmentId);
   if (!assignment) return { ok: false, error: "分配关系不存在", code: "ASSIGNMENT_NOT_FOUND" };
+  if (assignment.status === "revoked") return { ok: true, state: ledger, reason: "已撤销" };
   return {
     ok: true,
     state: {
@@ -172,12 +188,32 @@ export function revokeAssignmentOp(input: RevokeAssignmentInput, ledger: Referee
 /**
  * 凭证 → 身份。统一返回 INVALID_CREDENTIAL（不区分不存在/凭证错），防枚举。
  */
-export function checkCredential(credential: string, eventId: string, ledger: RefereeLedger): CredentialCheck {
+export function checkCredential(credential: string, ledger: RefereeLedger): CredentialCheck {
   if (!credential || credential.length < 20) return { ok: false, reason: "INVALID_CREDENTIAL" };
   const hash = hashCredential(credential);
   const referee = ledger.referees.find((r) => r.credentialHash === hash);
   if (!referee) return { ok: false, reason: "INVALID_CREDENTIAL" };
   return { ok: true, referee };
+}
+
+function authenticateActiveReferee(
+  credential: string,
+  eventId: string,
+  ledger: RefereeLedger,
+  nowTime: string,
+): RefereeAuthz {
+  const check = checkCredential(credential, ledger);
+  if (!check.ok) return { ok: false, reason: "INVALID_CREDENTIAL" };
+
+  const referee = check.referee;
+  if (referee.eventId !== eventId) return { ok: false, reason: "WRONG_EVENT" };
+  const expiresAt = Date.parse(referee.credentialExpiresAt);
+  const checkedAt = Date.parse(nowTime);
+  if (!Number.isFinite(expiresAt) || !Number.isFinite(checkedAt) || expiresAt <= checkedAt) {
+    return { ok: false, reason: "EXPIRED" };
+  }
+  if (referee.status === "disabled") return { ok: false, reason: "DISABLED" };
+  return { ok: true, refereeId: referee.id };
 }
 
 /**
@@ -191,32 +227,20 @@ export function authorizeReferee(
   ledger: RefereeLedger,
   nowTime: string = now(),
 ): RefereeAuthz {
-  const check = checkCredential(credential, eventId, ledger);
-  if (!check.ok) return { ok: false, reason: "INVALID_CREDENTIAL" };
-
-  const referee = check.referee;
-  if (referee.eventId !== eventId) return { ok: false, reason: "WRONG_EVENT" };
-  if (new Date(referee.credentialExpiresAt).getTime() <= new Date(nowTime).getTime()) {
-    return { ok: false, reason: "EXPIRED" };
-  }
-  if (referee.status === "disabled") return { ok: false, reason: "DISABLED" };
+  const authenticated = authenticateActiveReferee(credential, eventId, ledger, nowTime);
+  if (!authenticated.ok) return authenticated;
 
   const assigned = ledger.assignments.some(
-    (a) => a.refereeId === referee.id && a.matchId === matchId && a.status === "assigned",
+    (a) => a.eventId === eventId
+      && a.refereeId === authenticated.refereeId
+      && a.matchId === matchId
+      && a.status === "assigned",
   );
   if (!assigned) return { ok: false, reason: "NOT_ASSIGNED" };
-  return { ok: true, refereeId: referee.id };
+  return authenticated;
 }
 
 /** 凭证 → 身份（用于「我的比赛」列表，只要求凭证有效，不检查单场分配） */
 export function authenticateReferee(credential: string, eventId: string, ledger: RefereeLedger, nowTime: string = now()): RefereeAuthz {
-  const check = checkCredential(credential, eventId, ledger);
-  if (!check.ok) return { ok: false, reason: "INVALID_CREDENTIAL" };
-  const referee = check.referee;
-  if (referee.eventId !== eventId) return { ok: false, reason: "WRONG_EVENT" };
-  if (new Date(referee.credentialExpiresAt).getTime() <= new Date(nowTime).getTime()) {
-    return { ok: false, reason: "EXPIRED" };
-  }
-  if (referee.status === "disabled") return { ok: false, reason: "DISABLED" };
-  return { ok: true, refereeId: referee.id };
+  return authenticateActiveReferee(credential, eventId, ledger, nowTime);
 }

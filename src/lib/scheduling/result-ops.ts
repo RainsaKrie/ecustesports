@@ -5,7 +5,11 @@
 // =====================
 
 import type { GameResult, ScheduleMatch } from "./schedule-data";
-import { validateGames } from "./schedule-ops";
+import {
+  applyGameResultsToBracket,
+  determineWinnerTeamId,
+  validateGames,
+} from "./schedule-ops";
 import type {
   DownstreamImpact,
   MatchReviewPolicy,
@@ -64,13 +68,6 @@ function isForcedReviewRound(match: ScheduleMatch, policy: MatchReviewPolicy): b
   return policy.forcedRounds.some((r) => match.round === r);
 }
 
-/** 由逐局比分判定胜者队伍 */
-export function determineWinner(match: ScheduleMatch, games: GameResult[]): string {
-  const winsA = games.filter((g) => g.teamAScore > g.teamBScore).length;
-  const winsB = games.length - winsA;
-  return winsA > winsB ? match.teamAId : match.teamBId;
-}
-
 function toSubmission(input: SubmitResultInput, id: string, winnerTeamId: string, status: ResultSubmissionStatus): ResultSubmission {
   return {
     id,
@@ -86,40 +83,17 @@ function toSubmission(input: SubmitResultInput, id: string, winnerTeamId: string
   };
 }
 
-function toDecision(id: string, submissionId: string, decision: ResultDecision["decision"], actorId: string, reason: string, before: number, after: number): ResultDecision {
-  return { id, submissionId, decision, actorType: "admin", actorId, reason, beforeResultVersion: before, afterResultVersion: after, createdAt: new Date().toISOString() };
-}
-
-/** 将已接受赛果写入正式赛果并推进晋级（复刻 reportGameResultsOp 的 matches 操作） */
-function applyAcceptedResult(
-  matches: ScheduleMatch[],
-  match: ScheduleMatch,
-  games: GameResult[],
-  winnerTeamId: string,
-): ScheduleMatch[] {
-  const loserTeamId = winnerTeamId === match.teamAId ? match.teamBId : match.teamAId;
-  let next = matches.map((m) =>
-    m.id === match.id ? { ...m, gameResults: games, winnerTeamId, status: "已完成" as const } : m,
-  );
-  const fill = (targetId: string | undefined, side: "A" | "B" | undefined, teamId: string, teamName: string) => {
-    if (!targetId || !side) return;
-    next = next.map((m) =>
-      m.id === targetId
-        ? side === "A"
-          ? { ...m, teamAId: teamId, teamAName: teamName }
-          : { ...m, teamBId: teamId, teamBName: teamName }
-        : m,
-    );
-  };
-  if (match.nextMatchId) {
-    fill(match.nextMatchId, match.nextSide, winnerTeamId,
-      winnerTeamId === match.teamAId ? match.teamAName : match.teamBName);
-  }
-  if (match.nextLoserMatchId) {
-    fill(match.nextLoserMatchId, match.nextLoserSide, loserTeamId,
-      loserTeamId === match.teamAId ? match.teamAName : match.teamBName);
-  }
-  return next;
+function toDecision(
+  id: string,
+  submissionId: string,
+  decision: ResultDecision["decision"],
+  actorType: ResultDecision["actorType"],
+  actorId: string,
+  reason: string,
+  before: number,
+  after: number,
+): ResultDecision {
+  return { id, submissionId, decision, actorType, actorId, reason, beforeResultVersion: before, afterResultVersion: after, createdAt: new Date().toISOString() };
 }
 
 /** 下游影响判定（decision 6） */
@@ -179,7 +153,7 @@ export function submitResultOp(input: SubmitResultInput, ctx: ResultContext): Re
   const check = validateGames(input.games, match.boType);
   if (!check.ok) return { ok: false, error: check.message ?? "比分不合法", code: "INVALID_GAMES" };
 
-  const winnerTeamId = determineWinner(match, input.games);
+  const winnerTeamId = determineWinnerTeamId(match, input.games);
   const policy: MatchReviewPolicy = ctx.reviewPolicy ?? { forcedRounds: [...FORCED_ROUNDS_DEFAULT], forceReview: false };
 
   // 同场已有 accepted 提交 → 更正路径（decision 5）
@@ -206,20 +180,36 @@ export function submitResultOp(input: SubmitResultInput, ctx: ResultContext): Re
   }
 
   // 非强制复核 + 规则一致 → 提交即生效
-  return finalizeAccepted(ctx, input, submissionId, winnerTeamId, "裁判提交，规则一致，非强制复核，直接生效");
+  return finalizeAccepted(
+    ctx,
+    input,
+    submissionId,
+    winnerTeamId,
+    "裁判提交，规则一致，非强制复核，直接生效",
+    "system",
+    "result-engine",
+  );
 }
 
 /** 生成 accepted 提交 + accept 决策 + 更新正式赛果，返回新状态 */
-function finalizeAccepted(ctx: ResultContext, input: SubmitResultInput, submissionId: string, winnerTeamId: string, reason: string): ResultOpResult<SubmitValue> {
+function finalizeAccepted(
+  ctx: ResultContext,
+  input: SubmitResultInput,
+  submissionId: string,
+  winnerTeamId: string,
+  reason: string,
+  actorType: ResultDecision["actorType"],
+  actorId: string,
+): ResultOpResult<SubmitValue> {
   const before = ctx.ledger.resultVersion;
   const after = before + 1;
-  const decision = toDecision(`DEC-${submissionId}`, submissionId, "accept", input.refereeId, reason, before, after);
+  const decision = toDecision(`DEC-${submissionId}`, submissionId, "accept", actorType, actorId, reason, before, after);
   const submission: ResultSubmission = {
     ...toSubmission(input, submissionId, winnerTeamId, "accepted"),
     resolvedAt: decision.createdAt,
   };
   const match = ctx.matches.find((m) => m.id === input.matchId)!;
-  const nextMatches = applyAcceptedResult(ctx.matches, match, input.games, winnerTeamId);
+  const nextMatches = applyGameResultsToBracket(ctx.matches, match, input.games);
   // upsert：同 id 已存在（如 needs-review 转 accepted）则原地更新，避免产生重复记录
   const existed = ctx.ledger.submissions.some((s) => s.id === submissionId);
   const submissions = existed
@@ -257,6 +247,8 @@ export interface ResolveReviewInput {
  * reject → 标记 rejected，不碰正式赛果。
  */
 export function resolveReviewOp(input: ResolveReviewInput, ctx: ResultContext): ResultOpResult<{ status: ResultSubmissionStatus }> {
+  const reason = input.reason.trim();
+  if (!reason) return { ok: false, error: "裁决原因不能为空", code: "REASON_REQUIRED" };
   const submission = ctx.ledger.submissions.find((s) => s.id === input.submissionId);
   if (!submission) return { ok: false, error: "提交记录不存在", code: "SUBMISSION_NOT_FOUND" };
   if (submission.status !== "needs-review") {
@@ -267,8 +259,8 @@ export function resolveReviewOp(input: ResolveReviewInput, ctx: ResultContext): 
   if (!match) return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
 
   if (!input.accept) {
-    const decision = toDecision(`DEC-${submission.id}-rej`, submission.id, "reject", input.actorId, input.reason, ctx.ledger.resultVersion, ctx.ledger.resultVersion);
-    const updated: ResultSubmission = { ...submission, status: "rejected", resolvedAt: decision.createdAt, resolutionReason: input.reason };
+    const decision = toDecision(`DEC-${submission.id}-rej`, submission.id, "reject", "admin", input.actorId, reason, ctx.ledger.resultVersion, ctx.ledger.resultVersion);
+    const updated: ResultSubmission = { ...submission, status: "rejected", resolvedAt: decision.createdAt, resolutionReason: reason };
     return {
       ok: true,
       state: {
@@ -297,7 +289,9 @@ export function resolveReviewOp(input: ResolveReviewInput, ctx: ResultContext): 
     },
     submission.id,
     submission.declaredWinnerTeamId,
-    input.reason,
+    reason,
+    "admin",
+    input.actorId,
   );
 }
 
@@ -310,7 +304,6 @@ export interface CorrectResultInput {
   actorId: string;
   reason: string;
   newGames: GameResult[];
-  newWinnerTeamId: string;
 }
 
 /**
@@ -321,6 +314,13 @@ export interface CorrectResultInput {
 export function correctResultOp(input: CorrectResultInput, ctx: ResultContext): ResultOpResult<{ submissionId: string }> {
   const match = ctx.matches.find((m) => m.id === input.matchId);
   if (!match) return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
+  const reason = input.reason.trim();
+  if (!reason) return { ok: false, error: "更正原因不能为空", code: "REASON_REQUIRED" };
+  const accepted = ctx.ledger.submissions.find((s) => s.matchId === input.matchId && s.status === "accepted");
+  if (!accepted) return { ok: false, error: "该比赛没有已生效赛果", code: "NO_ACCEPTED_RESULT" };
+  const check = validateGames(input.newGames, match.boType);
+  if (!check.ok) return { ok: false, error: check.message ?? "比分不合法", code: "INVALID_GAMES" };
+  const winnerTeamId = determineWinnerTeamId(match, input.newGames);
 
   const impact = computeDownstreamImpact(match, ctx.matches);
   if (impact.hasProgressedDownstream) {
@@ -330,20 +330,20 @@ export function correctResultOp(input: CorrectResultInput, ctx: ResultContext): 
   const submissionId = `CR-${input.matchId}-${ctx.ledger.resultVersion + 1}`;
   const before = ctx.ledger.resultVersion;
   const after = before + 1;
-  const decision = toDecision(`DEC-${submissionId}`, submissionId, "supersede", input.actorId, input.reason, before, after);
+  const decision = toDecision(`DEC-${submissionId}`, submissionId, "supersede", "admin", input.actorId, reason, before, after);
   const submission: ResultSubmission = {
     id: submissionId,
     matchId: input.matchId,
     submittedByRefereeId: input.actorId,
     basedOnScheduleVersion: ctx.scheduleVersion,
     games: input.newGames,
-    declaredWinnerTeamId: input.newWinnerTeamId,
+    declaredWinnerTeamId: winnerTeamId,
     evidenceIds: [],
     source: "manual",
     status: "accepted",
     submittedAt: decision.createdAt,
     resolvedAt: decision.createdAt,
-    resolutionReason: input.reason,
+    resolutionReason: reason,
   };
 
   // 将被更正比赛的旧 accepted 提交标记 superseded
@@ -351,7 +351,7 @@ export function correctResultOp(input: CorrectResultInput, ctx: ResultContext): 
     s.matchId === input.matchId && s.status === "accepted" ? { ...s, status: "superseded" as const } : s,
   );
 
-  const nextMatches = applyAcceptedResult(ctx.matches, match, input.newGames, input.newWinnerTeamId);
+  const nextMatches = applyGameResultsToBracket(ctx.matches, match, input.newGames);
 
   return {
     ok: true,

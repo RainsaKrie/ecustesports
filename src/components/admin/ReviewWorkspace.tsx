@@ -43,11 +43,19 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
   // 受控更正状态
   const [correctMatchId, setCorrectMatchId] = useState<string | null>(null);
   const [correctGames, setCorrectGames] = useState<GameRow[]>([]);
-  const [correctWinner, setCorrectWinner] = useState<"A" | "B" | "">("");
   const [correctReason, setCorrectReason] = useState("");
 
   const selected = queue.find((item) => item.submissionId === selectedId) ?? null;
   const correctTarget = accepted.find((item) => item.matchId === correctMatchId) ?? null;
+  const correctedWinnerName = (() => {
+    if (!correctTarget || correctGames.length === 0) return "等待录入合法比分";
+    const winsA = correctGames.filter((game) => game.teamAScore > game.teamBScore).length;
+    const winsB = correctGames.filter((game) => game.teamBScore > game.teamAScore).length;
+    const target = ({ BO1: 1, BO3: 2, BO5: 3 } as Record<string, number>)[correctTarget.boType] ?? 1;
+    if (winsA === target && winsB < target) return correctTarget.teamAName;
+    if (winsB === target && winsA < target) return correctTarget.teamBName;
+    return "等待录入合法比分";
+  })();
 
   const load = useCallback(async () => {
     setError("");
@@ -92,7 +100,6 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
   function openCorrect(item: AcceptedResultItem) {
     setCorrectMatchId(item.matchId);
     setCorrectGames(item.games.map((g) => ({ map: g.map, teamAScore: g.teamAScore, teamBScore: g.teamBScore })));
-    setCorrectWinner(item.winnerTeamId === item.teamAId ? "A" : "B");
     setCorrectReason("");
     setActionError("");
     setActionResult(null);
@@ -125,10 +132,8 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
 
   async function doCorrect() {
     if (!correctTarget) return;
-    if (correctWinner !== "A" && correctWinner !== "B") { setActionError("请选择更正后的胜者"); return; }
     if (!correctReason.trim()) { setActionError("更正原因必填"); return; }
     if (correctGames.some((g) => g.teamAScore === g.teamBScore)) { setActionError("每局比分不能平局"); return; }
-    const winnerTeamId = correctWinner === "A" ? correctTarget.teamAId : correctTarget.teamBId;
     setBusy(true);
     setActionError("");
     setActionResult(null);
@@ -136,7 +141,7 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
       const res = await fetch("/api/admin/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, action: "correct", payload: { matchId: correctTarget.matchId, reason: correctReason.trim(), newGames: correctGames, newWinnerTeamId: winnerTeamId } }),
+        body: JSON.stringify({ eventId, action: "correct", payload: { matchId: correctTarget.matchId, reason: correctReason.trim(), newGames: correctGames } }),
       });
       const data = (await res.json().catch(() => ({}))) as { message?: string };
       if (!res.ok) { setActionResult({ ok: false, message: data.message ?? "更正失败" }); setBusy(false); return; }
@@ -377,15 +382,9 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
                   </div>
                 )}
 
-                <div className="gap-2">
-                  <label className="text-xs font-bold text-slate-700">
-                    更正后胜者
-                    <select value={correctWinner} onChange={(e) => setCorrectWinner(e.target.value as "A" | "B" | "")} className="mt-1 w-full border border-slate-300 bg-white px-3 py-2.5 text-sm" style={{ borderRadius: 0 }}>
-                      <option value="">选择胜者</option>
-                      <option value="A">{correctTarget.teamAName}</option>
-                      <option value="B">{correctTarget.teamBName}</option>
-                    </select>
-                  </label>
+                <div className="border-l-4 border-[#ff4655] bg-[#fff7f7] px-4 py-3">
+                  <p className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-[#c83242]">系统按比分判定胜者</p>
+                  <p className="mt-1 text-sm font-black text-slate-950">{correctedWinnerName}</p>
                 </div>
 
                 <div className="space-y-2">

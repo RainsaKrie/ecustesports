@@ -8,10 +8,9 @@
 import type { NextRequest } from "next/server";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import {
-  adminReviewQueue,
+  adminReviewData,
   adminResolveReview,
   adminCorrectResult,
-  adminAcceptedResults,
 } from "@/lib/referee/reporting-data";
 
 export const runtime = "nodejs";
@@ -33,8 +32,7 @@ export async function GET(request: NextRequest) {
   if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   const eventId = text(request.nextUrl.searchParams.get("eventId"), 60);
   if (!eventId) return Response.json({ message: "缺少赛事 ID" }, { status: 400 });
-  const [queue, accepted] = await Promise.all([adminReviewQueue(eventId), adminAcceptedResults(eventId)]);
-  return Response.json({ queue, accepted });
+  return Response.json(await adminReviewData(eventId));
 }
 
 export async function POST(request: NextRequest) {
@@ -60,8 +58,7 @@ export async function POST(request: NextRequest) {
       const matchId = text(payload.matchId, 60);
       const reason = text(payload.reason, 500);
       const newGames = Array.isArray(payload.newGames) ? payload.newGames : [];
-      const newWinnerTeamId = text(payload.newWinnerTeamId, 60);
-      if (!matchId || !reason || !newWinnerTeamId || newGames.length === 0) {
+      if (!matchId || !reason || newGames.length === 0) {
         return Response.json({ message: "缺少更正信息" }, { status: 400 });
       }
       const result = await adminCorrectResult(eventId, {
@@ -69,7 +66,6 @@ export async function POST(request: NextRequest) {
         actorId: "admin",
         reason,
         newGames: newGames as Parameters<typeof adminCorrectResult>[1]["newGames"],
-        newWinnerTeamId,
       });
       if (!result.ok) {
         const status = result.code === "DOWNSTREAM_PROGRESSED" ? 409 : 400;

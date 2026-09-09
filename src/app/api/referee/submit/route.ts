@@ -5,7 +5,7 @@
 import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/referee/referee-auth";
 import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
-import { refereeSubmit, DEMO_EVENT_ID } from "@/lib/referee/reporting-data";
+import { refereeSubmit } from "@/lib/referee/reporting-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   }
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   const credential = text(body.credential, 200) ?? readRefereeCredential(request);
-  const eventId = text(body.eventId, 60) ?? DEMO_EVENT_ID;
+  const eventId = text(body.eventId, 60) ?? "";
   const matchId = text(body.matchId, 60) ?? "";
   const basedOnScheduleVersion = typeof body.basedOnScheduleVersion === "number" ? body.basedOnScheduleVersion : -1;
   const games = Array.isArray(body.games) ? body.games : [];
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     ? body.evidenceIds.filter((x): x is string => typeof x === "string")
     : [];
 
-  if (!matchId) return Response.json({ message: "缺少比赛 ID" }, { status: 400 });
+  if (!eventId || !matchId) return Response.json({ message: "缺少赛事或比赛 ID" }, { status: 400 });
 
   const result = await refereeSubmit(eventId, credential, { matchId, basedOnScheduleVersion, games, evidenceIds });
   if (!result.ok) {
