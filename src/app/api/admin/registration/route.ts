@@ -31,6 +31,7 @@ import {
   normalizeRegistrationState,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
+import { emptySchedule, normalizeScheduleState, bracketTeamIds, type ScheduleState } from "@/lib/scheduling/schedule-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ function dispatch(
   state: RegistrationState,
   action: string,
   payload: Record<string, unknown>,
+  inBracketTeamIds: Set<string>,
 ): AdminRegistrationResult {
   switch (action) {
     case "reset-player-token": {
@@ -125,7 +127,12 @@ function dispatch(
     case "withdraw-team":
       return withdrawTeamAdminOp(state, text(payload.teamId, 80), text(payload.reason));
     case "dissolve-team":
-      return dissolveTeamAdminOp(state, text(payload.teamId, 80), text(payload.reason));
+      return dissolveTeamAdminOp(
+        state,
+        text(payload.teamId, 80),
+        text(payload.reason),
+        inBracketTeamIds.has(text(payload.teamId, 80)),
+      );
     case "rename-team":
       return renameTeamAdminOp(state, {
         teamId: text(payload.teamId, 80),
@@ -158,7 +165,10 @@ export async function GET(request: NextRequest) {
   const state = normalizeRegistrationState(
     await readEventData(eventId, "registration", initialRegistration()),
   );
-  return Response.json({ state });
+  const schedule = normalizeScheduleState(
+    await readEventData<ScheduleState>(eventId, "schedule", emptySchedule()),
+  );
+  return Response.json({ state, bracketTeamIds: [...bracketTeamIds(schedule.matches)] });
 }
 
 export async function POST(request: NextRequest) {
@@ -174,9 +184,15 @@ export async function POST(request: NextRequest) {
       return Response.json({ message: "缺少赛事或操作类型" }, { status: 400 });
     }
 
+    // 判断「是否进对阵图」需要赛程数据；在写入报名数据前一次性读好，供 dispatch 使用。
+    const schedule = normalizeScheduleState(
+      await readEventData<ScheduleState>(eventId, "schedule", emptySchedule()),
+    );
+    const inBracketTeamIds = bracketTeamIds(schedule.matches);
+
     let operation: AdminRegistrationResult | undefined;
     const state = await updateEventData(eventId, "registration", initialRegistration(), (raw) => {
-      operation = dispatch(normalizeRegistrationState(raw), action, payload);
+      operation = dispatch(normalizeRegistrationState(raw), action, payload, inBracketTeamIds);
       return operation.state;
     });
     if (!operation) return Response.json({ message: "操作未执行" }, { status: 500 });

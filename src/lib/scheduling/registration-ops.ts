@@ -154,14 +154,17 @@ export function leaveTeamOp(
   return { ok: true, state: next };
 }
 
-/** 队长解散：仅限"报名中"队伍。删除队伍对象，全员回到未组队，清理该队 pending 组队请求。 */
+/** 队长/负责人解散：默认仅限"报名中"队伍；allowFrozen 为真时已冻结（未进对阵图）队伍也可解散。删除队伍对象，全员回到未组队，清理该队 pending 组队请求。 */
 export function dissolveTeamOp(
   state: RegistrationState,
-  input: { teamId: string },
+  input: { teamId: string; allowFrozen?: boolean },
 ): TeamOpResult {
   const team = state.teams.find((t) => t.id === input.teamId);
   if (!team) return { ok: false, message: "队伍不存在" };
-  if (team.status !== "报名中") return { ok: false, message: "队伍已冻结，不能再解散" };
+  if (team.status === "已退赛") return { ok: false, message: "队伍已退赛" };
+  if (team.status !== "报名中" && !(input.allowFrozen && team.status === "已冻结")) {
+    return { ok: false, message: "队伍已冻结，不能再解散" };
+  }
   const memberIds = new Set(team.memberIds);
   const resolvedAt = new Date().toISOString();
   const next: RegistrationState = {

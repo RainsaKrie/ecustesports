@@ -133,6 +133,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const event = useCurrentEventConfig(eventId);
   const origin = useSyncExternalStore(subscribeStatic, () => window.location.origin, () => "");
   const [state, setState] = useState<RegistrationState>(initialRegistration());
+  const [bracketTeamIds, setBracketTeamIds] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -152,7 +153,10 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error((data as { message?: string }).message ?? "报名数据读取失败");
-        if (!cancelled) setState(normalizeRegistrationState((data as { state?: unknown }).state));
+        if (!cancelled) {
+          setState(normalizeRegistrationState((data as { state?: unknown }).state));
+          setBracketTeamIds((data as { bracketTeamIds?: string[] }).bracketTeamIds ?? []);
+        }
       })
       .catch((reason) => {
         if (!cancelled) setNotice({ kind: "error", text: reason instanceof Error ? reason.message : "报名数据读取失败" });
@@ -408,7 +412,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         {team.status === "报名中" && <button type="button" onClick={() => runOperation("confirm-team", { teamId: team.id })} disabled={busy} className="bg-[#ff4655] px-3 py-2 text-[0.625rem] font-bold text-white disabled:opacity-50">确认名单</button>}
                         {team.status === "已冻结" && <button type="button" onClick={() => openModal({ kind: "reopen-team", team })} className="border border-slate-300 px-3 py-2 text-[0.625rem] font-bold text-slate-700">开放调整</button>}
                         {team.status === "报名中" && <button type="button" onClick={() => openModal({ kind: "rename-team", team })} className="border border-slate-300 px-3 py-2 text-[0.625rem] font-bold text-slate-700">改名</button>}
-                        {team.status === "报名中" && <button type="button" onClick={() => openModal({ kind: "dissolve-team", team })} className="border border-amber-300 px-3 py-2 text-[0.625rem] font-bold text-amber-700">解散队伍</button>}
+                        {(team.status === "报名中" || (team.status === "已冻结" && !bracketTeamIds.includes(team.id))) && <button type="button" onClick={() => openModal({ kind: "dissolve-team", team })} className="border border-amber-300 px-3 py-2 text-[0.625rem] font-bold text-amber-700">解散队伍</button>}
                         {team.status !== "已退赛" && <button type="button" onClick={() => openModal({ kind: "withdraw-team", team })} className="border border-red-200 px-3 py-2 text-[0.625rem] font-bold text-red-700">整队退赛</button>}
                       </div>
                     </div>
@@ -511,7 +515,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
 
       {modal?.kind === "withdraw-team" && <ModalShell title={`整队退赛 · ${modal.team.name}`} subtitle="队伍会保留为退赛记录，原成员回到未组队状态。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-red-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">确认整队退赛</button></>}><Field label="退赛原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="请记录队长申请或主办方处理原因" /></Field></ModalShell>}
 
-      {modal?.kind === "dissolve-team" && <ModalShell title={`解散队伍 · ${modal.team.name}`} subtitle="仅组队期适用；队伍会被删除（不留记录），所有成员回到未组队状态，可撤销。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-amber-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">确认解散</button></>}><Field label="解散原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="如：队伍组建无法凑齐，或重复报名需要清理" /></Field></ModalShell>}
+      {modal?.kind === "dissolve-team" && <ModalShell title={`解散队伍 · ${modal.team.name}`} subtitle={modal.team.status === "已冻结" ? "该队伍名单已确认但尚未进入对阵图；解散会删除整支队伍，成员回到未组队，需重新补足参赛名额。此操作可撤销。" : "仅组队期适用；队伍会被删除（不留记录），所有成员回到未组队状态，可撤销。"} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-amber-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">确认解散</button></>}><Field label="解散原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="如：队伍组建无法凑齐，或重复报名需要清理" /></Field></ModalShell>}
     </div>
   );
 }

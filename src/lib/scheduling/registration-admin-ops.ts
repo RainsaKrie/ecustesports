@@ -348,14 +348,25 @@ export function withdrawTeamAdminOp(rawState: RegistrationState, teamId: string,
   return commit(state, next, "withdraw-team", `${team.name} 退出比赛`, reason);
 }
 
-/** 负责人解散队伍：仅限"报名中"，删除队伍对象、全员回池，记审计日志、可撤销。与退赛分开。 */
-export function dissolveTeamAdminOp(rawState: RegistrationState, teamId: string, reason: string): AdminRegistrationResult {
+/**
+ * 负责人解散队伍：删除队伍对象、全员回池，记审计日志、可撤销。与退赛分开。
+ * - 已进对阵图（inBracket）→ 拒绝，只能走整队退赛。
+ * - 报名中、或已冻结但未进对阵图（测试/误建清理）→ 可解散。
+ */
+export function dissolveTeamAdminOp(
+  rawState: RegistrationState,
+  teamId: string,
+  reason: string,
+  inBracket = false,
+): AdminRegistrationResult {
   const state = normalizeRegistrationState(rawState);
   const team = state.teams.find((candidate) => candidate.id === teamId);
   if (!team) return fail(state, "队伍不存在。");
-  if (team.status !== "报名中") return fail(state, "只有报名中的队伍可以解散。");
+  if (inBracket) return fail(state, "该队伍已进入对阵图，不能解散，只能整队退赛。");
+  if (team.status === "已退赛") return fail(state, "队伍已经退赛。");
+  if (team.status !== "报名中" && team.status !== "已冻结") return fail(state, "只有报名中或已冻结未进对阵图的队伍可以解散。");
   if (!reason.trim()) return fail(state, "解散队伍必须填写原因。");
-  const result = dissolveTeamOp(state, { teamId });
+  const result = dissolveTeamOp(state, { teamId, allowFrozen: team.status === "已冻结" });
   if (!result.ok || !result.state) return fail(state, result.message ?? "解散队伍失败。");
   return commit(state, result.state, "dissolve-team", `解散队伍 ${team.name}（${team.memberIds.length} 人回到未组队）`, reason);
 }

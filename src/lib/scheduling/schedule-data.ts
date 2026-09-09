@@ -86,6 +86,29 @@ export interface ScheduleState {
   notifications: NotificationDraft[];
 }
 
+/** 对阵图中的占位签位：尚未填队或轮空，都不算真实队伍写入。 */
+const BRACKET_PLACEHOLDERS = new Set(["", "TBD", "BYE"]);
+
+/** 是否为一个真实队伍 id（非待定/轮空占位）。 */
+export function isRealTeamId(teamId: string): boolean {
+  return !BRACKET_PLACEHOLDERS.has(teamId);
+}
+
+/** 已写入对阵图的真实队伍 id 集合。抽签发布后，队伍 id 首次落盘即在此。 */
+export function bracketTeamIds(matches: ScheduleMatch[]): Set<string> {
+  const ids = new Set<string>();
+  for (const match of matches) {
+    if (isRealTeamId(match.teamAId)) ids.add(match.teamAId);
+    if (isRealTeamId(match.teamBId)) ids.add(match.teamBId);
+  }
+  return ids;
+}
+
+/** 该队伍是否已进入对阵图。删除入口据此判断：进图只允许整队退赛，不允许删除。 */
+export function teamInBracket(matches: ScheduleMatch[], teamId: string): boolean {
+  return bracketTeamIds(matches).has(teamId);
+}
+
 /** 新赛事的真实空状态。演示赛程只能由负责人主动载入，不能作为读失败兜底。 */
 export function emptySchedule(): ScheduleState {
   return {

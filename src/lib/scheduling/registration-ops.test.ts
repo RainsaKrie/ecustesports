@@ -115,7 +115,7 @@ console.log("✓ 队伍支持 5 名首发、1 名替补和 1 名教练，并限�
   assert.equal((result.state!.teamRequests ?? []).find((r) => r.id === "TR-1")?.status, "cancelled");
 }
 
-// 冻结后队伍不能解散
+// 冻结后队伍默认不能解散
 {
   const s = fixture();
   s.teams[0].status = "已冻结";
@@ -124,7 +124,26 @@ console.log("✓ 队伍支持 5 名首发、1 名替补和 1 名教练，并限�
   assert.match(result.message ?? "", /冻结/);
 }
 
-console.log("✓ 队员退出（非队长/报名中）、队长不能单退、冻结后不可退/散");
+// allowFrozen 时冻结队伍可解散（未进对阵图）
+{
+  const s = fixture();
+  s.teams[0].status = "已冻结";
+  const result = dissolveTeamOp(s, { teamId: "T-1", allowFrozen: true });
+  assert.equal(result.ok, true);
+  assert.equal(result.state!.teams.length, 0);
+  assert.ok(result.state!.players.every((candidate) => candidate.teamId === undefined));
+}
+
+// 已退赛队伍不可解散（即使 allowFrozen）
+{
+  const s = fixture();
+  s.teams[0].status = "已退赛";
+  const result = dissolveTeamOp(s, { teamId: "T-1", allowFrozen: true });
+  assert.equal(result.ok, false);
+  assert.match(result.message ?? "", /退赛/);
+}
+
+console.log("✓ 队员退出（非队长/报名中）、队长不能单退、冻结后不可退/散；allowFrozen 放开冻结解散");
 
 // —— 建队队长选角色 ——
 

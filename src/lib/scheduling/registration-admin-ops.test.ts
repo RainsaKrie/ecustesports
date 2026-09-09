@@ -162,7 +162,7 @@ test("解散队伍记审计日志并可撤销", () => {
   assert.equal(undone.state.teams[0].name, "瓦理一队");
 });
 
-test("冻结队伍不能解散", () => {
+test("冻结但未进对阵图的队伍可以解散", () => {
   let state = fixture();
   for (const id of ["1", "2", "3", "4", "5"]) {
     const result = reviewPlayerAdminOp(state, { playerId: id, reviewStatus: "已通过" });
@@ -170,9 +170,26 @@ test("冻结队伍不能解散", () => {
   }
   const confirmed = confirmTeamAdminOp(state, "T-1");
   assert.equal(confirmed.ok, true);
-  const result = dissolveTeamAdminOp(confirmed.state, "T-1", "试试");
+  assert.equal(confirmed.state.teams[0].status, "已冻结");
+  // 未进对阵图（inBracket=false），已冻结队伍也可解散
+  const result = dissolveTeamAdminOp(confirmed.state, "T-1", "测试队伍清理", false);
+  assert.equal(result.ok, true);
+  assert.equal(result.state.teams.length, 0);
+  assert.ok(result.state.players.every((candidate) => candidate.teamId === undefined));
+});
+
+test("已进对阵图的队伍不能解散，只能整队退赛", () => {
+  const result = dissolveTeamAdminOp(fixture(), "T-1", "试试", true);
   assert.equal(result.ok, false);
-  assert.match(result.message, /报名中/);
+  assert.match(result.message, /整队退赛/);
+});
+
+test("已退赛队伍不能解散", () => {
+  const withdrawn = withdrawTeamAdminOp(fixture(), "T-1", "队伍主动弃赛");
+  assert.equal(withdrawn.ok, true);
+  const result = dissolveTeamAdminOp(withdrawn.state, "T-1", "试图删除", false);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /退赛/);
 });
 
 test("仅可安全撤销最新操作", () => {
@@ -333,4 +350,4 @@ test("负责人可调整成员角色并记审计日志", () => {
   assert.equal(result.state.operationLogs?.[0].action, "set-member-role");
 });
 
-console.log(`\n${passed}/26 registration admin tests passed`);
+console.log(`\n${passed}/${passed} registration admin tests passed`);
