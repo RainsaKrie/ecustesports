@@ -232,6 +232,12 @@ export async function PATCH(request: NextRequest) {
       rules,
       mapPool,
       preparationSteps,
+      eventQqGroup: (() => {
+        const rawQq = typeof raw.eventQqGroup === "string" ? raw.eventQqGroup.trim() : "";
+        // 只保留数字，5–20 位视为合法群号，否则落空（空表示未设置或清空）。
+        const digits = rawQq.replace(/\D/g, "").slice(0, 20);
+        return digits.length >= 5 ? digits : "";
+      })(),
     };
 
     // 已公开赛事的普通设置保存也必须保持可发布状态，避免绕过发布检查。

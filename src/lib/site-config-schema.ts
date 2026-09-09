@@ -71,6 +71,8 @@ export interface EditableEvent {
   formatTemplateId: string;
   /** 赛制阶段配置（新建赛事赛制配置器的产物，驱动对阵图与竞赛规程） */
   stageConfigs: StageConfig[];
+  /** 赛事 QQ 群号（本届参赛通知群，负责人填写；空表示未设置） */
+  eventQqGroup: string;
   /** 3.47 及更早版本的策划案兼容字段；当前产品流程不再读取或编辑。 */
   proposal: {
     background: string;
@@ -246,6 +248,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
         { title: "判罚依据", detail: "赛事组依据竞赛规程、平台记录、裁判报告及有效证据作出裁决。赛事组对本届赛事规则保留最终解释权。", category: "appeal", emphasis: "normal" },
       ],
       formatTemplateId: "val-16gsl-8de",
+      eventQqGroup: "1107657580",
       proposal: {
         background: "",
         purpose: "",
@@ -427,6 +430,12 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
         preparationSteps,
         rules: rules.length > 0 ? rules : fallback.rules,
         formatTemplateId: text(item.formatTemplateId, fallback.formatTemplateId, 60),
+        eventQqGroup: (() => {
+          const raw = typeof item.eventQqGroup === "string" ? item.eventQqGroup.trim() : "";
+          // 只保留数字，长度 5–20 位之间才视为合法群号，否则落空。
+          const digits = raw.replace(/\D/g, "").slice(0, 20);
+          return digits.length >= 5 ? digits : "";
+        })(),
         proposal: (() => {
           const p = record(item.proposal);
           const fb = fallback.proposal;

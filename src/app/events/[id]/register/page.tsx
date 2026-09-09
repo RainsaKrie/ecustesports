@@ -115,6 +115,12 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           </div>
           <h2 className="text-lg font-bold text-gray-900">报名成功</h2>
           <p className="mt-3 text-sm font-medium text-slate-600">参赛身份已保存在当前浏览器</p>
+          {event.eventQqGroup && (
+            <div className="mt-4 border border-[#ff4655]/30 bg-red-50 p-4 text-left">
+              <p className="text-sm font-black text-[#171a1f]">请加入赛事 QQ 群</p>
+              <p className="mt-1 text-xs font-medium leading-5 text-slate-600">后续通知、分组与对阵信息都在群内发布。群号：<span className="font-black text-[#c83242]">{event.eventQqGroup}</span></p>
+            </div>
+          )}
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
             <Link href={`/events/${id}/manage?section=team&mode=create`} className="bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
               创建队伍
@@ -220,6 +226,13 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <label className="mb-1 block text-sm font-medium text-gray-700">自我介绍（选填）</label>
               <textarea value={intro} onChange={(e) => setIntro(e.target.value)} placeholder="简单介绍自己，比如擅长英雄、参赛经历等" rows={4} className={inputClass} />
             </div>
+
+            {event.eventQqGroup && (
+              <div className="border border-[#ff4655]/30 bg-red-50 p-4">
+                <p className="text-sm font-black text-[#171a1f]">报名后请加入赛事 QQ 群</p>
+                <p className="mt-1 text-xs font-medium leading-5 text-slate-600">赛事通知、分组与对阵信息将在群内发布，请务必进群。群号：<span className="font-black text-[#c83242]">{event.eventQqGroup}</span></p>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 p-3 text-sm text-red-600">{error}</div>

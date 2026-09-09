@@ -503,6 +503,7 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
     formatTemplateId: template.id,
     stageConfigs,
     proposal: { background: "", purpose: "", budget: "", prizes: "", leader: "", contact: "" },
+    eventQqGroup: "",
     createdAt: now,
   };
 }

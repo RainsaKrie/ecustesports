@@ -484,6 +484,7 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
             <Field label="队伍申报截止"><input type="date" value={event.teamRegistrationEnd} onChange={(change) => patchEvent({ teamRegistrationEnd: change.target.value })} className={inputClass} /></Field>
             <Field label="比赛时间展示"><input value={event.eventDateLabel} onChange={(change) => patchEvent({ eventDateLabel: change.target.value })} className={inputClass} /></Field>
             <Field label="报名状态文案"><input value={event.registrationLabel} onChange={(change) => patchEvent({ registrationLabel: change.target.value })} className={inputClass} /></Field>
+            <Field label="赛事 QQ 群号码"><input value={event.eventQqGroup} onChange={(change) => patchEvent({ eventQqGroup: change.target.value })} placeholder="如 1107657580" className={inputClass} /></Field>
           </div>
         </Panel>
       )}
