@@ -2,6 +2,8 @@
 -- 用于裁判报分时一次提交 schedule / result-ledger / evidence-ledger，
 -- 并把 referee-ledger 作为只读版本前置条件，避免撤销分配与报分并发穿透。
 
+begin;
+
 create or replace function public.update_app_documents_atomic(
   p_scope text,
   p_event_id text,
@@ -11,7 +13,8 @@ create or replace function public.update_app_documents_atomic(
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+-- 函数内所有业务表均显式带 public schema；搜索路径只保留可信内置对象。
+set search_path = pg_catalog, pg_temp
 as $$
 declare
   document_name text;
@@ -20,10 +23,13 @@ declare
   document_payload jsonb;
   affected_rows integer;
 begin
-  if p_scope not in ('site', 'event') then
+  if p_scope is null or p_scope not in ('site', 'event') then
     raise exception 'invalid document scope';
   end if;
-  if p_scope = 'event' and p_event_id !~ '^[a-zA-Z0-9_-]{1,60}$' then
+  if p_event_id is null
+    or (p_scope = 'site' and p_event_id <> '__site__')
+    or (p_scope = 'event' and p_event_id !~ '^[a-zA-Z0-9_-]{1,60}$')
+  then
     raise exception 'invalid event id';
   end if;
   if p_expected_versions is null
@@ -43,6 +49,7 @@ begin
   loop
     if document_name !~ '^[a-zA-Z0-9_-]{1,60}$'
       or jsonb_typeof(document_payload) <> 'number'
+      or (document_payload #>> '{}') !~ '^(0|[1-9][0-9]*)$'
     then
       raise exception 'invalid document version entry';
     end if;
@@ -110,3 +117,5 @@ revoke all on function public.update_app_documents_atomic(text, text, jsonb, jso
   from public, anon, authenticated;
 grant execute on function public.update_app_documents_atomic(text, text, jsonb, jsonb)
   to service_role;
+
+commit;
