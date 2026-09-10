@@ -7,7 +7,7 @@
 
 import "server-only";
 
-import { readEventData, updateEventData, writeEventData } from "@/lib/data-store";
+import { readEventData, updateEventData, updateEventDataBatch, writeEventData } from "@/lib/data-store";
 import { isHostedRuntime } from "@/lib/deployment";
 import { deleteEvidenceObject, storeEvidenceObject } from "@/lib/referee/evidence-store";
 import { emptySchedule, normalizeScheduleState, type ScheduleMatch, type ScheduleState } from "@/lib/scheduling/schedule-data";
@@ -35,6 +35,7 @@ import {
   projectAdminReviewQueue,
   projectAcceptedResults,
   buildResultContext,
+  type ReportingOpResult,
   type ReportingState,
 } from "@/lib/scheduling/reporting-service";
 import { resolveReviewOp, correctResultOp } from "@/lib/scheduling/result-ops";
@@ -43,6 +44,20 @@ import { resolveReviewOp, correctResultOp } from "@/lib/scheduling/result-ops";
 const DOC_REFEREE = "referee-ledger";
 const DOC_RESULT = "result-ledger";
 const DOC_EVIDENCE = "evidence-ledger";
+
+type ReportingDocuments = {
+  schedule: ScheduleState;
+  referee: RefereeLedger;
+  result: ResultLedger;
+  evidence: EvidenceLedger;
+};
+
+const REPORTING_DOCUMENTS = {
+  schedule: { name: "schedule", fallback: emptySchedule() },
+  referee: { name: DOC_REFEREE, fallback: emptyRefereeLedger() },
+  result: { name: DOC_RESULT, fallback: emptyResultLedger() },
+  evidence: { name: DOC_EVIDENCE, fallback: emptyEvidenceLedger() },
+};
 
 /** 演示赛事 ID（本地开发用，绝不碰真实赛事数据）。接云端后由管理员分配的登录链接带真实 eventId。 */
 const DEMO_EVENT_ID = "demo-referee";
@@ -66,24 +81,55 @@ export async function loadReportingState(eventId: string): Promise<ReportingStat
   };
 }
 
-async function saveScheduleMatches(eventId: string, matches: ScheduleMatch[]): Promise<void> {
-  const scheduleRaw = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
-  const schedule = normalizeScheduleState(scheduleRaw);
-  await writeEventData(eventId, "schedule", { ...schedule, matches });
+class ReportingDomainError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+    this.name = "ReportingDomainError";
+  }
 }
 
-/** 只保存一次操作实际改动的文档，避免每次动作无条件覆写四份数据。 */
-async function saveResultOutcome(eventId: string, state: ReportingState, includeEvidence: boolean): Promise<void> {
-  const writes: Promise<void>[] = [
-    saveScheduleMatches(eventId, state.matches),
-    writeEventData(eventId, DOC_RESULT, state.result),
-  ];
-  if (includeEvidence) writes.push(writeEventData(eventId, DOC_EVIDENCE, state.evidence));
-  await Promise.all(writes);
-}
+/**
+ * 在同一版本快照上重新执行领域操作，并原子写入实际发生变化的文档。
+ * referee-ledger 即使只读也参与版本校验，撤销分配与报分并发时不会穿透鉴权。
+ */
+async function updateReportingState<T>(
+  eventId: string,
+  operation: (state: ReportingState) => ReportingOpResult<T>,
+): Promise<{ ok: true; value?: T } | { ok: false; error: string; code?: string }> {
+  let committedValue: T | undefined;
 
-async function saveRefereeLedger(eventId: string, referee: RefereeLedger): Promise<void> {
-  await writeEventData(eventId, DOC_REFEREE, referee);
+  try {
+    await updateEventDataBatch<ReportingDocuments>(eventId, REPORTING_DOCUMENTS, (documents) => {
+      const schedule = normalizeScheduleState(documents.schedule);
+      const current: ReportingState = {
+        matches: schedule.matches,
+        scheduleVersion: schedule.version,
+        eventEndsAt: schedule.config.stageEnd,
+        referee: documents.referee,
+        result: documents.result,
+        evidence: documents.evidence,
+      };
+      const outcome = operation(current);
+      if (!outcome.ok) throw new ReportingDomainError(outcome.error, outcome.code);
+
+      committedValue = outcome.value;
+      const patch: Partial<ReportingDocuments> = {};
+      if (outcome.state.matches !== current.matches) {
+        patch.schedule = { ...schedule, matches: outcome.state.matches };
+      }
+      if (outcome.state.result !== current.result) patch.result = outcome.state.result;
+      if (outcome.state.evidence !== current.evidence) patch.evidence = outcome.state.evidence;
+      if (outcome.state.referee !== current.referee) patch.referee = outcome.state.referee;
+      return patch;
+    });
+  } catch (error) {
+    if (error instanceof ReportingDomainError) {
+      return { ok: false, error: error.message, code: error.code };
+    }
+    throw error;
+  }
+
+  return { ok: true, value: committedValue };
 }
 
 async function loadScheduleAndReferees(eventId: string): Promise<{ schedule: ScheduleState; referee: RefereeLedger }> {
@@ -238,14 +284,12 @@ export async function refereeSubmit(
   credential: string,
   input: { matchId: string; basedOnScheduleVersion: number; games: Parameters<typeof submitRefereeResultOp>[0]["games"]; evidenceIds?: string[] },
 ) {
-  const state = await loadReportingState(eventId);
-  const result = submitRefereeResultOp(
-    { credential, eventId, matchId: input.matchId, basedOnScheduleVersion: input.basedOnScheduleVersion, games: input.games, evidenceIds: input.evidenceIds },
-    state,
+  return updateReportingState(eventId, (state) =>
+    submitRefereeResultOp(
+      { credential, eventId, matchId: input.matchId, basedOnScheduleVersion: input.basedOnScheduleVersion, games: input.games, evidenceIds: input.evidenceIds },
+      state,
+    ),
   );
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveResultOutcome(eventId, result.state!, (input.evidenceIds?.length ?? 0) > 0);
-  return { ok: true, value: result.value };
 }
 
 /**
@@ -326,14 +370,18 @@ export async function adminResolveReview(
   eventId: string,
   input: { submissionId: string; accept: boolean; actorId: string; reason: string },
 ) {
-  const state = await loadReportingState(eventId);
-  const result = resolveReviewOp(
-    { submissionId: input.submissionId, accept: input.accept, actorId: input.actorId, reason: input.reason },
-    buildResultContext(state),
-  );
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveResultOutcome(eventId, { ...state, matches: result.state!.matches, result: result.state!.ledger }, false);
-  return { ok: true, value: result.value };
+  return updateReportingState(eventId, (state) => {
+    const result = resolveReviewOp(
+      { submissionId: input.submissionId, accept: input.accept, actorId: input.actorId, reason: input.reason },
+      buildResultContext(state),
+    );
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      state: { ...state, matches: result.state.matches, result: result.state.ledger },
+      value: result.value,
+    };
+  });
 }
 
 /** 管理员受控更正已生效赛果（下游已进度则被纯函数阻止，绝不自动覆盖） */
@@ -341,14 +389,18 @@ export async function adminCorrectResult(
   eventId: string,
   input: { matchId: string; actorId: string; reason: string; newGames: Parameters<typeof correctResultOp>[0]["newGames"] },
 ) {
-  const state = await loadReportingState(eventId);
-  const result = correctResultOp(
-    { matchId: input.matchId, actorId: input.actorId, reason: input.reason, newGames: input.newGames },
-    buildResultContext(state),
-  );
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveResultOutcome(eventId, { ...state, matches: result.state!.matches, result: result.state!.ledger }, false);
-  return { ok: true, value: result.value };
+  return updateReportingState(eventId, (state) => {
+    const result = correctResultOp(
+      { matchId: input.matchId, actorId: input.actorId, reason: input.reason, newGames: input.newGames },
+      buildResultContext(state),
+    );
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      state: { ...state, matches: result.state.matches, result: result.state.ledger },
+      value: result.value,
+    };
+  });
 }
 
 // =====================
@@ -391,52 +443,50 @@ export async function adminCreateReferee(
   eventId: string,
   input: { displayName: string; actorId: string; credentialExpiresAt: string },
 ) {
-  const state = await loadReportingState(eventId);
-  const result = createRefereeOp(
-    { eventId, displayName: input.displayName, actorId: input.actorId, credentialExpiresAt: input.credentialExpiresAt },
-    state.referee,
-  ) as RefereeOpResult<{ refereeId: string; credential: string }>;
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveRefereeLedger(eventId, result.state!);
-  return { ok: true, value: result.value };
+  return updateReportingState(eventId, (state) => {
+    const result = createRefereeOp(
+      { eventId, displayName: input.displayName, actorId: input.actorId, credentialExpiresAt: input.credentialExpiresAt },
+      state.referee,
+    ) as RefereeOpResult<{ refereeId: string; credential: string }>;
+    if (!result.ok) return result;
+    return { ok: true, state: { ...state, referee: result.state }, value: result.value };
+  });
 }
 
 export async function adminDisableReferee(eventId: string, input: { refereeId: string; actorId: string }) {
-  const state = await loadReportingState(eventId);
-  const result = disableRefereeOp(input.refereeId, input.actorId, state.referee);
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveRefereeLedger(eventId, result.state!);
-  return { ok: true, value: { disabled: true } };
+  return updateReportingState(eventId, (state) => {
+    const result = disableRefereeOp(input.refereeId, input.actorId, state.referee);
+    if (!result.ok) return result;
+    return { ok: true, state: { ...state, referee: result.state }, value: { disabled: true } };
+  });
 }
 
 export async function adminResetCredential(eventId: string, input: { refereeId: string; actorId: string; newCredentialExpiresAt: string }) {
-  const state = await loadReportingState(eventId);
-  const result = resetCredentialOp(
-    { refereeId: input.refereeId, actorId: input.actorId, newCredentialExpiresAt: input.newCredentialExpiresAt },
-    state.referee,
-  ) as RefereeOpResult<{ credential: string }>;
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveRefereeLedger(eventId, result.state!);
-  return { ok: true, value: { credential: result.value!.credential } };
+  return updateReportingState(eventId, (state) => {
+    const result = resetCredentialOp(
+      { refereeId: input.refereeId, actorId: input.actorId, newCredentialExpiresAt: input.newCredentialExpiresAt },
+      state.referee,
+    ) as RefereeOpResult<{ credential: string }>;
+    if (!result.ok) return result;
+    return { ok: true, state: { ...state, referee: result.state }, value: { credential: result.value!.credential } };
+  });
 }
 
 export async function adminAssignMatch(eventId: string, input: { refereeId: string; matchId: string; actorId: string }) {
-  const state = await loadReportingState(eventId);
-  if (!state.matches.some((match) => match.id === input.matchId)) {
-    return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
-  }
-  const result = assignMatchOp({ eventId, refereeId: input.refereeId, matchId: input.matchId, actorId: input.actorId }, state.referee);
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveRefereeLedger(eventId, result.state!);
-  return { ok: true, value: result.value };
+  return updateReportingState(eventId, (state) => {
+    if (!state.matches.some((match) => match.id === input.matchId)) {
+      return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
+    }
+    const result = assignMatchOp({ eventId, refereeId: input.refereeId, matchId: input.matchId, actorId: input.actorId }, state.referee);
+    if (!result.ok) return result;
+    return { ok: true, state: { ...state, referee: result.state }, value: result.value };
+  });
 }
 
 export async function adminRevokeAssignment(eventId: string, input: { assignmentId: string; actorId: string }) {
-  const state = await loadReportingState(eventId);
-  const assignment = state.referee.assignments.find((a) => a.id === input.assignmentId);
-  if (!assignment) return { ok: false, error: "分配关系不存在", code: "ASSIGNMENT_NOT_FOUND" };
-  const result = revokeAssignmentOp({ assignmentId: input.assignmentId, actorId: input.actorId }, state.referee);
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  await saveRefereeLedger(eventId, result.state!);
-  return { ok: true, value: { revoked: true } };
+  return updateReportingState(eventId, (state) => {
+    const result = revokeAssignmentOp({ assignmentId: input.assignmentId, actorId: input.actorId }, state.referee);
+    if (!result.ok) return result;
+    return { ok: true, state: { ...state, referee: result.state }, value: { revoked: true } };
+  });
 }

@@ -2,6 +2,8 @@ import {
   assertDocumentValue,
   assertSafeDocumentName,
   assertSafeEventId,
+  type DataBatchUpdater,
+  type DataDocumentBatch,
   type DataStoreDriver,
   type DataUpdater,
 } from "@/lib/data-store-types";
@@ -160,6 +162,39 @@ async function compareAndSwap<T>(
   return rows.length === 1;
 }
 
+async function compareAndSwapMany(
+  scope: "site" | "event",
+  eventId: string,
+  expectedVersions: Record<string, number>,
+  updates: Record<string, unknown>,
+): Promise<boolean> {
+  const id = identity(scope, eventId, "batch");
+  const { url } = config();
+  const response = await fetch(`${url}/rest/v1/rpc/update_app_documents_atomic`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      p_scope: id.scope,
+      p_event_id: id.eventId,
+      p_expected_versions: expectedVersions,
+      p_updates: updates,
+    }),
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    if (detail) {
+      try {
+        const parsed = JSON.parse(detail) as { code?: unknown };
+        if (parsed.code === "40001") return false;
+      } catch {
+        // 非 JSON 错误交给统一错误处理。
+      }
+    }
+    throw new Error(`Supabase 数据请求失败（HTTP ${response.status}）${detail ? `：${detail.slice(0, 300)}` : ""}`);
+  }
+  return (await response.json()) === true;
+}
+
 export const supabaseDataStore: DataStoreDriver = {
   async read<T>(scope: "site" | "event", eventId: string, name: string, fallback: T): Promise<T> {
     const row = await readRow<T>(scope, eventId, name);
@@ -201,6 +236,50 @@ export const supabaseDataStore: DataStoreDriver = {
       }
 
       if (await compareAndSwap(scope, eventId, name, row.version, next)) return next;
+      await waitBeforeUpdateRetry(attempt);
+    }
+    throw new Error("数据已被其他操作连续修改，请刷新后重试");
+  },
+
+  async updateMany<T extends Record<string, unknown>>(
+    scope: "site" | "event",
+    eventId: string,
+    documents: DataDocumentBatch<T>,
+    updater: DataBatchUpdater<T>,
+  ): Promise<T> {
+    const entries = Object.entries(documents) as Array<[keyof T & string, { name: string; fallback: T[keyof T] }]>;
+    if (entries.length === 0) throw new Error("批量更新至少需要一个数据文档");
+
+    const names = new Set<string>();
+    for (const [, spec] of entries) {
+      const name = assertSafeDocumentName(spec.name);
+      if (names.has(name)) throw new Error("批量更新的数据文档名称不能重复");
+      names.add(name);
+    }
+
+    for (let attempt = 0; attempt < MAX_UPDATE_ATTEMPTS; attempt += 1) {
+      const rows = await Promise.all(entries.map(([, spec]) => readRow<unknown>(scope, eventId, spec.name)));
+      const currentValues: Record<string, unknown> = {};
+      const expectedVersions: Record<string, number> = {};
+      entries.forEach(([key, spec], index) => {
+        const row = rows[index];
+        currentValues[key] = (row?.payload ?? spec.fallback) as T[typeof key];
+        expectedVersions[spec.name] = row?.version ?? 0;
+      });
+
+      const current = currentValues as T;
+      const patch = await updater(current);
+      const knownKeys = new Set(entries.map(([key]) => key));
+      const updates: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(patch) as Array<[keyof T & string, T[keyof T]]>) {
+        if (!knownKeys.has(key)) throw new Error(`批量更新包含未知文档：${key}`);
+        assertDocumentValue(value);
+        updates[documents[key].name] = value;
+      }
+
+      if (await compareAndSwapMany(scope, eventId, expectedVersions, updates)) {
+        return { ...current, ...patch } as T;
+      }
       await waitBeforeUpdateRetry(attempt);
     }
     throw new Error("数据已被其他操作连续修改，请刷新后重试");

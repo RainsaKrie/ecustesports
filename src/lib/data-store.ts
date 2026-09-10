@@ -3,7 +3,12 @@
 
 import { fileDataStore } from "@/lib/file-data-store";
 import { supabaseDataStore } from "@/lib/supabase-data-store";
-import type { DataStoreDriver, DataUpdater } from "@/lib/data-store-types";
+import type {
+  DataBatchUpdater,
+  DataDocumentBatch,
+  DataStoreDriver,
+  DataUpdater,
+} from "@/lib/data-store-types";
 import { isHostedRuntime } from "@/lib/deployment";
 
 type DataBackend = "file" | "supabase";
@@ -51,6 +56,15 @@ export async function updateEventData<T>(
   updater: DataUpdater<T>,
 ): Promise<T> {
   return driver().update("event", eventId, name, fallback, updater);
+}
+
+/** 多文档原子更新：生产由 PostgreSQL 事务保证，本地由赛事级写锁保证。 */
+export async function updateEventDataBatch<T extends Record<string, unknown>>(
+  eventId: string,
+  documents: DataDocumentBatch<T>,
+  updater: DataBatchUpdater<T>,
+): Promise<T> {
+  return driver().updateMany("event", eventId, documents, updater);
 }
 
 export async function deleteEventData(eventId: string): Promise<void> {
