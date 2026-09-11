@@ -51,7 +51,7 @@ npm run gate
 | --- | --- | --- |
 | 代码规范 | `npm run lint` | eslint |
 | 类型检查 | `npm run typecheck` | tsc --noEmit |
-| 测试 | `npm run test:all` | 16 个套件：规则引擎 20 例、闭环 100 例、BP 44 例、数据事务、报名、恢复、轮空、赛果、裁判、证据、报分、发布、运营、备份完整性 |
+| 测试 | `npm run test:all` | 15 个套件：规则引擎 20 例、闭环 100 例、BP 44 例、数据事务、报名、恢复、轮空、赛果、裁判、证据、报分、发布、运营 |
 | 构建 | `npm run build` | Next.js 生产构建 |
 
 CI 配置在 `.github/workflows/quality-gate.yml`，push 到 main 和提交 Pull Request 时自动运行。
@@ -61,18 +61,6 @@ CI 配置在 `.github/workflows/quality-gate.yml`，push 到 main 和提交 Pull
 注意：本机构建需要先绕开环境的删除护栏，即 `CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run build`。
 被拦的是 `.next` 构建缓存（已进 gitignore、可再生），不是代码问题；CI 不需要这个开关。
 
-## 生产运行
-
-办赛期间的巡检、备份与故障处理步骤见 `docs/09-测试与复盘/生产运行手册_v1.0.md`。常用命令：
-
-| 命令 | 用途 | 是否碰生产数据 |
-| --- | --- | --- |
-| `npm run ops:probe` | 只读巡检主页、健康接口与公开赛程，判断故障在哪一层 | 否 |
-| `npm run ops:backup -- --backup-only --event=<赛事ID> <仓库外路径>` | 导出备份，可对生产执行 | 否（只读） |
-| `npm run ops:verify-backup -- <备份文件>` | 校验备份完整性 | 否（只读本地文件） |
-
-恢复演练不能对生产执行，只能在隔离库运行，见运行手册第七节。
-
 ## 文档
 
 - `docs/README.md`：项目状态、目标、依据与资料导航。
@@ -80,4 +68,3 @@ CI 配置在 `.github/workflows/quality-gate.yml`，push 到 main 和提交 Pull
 - `docs/01-项目立项` 至 `docs/09-测试与复盘`：按正式产品流程组织的项目资料。
 - `docs/04-产品定义/PRODUCT_FRAMEWORK_v0.1.md`：当前产品框架与模块边界。
 - `docs/04-产品定义/PRD_v1.2.md`：早期全流程构想，保留为历史资料。
-- `docs/09-测试与复盘/生产运行手册_v1.0.md`：赛事期巡检、备份、校验与故障处理。
