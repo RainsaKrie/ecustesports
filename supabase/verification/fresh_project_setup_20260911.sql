@@ -10,7 +10,11 @@
 -- 全部语句幂等（if not exists / or replace / on conflict），在已初始化过的库上重复执行也安全。
 -- 期望结果：`Success. No rows returned`。
 -- 第 2 步见 supabase/verification/20260910_rpt08_atomic_documents_verify.sql。
--- 注意：不要在生产项目上跑这个文件；生产只跑第 3 个迁移。
+-- 注意：不要在生产项目上跑这个文件。
+-- 生产需要补的是第 2 段（rpt03 私有桶）与第 3 段（rpt08 原子函数）；gate6 早已在生产执行。
+-- （2026-09-11 更正：本行原文为「生产只跑第 3 个迁移」，该说法有误。当日核查生产
+--   `select id, public from storage.buckets;` 只返回 event-assets，match-evidence 缺失，
+--   证明 rpt03 从未在生产执行过 → 生产同样需要跑第 2 段。）
 -- =====================
 
 
