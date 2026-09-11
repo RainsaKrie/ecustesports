@@ -13,6 +13,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 本地工作目录与生成物：已被 .gitignore 忽略，不应参与 lint，
+    // 否则本地脚本和验收产物会污染「本地 = CI」的同一条门禁。
+    ".workbuddy/**",
+    ".playwright-cli/**",
+    "output/**",
+    "tmp/**",
+    "coverage/**",
   ]),
 ]);
 

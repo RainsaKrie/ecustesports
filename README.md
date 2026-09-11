@@ -39,6 +39,28 @@ npm run dev
 - 2026-08-20 双角色审计发现新赛事复制演示赛程、赛制未驱动对阵、并发报名丢写/失败、玩家侧错误请求、多赛事上下文串线和移动端布局问题。详见 `docs/09-测试与复盘/2026-08-20-双角色全流程产品审计.md`。
 - **AI 当前边界**：AI 接入继续暂停。2026-09-01 起优先完成公开部署上线，不运行 B 方案，也不增加网页 AI 入口。
 
+## 质量门禁
+
+本地和 CI 跑同一条命令，避免出现「本地绿了、CI 红了」：
+
+```bash
+npm run gate
+```
+
+| 检查 | 命令 | 内容 |
+| --- | --- | --- |
+| 代码规范 | `npm run lint` | eslint |
+| 类型检查 | `npm run typecheck` | tsc --noEmit |
+| 测试 | `npm run test:all` | 15 个套件：规则引擎 20 例、闭环 100 例、BP 44 例、数据事务、报名、恢复、轮空、赛果、裁判、证据、报分、发布、运营 |
+| 构建 | `npm run build` | Next.js 生产构建 |
+
+CI 配置在 `.github/workflows/quality-gate.yml`，push 到 main 和提交 Pull Request 时自动运行。
+
+只想跑单个套件时用 `npm run test:<名字>`，例如 `npm run test:referee`。
+
+注意：本机构建需要先绕开环境的删除护栏，即 `CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run build`。
+被拦的是 `.next` 构建缓存（已进 gitignore、可再生），不是代码问题；CI 不需要这个开关。
+
 ## 文档
 
 - `docs/README.md`：项目状态、目标、依据与资料导航。

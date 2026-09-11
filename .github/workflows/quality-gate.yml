@@ -1,0 +1,48 @@
+name: Quality Gate
+
+# 与本地完全同一条命令：npm run gate
+# 本地：npm run gate
+# CI  ：npm run gate
+# 这样"本地绿了、CI 红"或反之的情况不会出现。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同一条分支连续推送时，取消上一次还在跑的门禁，避免排队堆积。
+concurrency:
+  group: quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+# 只读权限：门禁不写回仓库、不发评论、不部署。
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: lint + typecheck + tests + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      # 这一步包含 4 道检查，按顺序执行，任何一道失败即整体失败：
+      #   1. lint       eslint
+      #   2. typecheck  tsc --noEmit
+      #   3. tests      15 个测试套件
+      #   4. build      next build
+      # 注意：本机构建需要 CODEBUDDY_SAFE_DELETE_ENABLED=0 绕过本地删除护栏，
+      # 这是本机环境的限制，CI 里不需要，直接跑 npm run gate 即可。
+      - name: 运行质量门禁
+        run: npm run gate
