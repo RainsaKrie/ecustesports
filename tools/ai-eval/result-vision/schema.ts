@@ -100,6 +100,25 @@ export function validateCaseInput(input: unknown, index: number, requireImages =
     if (!isNonEmptyString(input.teams.b)) problems.push(`${label}.teams.b 缺失`);
   }
 
+  if (input.squads !== undefined) {
+    if (!isRecord(input.squads)) {
+      problems.push(`${label}.squads 必须是对象`);
+    } else {
+      for (const side of ["a", "b"] as const) {
+        const squad = input.squads[side];
+        if (!Array.isArray(squad)) {
+          problems.push(`${label}.squads.${side} 必须是数组`);
+          continue;
+        }
+        if (squad.some((n) => !isNonEmptyString(n))) problems.push(`${label}.squads.${side} 含空项`);
+        // 截图只显示昵称，报名存的是「昵称#标签」。带上 # 说明没规范化，匹配必然失败。
+        if (squad.some((n) => typeof n === "string" && n.includes("#"))) {
+          problems.push(`${label}.squads.${side} 含未去掉 # 标签的昵称——截图不显示标签，必须先规范化`);
+        }
+      }
+    }
+  }
+
   if (input.knownMaps !== undefined) {
     if (!Array.isArray(input.knownMaps)) problems.push(`${label}.knownMaps 必须是数组`);
     else if (input.knownMaps.some((m) => !isNonEmptyString(m))) problems.push(`${label}.knownMaps 含非法项`);

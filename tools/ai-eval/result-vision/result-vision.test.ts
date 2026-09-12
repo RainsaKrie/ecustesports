@@ -51,6 +51,11 @@ function input(overrides: Partial<CaseInput> = {}): CaseInput {
     pageType: "赛后结算页",
     boType: "BO3",
     teams: TEAMS,
+    squads: {
+      a: ["甲一号", "甲二号", "甲三号", "甲四号", "甲五号"],
+      b: ["乙一号", "乙二号", "乙三号", "乙四号", "乙五号"],
+    },
+    knownMaps: ["亚海悬城", "源工重镇", "隐士修所"],
     images: [{ file: "c1.png", order: 1 }],
     privacy: { containsPii: false, redaction: "无" },
     ...overrides,
@@ -164,6 +169,28 @@ console.log("\n== 组1 · manifest 校验（只报问题，不修补）==");
 
   const wrongVersion = validateManifest({ schemaVersion: 9, datasetId: "t", cases: [input()] }, false);
   check("schemaVersion 不符被拒", wrongVersion.some((p) => p.includes("schemaVersion")), wrongVersion.join("；"));
+
+  // 截图只显示昵称，报名存的是「昵称#标签」。带上 # 说明没规范化，匹配必然失败。
+  const rawTag = validateManifest({
+    schemaVersion: 1,
+    datasetId: "t",
+    cases: [{ ...input(), squads: { a: ["甲一号#12345", "甲二号"], b: ["乙一号"] } }],
+  }, false);
+  check("队员昵称未去掉 # 标签被拒", rawTag.some((p) => p.includes("未去掉 # 标签")), rawTag.join("；"));
+
+  const badSquad = validateManifest({
+    schemaVersion: 1,
+    datasetId: "t",
+    cases: [{ ...input(), squads: { a: "不是数组", b: [] } }],
+  }, false);
+  check("squads 结构非法被拒", badSquad.some((p) => p.includes("squads.a")), badSquad.join("；"));
+
+  const okSquad = validateManifest({
+    schemaVersion: 1,
+    datasetId: "t",
+    cases: [{ ...input(), squads: { a: ["甲一号"], b: ["乙一号"] } }],
+  }, false);
+  check("规范化后的昵称通过校验", okSquad.length === 0, okSquad.join("；"));
 }
 
 console.log("\n== 组2 · truth 校验 ==");

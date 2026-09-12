@@ -26,7 +26,7 @@
       "annotatedBy": ["标注者甲", "标注者乙"]
     },
     {
-      "caseId": "ex-03-compressed-bo3",
+      "caseId": "ex-03-compressed-bo3-sweep",
       "shouldRefuse": false,
       "undeterminable": [],
       "series": { "a": 2, "b": 0 },
@@ -55,7 +55,7 @@
       "annotatedBy": ["标注者甲", "标注者乙"]
     },
     {
-      "caseId": "ex-05-name-interference-bo3",
+      "caseId": "ex-05-interleaved-bo3",
       "shouldRefuse": false,
       "undeterminable": [],
       "series": { "a": 1, "b": 2 },
@@ -67,7 +67,7 @@
       ],
       "illegalBo": false,
       "annotatedBy": ["标注者甲", "标注者乙"],
-      "disagreements": "第一局归属曾误判为 B 队，核对队名后更正",
+      "disagreements": "第一局曾按行的位置误判队属（两队交错），核对底色后更正",
       "resolvedBy": "负责人"
     },
     {

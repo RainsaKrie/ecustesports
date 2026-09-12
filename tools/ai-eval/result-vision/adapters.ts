@@ -42,7 +42,7 @@ export interface VisionAdapter {
 }
 
 /** 提示词版本号。改提示词必须同时改这个值，否则历史结果无法复现。 */
-export const PROMPT_VERSION = "result-vision-prompt-v1";
+export const PROMPT_VERSION = "result-vision-prompt-v2";
 
 /**
  * 期望模型输出的 JSON 结构说明。写进提示词，也是解析时的唯一依据。
@@ -57,6 +57,30 @@ export const OUTPUT_CONTRACT = [
   '- "winnerSide": "A" 或 "B"，胜方；不确定填 null。',
   '- "games": 数组，每局 {"map": 地图名或 null, "teamAScore": 整数, "teamBScore": 整数}。',
   "A 指第一支队伍，B 指第二支。不允许编造图上没有的信息。",
+].join("\n");
+
+/**
+ * 读图方法的提示。这些是「怎么看」，不是答案，所以放进提示词是合理的。
+ *
+ * 每一条都对应一个真实踩过的坑（2026-09-12 依据真实赛果截图确定），
+ * 不写进去模型大概率会做错：
+ *   · 结算表按平均战斗评分降序**跨队排列**，不是左右分列两队。
+ *     大胜时胜方恰好包揽前排，靠「前几行」猜队属会得到正确结果——
+ *     但焦灼比赛会交错，必须靠行底色。
+ *   · 图上没有局次标识。局次只能靠地图名反查给出的地图序列。
+ *   · 图上没有队名，只有玩家昵称。
+ */
+export const READING_GUIDE = [
+  "读图方法（务必遵守）：",
+  "1. 左上角有本局地图名，顶部中央是本局比分（形如「13 胜利 6」）。",
+  "2. 玩家列表每行有底色，**底色代表队伍**：同一种底色的行属于同一支队伍。",
+  "   列表是按个人评分从高到低排序的，**两支队伍的行会交错出现**，",
+  "   所以**绝不能按「前几行是哪队」来判断队属，必须看底色**。",
+  "3. 图上没有写这是第几局。请用左上角的地图名，去比对下面给出的地图序列，",
+  "   找到它的位置（第几个就是第几局）。",
+  "4. 图上没有队名，只有玩家昵称。判断哪个底色对应 A 队还是 B 队，",
+  "   请把该底色的昵称与 A、B 两队的队员昵称做比对。",
+  "5. 系列赛大比分 = 各局胜负数一数，不要直接读图上那个大数字（那是单局比分）。",
 ].join("\n");
 
 // ---------------------------------------------------------------
@@ -253,10 +277,23 @@ export function createVisionAdapter(
             `比赛：${input.teams.a}（A）对 ${input.teams.b}（B）`,
             `赛制：${input.boType}`,
             `游戏：${input.game}　页面：${input.pageType}`,
-            input.knownMaps?.length ? `BP 已确定地图：${input.knownMaps.join("、")}` : "BP 地图未知",
+            input.knownMaps?.length
+              ? [
+                  "BP 已确定地图（按局序，用来反查截图的局次）：",
+                  ...input.knownMaps.map((map, index) => `  第 ${index + 1} 局：${map}`),
+                ].join("\n")
+              : "BP 地图未知，无法据此判断局次",
+            input.squads
+              ? [
+                  "双方队员昵称（已去掉 # 标签，与截图上的显示一致）：",
+                  `  A 队 ${input.teams.a}：${input.squads.a.join("、")}`,
+                  `  B 队 ${input.teams.b}：${input.squads.b.join("、")}`,
+                ].join("\n")
+              : "未提供双方队员昵称，无法确定底色对应哪支队",
             input.note ? `作业说明：${input.note}` : "",
             "",
             "请从下面这些截图里读出赛果。",
+            READING_GUIDE,
             OUTPUT_CONTRACT,
           ].filter(Boolean).join("\n"),
         },

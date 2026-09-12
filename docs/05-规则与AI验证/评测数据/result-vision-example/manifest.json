@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "datasetId": "example-fixture",
-  "notes": "框架自测用的小样本示例，只演示数据结构与流程，不代表真实评测集。真实评测集需按工作包最低样本量采集，且图片不进仓库。",
+  "notes": "框架自测用的小样本示例，只演示数据结构与流程，不代表真实评测集。队名与昵称均为虚构。真实评测集需按工作包最低样本量采集，且图片不进仓库。",
   "cases": [
     {
       "caseId": "ex-01-clear-bo1",
@@ -12,9 +12,13 @@
       "pageType": "赛后结算页",
       "boType": "BO1",
       "teams": { "a": "寒锋战队", "b": "星轨战队" },
+      "squads": {
+        "a": ["夜航星", "落叶知秋", "沧浪之水", "寒鸦", "白露为霜"],
+        "b": ["拾光者", "北辰", "流萤", "空山新雨", "晓风残月"]
+      },
       "knownMaps": ["亚海悬城"],
       "images": [{ "file": "ex-01.png", "order": 1 }],
-      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称与聊天区域" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称栏与聊天区域" }
     },
     {
       "caseId": "ex-02-clear-bo3",
@@ -25,15 +29,20 @@
       "pageType": "赛后结算页",
       "boType": "BO3",
       "teams": { "a": "疾风战队", "b": "凌云战队" },
+      "squads": {
+        "a": ["破军", "长歌当哭", "青冥", "听风者", "孤舟蓑笠"],
+        "b": ["逐月", "西窗烛", "望江南", "青山见我", "素履之往"]
+      },
+      "knownMaps": ["亚海悬城", "源工重镇", "隐士修所"],
       "images": [
         { "file": "ex-02-a.png", "order": 1 },
         { "file": "ex-02-b.png", "order": 2 },
         { "file": "ex-02-c.png", "order": 3 }
       ],
-      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称栏" }
     },
     {
-      "caseId": "ex-03-compressed-bo3",
+      "caseId": "ex-03-compressed-bo3-sweep",
       "groupId": "g-ex-03",
       "split": "validation",
       "category": "compressed",
@@ -41,6 +50,12 @@
       "pageType": "赛后结算页",
       "boType": "BO3",
       "teams": { "a": "破晓战队", "b": "沉舟战队" },
+      "squads": {
+        "a": ["晨光熹微", "扶摇", "不系之舟", "松间照", "临渊"],
+        "b": ["千帆过", "枯木逢春", "远山淡影", "白驹", "长安"]
+      },
+      "knownMaps": ["霓虹町", "森寒冬港", "裂变峡谷"],
+      "note": "BO3 打成 2:0，只有两张图；已知地图序列里仍有第三张（BP 已定但未开打）",
       "images": [
         { "file": "ex-03-a.jpg", "order": 1, "synthetic": true },
         { "file": "ex-03-b.jpg", "order": 2, "synthetic": true }
@@ -56,6 +71,11 @@
       "pageType": "赛后结算页",
       "boType": "BO5",
       "teams": { "a": "长夜战队", "b": "微光战队" },
+      "squads": {
+        "a": ["守夜人", "灯下客", "星垂平野", "独钓寒江", "闻笛"],
+        "b": ["萤火", "掠影", "南风知意", "踏雪寻梅", "初见"]
+      },
+      "knownMaps": ["微风岛屿", "莲华古城", "裂变峡谷", "深海明珠", "日落之城"],
       "images": [
         { "file": "ex-04-1.png", "order": 1 },
         { "file": "ex-04-2.png", "order": 2 },
@@ -63,10 +83,10 @@
         { "file": "ex-04-4.png", "order": 4 },
         { "file": "ex-04-5.png", "order": 5 }
       ],
-      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称栏" }
     },
     {
-      "caseId": "ex-05-name-interference-bo3",
+      "caseId": "ex-05-interleaved-bo3",
       "groupId": "g-ex-05",
       "split": "validation",
       "category": "name-interference",
@@ -74,13 +94,18 @@
       "pageType": "赛后结算页",
       "boType": "BO3",
       "teams": { "a": "星轨战队", "b": "寒锋战队" },
-      "note": "截图里两队左右顺序与报名名单相反，考验是否能按队名对齐而不是按位置猜",
+      "squads": {
+        "a": ["拾光者", "北辰", "流萤", "空山新雨", "晓风残月"],
+        "b": ["夜航星", "落叶知秋", "沧浪之水", "寒鸦", "白露为霜"]
+      },
+      "knownMaps": ["幽邃地窟", "天枢云阙", "盐海矿镇"],
+      "note": "焦灼比分，两队成员在列表里交错排列（前几行混有两队的人），队属只能靠行底色判断，不能靠位置",
       "images": [
         { "file": "ex-05-a.png", "order": 1 },
         { "file": "ex-05-b.png", "order": 2 },
         { "file": "ex-05-c.png", "order": 3 }
       ],
-      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称栏" }
     },
     {
       "caseId": "ex-06-blurry-refuse",
@@ -91,12 +116,17 @@
       "pageType": "赛后结算页",
       "boType": "BO3",
       "teams": { "a": "归潮战队", "b": "拾光战队" },
-      "note": "第二局比分被遮挡，预期拒答",
+      "squads": {
+        "a": ["潮汐", "半盏流年", "东篱把酒", "暮色四合", "与归"],
+        "b": ["拾穗", "微雨燕双飞", "落霞孤鹜", "秋水共长天", "渔火"]
+      },
+      "knownMaps": ["亚海悬城", "源工重镇", "隐士修所"],
+      "note": "第二局比分区被遮挡，预期拒答",
       "images": [
         { "file": "ex-06-a.png", "order": 1 },
         { "file": "ex-06-b.png", "order": 2, "synthetic": true }
       ],
-      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称栏" }
     },
     {
       "caseId": "ex-07-invalid-refuse",
@@ -109,7 +139,7 @@
       "teams": { "a": "未名战队", "b": "未名二队" },
       "note": "传错图，不是赛果页面，预期拒答",
       "images": [{ "file": "ex-07.png", "order": 1 }],
-      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称栏" }
     },
     {
       "caseId": "ex-08-clear-bo3-frozen",
@@ -120,11 +150,17 @@
       "pageType": "赛后结算页",
       "boType": "BO3",
       "teams": { "a": "望舒战队", "b": "照野战队" },
+      "squads": {
+        "a": ["望舒", "疏影横斜", "暗香浮动", "月上柳梢", "黄昏后"],
+        "b": ["野径", "云俱黑", "江船火独明", "晓看红湿", "花重锦官"]
+      },
+      "knownMaps": ["亚海悬城", "源工重镇", "隐士修所"],
+      "note": "BO3 打成 2:0，只有两张图",
       "images": [
         { "file": "ex-08-a.png", "order": 1 },
         { "file": "ex-08-b.png", "order": 2 }
       ],
-      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称栏" }
     }
   ]
 }

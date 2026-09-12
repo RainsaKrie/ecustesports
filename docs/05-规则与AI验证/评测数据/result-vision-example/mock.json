@@ -19,7 +19,7 @@
       ]
     }
   },
-  "ex-03-compressed-bo3": {
+  "ex-03-compressed-bo3-sweep": {
     "refused": false,
     "parsed": {
       "series": { "a": 2, "b": 0 },
@@ -44,7 +44,7 @@
       ]
     }
   },
-  "ex-05-name-interference-bo3": {
+  "ex-05-interleaved-bo3": {
     "refused": false,
     "parsed": {
       "series": { "a": 1, "b": 2 },
