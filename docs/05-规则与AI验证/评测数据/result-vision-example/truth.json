@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "caseId": "ex-01-clear-bo1",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": { "a": 1, "b": 0 },
+      "winnerSide": "A",
+      "games": [{ "map": "亚海悬城", "teamAScore": 13, "teamBScore": 7 }],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    },
+    {
+      "caseId": "ex-02-clear-bo3",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": { "a": 2, "b": 1 },
+      "winnerSide": "A",
+      "games": [
+        { "map": "亚海悬城", "teamAScore": 13, "teamBScore": 7 },
+        { "map": "源工重镇", "teamAScore": 10, "teamBScore": 13 },
+        { "map": "隐士修所", "teamAScore": 13, "teamBScore": 9 }
+      ],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    },
+    {
+      "caseId": "ex-03-compressed-bo3",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": { "a": 2, "b": 0 },
+      "winnerSide": "A",
+      "games": [
+        { "map": "霓虹町", "teamAScore": 13, "teamBScore": 5 },
+        { "map": "森寒冬港", "teamAScore": 13, "teamBScore": 11 }
+      ],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    },
+    {
+      "caseId": "ex-04-multigame-bo5",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": { "a": 3, "b": 2 },
+      "winnerSide": "A",
+      "games": [
+        { "map": "微风岛屿", "teamAScore": 13, "teamBScore": 9 },
+        { "map": "莲华古城", "teamAScore": 8, "teamBScore": 13 },
+        { "map": "裂变峡谷", "teamAScore": 13, "teamBScore": 10 },
+        { "map": "深海明珠", "teamAScore": 11, "teamBScore": 13 },
+        { "map": "日落之城", "teamAScore": 13, "teamBScore": 6 }
+      ],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    },
+    {
+      "caseId": "ex-05-name-interference-bo3",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": { "a": 1, "b": 2 },
+      "winnerSide": "B",
+      "games": [
+        { "map": "幽邃地窟", "teamAScore": 13, "teamBScore": 4 },
+        { "map": "天枢云阙", "teamAScore": 9, "teamBScore": 13 },
+        { "map": "盐海矿镇", "teamAScore": 10, "teamBScore": 13 }
+      ],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"],
+      "disagreements": "第一局归属曾误判为 B 队，核对队名后更正",
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "ex-06-blurry-refuse",
+      "shouldRefuse": true,
+      "refusalReason": "第二局比分被遮挡，无法确定该局结果",
+      "undeterminable": [],
+      "series": null,
+      "winnerSide": null,
+      "games": [],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    },
+    {
+      "caseId": "ex-07-invalid-refuse",
+      "shouldRefuse": true,
+      "refusalReason": "不是赛果页面，图内没有任何比分信息",
+      "undeterminable": [],
+      "series": null,
+      "winnerSide": null,
+      "games": [],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    },
+    {
+      "caseId": "ex-08-clear-bo3-frozen",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": { "a": 2, "b": 0 },
+      "winnerSide": "A",
+      "games": [
+        { "map": "亚海悬城", "teamAScore": 13, "teamBScore": 11 },
+        { "map": "源工重镇", "teamAScore": 13, "teamBScore": 8 }
+      ],
+      "illegalBo": false,
+      "annotatedBy": ["标注者甲", "标注者乙"]
+    }
+  ]
+}

@@ -1,0 +1,431 @@
+// =====================
+// AIE-02 评测框架：评分与 Gate 门槛
+//
+// 两条硬约束：
+//   1. **不依赖模型自报置信度**——本文件从头到尾没有读模型的 confidence 字段，
+//      所有结论都来自「模型输出 vs 人工标注」的直接比对。
+//   2. **确定性复核复用生产规则**——直接调 src/lib/scheduling 的 validateGames，
+//      评测与线上用同一套 BO 校验，避免两边规则分叉后评测结果偏乐观。
+// =====================
+
+import { validateGames } from "../../../src/lib/scheduling/schedule-ops";
+import type { GameResult } from "../../../src/lib/scheduling/schedule-data";
+import type { CaseInput, CasePrediction, CaseTruth, TruthGame } from "./types";
+
+export type CaseStatus =
+  | "correct" // 可用预填，且关键字段全对
+  | "incorrect" // 可用预填，但字段有错
+  | "refusedOk" // 模型拒答，且确实应当拒答
+  | "refusedModel" // 模型拒答，但信息其实是够的（误拒）
+  | "guessed" // 应当拒答，模型却给了具体答案
+  | "parseError" // 输出无法解析成 schema
+  | "schemaError" // 结构非法
+  | "ruleRejected" // 确定性规则拒绝（如非法 BO）
+  | "failed"; // 适配器失败、超时或无记录
+
+export interface CaseEvaluation {
+  caseId: string;
+  groupId: string;
+  category: string;
+  split: string;
+  status: CaseStatus;
+  reason: string;
+  /** 标注认为该案例是否应当拒答。用于把分母分成「有效样本」与「应拒答样本」。 */
+  expectedRefusal: boolean;
+  /** 确定性规则是否通过。可用但规则未过 = 管线漏放，属实现缺陷。 */
+  rulesPassed: boolean;
+  /** 断言了「标注为不可确定」的字段次数 */
+  undeterminableAssertions: number;
+  /** 严重虚构（应拒答却给答案） */
+  severeFabrication: number;
+  /** 逐局比分是否逐项正确 */
+  gameScoreCorrect: boolean[];
+  /** 逐局地图是否逐项正确（仅统计可确定的地图） */
+  mapCorrect: boolean[];
+  winnerCorrect: boolean | null;
+  seriesCorrect: boolean | null;
+  /** 该案例是否产出可用预填 */
+  usable: boolean;
+  latencyMs: number | null;
+  costUsd: number | null;
+}
+
+function ruleCheck(boType: string, games: TruthGame[]): { ok: boolean; message?: string } {
+  const payload: GameResult[] = games.map((g) => ({
+    ...(g.map ? { map: g.map } : {}),
+    teamAScore: g.teamAScore,
+    teamBScore: g.teamBScore,
+  }));
+  return validateGames(payload, boType);
+}
+
+function sameScore(a: TruthGame, b: TruthGame): boolean {
+  return a.teamAScore === b.teamAScore && a.teamBScore === b.teamBScore;
+}
+
+function isUndeterminable(truth: CaseTruth, field: string): boolean {
+  return truth.undeterminable.includes(field);
+}
+
+function countUndeterminableAssertions(truth: CaseTruth, prediction: CasePrediction): number {
+  const parsed = prediction.parsed;
+  if (!parsed) return 0;
+  let count = 0;
+  if (isUndeterminable(truth, "winnerSide") && parsed.winnerSide !== null) count += 1;
+  if (isUndeterminable(truth, "series") && parsed.series !== null) count += 1;
+  for (const field of truth.undeterminable) {
+    const match = /^games\[(\d+)\]\.map$/.exec(field);
+    if (!match) continue;
+    const index = Number(match[1]);
+    if (parsed.games[index] && parsed.games[index].map) count += 1;
+  }
+  return count;
+}
+
+/**
+ * 评估单个案例。没有预测记录时按 failed 处理——部分失败不能悄悄从分母里消失。
+ */
+export function evaluateCase(
+  input: CaseInput,
+  truth: CaseTruth,
+  prediction: CasePrediction | null,
+): CaseEvaluation {
+  const base = {
+    caseId: input.caseId,
+    groupId: input.groupId,
+    category: input.category,
+    split: input.split,
+    expectedRefusal: truth.shouldRefuse,
+    rulesPassed: true,
+    undeterminableAssertions: 0,
+    severeFabrication: 0,
+    gameScoreCorrect: [] as boolean[],
+    mapCorrect: [] as boolean[],
+    winnerCorrect: null as boolean | null,
+    seriesCorrect: null as boolean | null,
+    usable: false,
+    latencyMs: prediction?.latencyMs ?? null,
+    costUsd: prediction?.usage?.costUsd ?? null,
+  };
+
+  if (!prediction) {
+    return { ...base, status: "failed", reason: "无预测记录（适配器失败、超时或未执行）" };
+  }
+  if (prediction.validatorErrors.length > 0) {
+    return { ...base, status: "schemaError", reason: prediction.validatorErrors.join("；") };
+  }
+
+  // 拒答必须排在解析之前判断：拒答是合法的终止状态，其 parsed 天然为空，
+  // 若先判 parsed === null，会把每一次正确拒答都误记成解析错误。
+  if (prediction.refused) {
+    return truth.shouldRefuse
+      ? { ...base, status: "refusedOk", reason: truth.refusalReason ?? "按标注应当拒答" }
+      : { ...base, status: "refusedModel", reason: prediction.refusedReason ?? "模型拒答但信息其实充足" };
+  }
+  if (prediction.parsed === null) {
+    return { ...base, status: "parseError", reason: prediction.parseError ?? "输出无法解析" };
+  }
+
+  const parsed = prediction.parsed;
+
+  // 应当拒答却给了答案 → 严重虚构
+  if (truth.shouldRefuse) {
+    const asserted = (parsed.games.length > 0 ? 1 : 0) + (parsed.winnerSide ? 1 : 0) + (parsed.series ? 1 : 0);
+    return {
+      ...base,
+      status: "guessed",
+      reason: `应当拒答却给出 ${asserted} 项具体答案`,
+      severeFabrication: 1,
+      undeterminableAssertions: countUndeterminableAssertions(truth, prediction),
+    };
+  }
+
+  // 确定性规则复核：拒绝即不可用，且必须被记为规则冲突
+  const rules = ruleCheck(input.boType, parsed.games);
+  if (!rules.ok) {
+    return { ...base, status: "ruleRejected", rulesPassed: false, reason: rules.message ?? "违反 BO 规则" };
+  }
+
+  // 字段级比对
+  const gameScoreCorrect: boolean[] = [];
+  const mapCorrect: boolean[] = [];
+  const maxLen = Math.max(parsed.games.length, truth.games.length);
+  for (let i = 0; i < maxLen; i += 1) {
+    const truthGame = truth.games[i];
+    const parsedGame = parsed.games[i];
+    if (!truthGame || !parsedGame) {
+      gameScoreCorrect.push(false);
+      mapCorrect.push(false);
+      continue;
+    }
+    gameScoreCorrect.push(sameScore(truthGame, parsedGame));
+    if (truthGame.map !== null && !isUndeterminable(truth, `games[${i}].map`)) {
+      mapCorrect.push(truthGame.map === parsedGame.map);
+    }
+  }
+
+  const winnerCorrect = truth.winnerSide !== null && !isUndeterminable(truth, "winnerSide")
+    ? parsed.winnerSide === truth.winnerSide
+    : null;
+  const seriesCorrect = truth.series !== null && !isUndeterminable(truth, "series")
+    ? parsed.series !== null && parsed.series.a === truth.series.a && parsed.series.b === truth.series.b
+    : null;
+
+  const allCorrect = gameScoreCorrect.every(Boolean)
+    && mapCorrect.every(Boolean)
+    && winnerCorrect !== false
+    && seriesCorrect !== false;
+
+  return {
+    ...base,
+    status: allCorrect ? "correct" : "incorrect",
+    reason: allCorrect ? "关键字段全部正确" : "存在字段不匹配",
+    undeterminableAssertions: countUndeterminableAssertions(truth, prediction),
+    gameScoreCorrect,
+    mapCorrect,
+    winnerCorrect,
+    seriesCorrect,
+    usable: true,
+  };
+}
+
+export interface Rate {
+  correct: number;
+  total: number;
+  rate: number | null;
+}
+
+function rate(correct: number, total: number): Rate {
+  return { correct, total, rate: total === 0 ? null : correct / total };
+}
+
+export interface ReductionModel {
+  /** 人工逐局录入的操作次数：地图选择 + 两个比分 */
+  perGameInputs: number;
+  /** 系列级固定操作：确认胜者 + 提交 */
+  perSeriesInputs: number;
+}
+
+export const DEFAULT_REDUCTION_MODEL: ReductionModel = { perGameInputs: 3, perSeriesInputs: 2 };
+
+export interface ManualBaseline {
+  /** 人工手工填写的中位秒数，来自负责人亲历数据 */
+  medianSeconds: { BO1: number; BO3: number; BO5: number };
+  source: string;
+}
+
+export interface AggregateOptions {
+  reductionModel?: ReductionModel;
+  manualBaseline?: ManualBaseline;
+  /** 失败是否来自可修正的输入规范或提示词问题 */
+  retestable?: boolean;
+  /** 隐私或成本上的阻断问题；非空则直接 Stop */
+  blockingSafetyIssue?: string | null;
+}
+
+export interface ArmMetrics {
+  caseCount: number;
+  byStatus: Record<CaseStatus, number>;
+  /** 信息充足、应当出结果的有效样本数 */
+  validCaseCount: number;
+  /** 标注认为应当拒答的样本数 */
+  refusalCaseCount: number;
+  winner: Rate;
+  series: Rate;
+  gameScore: Rate;
+  map: Rate;
+  caseAllCorrect: Rate;
+  usablePrefill: Rate;
+  /** 应拒答案例中正确拒答的比例 */
+  correctRefusal: Rate;
+  /** 信息充足却拒答的比例（误拒） */
+  falseRefusal: Rate;
+  severeFabrication: number;
+  undeterminableAssertions: number;
+  /** 规则层拦下的非法 BO 次数 */
+  illegalProduced: number;
+  illegalWronglyAccepted: number;
+  /** 未被规则发现的事实错误（字段错但规则通过） */
+  unstampedErrors: number;
+  theoreticalReduction: number;
+  latency: { p50: number | null; p95: number | null };
+  totalCostUsd: number;
+}
+
+const STATUS_KEYS: CaseStatus[] = [
+  "correct",
+  "incorrect",
+  "refusedOk",
+  "refusedModel",
+  "guessed",
+  "parseError",
+  "schemaError",
+  "ruleRejected",
+  "failed",
+];
+
+function percentile(values: number[], p: number): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  return sorted[index];
+}
+
+export function aggregate(evaluations: CaseEvaluation[], options: AggregateOptions = {}): ArmMetrics {
+  const model = options.reductionModel ?? DEFAULT_REDUCTION_MODEL;
+  const byStatus = Object.fromEntries(STATUS_KEYS.map((s) => [s, 0])) as Record<CaseStatus, number>;
+  for (const item of evaluations) byStatus[item.status] += 1;
+
+  // 分母必须分开：
+  //   有效样本 = 标注认为信息充足、应当出结果的案例
+  //   应拒答样本 = 无效输入或关键信息不足
+  // 把两者混在一个分母里，会同时低估「可用预填」和高估「拒答能力」。
+  const validCases = evaluations.filter((e) => !e.expectedRefusal);
+  const refusalCases = evaluations.filter((e) => e.expectedRefusal);
+
+  let winnerCorrect = 0;
+  let winnerTotal = 0;
+  let seriesCorrect = 0;
+  let seriesTotal = 0;
+  let gameCorrect = 0;
+  let gameTotal = 0;
+  let mapCorrect = 0;
+  let mapTotal = 0;
+  let allCorrect = 0;
+  let usable = 0;
+  let reductionSum = 0;
+  let reductionCount = 0;
+
+  for (const item of evaluations) {
+    if (item.winnerCorrect !== null) {
+      winnerTotal += 1;
+      if (item.winnerCorrect) winnerCorrect += 1;
+    }
+    if (item.seriesCorrect !== null) {
+      seriesTotal += 1;
+      if (item.seriesCorrect) seriesCorrect += 1;
+    }
+    for (const flag of item.gameScoreCorrect) {
+      gameTotal += 1;
+      if (flag) gameCorrect += 1;
+    }
+    for (const flag of item.mapCorrect) {
+      mapTotal += 1;
+      if (flag) mapCorrect += 1;
+    }
+    if (item.status === "correct") allCorrect += 1;
+    if (item.usable) usable += 1;
+
+    // 理论字段削减：仅在预填可用时成立；不可用则记 0（人工仍需全填）
+    const gameCount = Math.max(item.gameScoreCorrect.length, 1);
+    const withoutAi = model.perGameInputs * gameCount + model.perSeriesInputs;
+    const reduction = item.usable ? 1 - model.perSeriesInputs / withoutAi : 0;
+    reductionSum += reduction;
+    reductionCount += 1;
+  }
+
+  const latencies = evaluations.map((e) => e.latencyMs).filter((v): v is number => typeof v === "number");
+  const costs = evaluations.map((e) => e.costUsd).filter((v): v is number => typeof v === "number");
+
+  return {
+    caseCount: evaluations.length,
+    byStatus,
+    validCaseCount: validCases.length,
+    refusalCaseCount: refusalCases.length,
+    winner: rate(winnerCorrect, winnerTotal),
+    series: rate(seriesCorrect, seriesTotal),
+    gameScore: rate(gameCorrect, gameTotal),
+    map: rate(mapCorrect, mapTotal),
+    caseAllCorrect: rate(allCorrect, usable),
+    usablePrefill: rate(usable, validCases.length),
+    correctRefusal: rate(byStatus.refusedOk, refusalCases.length),
+    falseRefusal: rate(byStatus.refusedModel, validCases.length),
+    severeFabrication: evaluations.reduce((sum, e) => sum + e.severeFabrication, 0),
+    undeterminableAssertions: evaluations.reduce((sum, e) => sum + e.undeterminableAssertions, 0),
+    illegalProduced: byStatus.ruleRejected,
+    // 结构不变式：可用却未过规则的案例数应恒为 0。放在这里是为了在管线被改坏时能被测试抓到。
+    illegalWronglyAccepted: evaluations.filter((e) => e.usable && !e.rulesPassed).length,
+    unstampedErrors: byStatus.incorrect,
+    theoreticalReduction: reductionCount === 0 ? 0 : reductionSum / reductionCount,
+    latency: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
+    totalCostUsd: costs.reduce((sum, v) => sum + v, 0),
+  };
+}
+
+export interface GateItem {
+  id: string;
+  requirement: string;
+  actual: string;
+  pass: boolean;
+}
+
+export interface GateResult {
+  items: GateItem[];
+  passed: boolean;
+}
+
+function ratePass(label: string, r: Rate, threshold: number): GateItem {
+  const actual = r.rate === null ? "无样本" : `${(r.rate * 100).toFixed(1)}%（${r.correct}/${r.total}）`;
+  return { id: label, requirement: `≥ ${(threshold * 100).toFixed(0)}%`, actual, pass: r.rate !== null && r.rate >= threshold };
+}
+
+/** Gate AI-2 硬门槛，逐条判定，不允许用「总体感觉不错」代替 */
+export function evaluateGate(metrics: ArmMetrics): GateResult {
+  const items: GateItem[] = [
+    ratePass("胜方精确匹配率", metrics.winner, 0.98),
+    ratePass("系列大比分精确匹配率", metrics.series, 0.98),
+    ratePass("单局比分精确匹配率", metrics.gameScore, 0.95),
+    ratePass("地图精确匹配率", metrics.map, 0.95),
+    {
+      id: "关键信息不足时不得猜测",
+      requirement: "0 次",
+      actual: `${metrics.severeFabrication + metrics.undeterminableAssertions} 次`,
+      pass: metrics.severeFabrication + metrics.undeterminableAssertions === 0,
+    },
+    {
+      id: "严重虚构事实",
+      requirement: "0 次",
+      actual: `${metrics.severeFabrication} 次`,
+      pass: metrics.severeFabrication === 0,
+    },
+    ratePass("可用预填比例", metrics.usablePrefill, 0.8),
+    {
+      id: "非法 BO 结果被规则拦截",
+      requirement: "100%",
+      actual: metrics.illegalWronglyAccepted === 0
+        ? `拦下 ${metrics.illegalProduced} 次，误放 ${metrics.illegalWronglyAccepted} 次`
+        : `误放 ${metrics.illegalWronglyAccepted} 次`,
+      pass: metrics.illegalWronglyAccepted === 0,
+    },
+    {
+      id: "可减少的手工字段比例",
+      requirement: "≥ 50%",
+      actual: `${(metrics.theoreticalReduction * 100).toFixed(1)}%`,
+      pass: metrics.theoreticalReduction >= 0.5,
+    },
+  ];
+  return { items, passed: items.every((i) => i.pass) };
+}
+
+export type Decision = "Go" | "Retest" | "No-Go" | "Stop";
+
+export interface DecisionResult {
+  decision: Decision;
+  reason: string;
+}
+
+/** 决策规则，对齐工作包 §5「决策输出」 */
+export function decide(gate: GateResult, metrics: ArmMetrics, options: AggregateOptions = {}): DecisionResult {
+  if (options.blockingSafetyIssue) {
+    return { decision: "Stop", reason: `存在不可接受的安全或成本问题：${options.blockingSafetyIssue}` };
+  }
+  if (metrics.severeFabrication > 0) {
+    return { decision: "Stop", reason: `出现 ${metrics.severeFabrication} 次严重虚构，属事实安全问题` };
+  }
+  if (gate.passed) return { decision: "Go", reason: "全部门槛通过，可进入影子运行设计" };
+  const failed = gate.items.filter((i) => !i.pass).map((i) => i.id);
+  if (options.retestable) {
+    return { decision: "Retest", reason: `未通过：${failed.join("、")}；判定为输入规范或提示词可修正` };
+  }
+  return { decision: "No-Go", reason: `未通过：${failed.join("、")}` };
+}

@@ -1,0 +1,163 @@
+# 赛果识别评测数据
+
+本目录存放 **AI 离线评测** 所需的 schema、标注指南与示例数据。
+
+## 这个目录里有**两套**彼此独立的评测
+
+不要混淆，两者的输入、模型能力与用途完全不同：
+
+| | 排程冲突解释（先有） | 赛果识别（本次新增） |
+|---|---|---|
+| 数据文件 | `模型输入_20例.json`、`首轮20例_模板基线.json` | `result-vision-example/`（示例）；真实数据集另建 |
+| 输入 | 结构化事实（赛制、比赛、改期申请） | 赛果截图 |
+| 模型能力 | 文本解释能力 | 视觉识别能力 |
+| 用途 | 冲突说明与通知文案 | 从截图读出地图、比分、胜方 |
+| 相关代码 | `tools/ai-eval/verify-ai-eval.ts`（`npm run test:ai-eval`） | `tools/ai-eval/result-vision/`（`npm run test:ai-result-eval`） |
+| 状态 | 已冻结，20 例基线已建 | 框架已完成，**样本尚未采集** |
+
+**排程冲突解释的评测结果不能用来证明视觉识别能力**，反之亦然。工作包明确禁止「修改旧的文本冲突评测结果冒充视觉评测」。
+
+> 那两个排程评测文件在目录根部，已被 `verify-ai-eval.ts` 按固定路径引用，**不要移动或改名**。
+
+## 最重要的两条规矩
+
+1. **原始截图不进仓库。** 截图里有玩家昵称、聊天、好友信息。仓库只允许放 schema、manifest、标注，以及经确认脱敏且批准入库的样本。
+2. **答案与输入分开存。** 模型执行者只能看到 `manifest.json`，看不到 `truth.json`。这不是靠自觉，是框架层面的限制：`run` 子命令根本不读 `truth.json`。
+
+## 目录结构
+
+```
+评测数据/
+├── README.md                    ← 本文件
+├── 模型输入_20例.json            ← 排程冲突解释评测（已跟踪，勿动）
+├── 首轮20例_模板基线.json        ← 排程冲突解释评测（已跟踪，勿动）
+└── result-vision-example/       ← 赛果识别：框架自测用的小样本（不是真实评测集）
+    ├── manifest.json            ← 输入，不含答案
+    ├── truth.json               ← 人工标注答案
+    └── mock.json                ← mock 适配器的固定输出，仅用于自测
+```
+
+真实赛果识别数据集采集后另建目录，图片放 `images/` 且**不进仓库**：
+
+```
+评测数据/
+└── <真实数据集>/
+    ├── manifest.json
+    ├── truth.json
+    └── images/                  ← 不进仓库，靠受控空间分发
+```
+
+## 数据结构
+
+### manifest.json（输入）
+
+| 字段 | 说明 |
+|---|---|
+| `schemaVersion` | 固定为 1 |
+| `datasetId` | 数据集标识 |
+| `frozenAt` | 冻结时间；冻结集才填 |
+| `cases[].caseId` | 案例唯一编号 |
+| `cases[].groupId` | **同一场比赛、同一原图及其裁剪变体必须同组**，防止数据泄漏 |
+| `cases[].split` | `dev` 调提示词 / `validation` 阶段比较 / `frozen` 出 Gate 结论 / `shadow` 上线后 |
+| `cases[].category` | 六类分层之一，见下表 |
+| `cases[].game` / `pageType` | 游戏与页面类型 |
+| `cases[].boType` | `BO1` / `BO3` / `BO5` |
+| `cases[].teams` | 双方队名，A 与 B 的对应关系以此为准 |
+| `cases[].knownMaps` | BP 已确定的地图，可作上下文 |
+| `cases[].images[]` | `file` / `order`（从 1 起）/ `synthetic`（由清晰图合成的退化样本必须标 true） |
+| `cases[].privacy` | `containsPii` 与遮盖方式 |
+| `cases[].note` | 作业说明。**只描述期望行为，不给答案** |
+
+> 输入层禁止出现 `series` / `winnerSide` / `games` 等答案字段，校验器会直接拒绝。
+
+### truth.json（答案）
+
+| 字段 | 说明 |
+|---|---|
+| `shouldRefuse` | 该案例是否应当拒答（无效输入、关键信息不足） |
+| `refusalReason` | 拒答原因 |
+| `undeterminable` | 图中不可确定的字段名，如 `winnerSide`、`games[0].map` |
+| `series` / `winnerSide` / `games` | 标准答案 |
+| `illegalBo` | 该案例比分本身违反 BO 规则（用于验证规则层必须拦下） |
+| `annotatedBy` | 标注者列表 |
+| `disagreements` / `resolvedBy` | 分歧内容与裁决人 |
+
+## 采集清单
+
+工作包要求至少 50 例、六类分层。按负责人说明，**赛事截图与排位截图都是干净图**——赛事截图是裁判赛后第一时间截的原始图，不是群里二次传的压缩图。因此权重需要按真实情况校准，不要照抄「脏图占大头」的假设。
+
+| 类别 | 最低 | 从哪来 | 注意 |
+|---|---:|---|---|
+| `clear` 标准清晰 | 15 | 两类来源都能出，量足 | 主战场，权重应最高 |
+| `compressed` 压缩裁剪 | 10 | **两种来源都不会自然产生**，由清晰图合成 | 标注 `synthetic: true` |
+| `blurry` 模糊遮挡 | 8 | 同上，由清晰图合成 | 标注 `synthetic: true` |
+| `multi-game` 多局多图 | 8 | 赛事截图天然就是多局 | BO3 / BO5 各留几组 |
+| `name-interference` 队名干扰 | 5 | **只有赛事截图能给**（排位显示的是玩家昵称） | 挑选左右顺序与名单相反、队名相近的场次 |
+| `invalid` 无效输入 | 4 | 非赛果截图 | 如大厅首页、聊天截图 |
+
+### 采集前必须先确认的一件事
+
+**排位界面与赛事截图的赛果页是否一致。** 拿一张上一届的图和一张排位图并排比一眼——界面一样，两类图可以混用；不一样，用排位图测出来的成绩会虚高。
+
+### 隐私处理
+
+- 排位截图含他人昵称、聊天、好友申请：**只截地图与比分区域**，或把昵称打码。
+- 每张图记录授权来源、用途、访问人和删除时间。
+- 模型供应商的数据保留政策未确认前，**不要上传真实图片**。
+
+## 标注
+
+- 每个案例两名标注者独立标，分歧写进 `disagreements`，由负责人裁决填 `resolvedBy`。
+- 图中看不清的字段一律填进 `undeterminable` 并在答案里留空——**标注自己也不许猜**。标注若猜了，就无法测出模型是否在猜。
+- `shouldRefuse: true` 的案例，`games` 必须为空数组。
+
+## 命令
+
+```bash
+# 只检查数据集体量（不跑模型）
+npm run ai:result-coverage -- --dataset=<数据集目录>
+
+# 执行一臂；默认 mock 适配器，不需要密钥
+npm run ai:result-run -- --dataset=<数据集目录> --arm=mock
+
+# 对照组：不使用视觉模型的固定表单
+npm run ai:result-run -- --dataset=<数据集目录> --arm=form-baseline
+
+# 真实模型（需要环境变量，见下）
+npm run ai:result-run -- --dataset=<数据集目录> --arm=vision
+
+# 评分并出 Gate 结论
+npm run ai:result-score -- --dataset=<数据集目录> --run=<run 目录>
+
+# 框架自测：用示例数据集跑通全流程
+npm run ai:result-selftest
+```
+
+真实模型需要这些环境变量（**不写进任何文件**）：
+`RESULT_VISION_PROVIDER`、`RESULT_VISION_MODEL`、`RESULT_VISION_BASE_URL`、`RESULT_VISION_API_KEY`，
+可选 `RESULT_VISION_INPUT_PRICE` / `RESULT_VISION_OUTPUT_PRICE` 用于估算成本。
+
+## 产出与检查
+
+运行产出默认落在 `.workbuddy/ai-eval-runs/`（已被 gitignore）。
+
+- `predictions.jsonl`：每条预测即时落盘，中途失败不丢已完成结果。
+- `failures.jsonl`：适配器失败、超时、缺图。
+- `report.json`：评分与 Gate 判定。**不含密钥、图片与模型原始输出**；模型原始输出默认不保存（`--store-raw` 可开，但真实截图旁常带个人信息，默认关闭是有意为之）。
+
+断点续跑：把 `--resume=<run 目录>` 传回去即可接着跑，不会重复执行已完成的案例。
+
+## 口径说明
+
+- **有效样本**指标注认为信息充足、应当出结果的案例；应拒答的案例单独作分母。混在一起算会同时低估可用预填、高估拒答能力。
+- **可用预填比例的门槛是 ≥80%**，分母是有效样本数。
+- **理论手工字段削减**按「每局 3 次输入（地图 + 两个比分）+ 系列级 2 次（确认胜者、提交）」建模，仅在预填可用时计削减。这是个显式模型，不是实测，报告中已标明。
+- **评分不读模型自报置信度。** 所有结论都来自「模型输出 vs 人工标注」的直接比对。
+- **确定性复核复用生产规则**（`src/lib/scheduling/schedule-ops.ts` 的 `validateGames`），评测与线上同一套 BO 校验，避免两边分叉后评测偏乐观。
+- **人工手工填写基线**取负责人亲历数据（BO1 20s / BO3 45s / BO5 90s，稳定态），仅作对照记录，不参与门槛。
+
+## 与工作包的关系
+
+对应 `docs/10-后续开发规划/03-AI数据与评测工作包_v1.0.md` 的 AIE-01（样本治理与标注）与 AIE-02（离线评测框架）。
+
+框架侧已完成；**样本侧尚未开始**，卡在采图。没有样本，框架跑出来的只有示例数据集的结果，不能作为任何结论。

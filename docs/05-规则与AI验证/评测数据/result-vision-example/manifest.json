@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "example-fixture",
+  "notes": "框架自测用的小样本示例，只演示数据结构与流程，不代表真实评测集。真实评测集需按工作包最低样本量采集，且图片不进仓库。",
+  "cases": [
+    {
+      "caseId": "ex-01-clear-bo1",
+      "groupId": "g-ex-01",
+      "split": "dev",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO1",
+      "teams": { "a": "寒锋战队", "b": "星轨战队" },
+      "knownMaps": ["亚海悬城"],
+      "images": [{ "file": "ex-01.png", "order": 1 }],
+      "privacy": { "containsPii": true, "redaction": "已遮盖右侧玩家昵称与聊天区域" }
+    },
+    {
+      "caseId": "ex-02-clear-bo3",
+      "groupId": "g-ex-02",
+      "split": "dev",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO3",
+      "teams": { "a": "疾风战队", "b": "凌云战队" },
+      "images": [
+        { "file": "ex-02-a.png", "order": 1 },
+        { "file": "ex-02-b.png", "order": 2 },
+        { "file": "ex-02-c.png", "order": 3 }
+      ],
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+    },
+    {
+      "caseId": "ex-03-compressed-bo3",
+      "groupId": "g-ex-03",
+      "split": "validation",
+      "category": "compressed",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO3",
+      "teams": { "a": "破晓战队", "b": "沉舟战队" },
+      "images": [
+        { "file": "ex-03-a.jpg", "order": 1, "synthetic": true },
+        { "file": "ex-03-b.jpg", "order": 2, "synthetic": true }
+      ],
+      "privacy": { "containsPii": false, "redaction": "裁剪后不含个人信息；退化效果由清晰图合成" }
+    },
+    {
+      "caseId": "ex-04-multigame-bo5",
+      "groupId": "g-ex-04",
+      "split": "dev",
+      "category": "multi-game",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO5",
+      "teams": { "a": "长夜战队", "b": "微光战队" },
+      "images": [
+        { "file": "ex-04-1.png", "order": 1 },
+        { "file": "ex-04-2.png", "order": 2 },
+        { "file": "ex-04-3.png", "order": 3 },
+        { "file": "ex-04-4.png", "order": 4 },
+        { "file": "ex-04-5.png", "order": 5 }
+      ],
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+    },
+    {
+      "caseId": "ex-05-name-interference-bo3",
+      "groupId": "g-ex-05",
+      "split": "validation",
+      "category": "name-interference",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO3",
+      "teams": { "a": "星轨战队", "b": "寒锋战队" },
+      "note": "截图里两队左右顺序与报名名单相反，考验是否能按队名对齐而不是按位置猜",
+      "images": [
+        { "file": "ex-05-a.png", "order": 1 },
+        { "file": "ex-05-b.png", "order": 2 },
+        { "file": "ex-05-c.png", "order": 3 }
+      ],
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+    },
+    {
+      "caseId": "ex-06-blurry-refuse",
+      "groupId": "g-ex-06",
+      "split": "dev",
+      "category": "blurry",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO3",
+      "teams": { "a": "归潮战队", "b": "拾光战队" },
+      "note": "第二局比分被遮挡，预期拒答",
+      "images": [
+        { "file": "ex-06-a.png", "order": 1 },
+        { "file": "ex-06-b.png", "order": 2, "synthetic": true }
+      ],
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+    },
+    {
+      "caseId": "ex-07-invalid-refuse",
+      "groupId": "g-ex-07",
+      "split": "dev",
+      "category": "invalid",
+      "game": "valorant",
+      "pageType": "大厅首页",
+      "boType": "BO3",
+      "teams": { "a": "未名战队", "b": "未名二队" },
+      "note": "传错图，不是赛果页面，预期拒答",
+      "images": [{ "file": "ex-07.png", "order": 1 }],
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+    },
+    {
+      "caseId": "ex-08-clear-bo3-frozen",
+      "groupId": "g-ex-08",
+      "split": "frozen",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "赛后结算页",
+      "boType": "BO3",
+      "teams": { "a": "望舒战队", "b": "照野战队" },
+      "images": [
+        { "file": "ex-08-a.png", "order": 1 },
+        { "file": "ex-08-b.png", "order": 2 }
+      ],
+      "privacy": { "containsPii": true, "redaction": "已遮盖玩家昵称" }
+    }
+  ]
+}
