@@ -145,7 +145,46 @@ console.log("✓ 队伍支持 5 名首发、1 名替补和 1 名教练，并限�
 
 console.log("✓ 队员退出（非队长/报名中）、队长不能单退、冻结后不可退/散；allowFrozen 放开冻结解散");
 
-// —— 建队队长选角色 ——
+// —— 建队不设数量上限 ——
+// 报名阶段允许队伍数超出赛制所需（本届为 32 队赛制），
+// 最终签位由抽签环节的队数区间校验把关，不在建队时挡人。
+{
+  // createTeamOp 返回新状态（不可变），所以用返回值逐次推进
+  let s = fixture();
+  const baseCount = s.teams.length;
+  const created: string[] = [];
+  for (let index = 0; index < 40; index += 1) {
+    const captainId = `cap-${index}`;
+    s = { ...s, players: [...s.players, player(captainId, { status: "已报名", teamId: undefined, role: undefined })] };
+    const r = createTeamOp(s, { name: `第${index}队`, captainId });
+    assert.equal(r.ok, true, `第 ${index + 1} 次建队应成功`);
+    s = r.state!;
+    created.push(r.team!.id);
+  }
+  assert.equal(s.teams.length, baseCount + 40, `总队伍数应为 ${baseCount} + 40`);
+  assert.equal(new Set(created).size, 40, "40 支新队 id 互不重复");
+}
+
+// 去掉上限后，同名与空名仍必须被拦
+{
+  let s = fixture();
+  const first = createTeamOp(s, { name: "重名队", captainId: "6" });
+  assert.equal(first.ok, true);
+  s = first.state!;
+
+  s = { ...s, players: [...s.players, player("cap-x", { status: "已报名", teamId: undefined, role: undefined })] };
+  const dup = createTeamOp(s, { name: "重名队", captainId: "cap-x" });
+  assert.equal(dup.ok, false, "同名队伍仍应被拒");
+  assert.match(dup.message ?? "", /同名/);
+
+  s = { ...s, players: [...s.players, player("cap-y", { status: "已报名", teamId: undefined, role: undefined })] };
+  const empty = createTeamOp(s, { name: "   ", captainId: "cap-y" });
+  assert.equal(empty.ok, false, "空名仍应被拒");
+}
+
+console.log("✓ 建队不设数量上限（建到 40 支仍成功）；同名与空名仍被拦");
+
+
 
 // 队长默认首发（兼容旧调用）
 {

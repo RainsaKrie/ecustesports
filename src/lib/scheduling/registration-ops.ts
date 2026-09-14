@@ -16,7 +16,6 @@ export interface TeamOpResult<T = never> {
   value?: T;
 }
 
-const MAX_TEAMS = 32;
 const MAX_NAME_LENGTH = 40;
 
 function memberCounts(state: RegistrationState, teamId: string) {
@@ -40,9 +39,9 @@ export function createTeamOp(
   if (state.teams.some((t) => t.name === name)) {
     return { ok: false, message: "已有同名队伍，请换个名字" };
   }
-  if (state.teams.length >= MAX_TEAMS) {
-    return { ok: false, message: `队伍数量已达上限（${MAX_TEAMS} 支）` };
-  }
+  // 建队不设数量上限：报名阶段允许队伍数超出赛制所需，
+  // 最终签位由抽签环节的队数区间校验（resolveStagedDrawGate）把关，
+  // 而不是在建队时就把人挡在门外。
   const captain = state.players.find((p) => p.id === input.captainId);
   if (!captain) {
     return { ok: false, message: "队长不存在，请先完成报名" };
