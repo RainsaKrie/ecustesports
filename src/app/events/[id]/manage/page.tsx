@@ -165,7 +165,7 @@ export default function ParticipantManagePage({
           <h1 className="truncate text-2xl font-black text-slate-950 sm:text-3xl">{data.player.gameId}</h1>
           <p className="mt-1 truncate text-xs font-bold text-[#60656d] sm:text-sm">{event.name}</p>
         </div>
-        <button onClick={disconnect} className="shrink-0 border border-black/15 px-3 py-2 text-xs font-black text-[#34383f]">切换身份</button>
+        <button onClick={disconnect} className="inline-flex min-h-11 shrink-0 items-center border border-black/15 px-3 text-xs font-black text-[#34383f]">切换身份</button>
       </div>
 
       {(participant.error || message) && (
@@ -178,7 +178,7 @@ export default function ParticipantManagePage({
           ["matches", "我的比赛"] as const,
           ["profile", "报名信息"] as const,
         ]).map(([section, label]) => (
-          <Link key={section} href={sectionHref(id, section)} className={`border-r border-black/10 px-2 py-3 text-center text-xs font-black last:border-r-0 sm:text-sm ${requestedSection === section ? "bg-[#ff4655] text-white" : "text-[#34383f] hover:bg-[#fff1f2]"}`}>{label}</Link>
+          <Link key={section} href={sectionHref(id, section)} className={`inline-flex min-h-11 items-center justify-center border-r border-black/10 px-2 text-center text-xs font-black last:border-r-0 sm:text-sm ${requestedSection === section ? "bg-[#ff4655] text-white" : "text-[#34383f] hover:bg-[#fff1f2]"}`}>{label}</Link>
         ))}
       </nav>
 
@@ -337,7 +337,7 @@ export default function ParticipantManagePage({
         <section className="border border-black/10 bg-[#fffdf8] p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3"><h2 className="text-lg font-black text-slate-950">我的比赛</h2>{data.nextMatch && <span className="border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500">{data.nextMatch.id} · {data.nextMatch.boType}</span>}</div>
           {!data.team ? (
-            <div className="mt-4 border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-bold text-amber-800">加入队伍后显示比赛</p><Link href={sectionHref(id, "team")} className="mt-3 inline-block text-sm font-black text-[#c83242]">前往组队</Link></div>
+            <div className="mt-4 border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-bold text-amber-800">加入队伍后显示比赛</p><Link href={sectionHref(id, "team")} className="mt-3 inline-flex min-h-11 items-center text-sm font-black text-[#c83242]">前往组队</Link></div>
           ) : !data.nextMatch ? (
             <p className="mt-4 text-sm text-slate-500">暂无待安排比赛</p>
           ) : (
@@ -372,14 +372,14 @@ export default function ParticipantManagePage({
               <label className="text-xs font-bold text-slate-600">QQ<input value={profile.qq} onChange={(e) => setProfileDraft({ ...profileDraft, qq: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-slate-600">手机号<input value={profile.phone} onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })} className={inputClass} /></label>
             </div>
-            <div className="mt-4"><p className="text-xs font-bold text-slate-600">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`border px-3 py-2 text-xs ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-white text-[#34383f]"}`}>{pos}</button>; })}</div></div>
+            <div className="mt-4"><p className="text-xs font-bold text-slate-600">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`inline-flex min-h-11 items-center border px-3 text-xs ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-white text-[#34383f]"}`}>{pos}</button>; })}</div></div>
             <label className="mt-4 block text-xs font-bold text-slate-600">自我介绍<textarea value={profile.intro} onChange={(e) => setProfileDraft({ ...profileDraft, intro: e.target.value })} rows={3} className="mt-1 w-full border border-black/15 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-[#ff4655]" /></label>
             <button onClick={() => run(() => participant.saveProfile(profile), "报名信息已更新。") } disabled={busy} className="mt-5 h-11 w-full bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50 sm:w-auto">保存修改</button>
           </section>
           <section className="border border-black/10 bg-[#fffdf8] p-4 sm:p-5">
             <h2 className="text-lg font-black text-[#171a1f]">备用参赛码</h2>
             <code className="mt-4 block min-h-11 break-all border border-black/10 bg-[#f2eee6] p-3 text-xs font-bold text-[#34383f]">{showCode ? participant.token : "••••••••••••••••••••••••"}</code>
-            <div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setShowCode((value) => !value)} className="h-10 border border-black/15 px-3 text-xs font-black text-[#34383f]">{showCode ? "隐藏" : "显示"}</button><button onClick={() => navigator.clipboard.writeText(participant.token).then(() => setMessage("参赛码已复制。"))} className="h-10 bg-[#ff4655] px-3 text-xs font-black text-white">复制</button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setShowCode((value) => !value)} className="h-11 border border-black/15 px-3 text-xs font-black text-[#34383f]">{showCode ? "隐藏" : "显示"}</button><button onClick={() => navigator.clipboard.writeText(participant.token).then(() => setMessage("参赛码已复制。"))} className="h-11 bg-[#ff4655] px-3 text-xs font-black text-white">复制</button></div>
           </section>
         </div>
       )}

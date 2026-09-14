@@ -961,6 +961,10 @@ summary:focus-visible {
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.75rem;
   text-decoration: none;
+  /* 触控目标高度：原本只有 18px，手机上是页脚里唯一的可点项，太难点中 */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .site-footer__links a:hover {

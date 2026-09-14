@@ -325,25 +325,30 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
 
   return (
     <div className="space-y-5">
-      <nav aria-label="赛事设置分区" className="overflow-x-auto border border-slate-200 bg-white">
-        <div className="grid min-w-[45rem] grid-cols-5 xl:min-w-0">
-          {VIEWS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setView(item.key)}
-              className={`border-r border-slate-200 px-5 py-4 text-left transition ${view === item.key ? "border-b-[3px] border-b-[#ff4655] bg-[#fff7f6]" : "border-b-[3px] border-b-transparent hover:bg-slate-50"}`}
-            >
-              <span className="font-mono text-[0.5625rem] font-black text-[#c83242]">{item.index}</span>
-              <span className="ml-3 text-xs font-black text-slate-800">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
+      <div>
+        {/* 5 个分区在窄屏装不下（内容宽 720px），容器可横向滚动。
+            必须给提示：滚动条在部分手机上不显示，用户会以为只有前几个分区。 */}
+        <p className="mb-1.5 text-[0.625rem] font-bold text-slate-500 xl:hidden">分区较多，可左右滑动查看</p>
+        <nav aria-label="赛事设置分区" className="overflow-x-auto border border-slate-200 bg-white">
+          <div className="grid min-w-[45rem] grid-cols-5 xl:min-w-0">
+            {VIEWS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setView(item.key)}
+                className={`border-r border-slate-200 px-5 py-4 text-left transition ${view === item.key ? "border-b-[3px] border-b-[#ff4655] bg-[#fff7f6]" : "border-b-[3px] border-b-transparent hover:bg-slate-50"}`}
+              >
+                <span className="font-mono text-[0.5625rem] font-black text-[#c83242]">{item.index}</span>
+                <span className="ml-3 text-xs font-black text-slate-800">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      </div>
 
       {view !== "overview" && (
         <div className="flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-5 py-3">
-          <button type="button" onClick={() => setView("overview")} className="text-xs font-bold text-slate-600 hover:text-slate-950">← 返回发布概览</button>
+          <button type="button" onClick={() => setView("overview")} className="inline-flex min-h-11 items-center text-xs font-bold text-slate-600 hover:text-slate-950">← 返回发布概览</button>
           <div className="flex items-center gap-3">
             {message && <span className={`text-xs font-bold ${saveState === "error" ? "text-red-600" : "text-emerald-700"}`}>{message}</span>}
             <button type="button" onClick={save} disabled={!dirty || saveState === "saving" || uploading} className="bg-[#ff4655] px-5 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">

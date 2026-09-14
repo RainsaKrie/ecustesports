@@ -11,7 +11,7 @@ import { POSITIONS } from "@/lib/scheduling/registration-data";
 const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
 
 const inputClass =
-  "w-full border border-gray-300 px-2.5 py-2 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
+  "min-h-11 w-full border border-gray-300 px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
 
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -156,7 +156,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
       <div className="mx-auto max-w-xl">
         <div className="mb-4 text-center md:mb-6">
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl">{event.name} · 选手报名</h1>
-          <Link href={`/events/${id}/manage?recover=1`} className="mt-3 inline-block text-xs font-bold text-[#c83242]">已经报过名？找回参赛信息</Link>
+          <Link href={`/events/${id}/manage?recover=1`} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-[#c83242]">已经报过名？找回参赛信息</Link>
           {phase !== "open" && (
             <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
               {phase === "not-open"
@@ -193,11 +193,11 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">QQ 号 <span className="text-red-500">*</span></label>
-                  <input type="text" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
+                  <input type="text" inputMode="numeric" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">手机号 <span className="text-red-500">*</span></label>
-                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
+                  <input type="text" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
                 </div>
               </div>
             </div>
@@ -213,7 +213,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
                       key={pos}
                       type="button"
                       onClick={() => togglePosition(pos)}
-                      className={`border px-4 py-2 text-sm transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-gray-300 bg-white text-gray-700 hover:border-[#ff4655]"}`}
+                      className={`inline-flex min-h-11 items-center border px-4 text-sm transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-gray-300 bg-white text-gray-700 hover:border-[#ff4655]"}`}
                     >
                       {pos}
                     </button>
