@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "ranked-capture-2026-09",
+  "notes": "首批真实样本，5 例，全部为同一截图者（花弄影）2026-09-10 至 09-13 的排位对局结果页。性质说明：这是排位赛截图，不是赛事截图。两者的结果页界面相同，因此可用于验证视觉识别能力；但它不含赛事特有的因素（真实队名、BP 确定的地图序列、报名名单比对），因此不能替代赛事样本。体量说明：5 例远低于工作包要求的最低样本量（50 例、六类分层），只能用于调试提示词与验证框架，不足以得出 Gate 结论。标定方式：每行的队伍归属由像素分析（行底色中位数）确定，并经人工放大核对；五例均通过「绿队 4 人 + 截图者自己 1 人 = 5，对手 5 人」的自洽校验。",
+  "cases": [
+    {
+      "caseId": "rv-01-lotus-13-9",
+      "groupId": "rv-01-lotus-13-9",
+      "split": "dev",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "对局结果页（计分板）",
+      "boType": "BO1",
+      "teams": {
+        "a": "本方（截图者所在队伍）",
+        "b": "对手队伍"
+      },
+      "knownMaps": [
+        "莲华古城"
+      ],
+      "images": [
+        {
+          "file": "rv-01-lotus-13-9.jpg",
+          "order": 1
+        }
+      ],
+      "privacy": {
+        "containsPii": true,
+        "redaction": "未做遮盖。排位赛截图含真实玩家昵称，仅用于受控的离线评测；仓库不保存图片（images/ 已 gitignore），上传任何模型供应商前须先确认其数据保留政策"
+      },
+      "note": "自己那一行排在第 7 位，位于两队交替段之外"
+    },
+    {
+      "caseId": "rv-02-ascent-13-11",
+      "groupId": "rv-02-ascent-13-11",
+      "split": "dev",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "对局结果页（计分板）",
+      "boType": "BO1",
+      "teams": {
+        "a": "本方（截图者所在队伍）",
+        "b": "对手队伍"
+      },
+      "knownMaps": [
+        "亚海悬城"
+      ],
+      "images": [
+        {
+          "file": "rv-02-ascent-13-11.jpg",
+          "order": 1
+        }
+      ],
+      "privacy": {
+        "containsPii": true,
+        "redaction": "未做遮盖。排位赛截图含真实玩家昵称，仅用于受控的离线评测；仓库不保存图片（images/ 已 gitignore），上传任何模型供应商前须先确认其数据保留政策"
+      },
+      "note": "焦灼比分，两队成员在列表里交错排列，且自己那一行位于第 3 位（交错段之内），队属只能靠底色判断"
+    },
+    {
+      "caseId": "rv-03-sunset-11-13",
+      "groupId": "rv-03-sunset-11-13",
+      "split": "dev",
+      "category": "name-interference",
+      "game": "valorant",
+      "pageType": "对局结果页（计分板）",
+      "boType": "BO1",
+      "teams": {
+        "a": "本方（截图者所在队伍）",
+        "b": "对手队伍"
+      },
+      "knownMaps": [
+        "日落之城"
+      ],
+      "images": [
+        {
+          "file": "rv-03-sunset-11-13.jpg",
+          "order": 1
+        }
+      ],
+      "privacy": {
+        "containsPii": true,
+        "redaction": "未做遮盖。排位赛截图含真实玩家昵称，仅用于受控的离线评测；仓库不保存图片（images/ 已 gitignore），上传任何模型供应商前须先确认其数据保留政策"
+      },
+      "note": "唯一落败的一局（截图者那队 11:13）。干扰点：己方有两名成员昵称高度相似（怪你敏感太可爱 / 怪我天生敏感），且分处列表第 8 与第 10 行，中间隔着一个对手"
+    },
+    {
+      "caseId": "rv-04-sky-13-6",
+      "groupId": "rv-04-sky-13-6",
+      "split": "dev",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "对局结果页（计分板）",
+      "boType": "BO1",
+      "teams": {
+        "a": "本方（截图者所在队伍）",
+        "b": "对手队伍"
+      },
+      "knownMaps": [
+        "天枢云阙"
+      ],
+      "images": [
+        {
+          "file": "rv-04-sky-13-6.jpg",
+          "order": 1
+        }
+      ],
+      "privacy": {
+        "containsPii": true,
+        "redaction": "未做遮盖。排位赛截图含真实玩家昵称，仅用于受控的离线评测；仓库不保存图片（images/ 已 gitignore），上传任何模型供应商前须先确认其数据保留政策"
+      },
+      "note": "自己那一行排在第 1 位（列表首行）。第 7 行的头像为问号占位（玩家使用隐藏头像）"
+    },
+    {
+      "caseId": "rv-05-neon-13-6",
+      "groupId": "rv-05-neon-13-6",
+      "split": "dev",
+      "category": "clear",
+      "game": "valorant",
+      "pageType": "对局结果页（计分板）",
+      "boType": "BO1",
+      "teams": {
+        "a": "本方（截图者所在队伍）",
+        "b": "对手队伍"
+      },
+      "knownMaps": [
+        "霓虹町"
+      ],
+      "images": [
+        {
+          "file": "rv-05-neon-13-6.jpg",
+          "order": 1
+        }
+      ],
+      "privacy": {
+        "containsPii": true,
+        "redaction": "未做遮盖。排位赛截图含真实玩家昵称，仅用于受控的离线评测；仓库不保存图片（images/ 已 gitignore），上传任何模型供应商前须先确认其数据保留政策"
+      },
+      "note": "自己那一行排在第 4 位，位于两队交错段的中间"
+    }
+  ]
+}

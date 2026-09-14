@@ -24,7 +24,7 @@ import {
   evaluateGate,
   type CaseEvaluation,
 } from "./metrics";
-import { checkDatasetCoverage, validateManifest, validateTruthFile } from "./schema";
+import { checkDatasetCoverage, validateManifest, validateParsedOutput, validateTruthFile } from "./schema";
 import { EXAMPLE_DATASET, executeRun, scoreRun } from "./run-eval";
 import type { CaseInput, CasePrediction, CaseTruth } from "./types";
 
@@ -413,6 +413,58 @@ console.log("\n== 组6 · 评分口径 ==");
       games: [{ map: "亚海悬城", teamAScore: 13, teamBScore: 13 }],
     })]).illegalWronglyAccepted === 0,
   );
+}
+
+console.log("\n== 组6b · 昵称分组（三种底色的坑）==");
+{
+  const truthWithGroups = (): CaseTruth => truth({
+    groups: { a: ["甲一号", "甲二号", "甲三号"], b: ["乙一号", "乙二号"] },
+  });
+
+  const perfect = evaluateCase(
+    input(),
+    truthWithGroups(),
+    prediction({ ...GOOD_PARSED, groups: { a: ["甲一号", "甲二号", "甲三号"], b: ["乙一号", "乙二号"] } }),
+  );
+  check("分组全对", perfect.groupingCorrect === 3 + 2 && perfect.groupingTotal === 5);
+
+  // 「自己那行」被单算成第三组 → 该昵称缺失
+  const selfRowMissed = evaluateCase(
+    input(),
+    truthWithGroups(),
+    prediction({ ...GOOD_PARSED, groups: { a: ["甲一号", "甲二号"], b: ["乙一号", "乙二号"] } }),
+  );
+  check("自己那行被漏掉时分组扣分", selfRowMissed.groupingCorrect === 4, String(selfRowMissed.groupingCorrect));
+
+  // 两侧整体对调
+  const swapped = evaluateCase(
+    input(),
+    truthWithGroups(),
+    prediction({ ...GOOD_PARSED, groups: { a: ["乙一号", "乙二号"], b: ["甲一号", "甲二号", "甲三号"] } }),
+  );
+  check("两侧对调时分组全错", swapped.groupingCorrect === 0 && swapped.groupingTotal === 5);
+
+  const swappedMetrics = aggregate([swapped]);
+  check("两侧对调被单独计数", swappedMetrics.groupingSwappedCases === 1);
+
+  const perfectMetrics = aggregate([perfect]);
+  check("分组准确率可计算", Math.abs((perfectMetrics.grouping.rate ?? 0) - 1) < 1e-9);
+  check("全对时不报对调", perfectMetrics.groupingSwappedCases === 0);
+
+  // 没标注分组 → 指标为空，且不把 Gate 判失败（缺样本由覆盖度检查负责）
+  const noGroups = evaluateCase(input(), truth(), prediction(GOOD_PARSED));
+  check("未标注分组时指标为空", noGroups.groupingCorrect === null && noGroups.groupingTotal === null);
+  const noGroupsGate = evaluateGate(aggregate([noGroups]));
+  const item = noGroupsGate.items.find((i) => i.id.includes("昵称分组"));
+  check("分组无样本时判为不适用而非失败", item?.pass === true && (item?.actual ?? "").includes("不适用"), item?.actual);
+
+  // 模型没输出分组 → 记 0 分而不是跳过
+  const missingOutput = evaluateCase(input(), truthWithGroups(), prediction(GOOD_PARSED));
+  check("有答案但模型没输出分组时记 0", missingOutput.groupingCorrect === 0 && missingOutput.groupingTotal === 5);
+
+  // 校验器接受合法分组、拒绝结构错误
+  check("合法分组通过校验", validateParsedOutput({ series: null, winnerSide: null, games: [], groups: { a: ["x"], b: ["y"] } }).length === 0);
+  check("分组结构错误被拒", validateParsedOutput({ series: null, winnerSide: null, games: [], groups: { a: "不是数组", b: [] } }).length > 0);
 }
 
 console.log("\n== 组7 · 覆盖度检查 ==");

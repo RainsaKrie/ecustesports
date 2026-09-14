@@ -108,6 +108,11 @@ export interface CaseTruth {
   games: TruthGame[];
   /** 该案例的比分本身违反 BO 规则（用于验证规则层必须拦下） */
   illegalBo: boolean;
+  /**
+   * 人工标注的分组答案：每个昵称属于哪一侧。
+   * 用于验证模型有没有正确处理「第三种底色（截图者自己那行）」。
+   */
+  groups?: { a: string[]; b: string[] };
   annotatedBy: string[];
   disagreements?: string;
   resolvedBy?: string;
@@ -117,6 +122,15 @@ export interface ParsedOutput {
   series: { a: number; b: number } | null;
   winnerSide: Side | null;
   games: TruthGame[];
+  /**
+   * 模型把每个昵称归到哪一侧。
+   *
+   * 为什么必须有这个字段：结算表用行底色区分队伍，但**底色有三种不是两种**——
+   * 除了两队各自的颜色，截图者自己那一行是另一种高亮色。
+   * 只输出「谁赢了」会掩盖「分错了队」这类错误：读对比分但把队分反，结果同样是错的，
+   * 但两者的修法完全不同。输出分组才能把失败原因分开。
+   */
+  groups?: { a: string[]; b: string[] } | null;
 }
 
 export interface TokenUsage {

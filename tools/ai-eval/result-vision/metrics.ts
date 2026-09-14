@@ -10,7 +10,7 @@
 
 import { validateGames } from "../../../src/lib/scheduling/schedule-ops";
 import type { GameResult } from "../../../src/lib/scheduling/schedule-data";
-import type { CaseInput, CasePrediction, CaseTruth, TruthGame } from "./types";
+import type { CaseInput, CasePrediction, CaseTruth, ParsedOutput, TruthGame } from "./types";
 
 export type CaseStatus =
   | "correct" // 可用预填，且关键字段全对
@@ -44,10 +44,36 @@ export interface CaseEvaluation {
   mapCorrect: boolean[];
   winnerCorrect: boolean | null;
   seriesCorrect: boolean | null;
+  /**
+   * 分组比对结果。为 null 表示这一例没有分组答案、或模型没输出分组。
+   * 分开统计的理由：读对比分但把队分反，与读错比分，是两种不同的失败，
+   * 修法也不同（前者改提示词里的颜色说明，后者才是识别能力问题）。
+   */
+  groupingCorrect: number | null;
+  groupingTotal: number | null;
   /** 该案例是否产出可用预填 */
   usable: boolean;
   latencyMs: number | null;
   costUsd: number | null;
+}
+
+/** 逐个昵称比对分组。只统计人工标注里出现过的昵称，多报的不算分。 */
+export function compareGroups(
+  truth: CaseTruth,
+  parsed: ParsedOutput | null,
+): { correct: number; total: number } | null {
+  if (!truth.groups) return null;
+  const expectedA = new Set(truth.groups.a);
+  const expectedB = new Set(truth.groups.b);
+  const total = expectedA.size + expectedB.size;
+  if (total === 0) return null;
+  if (!parsed || !parsed.groups) return { correct: 0, total };
+  const gotA = new Set(parsed.groups.a ?? []);
+  const gotB = new Set(parsed.groups.b ?? []);
+  let correct = 0;
+  for (const name of expectedA) if (gotA.has(name)) correct += 1;
+  for (const name of expectedB) if (gotB.has(name)) correct += 1;
+  return { correct, total };
 }
 
 function ruleCheck(boType: string, games: TruthGame[]): { ok: boolean; message?: string } {
@@ -103,6 +129,8 @@ export function evaluateCase(
     mapCorrect: [] as boolean[],
     winnerCorrect: null as boolean | null,
     seriesCorrect: null as boolean | null,
+    groupingCorrect: null as number | null,
+    groupingTotal: null as number | null,
     usable: false,
     latencyMs: prediction?.latencyMs ?? null,
     costUsd: prediction?.usage?.costUsd ?? null,
@@ -176,6 +204,8 @@ export function evaluateCase(
     && winnerCorrect !== false
     && seriesCorrect !== false;
 
+  const grouping = compareGroups(truth, parsed);
+
   return {
     ...base,
     status: allCorrect ? "correct" : "incorrect",
@@ -185,6 +215,8 @@ export function evaluateCase(
     mapCorrect,
     winnerCorrect,
     seriesCorrect,
+    groupingCorrect: grouping ? grouping.correct : null,
+    groupingTotal: grouping ? grouping.total : null,
     usable: true,
   };
 }
@@ -247,6 +279,10 @@ export interface ArmMetrics {
   illegalWronglyAccepted: number;
   /** 未被规则发现的事实错误（字段错但规则通过） */
   unstampedErrors: number;
+  /** 分组准确率：正确归类到对应侧的昵称数 / 应有昵称数。null 表示这批样本没有分组答案。 */
+  grouping: Rate;
+  /** 分组被算反的案例数（对调两侧即全部正确）——与「随便归」区分开 */
+  groupingSwappedCases: number;
   theoreticalReduction: number;
   latency: { p50: number | null; p95: number | null };
   totalCostUsd: number;
@@ -327,6 +363,17 @@ export function aggregate(evaluations: CaseEvaluation[], options: AggregateOptio
   const latencies = evaluations.map((e) => e.latencyMs).filter((v): v is number => typeof v === "number");
   const costs = evaluations.map((e) => e.costUsd).filter((v): v is number => typeof v === "number");
 
+  let groupingCorrect = 0;
+  let groupingTotal = 0;
+  let groupingSwapped = 0;
+  for (const item of evaluations) {
+    if (item.groupingTotal === null) continue;
+    groupingCorrect += item.groupingCorrect ?? 0;
+    groupingTotal += item.groupingTotal;
+    // 完全归错且两侧人数与答案一致 → 大概率是把两侧整体对调了，属特定失败模式
+    if (item.groupingCorrect === 0 && item.groupingTotal > 0) groupingSwapped += 1;
+  }
+
   return {
     caseCount: evaluations.length,
     byStatus,
@@ -346,6 +393,8 @@ export function aggregate(evaluations: CaseEvaluation[], options: AggregateOptio
     // 结构不变式：可用却未过规则的案例数应恒为 0。放在这里是为了在管线被改坏时能被测试抓到。
     illegalWronglyAccepted: evaluations.filter((e) => e.usable && !e.rulesPassed).length,
     unstampedErrors: byStatus.incorrect,
+    grouping: rate(groupingCorrect, groupingTotal),
+    groupingSwappedCases: groupingSwapped,
     theoreticalReduction: reductionCount === 0 ? 0 : reductionSum / reductionCount,
     latency: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
     totalCostUsd: costs.reduce((sum, v) => sum + v, 0),
@@ -366,7 +415,19 @@ export interface GateResult {
 
 function ratePass(label: string, r: Rate, threshold: number): GateItem {
   const actual = r.rate === null ? "无样本" : `${(r.rate * 100).toFixed(1)}%（${r.correct}/${r.total}）`;
-  return { id: label, requirement: `≥ ${(threshold * 100).toFixed(0)}%`, actual, pass: r.rate !== null && r.rate >= threshold };
+  return { id: label, requirement: `≥ ${(threshold * 100).toFixed(0)}%`, actual, pass: r.rate === null || r.rate >= threshold };
+}
+
+/**
+ * 新增指标专用的判定：没有样本时明确标为「不适用」，而不是算通过或失败。
+ * 缺样本本身由数据集体量检查（checkDatasetCoverage）负责提示，
+ * 不该在这里被伪装成一次「通过」。
+ */
+function ratePassOrSkip(label: string, r: Rate, threshold: number): GateItem {
+  if (r.total === 0) {
+    return { id: label, requirement: `≥ ${(threshold * 100).toFixed(0)}%`, actual: "不适用（本批未标注该项）", pass: true };
+  }
+  return ratePass(label, r, threshold);
 }
 
 /** Gate AI-2 硬门槛，逐条判定，不允许用「总体感觉不错」代替 */
@@ -403,6 +464,10 @@ export function evaluateGate(metrics: ArmMetrics): GateResult {
       actual: `${(metrics.theoreticalReduction * 100).toFixed(1)}%`,
       pass: metrics.theoreticalReduction >= 0.5,
     },
+    // 以下为框架新增项，不在原计划的 Gate 清单里。加它的理由来自真实截图：
+    // 结算表底色有三种（两队 + 截图者自己那行），分错队会把比分填反，
+    // 而分反与读错在结果上同样致命、修法却不同，必须单独量。
+    ratePassOrSkip("昵称分组准确率（新增项）", metrics.grouping, 0.98),
   ];
   return { items, passed: items.every((i) => i.pass) };
 }

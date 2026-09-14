@@ -341,6 +341,11 @@ export function scoreRun(datasetDir: string, runDir: string): ScoreOutcome {
       schemaVersion: meta.schemaVersion,
     },
     metrics,
+    grouping: {
+      昵称级准确率: metrics.grouping.rate,
+      样本数: `${metrics.grouping.correct}/${metrics.grouping.total}`,
+      疑似两侧对调的案例数: metrics.groupingSwappedCases,
+    },
     failureBreakdown: {
       模型错误_字段不匹配: metrics.byStatus.incorrect,
       解析错误_输出无法解析: metrics.byStatus.parseError,

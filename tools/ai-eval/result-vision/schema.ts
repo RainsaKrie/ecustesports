@@ -221,6 +221,7 @@ export function validateTruthFile(input: unknown, knownCaseIds?: Set<string>): s
     if (!Array.isArray(item.annotatedBy)) problems.push(`${label}.annotatedBy 必须是数组`);
     else if (item.annotatedBy.some((x) => !isNonEmptyString(x))) problems.push(`${label}.annotatedBy 含非法项`);
     checkGamesShape(item.games, `${label}.games`, problems, true);
+    checkGroups(item.groups, `${label}.groups`, problems);
 
     if (item.shouldRefuse === true && item.games && Array.isArray(item.games) && item.games.length > 0) {
       problems.push(`${label} 标为应拒答，却又给了逐局答案——标注自相矛盾`);
@@ -228,6 +229,22 @@ export function validateTruthFile(input: unknown, knownCaseIds?: Set<string>): s
   });
 
   return problems;
+}
+
+function checkGroups(value: unknown, label: string, problems: string[]): void {
+  if (value === undefined || value === null) return;
+  if (!isRecord(value)) {
+    problems.push(`${label} 必须是对象或 null`);
+    return;
+  }
+  for (const side of ["a", "b"] as const) {
+    const list = value[side];
+    if (!Array.isArray(list)) {
+      problems.push(`${label}.${side} 必须是数组`);
+      continue;
+    }
+    if (list.some((n) => !isNonEmptyString(n))) problems.push(`${label}.${side} 含空项`);
+  }
 }
 
 export function validateParsedOutput(input: unknown): string[] {
@@ -238,6 +255,7 @@ export function validateParsedOutput(input: unknown): string[] {
     problems.push(`parsed.winnerSide 必须是 "A" / "B" / null`);
   }
   checkGamesShape(input.games, "parsed.games", problems, true);
+  checkGroups(input.groups, "parsed.groups", problems);
   return problems;
 }
 

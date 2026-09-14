@@ -1,0 +1,168 @@
+{
+  "_note": "模拟「理想模型」的输出，仅用于自测框架端到端是否跑通。这不是任何真实模型的结果，不得据此判断识别能力。",
+  "rv-01-lotus-13-9": {
+    "refused": false,
+    "parsed": {
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 13,
+          "teamBScore": 9
+        }
+      ],
+      "groups": {
+        "a": [
+          "一只鱼",
+          "三只布朗熊",
+          "菠萝TVT",
+          "我是逆蝶",
+          "花弄影"
+        ],
+        "b": [
+          "yesbody",
+          "KIENN",
+          "Da1uM",
+          "iCc",
+          "Zora"
+        ]
+      }
+    }
+  },
+  "rv-02-ascent-13-11": {
+    "refused": false,
+    "parsed": {
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 11
+        }
+      ],
+      "groups": {
+        "a": [
+          "CornT",
+          "达纳都斯",
+          "Wayne",
+          "男生无畏契约名子",
+          "花弄影"
+        ],
+        "b": [
+          "CanCer",
+          "你可真有趣h",
+          "库库林白夜",
+          "Fone1",
+          "God"
+        ]
+      }
+    }
+  },
+  "rv-03-sunset-11-13": {
+    "refused": false,
+    "parsed": {
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "日落之城",
+          "teamAScore": 11,
+          "teamBScore": 13
+        }
+      ],
+      "groups": {
+        "a": [
+          "人见人爱张大侠",
+          "Ringo",
+          "怪你敏感太可爱",
+          "怪我天生敏感",
+          "花弄影"
+        ],
+        "b": [
+          "不妨再赌一次",
+          "终觉浅",
+          "此恨绵绵无绝期",
+          "睡觉打呼噜",
+          "穿吊带"
+        ]
+      }
+    }
+  },
+  "rv-04-sky-13-6": {
+    "refused": false,
+    "parsed": {
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "天枢云阙",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
+      ],
+      "groups": {
+        "a": [
+          "咪鸭捏",
+          "自古划船不靠桨",
+          "寂雨云流",
+          "生有可恋曲悦丹田",
+          "花弄影"
+        ],
+        "b": [
+          "时时而",
+          "二郎显圣真君",
+          "胡椒Hy",
+          "idaku",
+          "AGYJ"
+        ]
+      }
+    }
+  },
+  "rv-05-neon-13-6": {
+    "refused": false,
+    "parsed": {
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "霓虹町",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
+      ],
+      "groups": {
+        "a": [
+          "菜别骂用爱感化",
+          "夜寻月",
+          "借我变如不曾改变",
+          "寂雨云流",
+          "花弄影"
+        ],
+        "b": [
+          "IFTEARY",
+          "樊狗蛋",
+          "LL0three",
+          "小报告",
+          "不做不错"
+        ]
+      }
+    }
+  }
+}

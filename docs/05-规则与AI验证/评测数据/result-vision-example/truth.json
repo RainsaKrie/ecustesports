@@ -5,70 +5,238 @@
       "caseId": "ex-01-clear-bo1",
       "shouldRefuse": false,
       "undeterminable": [],
-      "series": { "a": 1, "b": 0 },
+      "series": {
+        "a": 1,
+        "b": 0
+      },
       "winnerSide": "A",
-      "games": [{ "map": "亚海悬城", "teamAScore": 13, "teamBScore": 7 }],
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 7
+        }
+      ],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ],
+      "groups": {
+        "a": [
+          "夜航星",
+          "落叶知秋",
+          "沧浪之水",
+          "寒鸦",
+          "白露为霜"
+        ],
+        "b": [
+          "拾光者",
+          "北辰",
+          "流萤",
+          "空山新雨",
+          "晓风残月"
+        ]
+      }
     },
     {
       "caseId": "ex-02-clear-bo3",
       "shouldRefuse": false,
       "undeterminable": [],
-      "series": { "a": 2, "b": 1 },
+      "series": {
+        "a": 2,
+        "b": 1
+      },
       "winnerSide": "A",
       "games": [
-        { "map": "亚海悬城", "teamAScore": 13, "teamBScore": 7 },
-        { "map": "源工重镇", "teamAScore": 10, "teamBScore": 13 },
-        { "map": "隐士修所", "teamAScore": 13, "teamBScore": 9 }
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 7
+        },
+        {
+          "map": "源工重镇",
+          "teamAScore": 10,
+          "teamBScore": 13
+        },
+        {
+          "map": "隐士修所",
+          "teamAScore": 13,
+          "teamBScore": 9
+        }
       ],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ],
+      "groups": {
+        "a": [
+          "破军",
+          "长歌当哭",
+          "青冥",
+          "听风者",
+          "孤舟蓑笠"
+        ],
+        "b": [
+          "逐月",
+          "西窗烛",
+          "望江南",
+          "青山见我",
+          "素履之往"
+        ]
+      }
     },
     {
       "caseId": "ex-03-compressed-bo3-sweep",
       "shouldRefuse": false,
       "undeterminable": [],
-      "series": { "a": 2, "b": 0 },
+      "series": {
+        "a": 2,
+        "b": 0
+      },
       "winnerSide": "A",
       "games": [
-        { "map": "霓虹町", "teamAScore": 13, "teamBScore": 5 },
-        { "map": "森寒冬港", "teamAScore": 13, "teamBScore": 11 }
+        {
+          "map": "霓虹町",
+          "teamAScore": 13,
+          "teamBScore": 5
+        },
+        {
+          "map": "森寒冬港",
+          "teamAScore": 13,
+          "teamBScore": 11
+        }
       ],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ],
+      "groups": {
+        "a": [
+          "晨光熹微",
+          "扶摇",
+          "不系之舟",
+          "松间照",
+          "临渊"
+        ],
+        "b": [
+          "千帆过",
+          "枯木逢春",
+          "远山淡影",
+          "白驹",
+          "长安"
+        ]
+      }
     },
     {
       "caseId": "ex-04-multigame-bo5",
       "shouldRefuse": false,
       "undeterminable": [],
-      "series": { "a": 3, "b": 2 },
+      "series": {
+        "a": 3,
+        "b": 2
+      },
       "winnerSide": "A",
       "games": [
-        { "map": "微风岛屿", "teamAScore": 13, "teamBScore": 9 },
-        { "map": "莲华古城", "teamAScore": 8, "teamBScore": 13 },
-        { "map": "裂变峡谷", "teamAScore": 13, "teamBScore": 10 },
-        { "map": "深海明珠", "teamAScore": 11, "teamBScore": 13 },
-        { "map": "日落之城", "teamAScore": 13, "teamBScore": 6 }
+        {
+          "map": "微风岛屿",
+          "teamAScore": 13,
+          "teamBScore": 9
+        },
+        {
+          "map": "莲华古城",
+          "teamAScore": 8,
+          "teamBScore": 13
+        },
+        {
+          "map": "裂变峡谷",
+          "teamAScore": 13,
+          "teamBScore": 10
+        },
+        {
+          "map": "深海明珠",
+          "teamAScore": 11,
+          "teamBScore": 13
+        },
+        {
+          "map": "日落之城",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
       ],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ],
+      "groups": {
+        "a": [
+          "守夜人",
+          "灯下客",
+          "星垂平野",
+          "独钓寒江",
+          "闻笛"
+        ],
+        "b": [
+          "萤火",
+          "掠影",
+          "南风知意",
+          "踏雪寻梅",
+          "初见"
+        ]
+      }
     },
     {
       "caseId": "ex-05-interleaved-bo3",
       "shouldRefuse": false,
       "undeterminable": [],
-      "series": { "a": 1, "b": 2 },
+      "series": {
+        "a": 1,
+        "b": 2
+      },
       "winnerSide": "B",
       "games": [
-        { "map": "幽邃地窟", "teamAScore": 13, "teamBScore": 4 },
-        { "map": "天枢云阙", "teamAScore": 9, "teamBScore": 13 },
-        { "map": "盐海矿镇", "teamAScore": 10, "teamBScore": 13 }
+        {
+          "map": "幽邃地窟",
+          "teamAScore": 13,
+          "teamBScore": 4
+        },
+        {
+          "map": "天枢云阙",
+          "teamAScore": 9,
+          "teamBScore": 13
+        },
+        {
+          "map": "盐海矿镇",
+          "teamAScore": 10,
+          "teamBScore": 13
+        }
       ],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"],
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ],
       "disagreements": "第一局曾按行的位置误判队属（两队交错），核对底色后更正",
-      "resolvedBy": "负责人"
+      "resolvedBy": "负责人",
+      "groups": {
+        "a": [
+          "拾光者",
+          "北辰",
+          "流萤",
+          "空山新雨",
+          "晓风残月"
+        ],
+        "b": [
+          "夜航星",
+          "落叶知秋",
+          "沧浪之水",
+          "寒鸦",
+          "白露为霜"
+        ]
+      }
     },
     {
       "caseId": "ex-06-blurry-refuse",
@@ -79,7 +247,10 @@
       "winnerSide": null,
       "games": [],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ]
     },
     {
       "caseId": "ex-07-invalid-refuse",
@@ -90,20 +261,53 @@
       "winnerSide": null,
       "games": [],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ]
     },
     {
       "caseId": "ex-08-clear-bo3-frozen",
       "shouldRefuse": false,
       "undeterminable": [],
-      "series": { "a": 2, "b": 0 },
+      "series": {
+        "a": 2,
+        "b": 0
+      },
       "winnerSide": "A",
       "games": [
-        { "map": "亚海悬城", "teamAScore": 13, "teamBScore": 11 },
-        { "map": "源工重镇", "teamAScore": 13, "teamBScore": 8 }
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 11
+        },
+        {
+          "map": "源工重镇",
+          "teamAScore": 13,
+          "teamBScore": 8
+        }
       ],
       "illegalBo": false,
-      "annotatedBy": ["标注者甲", "标注者乙"]
+      "annotatedBy": [
+        "标注者甲",
+        "标注者乙"
+      ],
+      "groups": {
+        "a": [
+          "望舒",
+          "疏影横斜",
+          "暗香浮动",
+          "月上柳梢",
+          "黄昏后"
+        ],
+        "b": [
+          "野径",
+          "云俱黑",
+          "江船火独明",
+          "晓看红湿",
+          "花重锦官"
+        ]
+      }
     }
   ]
 }

@@ -51,3 +51,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 评测数据集的原始截图：含真实玩家昵称，不进仓库
+/docs/05-规则与AI验证/评测数据/*/images/

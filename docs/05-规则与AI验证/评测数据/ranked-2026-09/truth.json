@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "caseId": "rv-01-lotus-13-9",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 13,
+          "teamBScore": 9
+        }
+      ],
+      "illegalBo": false,
+      "groups": {
+        "a": [
+          "一只鱼",
+          "三只布朗熊",
+          "菠萝TVT",
+          "我是逆蝶",
+          "花弄影"
+        ],
+        "b": [
+          "yesbody",
+          "KIENN",
+          "Da1uM",
+          "iCc",
+          "Zora"
+        ]
+      },
+      "annotatedBy": [
+        "像素分析（行底色中位数）",
+        "人工放大核对"
+      ],
+      "disagreements": "首轮转写有 6 处昵称误读与 2 处地图误读，经放大比对后更正",
+      "resolvedBy": "AI 协作者（依据裁剪放大图逐条核对）",
+      "_sourceNote": "截图日期 2026-09-13，时长 33:06，自己那一行在第 7 位"
+    },
+    {
+      "caseId": "rv-02-ascent-13-11",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 11
+        }
+      ],
+      "illegalBo": false,
+      "groups": {
+        "a": [
+          "CornT",
+          "达纳都斯",
+          "Wayne",
+          "男生无畏契约名子",
+          "花弄影"
+        ],
+        "b": [
+          "CanCer",
+          "你可真有趣h",
+          "库库林白夜",
+          "Fone1",
+          "God"
+        ]
+      },
+      "annotatedBy": [
+        "像素分析（行底色中位数）",
+        "人工放大核对"
+      ],
+      "disagreements": "首轮转写有 6 处昵称误读与 2 处地图误读，经放大比对后更正",
+      "resolvedBy": "AI 协作者（依据裁剪放大图逐条核对）",
+      "_sourceNote": "截图日期 2026-09-13，时长 38:26，自己那一行在第 3 位"
+    },
+    {
+      "caseId": "rv-03-sunset-11-13",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "日落之城",
+          "teamAScore": 11,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "groups": {
+        "a": [
+          "人见人爱张大侠",
+          "Ringo",
+          "怪你敏感太可爱",
+          "怪我天生敏感",
+          "花弄影"
+        ],
+        "b": [
+          "不妨再赌一次",
+          "终觉浅",
+          "此恨绵绵无绝期",
+          "睡觉打呼噜",
+          "穿吊带"
+        ]
+      },
+      "annotatedBy": [
+        "像素分析（行底色中位数）",
+        "人工放大核对"
+      ],
+      "disagreements": "首轮转写有 6 处昵称误读与 2 处地图误读，经放大比对后更正",
+      "resolvedBy": "AI 协作者（依据裁剪放大图逐条核对）",
+      "_sourceNote": "截图日期 2026-09-10，时长 32:59，自己那一行在第 2 位"
+    },
+    {
+      "caseId": "rv-04-sky-13-6",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "天枢云阙",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
+      ],
+      "illegalBo": false,
+      "groups": {
+        "a": [
+          "咪鸭捏",
+          "自古划船不靠桨",
+          "寂雨云流",
+          "生有可恋曲悦丹田",
+          "花弄影"
+        ],
+        "b": [
+          "时时而",
+          "二郎显圣真君",
+          "胡椒Hy",
+          "idaku",
+          "AGYJ"
+        ]
+      },
+      "annotatedBy": [
+        "像素分析（行底色中位数）",
+        "人工放大核对"
+      ],
+      "disagreements": "首轮转写有 6 处昵称误读与 2 处地图误读，经放大比对后更正",
+      "resolvedBy": "AI 协作者（依据裁剪放大图逐条核对）",
+      "_sourceNote": "截图日期 2026-09-13，时长 28:51，自己那一行在第 1 位"
+    },
+    {
+      "caseId": "rv-05-neon-13-6",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "霓虹町",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
+      ],
+      "illegalBo": false,
+      "groups": {
+        "a": [
+          "菜别骂用爱感化",
+          "夜寻月",
+          "借我变如不曾改变",
+          "寂雨云流",
+          "花弄影"
+        ],
+        "b": [
+          "IFTEARY",
+          "樊狗蛋",
+          "LL0three",
+          "小报告",
+          "不做不错"
+        ]
+      },
+      "annotatedBy": [
+        "像素分析（行底色中位数）",
+        "人工放大核对"
+      ],
+      "disagreements": "首轮转写有 6 处昵称误读与 2 处地图误读，经放大比对后更正",
+      "resolvedBy": "AI 协作者（依据裁剪放大图逐条核对）",
+      "_sourceNote": "截图日期 2026-09-13，时长 26:33，自己那一行在第 4 位"
+    }
+  ]
+}
