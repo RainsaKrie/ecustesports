@@ -30,6 +30,8 @@ type MatchSummary = {
   startTime?: string;
   /** 是否为我本人认领（而非负责人指派）——两者的退出方式不同 */
   selfClaimed?: boolean;
+  /** 与我手上另一场时间重叠（改期不会通知裁判，这是唯一的发现途径） */
+  overlapsMyMatch?: boolean;
 };
 
 /** 尚未被人认领、且已具备执裁条件的比赛 */
@@ -473,6 +475,11 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                       <span className="text-lg font-semibold text-[#0f1923]">{m.teamBName}</span>
                     </div>
                     {m.startTime && <p className="mt-1 text-sm text-[#667078]">{fmtTime(m.startTime)}</p>}
+                    {m.overlapsMyMatch && (
+                      <p className="mt-2 border-l-2 border-[#d83b48] pl-3 text-xs leading-5 text-[#d83b48]">
+                        这场和你手上的另一场时间重叠了。若是改期造成的，请找负责人确认该怎么排。
+                      </p>
+                    )}
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <span className="text-sm text-[#667078]">{m.status}</span>
                       <div className="flex items-center gap-2">

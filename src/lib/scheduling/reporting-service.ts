@@ -251,6 +251,18 @@ export interface MyMatchSummary {
    * 自己认领的可以释放，被指派的要找负责人撤销。
    */
   selfClaimed: boolean;
+  /**
+   * 是否与「我手上另一场比赛」时间重叠。
+   *
+   * 为什么「我的比赛」也需要这个：裁判是按当时看到的时间决定接不接的，
+   * 而**改期不会通知裁判**（改期逻辑只动赛程文档，不知道裁判台账的存在）。
+   * 于是可能出现「认领了 12:00 和 15:00 两场，其中一场被改到 12:30」——
+   * 两场撞在一起，而裁判毫无提示。
+   *
+   * 与 projectOpenMatches 的同名字段一样，**只提示不拦截**：
+   * 时段长度来自配置估算，判断权交给执裁的人。
+   */
+  overlapsMyMatch: boolean;
 }
 
 /** 可认领的比赛（尚未有人认领、且已具备可执裁条件） */
@@ -294,11 +306,21 @@ export function projectMyMatches(
 ): MyMatchSummary[] {
   const mine = state.referee.assignments.filter((a) => a.refereeId === refereeId && a.status === "assigned");
   const mineByMatch = new Map(mine.map((a) => [a.matchId, a]));
-  return state.matches
-    .filter((m) => mineByMatch.has(m.id))
+  const myMatches = state.matches.filter((m) => mineByMatch.has(m.id));
+
+  return myMatches
     .map((m) => {
       const a = squadsByTeamId?.get(m.teamAId);
       const b = squadsByTeamId?.get(m.teamBId);
+      // 与我手上其余场次逐一比对，任一重叠即标记。
+      // 改期不会通知裁判，所以这一层检查是裁判发现自己时间撞车的唯一途径。
+      const overlapsMine = myMatches.some(
+        (other) =>
+          other.id !== m.id
+          && Boolean(m.startTime)
+          && Boolean(other.startTime)
+          && overlaps(m.startTime, m.endTime ?? m.startTime, other.startTime, other.endTime ?? other.startTime),
+      );
       return {
         matchId: m.id,
         teamAName: m.teamAName,
@@ -310,6 +332,7 @@ export function projectMyMatches(
         squads: a?.length && b?.length ? { a, b } : null,
         startTime: m.startTime ?? "",
         selfClaimed: mineByMatch.get(m.id)?.selfClaimed === true,
+        overlapsMyMatch: overlapsMine,
       };
     })
     // 有时间先按时间排；未排期的沉底

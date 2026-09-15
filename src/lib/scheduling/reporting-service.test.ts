@@ -346,6 +346,65 @@ console.log("\n== 组6 · 管理员异常队列投影（RPT-06） ==");
   }
 
   console.log("");
+  console.log("== ★ 改期后「我的比赛」内部重叠要被发现 ==");
+  {
+    // 场景：裁判认领了 12:00 和 15:00 两场（当时不冲突），
+    // 后来其中一场被改到 12:30，两场撞了。
+    // ★ 改期不会通知裁判（approveRequestOp 只动赛程文档，不知道裁判台账），
+    //   所以这个标记是裁判发现自己时间撞车的唯一途径。
+    const base = [
+      match("M1", { startTime: "2026-10-06T12:00:00", endTime: "2026-10-06T13:30:00" }),
+      match("M2", { startTime: "2026-10-06T15:00:00", endTime: "2026-10-06T16:30:00" }),
+    ];
+    const claimed1 = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: refId }, madeRef.state!);
+    const claimed2 = claimMatchOp({ eventId: EVENT, matchId: "M2", refereeId: refId }, claimed1.state!);
+
+    const beforeReschedule = projectMyMatches(stateWithMatches(base, claimed2.state!), refId);
+    check("改期前两场都不算重叠", beforeReschedule.every((m) => !m.overlapsMyMatch),
+      beforeReschedule.map((m) => m.matchId + ":" + m.overlapsMyMatch).join(","));
+
+    // 把 M2 改到 12:30（与 M1 的 12:00-13:30 重叠）
+    const moved = base.map((m) =>
+      m.id === "M2" ? { ...m, startTime: "2026-10-06T12:30:00", endTime: "2026-10-06T14:00:00" } : m,
+    );
+    const after = projectMyMatches(stateWithMatches(moved, claimed2.state!), refId);
+    check("改期后两场都被标记重叠", after.every((m) => m.overlapsMyMatch),
+      after.map((m) => m.matchId + ":" + m.overlapsMyMatch).join(","));
+
+    // 首尾相接不算重叠（13:30 结束 / 13:30 开始）
+    const adjacent = base.map((m) =>
+      m.id === "M2" ? { ...m, startTime: "2026-10-06T13:30:00", endTime: "2026-10-06T15:00:00" } : m,
+    );
+    const touching = projectMyMatches(stateWithMatches(adjacent, claimed2.state!), refId);
+    check("首尾相接不算重叠", touching.every((m) => !m.overlapsMyMatch),
+      touching.map((m) => m.matchId + ":" + m.overlapsMyMatch).join(","));
+
+    // 只有一场时不可能重叠
+    const onlyOne = stateWithMatches([base[0]], claimed2.state!);
+    check("只有一场时不会有重叠标记", projectMyMatches(onlyOne, refId).every((m) => !m.overlapsMyMatch));
+
+    // 未排期的场次不参与重叠判定
+    const withUnscheduled = [...base, match("M9")];
+    const claimed3 = claimMatchOp({ eventId: EVENT, matchId: "M9", refereeId: refId }, claimed2.state!);
+    const un = projectMyMatches(stateWithMatches(withUnscheduled, claimed3.state!), refId);
+    check("未排期的场次不算重叠", un.every((m) => !m.overlapsMyMatch),
+      un.map((m) => m.matchId + ":" + m.overlapsMyMatch).join(","));
+
+    // 别人的场次不该影响我的重叠判断
+    const other = createRefereeOp(
+      { eventId: EVENT, displayName: "裁判丙", actorId: ADMIN, credentialExpiresAt: EXPIRY },
+      claimed3.state!,
+    ) as RefereeOpResult<{ refereeId: string }>;
+    const otherClaim = claimMatchOp({ eventId: EVENT, matchId: "M5", refereeId: other.value!.refereeId }, other.state!);
+    const mixed = projectMyMatches(
+      stateWithMatches([...base, match("M5", { startTime: "2026-10-06T12:10:00", endTime: "2026-10-06T13:40:00" })], otherClaim.state!),
+      refId,
+    );
+    check("别人认领的场次不影响我的重叠判断", mixed.every((m) => !m.overlapsMyMatch),
+      mixed.map((m) => m.matchId + ":" + m.overlapsMyMatch).join(","));
+  }
+
+  console.log("");
   console.log("== 边界 ==");
   {
     check("没有比赛时返回空数组", projectOpenMatches(stateWithMatches([], madeRef.state!), refId).length === 0);
