@@ -22,6 +22,9 @@ const PUBLIC_WRITE_PATHS = [
   // 裁判传图识别：与 submit/upload 同类，身份由裁判凭证在服务端校验，
   // 不走管理员会话。漏加这个会让该接口在浏览器里恒返回 401。
   "/api/referee/recognize",
+  // 裁判自助认领/释放比赛：身份同样由裁判凭证校验。
+  // 漏加会让裁判在浏览器里点「认领」恒返回 401（直调 API 测不出来）。
+  "/api/referee/claim",
 ];
 
 const WRITE_LIMITS: Array<{ prefix: string; action: string; limit: number; windowSeconds: number }> = [

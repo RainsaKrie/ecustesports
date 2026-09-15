@@ -26,6 +26,26 @@ type MatchSummary = {
   mapSequence?: string[];
   /** 双方登场队员昵称；前端不直接展示，仅用于确认「识别有依据可用」 */
   squads?: { a: string[]; b: string[] } | null;
+  /** 开始时间（空表示待排期） */
+  startTime?: string;
+  /** 是否为我本人认领（而非负责人指派）——两者的退出方式不同 */
+  selfClaimed?: boolean;
+};
+
+/** 尚未被人认领、且已具备执裁条件的比赛 */
+type OpenMatch = {
+  matchId: string;
+  teamAName: string;
+  teamBName: string;
+  boType: string;
+  startTime: string;
+  endTime: string;
+  mapSequence?: string[];
+  /**
+   * 与「我手上已有（认领或指派）的比赛」时间重叠——提示用，不阻断认领。
+   * 措辞上不能只说「认领」：重叠的那场可能是负责人指派的。
+   */
+  overlapsMyMatch?: boolean;
 };
 
 type Stage = "login" | "matches" | "report" | "confirm" | "done";
@@ -74,6 +94,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   const [credential, setCredential] = useState("");
   const [eventId, setEventId] = useState(initialEventId);
   const [matches, setMatches] = useState<MatchSummary[]>([]);
+  const [openMatches, setOpenMatches] = useState<OpenMatch[]>([]);
+  const [claimingId, setClaimingId] = useState("");
   const [activeMatch, setActiveMatch] = useState<MatchSummary | null>(null);
   const [games, setGames] = useState<GameDraft[]>([]);
   const [confirmPayload, setConfirmPayload] = useState<ConfirmPayload | null>(null);
@@ -107,7 +129,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
       });
       if (!res.ok) { setError("凭证无效，请核对后重试"); return; }
       setStage("matches");
-      await loadMatches(credential.trim());
+      await Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())]);
     } catch {
       setError("网络连接失败，请检查后重试");
     }
@@ -126,6 +148,52 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     } catch {
       setError("网络连接失败");
     }
+  }
+
+  /**
+   * 加载可认领的比赛。
+   *
+   * 对应实际流程：队伍先约好时间得到比赛列表，裁判自己挑能执裁的认领。
+   * 已排期、未完成、还没人认领的场次才会出现在这里。
+   */
+  async function loadOpenMatches(cred: string) {
+    try {
+      const res = await fetch(`/api/referee/claim?eventId=${encodeURIComponent(eventId)}`, {
+        headers: { "x-referee-credential": cred },
+      });
+      if (!res.ok) return; // 读不到只是没有可认领列表，不阻塞「我的比赛」
+      const data = (await res.json()) as { matches: OpenMatch[] };
+      setOpenMatches(data.matches ?? []);
+    } catch {
+      // 忽略：可认领列表是辅助信息，失败不应打断主流程
+    }
+  }
+
+  /** 认领或释放一场比赛，然后刷新两个列表 */
+  async function claimAction(matchId: string, action: "claim" | "release") {
+    setClaimingId(matchId);
+    setError("");
+    setBanner("");
+    try {
+      const res = await fetch("/api/referee/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-referee-credential": credential.trim() },
+        body: JSON.stringify({ eventId, matchId, action, credential: credential.trim() }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) {
+        // 409 = 刚被别人抢走。这不是出错，是抢单的正常结果，要如实告诉裁判。
+        setError(res.status === 409 ? (data.message ?? "这场刚被别人认领了") : (data.message ?? "操作失败"));
+        await Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())]);
+        setClaimingId("");
+        return;
+      }
+      setBanner(data.message ?? (action === "claim" ? "已认领该场" : "已释放该场"));
+      await Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())]);
+    } catch {
+      setError("网络连接失败，请重试");
+    }
+    setClaimingId("");
   }
 
   function openMatch(match: MatchSummary) {
@@ -370,39 +438,118 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   if (stage === "matches") {
     return (
       <Shell title="我的比赛" onBack={() => setStage("login")}>
-        {matches.length === 0 ? (
-          <EmptyState text="暂无分配给你的比赛" />
-        ) : (
-          <ul className="flex flex-col">
-            {matches.map((m, i) => (
-              <li key={m.matchId}>
-                <button
-                  onClick={() => openMatch(m)}
-                  className={`w-full border-l-4 px-5 py-5 text-left transition-colors ${
-                    activeMatch?.matchId === m.matchId
-                      ? "border-[#ff4655] bg-white"
-                      : "border-transparent bg-transparent hover:bg-white/50"
-                  }`}
-                >
+        {error && <p className="mb-4 border-l-4 border-[#ff4655] bg-white px-4 py-3 text-sm text-[#d83b48]">{error}</p>}
+        {banner && <p className="mb-4 border-l-4 border-[#1a7f5a] bg-white px-4 py-3 text-sm text-[#0f1923]">{banner}</p>}
+
+        {/* ---- 我的比赛：已认领或被指派的场次 ---- */}
+        <section className="mb-6">
+          <div className="flex items-center justify-between px-1 pb-2">
+            <h2 className="mono-label text-[#0f1923]">我的比赛 · {matches.length}</h2>
+            <button
+              type="button"
+              onClick={() => void Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())])}
+              className="inline-flex min-h-11 items-center px-2 text-sm text-[#667078] hover:text-[#ff4655]"
+            >
+              刷新
+            </button>
+          </div>
+          {matches.length === 0 ? (
+            <EmptyState text="还没有你要裁的比赛，从下面挑一场认领" />
+          ) : (
+            <ul className="flex flex-col">
+              {matches.map((m, i) => (
+                <li key={m.matchId}>
+                  <div className="w-full border-l-4 border-transparent bg-white px-5 py-5">
+                    <div className="flex items-center justify-between">
+                      <span className="mono-label text-[#d83b48]">MATCH {String(i + 1).padStart(2, "0")}</span>
+                      <span className="mono-label text-[#667078]">
+                        {m.boType}
+                        {m.selfClaimed ? " · 我认领的" : " · 负责人指派"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-lg font-semibold text-[#0f1923]">{m.teamAName}</span>
+                      <span className="mx-3 text-sm text-[#667078]">VS</span>
+                      <span className="text-lg font-semibold text-[#0f1923]">{m.teamBName}</span>
+                    </div>
+                    {m.startTime && <p className="mt-1 text-sm text-[#667078]">{fmtTime(m.startTime)}</p>}
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-sm text-[#667078]">{m.status}</span>
+                      <div className="flex items-center gap-2">
+                        {m.selfClaimed && m.status !== "已完成" && (
+                          <button
+                            type="button"
+                            onClick={() => void claimAction(m.matchId, "release")}
+                            disabled={claimingId === m.matchId}
+                            className="inline-flex min-h-11 items-center border border-[#0f1923]/25 bg-white px-3 text-sm text-[#667078] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                            style={{ borderRadius: 0 }}
+                          >
+                            {claimingId === m.matchId ? "处理中…" : "释放这场"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => openMatch(m)}
+                          className="min-h-11 bg-[#ff4655] px-4 text-sm font-bold text-white hover:bg-[#d83b48]"
+                          style={{ borderRadius: 0 }}
+                        >
+                          进入报分 →
+                        </button>
+                      </div>
+                    </div>
+                    {!m.selfClaimed && (
+                      <p className="mt-2 text-xs leading-5 text-[#667078]">
+                        这场是负责人指派的，如需退出请联系负责人撤销。
+                      </p>
+                    )}
+                  </div>
+                  {i < matches.length - 1 && <div className="ml-5 border-b border-[#0f1923]/15" />}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ---- 可认领的比赛：已约好时间、还没人认领的场次 ---- */}
+        <section className="pb-8">
+          <h2 className="mono-label px-1 pb-2 text-[#0f1923]">可认领的比赛 · {openMatches.length}</h2>
+          {openMatches.length === 0 ? (
+            <EmptyState text="暂时没有可认领的比赛。等队伍约好时间后会出现在这里。" />
+          ) : (
+            <ul className="flex flex-col">
+              {openMatches.map((m) => (
+                <li key={m.matchId} className="border-l-4 border-transparent bg-white px-5 py-5">
                   <div className="flex items-center justify-between">
-                    <span className="mono-label text-[#d83b48]">MATCH {String(i + 1).padStart(2, "0")}</span>
+                    <span className="mono-label text-[#0f1923]">{fmtTime(m.startTime)}</span>
                     <span className="mono-label text-[#667078]">{m.boType}</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-lg font-semibold text-[#0f1923]">{m.teamAName}</span>
+                    <span className="text-base font-semibold text-[#0f1923]">{m.teamAName}</span>
                     <span className="mx-3 text-sm text-[#667078]">VS</span>
-                    <span className="text-lg font-semibold text-[#0f1923]">{m.teamBName}</span>
+                    <span className="text-base font-semibold text-[#0f1923]">{m.teamBName}</span>
                   </div>
-                  <div className="mt-1 flex justify-between text-sm text-[#667078]">
-                    <span>{m.status}</span>
-                    <span className="text-[#ff4655]">进入报分 →</span>
-                  </div>
-                </button>
-                {i < matches.length - 1 && <div className="ml-5 border-b border-[#0f1923]/15" />}
-              </li>
-            ))}
-          </ul>
-        )}
+                  {(m.mapSequence?.length ?? 0) > 0 && (
+                    <p className="mt-1 text-xs text-[#667078]">地图：{m.mapSequence!.join("、")}</p>
+                  )}
+                  {m.overlapsMyMatch && (
+                    <p className="mt-2 border-l-2 border-[#d83b48] pl-3 text-xs leading-5 text-[#d83b48]">
+                      这个时段和你手上的另一场（认领或指派的）重叠，一个人没法同时裁两场——请先确认。
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void claimAction(m.matchId, "claim")}
+                    disabled={claimingId === m.matchId}
+                    className="mt-3 min-h-11 w-full border border-[#0f1923]/25 bg-white px-4 text-sm font-bold text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                    style={{ borderRadius: 0 }}
+                  >
+                    {claimingId === m.matchId ? "认领中…" : "我来裁这场"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </Shell>
     );
   }
@@ -672,6 +819,12 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   }
 
   return null;
+}
+
+/** 把 ISO 时间显示成「10-06 12:00」——裁判看比赛时间不需要年份和秒 */
+function fmtTime(iso: string): string {
+  if (!iso) return "时间待定";
+  return iso.slice(5, 16).replace("T", " ");
 }
 
 function Shell({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {

@@ -9,6 +9,7 @@ import {
   loginRefereeOp,
   projectAdminReviewQueue,
   projectMyMatches,
+  projectOpenMatches,
   projectPublicResults,
   submitRefereeResultOp,
   uploadRefereeEvidenceOp,
@@ -18,6 +19,7 @@ import {
 import { resolveReviewOp, type ResultContext } from "./result-ops";
 import {
   assignMatchOp,
+  claimMatchOp,
   createRefereeOp,
   emptyRefereeLedger,
   type RefereeOpResult,
@@ -258,6 +260,112 @@ console.log("\n== 组6 · 管理员异常队列投影（RPT-06） ==");
     const m = stAfterReject.matches.find((x) => x.id === "M4")!;
     return m.winnerTeamId === "team-a";
   })());
+}
+
+// =====================
+// 可认领的比赛（2026-09-15 新增）
+//
+// 对应流程：队伍先约赛得到比赛列表 → 裁判自己看哪些能执裁 → 认领。
+// 所以入选条件是「已排期 + 未完成 + 尚无人认领」，三条缺一不可。
+// =====================
+{
+  console.log("\n== 可认领的比赛列表 ==");
+
+  function stateWithMatches(matches: ScheduleMatch[], ledger: RefereeLedger): ReportingState {
+    return { ...emptyReportingState(matches, 5), referee: ledger };
+  }
+
+  const madeRef = createRefereeOp(
+    { eventId: EVENT, displayName: "裁判甲", actorId: ADMIN, credentialExpiresAt: EXPIRY },
+    emptyRefereeLedger(),
+  ) as RefereeOpResult<{ refereeId: string; credential: string }>;
+  const refId = madeRef.value!.refereeId;
+
+  const M = [
+    match("M1", { startTime: "2026-10-06T12:00:00", endTime: "2026-10-06T13:30:00" }),
+    // 未排期：裁判无从安排自己，不应出现
+    match("M2"),
+    // 已完成：不需要裁判
+    match("M3", { startTime: "2026-10-06T12:00:00", endTime: "2026-10-06T13:30:00", status: "已完成" }),
+    match("M4", { startTime: "2026-10-06T15:00:00", endTime: "2026-10-06T16:30:00" }),
+    match("M5", { startTime: "2026-10-06T18:00:00", endTime: "2026-10-06T19:30:00" }),
+  ];
+
+  const open = projectOpenMatches(stateWithMatches(M, madeRef.state!), refId);
+  const ids = open.map((m) => m.matchId);
+  check("只列出已排期且未完成的场次", ids.join(",") === "M1,M4,M5", ids.join(","));
+  check("未排期的场次不出现", !ids.includes("M2"));
+  check("已完成的场次不出现", !ids.includes("M3"));
+  check("按开始时间升序", open[0].startTime <= open[1].startTime && open[1].startTime <= open[2].startTime);
+
+  console.log("");
+  console.log("== 已被人认领的场次从列表消失 ==");
+  {
+    const claimed = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: refId }, madeRef.state!);
+    const after = projectOpenMatches(stateWithMatches(M, claimed.state!), refId);
+    const afterIds = after.map((m) => m.matchId);
+    check("认领后该场不再出现在可认领列表", !afterIds.includes("M1"), afterIds.join(","));
+    check("其余场次仍在", afterIds.join(",") === "M4,M5", afterIds.join(","));
+  }
+
+  console.log("");
+  console.log("== 负责人指派的场次同样从列表消失 ==");
+  {
+    // 判定「已被占走」时不应区分来源——否则已指派的场次还能被认领，造成两人都以为负责这场
+    const assigned = assignMatchOp({ eventId: EVENT, matchId: "M4", refereeId: refId, actorId: ADMIN }, madeRef.state!);
+    const after = projectOpenMatches(stateWithMatches(M, assigned.state!), refId);
+    check("被指派的场次不在可认领列表", !after.map((m) => m.matchId).includes("M4"), after.map((m) => m.matchId).join(","));
+  }
+
+  console.log("");
+  console.log("== ★ 时间重叠只提示、不剔除 ==");
+  {
+    // 先认领 M1（12:00-13:30），再看 M4（15:00-16:30，不重叠）与一场真正重叠的
+    const overlapping = [...M, match("M6", { startTime: "2026-10-06T13:00:00", endTime: "2026-10-06T14:30:00" })];
+    const claimed = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: refId }, madeRef.state!);
+    const list = projectOpenMatches(stateWithMatches(overlapping, claimed.state!), refId);
+    const m6 = list.find((x) => x.matchId === "M6");
+    const m4 = list.find((x) => x.matchId === "M4");
+    check("重叠的场次仍然列出（提示而非拦截）", Boolean(m6), list.map((x) => x.matchId).join(","));
+    check("标记为与我已认领的场次重叠", m6?.overlapsMyMatch === true);
+    check("不重叠的场次不标记", m4?.overlapsMyMatch === false);
+  }
+
+  console.log("");
+  console.log("== 「我的比赛」区分认领与指派 ==");
+  {
+    const mineClaim = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: refId }, madeRef.state!);
+    const mineAssign = assignMatchOp({ eventId: EVENT, matchId: "M4", refereeId: refId, actorId: ADMIN }, mineClaim.state!);
+    const st = stateWithMatches(M, mineAssign.state!);
+    const my = projectMyMatches(st, refId);
+    check("两场都在「我的比赛」", my.length === 2, String(my.length));
+    check("认领的标记 selfClaimed", my.find((x) => x.matchId === "M1")?.selfClaimed === true);
+    check("指派的标记 selfClaimed 为 false", my.find((x) => x.matchId === "M4")?.selfClaimed === false);
+    check("带上开始时间", Boolean(my.find((x) => x.matchId === "M1")?.startTime));
+    check("按时间排序", my[0].matchId === "M1" && my[1].matchId === "M4", my.map((x) => x.matchId).join(","));
+  }
+
+  console.log("");
+  console.log("== 边界 ==");
+  {
+    check("没有比赛时返回空数组", projectOpenMatches(stateWithMatches([], madeRef.state!), refId).length === 0);
+    // 本函数不做鉴权——那在 API 层（凭证 → refereeId）完成。
+    // 所以传入任意 id 都会拿到列表；refereeId 在这里只用于算「与我的场次是否重叠」。
+    check("不做鉴权：未知 id 仍返回列表", projectOpenMatches(stateWithMatches(M, madeRef.state!), "no-such").length === 3);
+    check("但未知 id 不会有重叠标记", projectOpenMatches(stateWithMatches(M, madeRef.state!), "no-such").every((m) => !m.overlapsMyMatch));
+    check(
+      "别人认领的场次对我也是不可认领",
+      (() => {
+        const other = createRefereeOp(
+          { eventId: EVENT, displayName: "裁判乙", actorId: ADMIN, credentialExpiresAt: EXPIRY },
+          madeRef.state!,
+        ) as RefereeOpResult<{ refereeId: string }>;
+        const claimedByOther = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: other.value!.refereeId }, other.state!);
+        const list = projectOpenMatches(stateWithMatches(M, claimedByOther.state!), refId);
+        return !list.map((x) => x.matchId).includes("M1");
+      })(),
+    );
+  }
 }
 
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);

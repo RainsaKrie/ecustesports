@@ -29,7 +29,7 @@ type MatchRow = {
   assignedRefereeIds: string[];
 };
 
-type AssignmentRow = { assignmentId: string; matchId: string; refereeId: string };
+type AssignmentRow = { assignmentId: string; matchId: string; refereeId: string; selfClaimed?: boolean };
 
 function fmtTime(value: string) {
   const date = new Date(value);
@@ -293,7 +293,12 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
                 {assignments.map((a) => (
                   <li key={a.assignmentId} className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900">{nameOf(a.refereeId)}</p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {nameOf(a.refereeId)}
+                        <span className={`ml-2 border px-1.5 py-0.5 text-[0.5625rem] font-bold ${a.selfClaimed ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-slate-50 text-slate-600"}`}>
+                          {a.selfClaimed ? "裁判认领" : "负责人指派"}
+                        </span>
+                      </p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{matchLabel(a.matchId)}</p>
                     </div>
                     <button onClick={() => doRevoke(a.assignmentId)} disabled={busy} className="shrink-0 border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-[#ff4655] hover:text-[#c83242] disabled:opacity-50" style={{ borderRadius: 0 }}>

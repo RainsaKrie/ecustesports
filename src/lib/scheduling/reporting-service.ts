@@ -243,6 +243,42 @@ export interface MyMatchSummary {
   mapSequence: string[];
   /** 双方登场队员昵称（已去 # 标签）。null 表示拿不到报名名单。 */
   squads: { a: string[]; b: string[] } | null;
+  /** 开始时间（空表示待排期） */
+  startTime: string;
+  /**
+   * 这场是不是裁判自己认领的。
+   * 用来在界面上区分「认领」与「被指派」——两者的退出方式不同：
+   * 自己认领的可以释放，被指派的要找负责人撤销。
+   */
+  selfClaimed: boolean;
+}
+
+/** 可认领的比赛（尚未有人认领、且已具备可执裁条件） */
+export interface OpenMatchSummary {
+  matchId: string;
+  teamAName: string;
+  teamBName: string;
+  boType: string;
+  startTime: string;
+  endTime: string;
+  mapSequence: string[];
+  /**
+   * 是否与「该裁判手上已有（认领或指派）的比赛」时间重叠。
+   *
+   * 这是**提示而非拦截**：时间重叠在物理上确实无法同时执裁，
+   * 但时段长度来自 `config.boDurations` 的估算值，配错就会误拦。
+   * 所以标出来让裁判自己判断，而不是硬挡——判断权在执裁的人手上。
+   */
+  overlapsMyMatch: boolean;
+}
+
+function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  const as = Date.parse(aStart);
+  const ae = Date.parse(aEnd);
+  const bs = Date.parse(bStart);
+  const be = Date.parse(bEnd);
+  if (![as, ae, bs, be].every(Number.isFinite)) return false;
+  return as < be && bs < ae;
 }
 
 /**
@@ -256,11 +292,10 @@ export function projectMyMatches(
   refereeId: string,
   squadsByTeamId?: Map<string, string[]>,
 ): MyMatchSummary[] {
-  const assigned = state.referee.assignments
-    .filter((a) => a.refereeId === refereeId && a.status === "assigned")
-    .map((a) => a.matchId);
+  const mine = state.referee.assignments.filter((a) => a.refereeId === refereeId && a.status === "assigned");
+  const mineByMatch = new Map(mine.map((a) => [a.matchId, a]));
   return state.matches
-    .filter((m) => assigned.includes(m.id))
+    .filter((m) => mineByMatch.has(m.id))
     .map((m) => {
       const a = squadsByTeamId?.get(m.teamAId);
       const b = squadsByTeamId?.get(m.teamBId);
@@ -273,8 +308,51 @@ export function projectMyMatches(
         mapSequence: Array.isArray(m.bpMaps) ? [...m.bpMaps] : [],
         // 只有两队名单都拿得到时才提供，避免一边有一边没有造成误判
         squads: a?.length && b?.length ? { a, b } : null,
+        startTime: m.startTime ?? "",
+        selfClaimed: mineByMatch.get(m.id)?.selfClaimed === true,
       };
-    });
+    })
+    // 有时间先按时间排；未排期的沉底
+    .sort((x, y) => (x.startTime || "9999").localeCompare(y.startTime || "9999"));
+}
+
+/**
+ * 投影「可认领的比赛」。
+ *
+ * 入选条件（对应负责人的实际流程：队伍先约赛→得到比赛列表→裁判自己挑）：
+ *   1. **已排期**（有 startTime）—— 没约出时间的场次裁判无从安排自己
+ *   2. **未完成** —— 已完成的场次不需要裁判
+ *   3. **尚无人认领/指派** —— 已被占走的场次不出现在这里
+ *
+ * 时间重叠只做标记（`overlapsMyMatch`），不剔除，理由见该字段的注释。
+ */
+export function projectOpenMatches(
+  state: ReportingState,
+  refereeId: string,
+  squadsByTeamId?: Map<string, string[]>,
+): OpenMatchSummary[] {
+  const taken = new Set(
+    state.referee.assignments.filter((a) => a.status === "assigned").map((a) => a.matchId),
+  );
+  const mine = state.matches.filter(
+    (m) => state.referee.assignments.some(
+      (a) => a.refereeId === refereeId && a.matchId === m.id && a.status === "assigned",
+    ),
+  );
+
+  return state.matches
+    .filter((m) => m.startTime && m.status !== "已完成" && !taken.has(m.id))
+    .map((m) => ({
+      matchId: m.id,
+      teamAName: m.teamAName,
+      teamBName: m.teamBName,
+      boType: m.boType,
+      startTime: m.startTime,
+      endTime: m.endTime ?? "",
+      mapSequence: Array.isArray(m.bpMaps) ? [...m.bpMaps] : [],
+      overlapsMyMatch: mine.some((x) => overlaps(m.startTime, m.endTime ?? m.startTime, x.startTime, x.endTime ?? x.startTime)),
+    }))
+    .sort((x, y) => x.startTime.localeCompare(y.startTime));
 }
 
 /** 公开端赛程：只返回已 accepted 的正式赛果（不暴露提交记录、凭证、哈希、内部 ID） */

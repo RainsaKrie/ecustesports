@@ -8,10 +8,12 @@ import {
   authenticateReferee,
   authorizeReferee,
   checkCredential,
+  claimMatchOp,
   createRefereeOp,
   disableRefereeOp,
   emptyRefereeLedger,
   hashCredential,
+  releaseClaimOp,
   resetCredentialOp,
   revokeAssignmentOp,
   type RefereeOpResult,
@@ -182,6 +184,131 @@ console.log("\n== 组6 · 不加入选手名单 / 边界 ==");
     const again = revokeAssignmentOp({ assignmentId: assigned.value!.assignmentId, actorId: ADMIN }, first.state!);
     return again.ok && again.reason === "已撤销" && again.state!.audit.length === auditCount;
   })());
+}
+
+// =====================
+// 裁判自助认领（2026-09-15 新增）
+//
+// 背景：原流程是负责人在管理端逐场指派。实际流程是队伍先约赛得到比赛列表，
+// 裁判自己看哪些能执裁。指派于是变成负责人的负担，且会出现「没人认领」的空档。
+// =====================
+{
+  console.log("\n== 裁判自助认领 ==");
+  const made = newReferee(emptyRefereeLedger());
+  check("认领成功", (() => {
+    const r = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId }, made.ledger);
+    return r.ok && r.state!.assignments.length === 1;
+  })());
+  check("标记为自助认领并记录认领时间", (() => {
+    const st = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId }, made.ledger).state!;
+    const a = st.assignments[0];
+    return a.selfClaimed === true && typeof a.claimedAt === "string" && a.assignedBy === made.refereeId;
+  })());
+  check("写入 claim-match 审计", (() => {
+    const st = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId }, made.ledger).state!;
+    return st.audit.some((e) => e.action === "claim-match" && e.actorId === made.refereeId);
+  })());
+  check("重复认领幂等（不报错、不重复写入）", (() => {
+    const first = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId }, made.ledger);
+    const again = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: made.refereeId }, first.state!);
+    return again.ok && again.reason === "你已认领该场" && again.state!.assignments.length === 1;
+  })());
+
+  console.log("");
+  console.log("== ★ 抢单冲突：两个裁判同时认领同一场 ==");
+  {
+    // 造两个裁判
+    const a = newReferee(emptyRefereeLedger());
+    const b = newReferee(a.ledger);
+    const first = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, b.ledger);
+    check("裁判甲先认领成功", first.ok && first.state!.assignments.length === 1);
+
+    const second = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: b.refereeId }, first.state!);
+    check("裁判乙认领同一场被拒绝", !second.ok && second.code === "MATCH_TAKEN");
+    check("拒绝理由是「已被他人认领」", !second.ok && second.error.includes("已被"), !second.ok ? second.error : "");
+    check("台账没有被写入第二条", first.state!.assignments.length === 1);
+
+    // 换一场则不受影响
+    const other = claimMatchOp({ eventId: EVENT, matchId: "M2", refereeId: b.refereeId }, first.state!);
+    check("换一场仍可认领", other.ok && other.state!.assignments.length === 2);
+  }
+
+  console.log("");
+  console.log("== 释放自己认领的比赛 ==");
+  {
+    const a = newReferee(emptyRefereeLedger());
+    const claimed = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, a.ledger);
+    const released = releaseClaimOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, claimed.state!);
+    check("释放成功", released.ok);
+    check("分配变为 revoked", (() => {
+      const mine = released.state!.assignments.filter((x) => x.matchId === "M1");
+      return mine.length === 1 && mine[0].status === "revoked";
+    })());
+    check("写入 release-claim 审计", released.state!.audit.some((e) => e.action === "release-claim"));
+
+    // 释放后该场可以再被别人认领（不能留下永久占用）
+    const b = newReferee(released.state!);
+    const reclaim = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: b.refereeId }, b.ledger);
+    check("释放后他人可再次认领", reclaim.ok && reclaim.state!.assignments.filter((x) => x.matchId === "M1" && x.status === "assigned").length === 1);
+
+    // 没认领过的场次不能释放
+    const notClaimed = releaseClaimOp({ eventId: EVENT, matchId: "M9", refereeId: a.refereeId }, a.ledger);
+    check("未认领的场次不能释放", !notClaimed.ok && notClaimed.code === "NOT_CLAIMED");
+  }
+
+  console.log("");
+  console.log("== ★ 被指派的场次不能由裁判自己丢掉 ==");
+  {
+    // 理由：负责人指派是「没人认领」时的兜底。若被指派人可以自行释放，
+    // 这个兜底就形同虚设——他可以单方面卸责。
+    const a = newReferee(emptyRefereeLedger());
+    const assigned = assignMatchOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId, actorId: ADMIN }, a.ledger);
+    const refused = releaseClaimOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, assigned.state!);
+    check("裁判不能释放负责人指派的场次", !refused.ok && refused.code === "NOT_SELF_CLAIMED");
+    check("提示去找负责人", !refused.ok && refused.error.includes("负责人"), !refused.ok ? refused.error : "");
+    check("分配保持 assigned", assigned.state!.assignments[0].status === "assigned");
+  }
+
+  console.log("");
+  console.log("== ★ 负责人指派不会覆盖别人的认领 ==");
+  {
+    const a = newReferee(emptyRefereeLedger());
+    const b = newReferee(a.ledger);
+    const claimed = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, b.ledger);
+    const override = assignMatchOp({ eventId: EVENT, matchId: "M1", refereeId: b.refereeId, actorId: ADMIN }, claimed.state!);
+    check("已被认领的场次不能被指派覆盖", !override.ok && override.code === "MATCH_TAKEN");
+    check("提示先撤销认领", !override.ok && override.error.includes("撤销"), !override.ok ? override.error : "");
+    check("仍只有一条分配", claimed.state!.assignments.length === 1);
+
+    // 换一场可以正常指派
+    const okAssign = assignMatchOp({ eventId: EVENT, matchId: "M2", refereeId: b.refereeId, actorId: ADMIN }, claimed.state!);
+    check("未被占用的场次可正常指派", okAssign.ok);
+  }
+
+  console.log("");
+  console.log("== 认领的边界条件 ==");
+  {
+    const a = newReferee(emptyRefereeLedger());
+    check("停用的裁判不能认领", (() => {
+      const disabled = disableRefereeOp(a.refereeId, ADMIN, a.ledger);
+      const r = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, disabled.state!);
+      return !r.ok && r.code === "REFEREE_DISABLED";
+    })());
+    check("不存在的裁判不能认领", (() => {
+      const r = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: "no-such" }, a.ledger);
+      return !r.ok && r.code === "REFEREE_NOT_FOUND";
+    })());
+    check("跨赛事认领被拒绝", (() => {
+      const other = newReferee(emptyRefereeLedger(), { eventId: OTHER_EVENT });
+      const r = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: other.refereeId }, other.ledger);
+      return !r.ok && r.code === "WRONG_EVENT";
+    })());
+    check("认领后即通过 authorizeReferee（可进入报分）", (() => {
+      const r = claimMatchOp({ eventId: EVENT, matchId: "M1", refereeId: a.refereeId }, a.ledger);
+      const auth = authorizeReferee(a.credential, EVENT, "M1", r.state!);
+      return auth.ok && auth.refereeId === a.refereeId;
+    })());
+  }
 }
 
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);

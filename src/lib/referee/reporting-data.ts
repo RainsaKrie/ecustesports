@@ -16,9 +16,12 @@ import {
   emptyRefereeLedger,
   createRefereeOp,
   assignMatchOp,
+  claimMatchOp,
+  releaseClaimOp,
   disableRefereeOp,
   resetCredentialOp,
   revokeAssignmentOp,
+  authenticateReferee,
   hashCredential,
   type RefereeOpResult,
 } from "@/lib/scheduling/referee-ops";
@@ -32,10 +35,12 @@ import {
   submitRefereeResultOp,
   uploadRefereeEvidenceOp,
   projectMyMatches,
+  projectOpenMatches,
   projectAdminReviewQueue,
   projectAcceptedResults,
   buildResultContext,
   type MyMatchSummary,
+  type OpenMatchSummary,
   type ReportingOpResult,
   type ReportingState,
 } from "@/lib/scheduling/reporting-service";
@@ -185,7 +190,7 @@ async function saveEvidenceWithConcurrencyCheck(
 /** 固定演示凭证（可复现，本地开发用；长度须 ≥20 满足 checkCredential） */
 const DEMO_CREDENTIAL = "referee-demo-credential-2026-09";
 
-function demoMatch(id: string, teamAId: string, teamAName: string, teamBId: string, teamBName: string, startTime: string): ScheduleMatch {
+function demoMatch(id: string, teamAId: string, teamAName: string, teamBId: string, teamBName: string, startTime: string, endTime = ""): ScheduleMatch {
   const teamA = teamAId;
   const teamB = teamBId;
   const boType: BOType = "BO3";
@@ -199,7 +204,9 @@ function demoMatch(id: string, teamAId: string, teamAName: string, teamBId: stri
     teamBName,
     boType,
     startTime,
-    endTime: "",
+    // 补上结束时间：真实排期都由 computeEndTime 算出来，留空会让
+    // 「与我已认领的场次是否时间重叠」无从判断（零长度区间永不重叠）。
+    endTime,
     status: "已排期",
     frozen: false,
   };
@@ -207,8 +214,13 @@ function demoMatch(id: string, teamAId: string, teamAName: string, teamBId: stri
 }
 
 /**
- * 建演示环境：一场赛事 + 两名裁判（凭证固定）+ 已分配比赛 + 两场比赛。
+ * 建演示环境：一场演示赛事 + 一名裁判（凭证固定）+ 三场比赛。
  * 幂等：已有裁判台账则直接复用，不重复建。
+ *
+ * 三场的分工（2026-09-15 调整）：
+ *   M-R1 已指派给演示裁判 —— 用来验证「我的比赛」与「被指派」的展示
+ *   M-R2 无人认领       —— 用来验证「裁判自助认领」
+ *   M-R3 与 M-R1 时间重叠 —— 用来验证认领时的冲突提示
  */
 export async function seedDemoReporting(): Promise<{
   eventId: string;
@@ -232,10 +244,13 @@ export async function seedDemoReporting(): Promise<{
     return { eventId, credential, refereeId: referee.id, assignedMatchIds: assigned };
   }
 
-  // 建两场 BO3（写入 schedule 文档，仅演示事件）
+  // 建三场 BO3（写入 schedule 文档，仅演示事件）
+  // M-R1 已分配给演示裁判；M-R2 未被认领，用来演示「裁判自助认领」；
+  // M-R3 刻意与 M-R1 时间重叠，用来演示认领时的冲突提示。
   const matches: ScheduleMatch[] = [
-    demoMatch("M-R1", "team-a", "星辰电竞", "team-b", "暗影战队", "2026-10-06T12:00:00"),
-    demoMatch("M-R2", "team-c", "烈焰先锋", "team-d", "寒冰之刃", "2026-10-06T14:00:00"),
+    demoMatch("M-R1", "team-a", "星辰电竞", "team-b", "暗影战队", "2026-10-06T12:00:00", "2026-10-06T13:30:00"),
+    demoMatch("M-R2", "team-c", "烈焰先锋", "team-d", "寒冰之刃", "2026-10-06T14:00:00", "2026-10-06T15:30:00"),
+    demoMatch("M-R3", "team-e", "雷霆战队", "team-f", "流星战队", "2026-10-06T13:00:00", "2026-10-06T14:30:00"),
   ];
   const schedule = normalizeScheduleState(emptySchedule());
   await writeEventData(eventId, "schedule", { ...schedule, version: 1, configConfirmed: true, matches });
@@ -322,6 +337,108 @@ export async function refereeMatchContext(
     .find((item) => item.matchId === matchId);
   if (!match) return { ok: false, error: "这场比赛没有分配给你", code: "NOT_ASSIGNED" };
   return { ok: true, value: { match } };
+}
+
+/**
+ * 裁判端可认领的比赛列表。
+ *
+ * 对应实际流程：队伍先在规定时段内完成约赛 → 得到一份有确定时间的比赛列表 →
+ * 裁判自己看哪些能执裁 → 直接认领。所以这里只列**已排期、未完成、尚无人认领**的场次。
+ */
+export async function refereeOpenMatches(
+  eventId: string,
+  credential: string,
+): Promise<
+  | { ok: true; matches: OpenMatchSummary[]; scheduleVersion: number }
+  | { ok: false; error: string }
+> {
+  if (eventId === DEMO_EVENT_ID) await seedDemoReporting();
+  const state = await loadReportingState(eventId);
+  const auth = authenticateReferee(credential, eventId, state.referee);
+  if (!auth.ok) return { ok: false, error: "裁判凭证无效" };
+  return {
+    ok: true,
+    matches: projectOpenMatches(state, auth.refereeId),
+    scheduleVersion: state.scheduleVersion,
+  };
+}
+
+/** 认领与释放的共用逻辑：鉴权 → 锁内改裁判台账 → 返回结果 */
+async function mutateLedgerWithCredential(
+  eventId: string,
+  credential: string,
+  mutate: (
+    refereeId: string,
+    current: RefereeLedger,
+  ) => { ok: true; state: RefereeLedger; reason?: string } | { ok: false; error: string; code?: string },
+): Promise<{ ok: true; reason?: string } | { ok: false; error: string; code?: string }> {
+  if (eventId === DEMO_EVENT_ID) await seedDemoReporting();
+
+  const state = await loadReportingState(eventId);
+  const auth = authenticateReferee(credential, eventId, state.referee);
+  if (!auth.ok) return { ok: false, error: "裁判凭证无效", code: auth.reason };
+
+  try {
+    let note: string | undefined;
+    await updateEventData<RefereeLedger>(eventId, DOC_REFEREE, emptyRefereeLedger(), (current) => {
+      const result = mutate(auth.refereeId, current);
+      if (!result.ok) {
+        // 抛出去让事务回滚，同时把错误码带到外层
+        throw Object.assign(new Error(result.error), { code: result.code });
+      }
+      note = result.reason;
+      return result.state;
+    });
+    return { ok: true, reason: note };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "裁判台账写入失败",
+      code: typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : undefined,
+    };
+  }
+}
+
+/**
+ * 裁判认领一场比赛。
+ *
+ * ★ 并发安全的关键：**「是否已被他人认领」的判断在 updateEventData 的 updater 内完成**
+ * ——生产由 PostgreSQL 事务、本地由赛事级写锁串行化。
+ * 如果放在锁外先读再写，两名裁判同时点同一场会双双通过检查
+ * （各自读到的台账都还是空的），结果是这场有两个裁判都以为自己负责。
+ *
+ * 比赛本身的合法性（存在、已排期、未完成）在锁外判断。理由：
+ * 这些是慢变数据，不会在毫秒级内变化；而「谁先抢到」才是真正的竞争点。
+ */
+export async function refereeClaimMatch(
+  eventId: string,
+  credential: string,
+  matchId: string,
+): Promise<{ ok: true; reason?: string } | { ok: false; error: string; code?: string }> {
+  const state = await loadReportingState(eventId);
+  const match = state.matches.find((m) => m.id === matchId);
+  if (!match) return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
+  if (match.status === "已完成") return { ok: false, error: "该场已结束，不需要裁判", code: "MATCH_COMPLETED" };
+  if (!match.startTime) {
+    return { ok: false, error: "该场还没有约赛时间，等双方确定时间后再认领", code: "NOT_SCHEDULED" };
+  }
+
+  return mutateLedgerWithCredential(eventId, credential, (refereeId, current) =>
+    claimMatchOp({ eventId, matchId, refereeId }, current),
+  );
+}
+
+/** 裁判释放自己认领的比赛（被指派的场次不能自己释放，须负责人撤销） */
+export async function refereeReleaseMatch(
+  eventId: string,
+  credential: string,
+  matchId: string,
+): Promise<{ ok: true; reason?: string } | { ok: false; error: string; code?: string }> {
+  return mutateLedgerWithCredential(eventId, credential, (refereeId, current) =>
+    releaseClaimOp({ eventId, matchId, refereeId }, current),
+  );
 }
 
 export async function refereeSubmit(
@@ -478,9 +595,16 @@ export async function adminListReferees(eventId: string) {
       .map((a) => a.refereeId),
   }));
   // 真实分配关系（含 assignmentId，供撤销动作准确定位）
+  // selfClaimed 让负责人分得清「裁判自己认领的」与「我指派给他的」——
+  // 前者要改派时裁判可自行释放，后者需要负责人撤销。
   const assignments = referee.assignments
     .filter((a) => a.status === "assigned")
-    .map((a) => ({ assignmentId: a.id, matchId: a.matchId, refereeId: a.refereeId }));
+    .map((a) => ({
+      assignmentId: a.id,
+      matchId: a.matchId,
+      refereeId: a.refereeId,
+      selfClaimed: a.selfClaimed === true,
+    }));
   return { referees, matches, assignments };
 }
 

@@ -16,7 +16,15 @@ export interface RefereeIdentity {
   disabledAt?: string;
 }
 
-/** 比赛分配（权威定义；result-ops 中的 MatchAssignment 是其查询级简化视图） */
+/**
+ * 比赛分配（权威定义；result-ops 中的 MatchAssignment 是其查询级简化视图）
+ *
+ * 两种来源需要区分（2026-09-15 补）：
+ *   · 负责人指派：`assignedBy` 是管理员的 actorId，`selfClaimed` 为 undefined
+ *   · 裁判自助认领：`selfClaimed === true`，`assignedBy` 是裁判自己的 id
+ * 区分它们的实际用途：**裁判只能释放自己认领的比赛**，
+ * 负责人指派的场次要走负责人撤销——否则裁判可以把指派给他的活单方面丢掉。
+ */
 export interface RefereeAssignment {
   id: string;
   eventId: string;
@@ -26,6 +34,10 @@ export interface RefereeAssignment {
   assignedBy: string;
   assignedAt: string;
   revokedAt?: string;
+  /** 是否由裁判本人认领（而非负责人指派） */
+  selfClaimed?: boolean;
+  /** 认领时间；仅 selfClaimed 时有意义 */
+  claimedAt?: string;
 }
 
 /** 裁判相关的操作审计（供管理员追溯分配与重置） */
@@ -37,8 +49,10 @@ export interface RefereeAuditEntry {
     | "disable-referee"
     | "reset-credential"
     | "assign-match"
-    | "revoke-assignment";
-  actorId: string; // 操作的管理员
+    | "revoke-assignment"
+    | "claim-match"
+    | "release-claim";
+  actorId: string; // 操作者：管理员为管理员 id，自助认领为裁判 id
   refereeId?: string;
   matchId?: string;
   createdAt: string;
@@ -79,6 +93,20 @@ export interface AssignMatchInput {
 export interface RevokeAssignmentInput {
   assignmentId: string;
   actorId: string;
+}
+
+/** 裁判自助认领比赛输入 */
+export interface ClaimMatchInput {
+  eventId: string;
+  matchId: string;
+  refereeId: string;
+}
+
+/** 裁判释放自己认领的比赛输入 */
+export interface ReleaseClaimInput {
+  eventId: string;
+  matchId: string;
+  refereeId: string;
 }
 
 /** 凭证校验统一结果：不区分「不存在」与「凭证错误」（防枚举） */

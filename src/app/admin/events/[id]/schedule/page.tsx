@@ -312,7 +312,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
         status={`赛程 v${state.version}`}
         actions={eventLocked ? undefined :
           <div className="flex gap-2">
-            <button type="button" onClick={() => void refresh()} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600">刷新约赛</button>
+            <button type="button" onClick={() => void refresh()} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600">刷新数据</button>
             <Link href={`/admin/events/${id}/schedule/draw`} className="bg-[#ff4655] px-4 py-2.5 text-xs font-black text-white transition hover:bg-[#d83b48]">开始抽签</Link>
             <Link href={`/admin/events/${id}/referees`} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 hover:border-slate-950">裁判管理</Link>
             <Link href={`/admin/events/${id}/review`} className="flex items-center gap-2 border border-[#ff4655]/40 bg-[#fff1f2] px-4 py-2.5 text-xs font-black text-[#c83242] transition hover:bg-[#ff4655] hover:text-white">
@@ -390,7 +390,16 @@ export default function SchedulePage({ params }: SchedulePageProps) {
               <p className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-[#c83242]">MATCH COORDINATION</p>
               <h2 className="mt-1 text-sm font-black text-slate-950">约赛审批与通知</h2>
             </div>
-            <button type="button" onClick={() => void refresh()} className="inline-flex min-h-11 items-center border border-slate-300 px-3 text-xs font-bold text-slate-600">刷新申请</button>
+            {/* 与顶部工具条的「刷新数据」是同一个操作，只是放在手边。
+                刻意做成文字按钮而不是第二个按钮——避免看起来像两件事。 */}
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              title="与页面顶部的「刷新数据」是同一个操作"
+              className="inline-flex min-h-11 items-center px-2 text-xs font-bold text-slate-500 underline underline-offset-4 hover:text-[#c83242]"
+            >
+              刷新
+            </button>
           </div>
           <div className="grid gap-5 p-5 lg:grid-cols-2">
             <div>
