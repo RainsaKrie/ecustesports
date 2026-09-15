@@ -342,9 +342,13 @@ export function scoreRun(datasetDir: string, runDir: string): ScoreOutcome {
     },
     metrics,
     grouping: {
-      昵称级准确率: metrics.grouping.rate,
-      样本数: `${metrics.grouping.correct}/${metrics.grouping.total}`,
+      划分准确率_忽略左右: metrics.groupingPartition.rate,
+      定向准确率_需要输入给名单: metrics.grouping.rate,
+      样本数: `${metrics.groupingPartition.correct}/${metrics.groupingPartition.total}`,
       疑似两侧对调的案例数: metrics.groupingSwappedCases,
+      说明:
+        "划分 = 能不能把 10 个昵称正确分成那两组；定向 = 还要分对哪组是 A。" +
+        "排位图没有队名与名单，定向本就无从确定，故 Gate 用划分口径。",
     },
     failureBreakdown: {
       模型错误_字段不匹配: metrics.byStatus.incorrect,

@@ -42,7 +42,7 @@ export interface VisionAdapter {
 }
 
 /** 提示词版本号。改提示词必须同时改这个值，否则历史结果无法复现。 */
-export const PROMPT_VERSION = "result-vision-prompt-v3";
+export const PROMPT_VERSION = "result-vision-prompt-v4";
 
 /**
  * 期望模型输出的 JSON 结构说明。写进提示词，也是解析时的唯一依据。
@@ -53,8 +53,11 @@ export const OUTPUT_CONTRACT = [
   "字段：",
   '- "refuse": 布尔。看不清、图不对、关键信息缺失时为 true。**宁可拒答也不要猜。**',
   '- "reason": 字符串，仅在 refuse 为 true 时给出原因。',
+  '- "rows": 数组，结算表每一行一项，**按图上从上到下的顺序**，每项形如',
+  '  {"index": 1, "name": "昵称原文", "side": "a" 或 "b"}。',
+  "  **必须先逐行判定 side，再汇总出 groups；groups 只能由 rows 汇总，不得另行判断。**",
   '- "groups": {"a": [昵称...], "b": [昵称...]}，把结算表上的 10 个昵称按队伍分成两组，',
-  "  每侧各 5 个。**昵称原样抄写，不要翻译、不要补全 # 标签。**",
+  "  每侧各 5 个。**必须与 rows 中同 side 的昵称完全一致。**",
   '- "series": {"a": 整数, "b": 整数}，系列赛大比分；不确定填 null。',
   '- "winnerSide": "A" 或 "B"，胜方；不确定填 null。',
   '- "games": 数组，每局 {"map": 地图名或 null, "teamAScore": 整数, "teamBScore": 整数}。',
@@ -198,6 +201,20 @@ export interface VisionAdapterConfig {
   apiKey: string;
   temperature?: number;
   maxOutputTokens?: number;
+  /**
+   * 是否让模型做「思考」（链式推理）。
+   *
+   * 为什么必须能关掉：部分模型（实测 deepseek-v4-flash-vision-exp）默认开启思考，
+   * 而**思考 token 计入 max_tokens 预算**。读图这类任务的正式答案通常很短，
+   * 但如果思考过程把预算吃光，接口依然返回 200，`content` 却是空字符串、
+   * `finish_reason` 为 `length`——调用方拿不到任何数据，是静默失败。
+   * 实测同一个模型同一个任务：开思考返回空 content，关思考返回完整结果。
+   * （参照 deepseek-ai/DeepSeek-V3 issue #1610。）
+   *
+   * 关掉还有两个附带好处：更快、更省（思考 token 同样计费）。
+   * 留空表示不发送该参数，用供应商的默认行为。
+   */
+  thinking?: "enabled" | "disabled";
   /** 价格表，用于估算成本；缺省则不计成本 */
   inputPerMillionUsd?: number;
   outputPerMillionUsd?: number;
@@ -326,7 +343,9 @@ export function createVisionAdapter(
         body: JSON.stringify({
           model: config.model,
           temperature: config.temperature ?? 0,
-          max_tokens: config.maxOutputTokens ?? 1024,
+          // 默认给足预算：思考型模型的思考 token 也算在这里，给少了会返回空结果
+          max_tokens: config.maxOutputTokens ?? 4096,
+          ...(config.thinking ? { thinking: { type: config.thinking } } : {}),
           messages: [{ role: "user", content }],
         }),
         signal: AbortSignal.timeout(ctx.timeoutMs),
@@ -344,19 +363,44 @@ export function createVisionAdapter(
       }
 
       const body = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-        usage?: { prompt_tokens?: number; completion_tokens?: number };
+        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+        usage?: {
+          prompt_tokens?: number;
+          completion_tokens?: number;
+          completion_tokens_details?: { reasoning_tokens?: number };
+        };
       };
-      const text = body.choices?.[0]?.message?.content ?? "";
+      const choice = body.choices?.[0];
+      const text = choice?.message?.content ?? "";
       const usage: TokenUsage = {
         images: images.length,
         inputTokens: body.usage?.prompt_tokens,
         outputTokens: body.usage?.completion_tokens,
+        reasoningTokens: body.usage?.completion_tokens_details?.reasoning_tokens,
       };
       if (config.inputPerMillionUsd !== undefined && config.outputPerMillionUsd !== undefined) {
         usage.costUsd =
           ((usage.inputTokens ?? 0) / 1_000_000) * config.inputPerMillionUsd
           + ((usage.outputTokens ?? 0) / 1_000_000) * config.outputPerMillionUsd;
+      }
+
+      // 输出被截断要单独报出来，不能退化成一句含糊的「解析失败」。
+      // 最常见的原因是思考 token 把 max_tokens 预算吃光了——此时 content 为空字符串，
+      // 若只记「找不到 JSON 对象」，排查时会误以为是提示词或格式问题。
+      if (choice?.finish_reason === "length") {
+        const reasoning = usage.reasoningTokens ?? 0;
+        const budget = config.maxOutputTokens ?? 4096;
+        return {
+          refused: false,
+          parsed: null,
+          parseError:
+            `模型输出被截断（finish_reason=length，预算 ${budget} tokens，其中思考占用 ${reasoning}）` +
+            (reasoning >= budget * 0.9
+              ? "。思考把预算吃光了——需要改用 thinking:\"disabled\"，或调大 maxOutputTokens。"
+              : "。需要调大 maxOutputTokens。"),
+          raw: text,
+          usage,
+        };
       }
 
       const extracted = extractJson(text);
@@ -388,15 +432,22 @@ export function createVisionAdapter(
 /**
  * 从环境变量构造视觉适配器。变量名集中在这里，便于「文档提到环境变量时先 grep 实际读取的名字」。
  * 未设置 PROVIDER 时返回 null，由调用方明确报错。
+ *
+ * RESULT_VISION_THINKING 建议在 DeepSeek 上设为 disabled：该模型默认开思考，
+ * 思考 token 计入 max_tokens，读图任务容易因此返回空的 content（静默失败）。
  */
 export function visionAdapterFromEnv(env: NodeJS.ProcessEnv = process.env): VisionAdapter | null {
   const provider = env.RESULT_VISION_PROVIDER?.trim();
   if (!provider) return null;
+  const thinkingRaw = env.RESULT_VISION_THINKING?.trim();
+  const thinking = thinkingRaw === "enabled" || thinkingRaw === "disabled" ? thinkingRaw : undefined;
   return createVisionAdapter({
     provider,
     model: env.RESULT_VISION_MODEL?.trim() ?? "",
     baseUrl: env.RESULT_VISION_BASE_URL?.trim() ?? "",
     apiKey: env.RESULT_VISION_API_KEY?.trim() ?? "",
+    thinking,
+    maxOutputTokens: env.RESULT_VISION_MAX_TOKENS ? Number(env.RESULT_VISION_MAX_TOKENS) : undefined,
     inputPerMillionUsd: env.RESULT_VISION_INPUT_PRICE ? Number(env.RESULT_VISION_INPUT_PRICE) : undefined,
     outputPerMillionUsd: env.RESULT_VISION_OUTPUT_PRICE ? Number(env.RESULT_VISION_OUTPUT_PRICE) : undefined,
   });

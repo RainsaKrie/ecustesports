@@ -50,6 +50,8 @@ export interface CaseEvaluation {
    * 修法也不同（前者改提示词里的颜色说明，后者才是识别能力问题）。
    */
   groupingCorrect: number | null;
+  /** 忽略左右后的划分正确数。见 compareGroups 的说明。 */
+  groupingPartitionCorrect: number | null;
   groupingTotal: number | null;
   /** 该案例是否产出可用预填 */
   usable: boolean;
@@ -57,23 +59,50 @@ export interface CaseEvaluation {
   costUsd: number | null;
 }
 
-/** 逐个昵称比对分组。只统计人工标注里出现过的昵称，多报的不算分。 */
+/** 分组比对结果 */
+export interface GroupComparison {
+  /** 定向正确数：昵称既在对的一组、也在对的一侧 */
+  correct: number;
+  /** 划分正确数：忽略左右，只看「10 个昵称有没有被正确分成那两组」 */
+  partitionCorrect: number;
+  total: number;
+}
+
+/**
+ * 逐个昵称比对分组，同时给出「定向」与「划分」两个口径。
+ *
+ * 为什么要两个口径：有些输入**在图上根本没有区分左右的依据**。
+ * 例如排位赛截图只有玩家昵称、没有队名，也没有提供双方名单，
+ * 此时模型无从知道哪一组该叫 A、哪一组该叫 B——它只能确定「这 10 个人分成这两组」。
+ * 只报定向口径会把「左右未定」误判成「分组错误」，那是评测口径的问题，不是模型能力问题。
+ *
+ * 生产场景不受此限：裁判报分时会提供两队队员名单，定向有确定依据，两个口径应当都达标。
+ * 只统计人工标注里出现过的昵称，多报的不算分。
+ */
 export function compareGroups(
   truth: CaseTruth,
   parsed: ParsedOutput | null,
-): { correct: number; total: number } | null {
+): GroupComparison | null {
   if (!truth.groups) return null;
   const expectedA = new Set(truth.groups.a);
   const expectedB = new Set(truth.groups.b);
   const total = expectedA.size + expectedB.size;
   if (total === 0) return null;
-  if (!parsed || !parsed.groups) return { correct: 0, total };
+  if (!parsed || !parsed.groups) return { correct: 0, partitionCorrect: 0, total };
+
   const gotA = new Set(parsed.groups.a ?? []);
   const gotB = new Set(parsed.groups.b ?? []);
+
   let correct = 0;
   for (const name of expectedA) if (gotA.has(name)) correct += 1;
   for (const name of expectedB) if (gotB.has(name)) correct += 1;
-  return { correct, total };
+
+  // 对调后再数一遍，取两者较高者作为「划分正确数」
+  let swapped = 0;
+  for (const name of expectedA) if (gotB.has(name)) swapped += 1;
+  for (const name of expectedB) if (gotA.has(name)) swapped += 1;
+
+  return { correct, partitionCorrect: Math.max(correct, swapped), total };
 }
 
 function ruleCheck(boType: string, games: TruthGame[]): { ok: boolean; message?: string } {
@@ -130,6 +159,7 @@ export function evaluateCase(
     winnerCorrect: null as boolean | null,
     seriesCorrect: null as boolean | null,
     groupingCorrect: null as number | null,
+    groupingPartitionCorrect: null as number | null,
     groupingTotal: null as number | null,
     usable: false,
     latencyMs: prediction?.latencyMs ?? null,
@@ -216,6 +246,7 @@ export function evaluateCase(
     winnerCorrect,
     seriesCorrect,
     groupingCorrect: grouping ? grouping.correct : null,
+    groupingPartitionCorrect: grouping ? grouping.partitionCorrect : null,
     groupingTotal: grouping ? grouping.total : null,
     usable: true,
   };
@@ -279,8 +310,10 @@ export interface ArmMetrics {
   illegalWronglyAccepted: number;
   /** 未被规则发现的事实错误（字段错但规则通过） */
   unstampedErrors: number;
-  /** 分组准确率：正确归类到对应侧的昵称数 / 应有昵称数。null 表示这批样本没有分组答案。 */
+  /** 分组准确率（定向）：既在对的一组、也在对的一侧。需要输入提供队名/名单才有意义。 */
   grouping: Rate;
+  /** 分组划分准确率：忽略左右。不依赖输入是否提供名单，更接近「能不能正确分两组」。 */
+  groupingPartition: Rate;
   /** 分组被算反的案例数（对调两侧即全部正确）——与「随便归」区分开 */
   groupingSwappedCases: number;
   theoreticalReduction: number;
@@ -364,11 +397,13 @@ export function aggregate(evaluations: CaseEvaluation[], options: AggregateOptio
   const costs = evaluations.map((e) => e.costUsd).filter((v): v is number => typeof v === "number");
 
   let groupingCorrect = 0;
+  let groupingPartition = 0;
   let groupingTotal = 0;
   let groupingSwapped = 0;
   for (const item of evaluations) {
     if (item.groupingTotal === null) continue;
     groupingCorrect += item.groupingCorrect ?? 0;
+    groupingPartition += item.groupingPartitionCorrect ?? 0;
     groupingTotal += item.groupingTotal;
     // 完全归错且两侧人数与答案一致 → 大概率是把两侧整体对调了，属特定失败模式
     if (item.groupingCorrect === 0 && item.groupingTotal > 0) groupingSwapped += 1;
@@ -394,6 +429,7 @@ export function aggregate(evaluations: CaseEvaluation[], options: AggregateOptio
     illegalWronglyAccepted: evaluations.filter((e) => e.usable && !e.rulesPassed).length,
     unstampedErrors: byStatus.incorrect,
     grouping: rate(groupingCorrect, groupingTotal),
+    groupingPartition: rate(groupingPartition, groupingTotal),
     groupingSwappedCases: groupingSwapped,
     theoreticalReduction: reductionCount === 0 ? 0 : reductionSum / reductionCount,
     latency: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
@@ -467,7 +503,12 @@ export function evaluateGate(metrics: ArmMetrics): GateResult {
     // 以下为框架新增项，不在原计划的 Gate 清单里。加它的理由来自真实截图：
     // 结算表底色有三种（两队 + 截图者自己那行），分错队会把比分填反，
     // 而分反与读错在结果上同样致命、修法却不同，必须单独量。
-    ratePassOrSkip("昵称分组准确率（新增项）", metrics.grouping, 0.98),
+    //
+    // 门槛用「划分」口径（忽略左右）而不是「定向」口径，理由：
+    // 定向需要输入提供队名或双方名单作为依据。排位赛截图两者都没有，
+    // 此时左右本就无从确定，用定向率做门槛会把「输入不足」误判成模型失败。
+    // 生产场景会提供双方名单，定向率另在报告里如实给出，供对照。
+    ratePassOrSkip("昵称分组划分准确率（新增项）", metrics.groupingPartition, 0.98),
   ];
   return { items, passed: items.every((i) => i.pass) };
 }

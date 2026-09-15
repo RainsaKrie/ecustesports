@@ -136,6 +136,13 @@ export interface ParsedOutput {
 export interface TokenUsage {
   inputTokens?: number;
   outputTokens?: number;
+  /**
+   * 其中用于「思考」的 token 数。
+   * 单独记录的原因：思考 token 计入 outputTokens 也就是 max_tokens 预算，
+   * 是「返回 200 但 content 为空」这种静默失败的根因。
+   * 看不到这个数就判断不出预算是否被思考吃光。
+   */
+  reasoningTokens?: number;
   /** 送进去的图片张数 */
   images?: number;
   /** 单案例成本（美元）。由价格表算出，不由模型自报。 */

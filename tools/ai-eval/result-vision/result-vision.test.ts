@@ -443,13 +443,36 @@ console.log("\n== 组6b · 昵称分组（三种底色的坑）==");
     prediction({ ...GOOD_PARSED, groups: { a: ["乙一号", "乙二号"], b: ["甲一号", "甲二号", "甲三号"] } }),
   );
   check("两侧对调时分组全错", swapped.groupingCorrect === 0 && swapped.groupingTotal === 5);
+  // 这是「划分 vs 定向」两个口径的关键差异：对调后定向全错，但划分其实完全正确。
+  // 排位图没有队名/名单时，左右本就无从确定，不该按定向口径算模型失败。
+  check("两侧对调时划分仍算全对", swapped.groupingPartitionCorrect === 5, String(swapped.groupingPartitionCorrect));
 
   const swappedMetrics = aggregate([swapped]);
   check("两侧对调被单独计数", swappedMetrics.groupingSwappedCases === 1);
+  check("对调时划分率=100%、定向率=0%",
+    swappedMetrics.groupingPartition.rate === 1 && swappedMetrics.grouping.rate === 0,
+    `划分=${swappedMetrics.groupingPartition.rate} 定向=${swappedMetrics.grouping.rate}`);
 
   const perfectMetrics = aggregate([perfect]);
   check("分组准确率可计算", Math.abs((perfectMetrics.grouping.rate ?? 0) - 1) < 1e-9);
+  check("全对时两个口径一致", perfectMetrics.grouping.rate === perfectMetrics.groupingPartition.rate);
   check("全对时不报对调", perfectMetrics.groupingSwappedCases === 0);
+
+  // 真实错误（部分归错）时，划分率应低于 100%，不能靠对调掩盖
+  const partlyWrong = evaluateCase(
+    input(),
+    truthWithGroups(),
+    prediction({ ...GOOD_PARSED, groups: { a: ["甲一号", "乙一号"], b: ["甲二号", "甲三号", "乙二号"] } }),
+  );
+  check("部分归错时划分率也扣分", (partlyWrong.groupingPartitionCorrect ?? 0) < 5,
+    String(partlyWrong.groupingPartitionCorrect));
+  // 注意 partitionCorrect 的语义：取两个方向里较好的那个，
+  // 即「在最优的左右解释下分对了几个」。本用例定向对 2 个（甲一号、乙二号），
+  // 对调后对 3 个（甲二号、甲三号、乙一号），故为 3。
+  // 这不是掩盖错误——满分仍是 5，部分归错拿不到满分；它只是不把「左右搞反」重复扣一次。
+  check("划分口径取较优方向（本例 3 > 定向的 2）",
+    partlyWrong.groupingPartitionCorrect === 3 && partlyWrong.groupingCorrect === 2,
+    `划分=${partlyWrong.groupingPartitionCorrect} 定向=${partlyWrong.groupingCorrect}`);
 
   // 没标注分组 → 指标为空，且不把 Gate 判失败（缺样本由覆盖度检查负责）
   const noGroups = evaluateCase(input(), truth(), prediction(GOOD_PARSED));
