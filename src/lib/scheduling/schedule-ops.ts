@@ -355,14 +355,31 @@ export function resolveCaptainRequestOp(
  * 批准改期：批准前基于当前赛程与版本重新校验（AC-03）。
  * 返回 null 结果表示操作无效（申请不存在或已处理）。
  */
+/**
+ * 批准改期：批准前基于当前赛程与版本重新校验（AC-03）。
+ * 返回 null 结果表示操作无效（申请不存在或已处理）。
+ *
+ * `options.ownerAttestsBothTeams` 用于「双方私下商定、负责人落库」这条实际路径。
+ * 背景：约赛实际发生在 QQ/微信里，对手通常不会再上平台点一次确认，
+ * 申请于是永远停在「待对手确认」，管理端也没有任何按钮可用。
+ *
+ * 开启后：
+ *   · 允许批准「待对手确认」状态的申请；
+ *   · HC-02（双方须确认同一时间）由负责人的核对代替——**记录 ownerAttestedAt 作为担保凭据**，
+ *     不去篡改 teamAConfirmed / teamBConfirmed。这一点很重要：
+ *     改那两个字段等于伪造「对手点过确认」，出事时无从分辨。
+ */
 export function approveRequestOp(
   state: ScheduleState,
   requestId: string,
   config: SchedulingConfig = DEFAULT_CONFIG,
+  options: { ownerAttestsBothTeams?: boolean } = {},
 ): OpResult<ValidationResult | null> {
   const req = state.requests.find((r) => r.id === requestId);
   const match = req ? state.matches.find((m) => m.id === req.matchId) : undefined;
-  if (!req || !match || req.status !== "待审批") {
+  const ownerAttests = options.ownerAttestsBothTeams === true;
+  const statusAllowed = req?.status === "待审批" || (ownerAttests && req?.status === "待对手确认");
+  if (!req || !match || !statusAllowed) {
     return { state, result: null, value: null };
   }
 
@@ -382,8 +399,9 @@ export function approveRequestOp(
     {
       matchId: req.matchId,
       newStartTime: req.newStartTime,
-      teamAConfirmed: req.teamAConfirmed,
-      teamBConfirmed: req.teamBConfirmed,
+      // 负责人已核对双方商定时，视同双方确认——这是「谁做的担保」，不是「对手点过」
+      teamAConfirmed: req.teamAConfirmed || ownerAttests,
+      teamBConfirmed: req.teamBConfirmed || ownerAttests,
       basedOnVersion: req.basedOnVersion ?? state.version,
     },
     scheduled,
@@ -412,20 +430,23 @@ export function approveRequestOp(
   };
   const newMatches = state.matches.map((m) => (m.id === match.id ? updatedMatch : m));
   const newVersion = state.version + 1;
+  const resolvedAt = new Date().toISOString();
+  const attestNote = ownerAttests && !(req.teamAConfirmed && req.teamBConfirmed)
+    ? "，由负责人核对双方商定"
+    : "";
 
   const versionRecord = {
     version: newVersion,
     matches: newMatches,
-    note: `${match.id} 改期至 ${req.newStartTime.replace("T", " ")}（${req.reason || "未填写原因"}）`,
-    createdAt: new Date().toISOString(),
+    note: `${match.id} 改期至 ${formatNoticeTime(req.newStartTime)}（${req.reason || "未填写原因"}${attestNote}）`,
+    createdAt: resolvedAt,
   };
 
   const notification: NotificationDraft = {
     id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     version: newVersion,
-    content: `【赛程变更 v${newVersion}】${match.teamAName} vs ${match.teamBName} 已改期至 ${req.newStartTime.replace("T", " ")}。请双方队伍与裁判知悉。`,
-    status: "草稿",
-    createdAt: new Date().toISOString(),
+    content: `【赛程变更 v${newVersion}】${match.teamAName} vs ${match.teamBName} 已改期至 ${formatNoticeTime(req.newStartTime)}。请双方队伍与裁判知悉。`,
+    createdAt: resolvedAt,
   };
 
   return {
@@ -436,7 +457,14 @@ export function approveRequestOp(
       matches: newMatches,
       versions: [...state.versions, versionRecord],
       requests: state.requests.map((r) =>
-        r.id === requestId ? { ...r, status: "已批准" as const, resolvedAt: new Date().toISOString() } : r,
+        r.id === requestId
+          ? {
+              ...r,
+              status: "已批准" as const,
+              resolvedAt,
+              ...(ownerAttests ? { ownerAttestedAt: resolvedAt } : {}),
+            }
+          : r,
       ),
       notifications: [notification, ...state.notifications],
     },
@@ -462,13 +490,34 @@ export function toggleFrozenOp(state: ScheduleState, matchId: string): ScheduleS
 }
 
 /** 标记通知为已发送 */
-export function markNotificationSentOp(state: ScheduleState, notificationId: string): ScheduleState {
-  return {
-    ...state,
-    notifications: state.notifications.map((n) =>
-      n.id === notificationId ? { ...n, status: "已发送" as const } : n,
-    ),
-  };
+/**
+ * 把 ISO 时间转成通知文案里用的形状：`2026-10-08 18:00`。
+ *
+ * 原来直接用 `replace("T", " ")`，结果是 `2026-10-08 18:00:00`——
+ * 这段文字是要被复制到赛事群里的，秒对读者没有意义，只会显得啰嗦。
+ */
+export function formatNoticeTime(iso: string): string {
+  const trimmed = (iso ?? "").trim();
+  if (!trimmed) return "";
+  return trimmed.slice(0, 16).replace("T", " ");
+}
+
+/**
+ * 取最近的赛程变更通知，按时间倒序。
+ *
+ * 取代原来的「草稿 / 已发送」状态筛选。理由见 NotificationDraft 的注释：
+ * 那个状态依赖一个不会发生的动作（负责人回来点「标记已发布」），
+ * 结果是列表只增不减。改成按条数截断后，列表天然有界。
+ */
+export const RECENT_NOTIFICATION_LIMIT = 5;
+
+export function recentNotifications(
+  state: ScheduleState,
+  limit: number = RECENT_NOTIFICATION_LIMIT,
+): NotificationDraft[] {
+  return [...state.notifications]
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+    .slice(0, limit);
 }
 
 /** 报分：校验逐局结果、判定胜者、标记完成，并推进胜者与败者进入后续场次 */
@@ -524,14 +573,13 @@ export function setMatchTimeOp(
   const versionRecord = {
     version: newVersion,
     matches: newMatches,
-    note: `${match.id} ${isInitial ? "排期" : "调整时间"}至 ${newStartTime.replace("T", " ")}${reason ? `（${reason}）` : ""}`,
+    note: `${match.id} ${isInitial ? "排期" : "调整时间"}至 ${formatNoticeTime(newStartTime)}${reason ? `（${reason}）` : ""}`,
     createdAt: new Date().toISOString(),
   };
   const notification: NotificationDraft | undefined = isInitial ? undefined : {
     id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     version: newVersion,
-    content: `【赛程变更 v${newVersion}】${match.teamAName} vs ${match.teamBName} 已调整至 ${newStartTime.replace("T", " ")}${reason ? `，原因：${reason}` : ""}。请双方队伍与裁判知悉。`,
-    status: "草稿",
+    content: `【赛程变更 v${newVersion}】${match.teamAName} vs ${match.teamBName} 已调整至 ${formatNoticeTime(newStartTime)}${reason ? `，原因：${reason}` : ""}。请双方队伍与裁判知悉。`,
     createdAt: new Date().toISOString(),
   };
 

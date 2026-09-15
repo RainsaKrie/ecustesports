@@ -1,4 +1,5 @@
 import type { EditableEvent } from "@/lib/site-config-schema";
+import { EVENT_DESCRIPTION_MAX, EVENT_DESCRIPTION_MIN } from "@/lib/site-content-limits";
 
 export interface PublicationCheckItem {
   key: string;
@@ -10,7 +11,7 @@ export interface PublicationCheckItem {
 export function publicationChecklist(event: EditableEvent): PublicationCheckItem[] {
   const items: PublicationCheckItem[] = [
     { key: "identity", label: "赛事身份", ok: Boolean(event.name.trim() && event.game.trim() && event.organizer.trim()), detail: "赛事名称、游戏项目和主办方均已填写" },
-    { key: "description", label: "玩家简介", ok: event.description.trim().length >= 10, detail: "赛事简介至少 10 个字" },
+    { key: "description", label: "玩家简介", ok: event.description.trim().length >= EVENT_DESCRIPTION_MIN && event.description.trim().length <= EVENT_DESCRIPTION_MAX, detail: `赛事简介 ${EVENT_DESCRIPTION_MIN}—${EVENT_DESCRIPTION_MAX} 字` },
     { key: "format", label: "赛制配置", ok: event.stageConfigs.length > 0, detail: "至少配置一个可执行赛事阶段" },
     { key: "rules", label: "参赛规则", ok: event.rules.length > 0 && event.rules.every((rule) => rule.title.trim() && rule.detail.trim()), detail: "至少一条标题与内容完整的规则" },
     { key: "rule-review", label: "处罚条款确认", ok: event.rules.every((rule) => rule.emphasis !== "warning" || rule.confirmed !== false), detail: "所有警示及处罚条款均已由负责人确认" },

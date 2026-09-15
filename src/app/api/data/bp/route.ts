@@ -72,7 +72,6 @@ async function commitBPMaps(session: BPSession, eventId: string) {
       id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       version: schedule.version,
       content: `【BP 完成】${match.id} ${match.teamAName} vs ${match.teamBName} 比赛地图：${session.finalMaps!.join("、")}。请裁判与双方确认后开赛。`,
-      status: "草稿" as const,
       createdAt: new Date().toISOString(),
     };
     return {

@@ -57,7 +57,6 @@ export interface ModuleStatusInput {
   frozen: boolean; // 名单是否冻结
   matchCount: number; // 赛程中的比赛数
   hasFormat: boolean; // 是否已抽签分组
-  pendingNotifications: number; // 待审核通知数
 }
 
 export type ModuleWithState = OperationsModule & { state: ModuleState; stateLabel: string };

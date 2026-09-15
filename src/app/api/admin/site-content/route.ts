@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { updateSiteConfig } from "@/lib/site-config";
+import { eventDescriptionIssue, footerStatusIssue } from "@/lib/site-content-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,8 +12,13 @@ export async function PATCH(request: Request) {
     const description = String(body.description ?? "").trim();
     const footerStatus = String(body.footerStatus ?? "").trim();
     if (!eventId) return Response.json({ message: "缺少赛事 ID" }, { status: 400 });
-    if (description.length < 10 || description.length > 280) return Response.json({ message: "首页赛事简介应为 10—280 字" }, { status: 400 });
-    if (footerStatus.length < 4 || footerStatus.length > 100) return Response.json({ message: "页脚状态应为 4—100 字" }, { status: 400 });
+
+    // 字数规则来自 site-content-limits，与「赛事设置 → 玩家页面」共用同一套，
+    // 避免两边规则漂移导致「在 A 处能存、在 B 处报错」。
+    const descriptionIssue = eventDescriptionIssue(description);
+    if (descriptionIssue) return Response.json({ message: descriptionIssue.message }, { status: 400 });
+    const footerIssue = footerStatusIssue(footerStatus);
+    if (footerIssue) return Response.json({ message: footerIssue.message }, { status: 400 });
 
     const config = await updateSiteConfig((current) => {
       if (!current.events.some((event) => event.id === eventId)) throw new Error("赛事不存在");

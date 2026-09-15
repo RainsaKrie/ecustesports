@@ -13,6 +13,7 @@ import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";
 import { initialRegistration } from "@/lib/scheduling/registration-data";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { eventDescriptionIssue } from "@/lib/site-content-limits";
 import { canPublish, publicationChecklist } from "@/lib/publication-check";
 import { getCommonRuleLibrary } from "@/lib/rule-library";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
@@ -201,6 +202,16 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ message: "至少保留一条规则和一张地图" }, { status: 400 });
     }
 
+    // 简介字数与「官网内容」共用同一套规则（site-content-limits）。
+    // 此前这里只截断到 500、没有下限，于是能存下 5 个字，
+    // 而「官网内容」保存时会连带提交简介、被它自己的 10–280 校验拦下，
+    // 报错指向的还是另一个字段。
+    const description = text(raw.description, 500);
+    const descriptionIssue = eventDescriptionIssue(description);
+    if (descriptionIssue) {
+      return Response.json({ message: descriptionIssue.message }, { status: 400 });
+    }
+
     const nextEvent = {
       ...existing,
       name,
@@ -217,7 +228,7 @@ export async function PATCH(request: NextRequest) {
       eventDateLabel: text(raw.eventDateLabel, 80),
       registrationLabel: text(raw.registrationLabel, 60),
       stageSummary: text(raw.stageSummary, 160),
-      description: text(raw.description, 500),
+      description,
       prizePool: text(raw.prizePool, 240),
       coverColor: typeof raw.coverColor === "string" && /^#[0-9a-fA-F]{6}$/.test(raw.coverColor)
         ? raw.coverColor

@@ -46,7 +46,6 @@ export default async function EventWorkspaceLayout({
     frozen: registrationState.frozen,
     matchCount: schedule.matches.length,
     hasFormat,
-    pendingNotifications: schedule.notifications.filter((item) => item.status !== "已发送").length,
   });
   const guidance = getStageGuidance(stage, {
     eventId: event.id,

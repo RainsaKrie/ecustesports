@@ -4,7 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
-import { validateGames, maxGames, winTarget } from "@/lib/scheduling/schedule-ops";
+import { validateGames, maxGames, winTarget, recentNotifications, RECENT_NOTIFICATION_LIMIT } from "@/lib/scheduling/schedule-ops";
 import type { ScheduleMatch, GameResult } from "@/lib/scheduling/schedule-data";
 import type { ValidationResult } from "@/lib/scheduling/rule-engine";
 import type { BPSession } from "@/lib/scheduling/bp-ops";
@@ -110,7 +110,7 @@ function Bracket({ matches, bpSessions, onSelect }: { matches: ScheduleMatch[]; 
 
 export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
-  const { state, approveRequest, rejectRequest, toggleFrozen, markNotificationSent, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError } = useSchedule(id, "admin");
+  const { state, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError } = useSchedule(id, "admin");
   const [eventConfig, setEventConfig] = useState<EditableEvent | null>(null);
 
   const [selected, setSelected] = useState<ScheduleMatch | null>(null);
@@ -184,6 +184,30 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       cancelled = true;
     };
   }, [id]);
+
+  /**
+   * 批准一条约赛申请。
+   *
+   * `ownerAttests` 为 true 时表示申请还停在「待对手确认」——
+   * 也就是实际流程里最常见的情况：两个队长在群里商定好了，一方到平台填时间，
+   * 对手不会再上来点确认。此时由负责人核对后直接落库，
+   * 记录上会留下 ownerAttestedAt，不去伪造对手的确认。
+   */
+  function handleApproveRequest(requestId: string, ownerAttests: boolean) {
+    if (ownerAttests) {
+      const request = state.requests.find((item) => item.id === requestId);
+      const when = request ? request.newStartTime.replace("T", " ") : "";
+      if (!window.confirm(`确认双方已经在群内商定「${when}」？\n\n确认后赛程会直接更新，并在版本记录里标明由你核对。`)) return;
+    }
+    const outcome = approveRequest(requestId, { ownerAttestsBothTeams: ownerAttests });
+    if (!outcome) {
+      window.alert("申请已失效或已被处理，请刷新后重试。");
+      return;
+    }
+    if (!outcome.approved) {
+      window.alert(outcome.conflicts.map((item) => item.message).join("\n") || "该时间与现有排程冲突，请在下方调整。");
+    }
+  }
 
   function openMatch(m: ScheduleMatch) {
     setSelected(m);
@@ -270,7 +294,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   );
   const showingBlueprint = state.matches.length === 0 && blueprintMatches.length > 0;
   const activeRequests = state.requests.filter((request) => ["待对手确认", "待审批"].includes(request.status));
-  const draftNotifications = state.notifications.filter((item) => item.status === "草稿");
+  const recentNotices = recentNotifications(state);
   const eventLocked = eventConfig?.status === "completed" || eventConfig?.status === "archived";
 
   return (
@@ -359,14 +383,14 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       </details>
       )}
 
-      {!eventLocked && (activeRequests.length > 0 || draftNotifications.length > 0) && (
+      {!eventLocked && (activeRequests.length > 0 || recentNotices.length > 0) && (
         <section className="mb-5 border border-slate-200 bg-white">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div>
               <p className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-[#c83242]">MATCH COORDINATION</p>
               <h2 className="mt-1 text-sm font-black text-slate-950">约赛审批与通知</h2>
             </div>
-            <button type="button" onClick={() => void refresh()} className="border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600">刷新申请</button>
+            <button type="button" onClick={() => void refresh()} className="inline-flex min-h-11 items-center border border-slate-300 px-3 text-xs font-bold text-slate-600">刷新申请</button>
           </div>
           <div className="grid gap-5 p-5 lg:grid-cols-2">
             <div>
@@ -375,18 +399,32 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                 <div className="mt-3 space-y-3">
                   {activeRequests.map((request) => {
                     const match = state.matches.find((item) => item.id === request.matchId);
+                    const awaitingOpponent = request.status === "待对手确认";
                     return <div key={request.id} className="border border-[#ff4655]/35 bg-[#fff7f7] p-4">
                       <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-slate-950">{match?.teamAName} vs {match?.teamBName}</p><p className="mt-1 text-xs text-slate-600">{fmt(request.newStartTime)} · {request.reason || "双方协商时间"}</p></div><span className="text-[0.625rem] font-bold text-[#c83242]">{request.status}</span></div>
-                      {request.status === "待审批" && <div className="mt-4 flex gap-2"><button onClick={() => rejectRequest(request.id)} className="border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600">驳回</button><button onClick={() => { const outcome = approveRequest(request.id); if (!outcome?.approved) window.alert(outcome?.conflicts.map((item) => item.message).join("\n") || "申请已失效，请刷新后重试。"); }} className="bg-[#ff4655] px-3 py-2 text-xs font-black text-white">批准并更新赛程</button></div>}
+                      {awaitingOpponent && (
+                        <p className="mt-2 text-[0.6875rem] leading-5 text-slate-500">
+                          对手还没在平台上点确认。若双方已在群里商定，可直接按此时间排期——记录会标明是负责人核对的。
+                        </p>
+                      )}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button onClick={() => rejectRequest(request.id)} className="inline-flex min-h-11 items-center border border-slate-300 px-3 text-xs font-bold text-slate-600">驳回</button>
+                        <button onClick={() => handleApproveRequest(request.id, awaitingOpponent)} className="inline-flex min-h-11 items-center bg-[#ff4655] px-3 text-xs font-black text-white">
+                          {awaitingOpponent ? "按此时间排期" : "批准并更新赛程"}
+                        </button>
+                      </div>
                     </div>;
                   })}
                 </div>
               )}
             </div>
             <div>
-              <h3 className="text-xs font-black text-slate-700">待发送通知</h3>
-              {draftNotifications.length === 0 ? <p className="mt-3 text-xs text-slate-400">暂无待发送通知</p> : (
-                <div className="mt-3 space-y-3">{draftNotifications.map((notification) => <div key={notification.id} className="border border-slate-200 p-4"><p className="text-xs font-medium leading-6 text-slate-700">{notification.content}</p><div className="mt-3 flex gap-2"><button onClick={() => void navigator.clipboard.writeText(notification.content)} className="border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600">复制通知</button><button onClick={() => markNotificationSent(notification.id)} className="bg-slate-950 px-3 py-2 text-xs font-black text-white">标记已发布</button></div></div>)}</div>
+              <h3 className="text-xs font-black text-slate-700">最近的赛程变更通知</h3>
+              {recentNotices.length === 0 ? <p className="mt-3 text-xs text-slate-400">暂无变更通知</p> : (
+                <>
+                  <div className="mt-3 space-y-3">{recentNotices.map((notification) => <div key={notification.id} className="border border-slate-200 p-4"><p className="font-mono text-[0.5625rem] font-bold text-slate-400">v{notification.version}</p><p className="mt-1 text-xs font-medium leading-6 text-slate-700">{notification.content}</p><button onClick={() => void navigator.clipboard.writeText(notification.content)} className="mt-3 inline-flex min-h-11 items-center border border-slate-300 px-3 text-xs font-bold text-slate-600">复制通知</button></div>)}</div>
+                  <p className="mt-3 text-[0.6875rem] leading-5 text-slate-400">复制后发到赛事群即可。这里最多保留 {RECENT_NOTIFICATION_LIMIT} 条，更早的可在版本历史里查。</p>
+                </>
               )}
             </div>
           </div>

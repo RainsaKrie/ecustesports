@@ -15,7 +15,7 @@ import {
   buildTournamentMatches,
   TBD,
 } from "./bracket-engine.ts";
-import type { ScheduleState, GameResult } from "./schedule-data.ts";
+import type { ScheduleState, ScheduleMatch, GameResult } from "./schedule-data.ts";
 import { emptySchedule, initialSchedule } from "./schedule-data.ts";
 import {
   appendMatchesOp,
@@ -29,6 +29,8 @@ import {
   setMatchTimeOp,
   validateGames,
   maxGames,
+  recentNotifications,
+  RECENT_NOTIFICATION_LIMIT,
 } from "./schedule-ops.ts";
 import type { SchedulingConfig } from "./rule-engine.ts";
 import { buildKnockoutDrawOrder, resolveStagedDrawGate } from "./staged-format.ts";
@@ -420,7 +422,7 @@ console.log("== 6. 改期闭环（提交 → 校验 → 批准 → 版本 → �
   const okReqId = s.requests.find((r) => r.matchId === "M04")!.id;
   const approved = approveRequestOp(s, okReqId);
   check("合法申请批准成功并生成新版本", approved.value?.approved === true && approved.state.version === 2);
-  check("批准后生成通知草稿", approved.state.notifications.length === 1 && approved.state.notifications[0].status === "草稿");
+  check("批准后生成通知", approved.state.notifications.length === 1 && approved.state.notifications[0].content.includes("赛程变更"));
   s = approved.state;
 
   // 旧版本申请不能直接批准（AC-03）
@@ -499,6 +501,97 @@ console.log("== 8. 双队长约赛（发起 → 对手确认 → 负责人审批
   const rejectedId = rejectedProposal.value?.request?.id ?? "";
   const rejected = resolveCaptainRequestOp(rejectedProposal.state, { requestId: rejectedId, actorTeamId: "J", decision: "reject" });
   check("对手拒绝后申请不会进入审批", rejected.value?.ok === true && rejected.state.requests.find((item) => item.id === rejectedId)?.status === "已驳回");
+}
+
+// =====================
+// 负责人代为核对双方商定的时间
+//
+// 背景：实际约赛是两个队长在 QQ/微信里商定，一方到平台填时间，
+// 对手不会回来点「确认」，申请于是永远停在「待对手确认」。
+// 这段验证负责人能直接落库，并且**记录是诚实的**——不伪造对手的确认。
+// =====================
+{
+  console.log("\n== 负责人代为核对（队长私下商定）==");
+  const cfg = { maxConcurrentMatches: 3, boDurations: { BO1: 45, BO3: 90, BO5: 150 }, stageStart: "2026-10-06T12:00:00", stageEnd: "2026-10-15T14:30:00" };
+
+  function stateWithPendingCaptainRequest() {
+    let s = emptySchedule();
+    s = { ...s, config: cfg, configConfirmed: true };
+    const matches: ScheduleMatch[] = [
+      { id: "M04", phase: "淘汰赛", teamAId: "G", teamBId: "H", teamAName: "G 队", teamBName: "H 队", boType: "BO3", startTime: "2026-10-07T12:00:00", endTime: "2026-10-07T13:30:00", status: "已排期", frozen: false },
+    ];
+    s = importMatchesOp(s, matches);
+    const proposed = submitCaptainRequestOp(s, {
+      matchId: "M04", newStartTime: "2026-10-07T18:00:00", reason: "双方商定晚上", proposedByTeamId: "G",
+    });
+    return { state: proposed.state, requestId: proposed.value?.request?.id ?? "" };
+  }
+
+  const base = stateWithPendingCaptainRequest();
+  check("申请停在待对手确认", base.state.requests[0]?.status === "待对手确认");
+  check("未核对的申请不进审批", base.state.requests[0]?.teamBConfirmed === false);
+
+  // 不开启 ownerAttests 时，与原来一致：不能批准
+  const refused = approveRequestOp(base.state, base.requestId, cfg);
+  check("默认不允许批准待对手确认的申请", refused.value === null);
+
+  // 开启后可以直接落库
+  const forced = approveRequestOp(base.state, base.requestId, cfg, { ownerAttestsBothTeams: true });
+  check("负责人可直接按此时间排期", forced.value?.approved === true);
+  check("赛程时间已更新", forced.state.matches.find((m) => m.id === "M04")?.startTime === "2026-10-07T18:00:00");
+  check("版本号递增", forced.state.version === base.state.version + 1);
+
+  const resolved = forced.state.requests.find((r) => r.id === base.requestId)!;
+  check("申请标记为已批准", resolved.status === "已批准");
+  check("记录了负责人核对时间", typeof resolved.ownerAttestedAt === "string" && resolved.ownerAttestedAt.length > 0);
+  // ★ 关键：不伪造对手的确认
+  check("不篡改对手确认字段", resolved.teamBConfirmed === false && resolved.teamAConfirmed === true);
+  check("版本记录标明由负责人核对", forced.state.versions.at(-1)!.note.includes("由负责人核对"));
+  check("生成了变更通知", forced.state.notifications.length === 1);
+  // 通知要复制到赛事群里，时间到分钟即可，不要带秒
+  check("通知时间到分钟、不带秒", /2026-10-07 18:00。/.test(forced.state.notifications[0].content), forced.state.notifications[0].content);
+
+  // 已批准的申请不能重复批准
+  const again = approveRequestOp(forced.state, base.requestId, cfg, { ownerAttestsBothTeams: true });
+  check("已批准的申请不能重复批准", again.value === null);
+
+  // 有冲突时即便负责人核对也要拦下
+  const conflictState = stateWithPendingCaptainRequest();
+  const blockedForced = approveRequestOp(
+    { ...conflictState.state, requests: conflictState.state.requests.map((r) => ({ ...r, conflicts: [{ code: "HC-07", message: "超出阶段范围" }] })) },
+    conflictState.requestId, cfg, { ownerAttestsBothTeams: true },
+  );
+  check("有冲突时负责人核对也不能强行批准", blockedForced.value !== null && !blockedForced.value!.approved);
+
+  // 负责人核对不影响「已排期」的正常路径
+  const normal = stateWithPendingCaptainRequest();
+  const confirmed = resolveCaptainRequestOp(normal.state, { requestId: normal.requestId, actorTeamId: "H", decision: "accept" });
+  const normalApprove = approveRequestOp(confirmed.state, normal.requestId, cfg);
+  check("双确认路径仍然可用", normalApprove.value?.approved === true);
+  check("双确认路径不记录负责人核对", normalApprove.state.requests.find((r) => r.id === normal.requestId)?.ownerAttestedAt === undefined);
+}
+
+// =====================
+// 最近变更通知（取代原「草稿 / 已发送」状态）
+// =====================
+{
+  console.log("\n== 最近通知按条数截断 ==");
+  const many: ScheduleState = {
+    ...emptySchedule(),
+    notifications: Array.from({ length: 8 }, (_, i) => ({
+      id: `NT-${i}`,
+      version: i + 1,
+      content: `第 ${i + 1} 条`,
+      createdAt: `2026-10-0${(i % 9) + 1}T0${i % 9}:00:00.000Z`,
+    })),
+  };
+  const recent = recentNotifications(many);
+  check("默认只取 5 条", recent.length === RECENT_NOTIFICATION_LIMIT);
+  check("按时间倒序", recent[0].createdAt >= recent[recent.length - 1].createdAt);
+  check("可以指定条数", recentNotifications(many, 3).length === 3);
+  check("空通知不报错", recentNotifications(emptySchedule()).length === 0);
+  // 通知不再有状态字段——列表因此不会因为「没人点已发送」而无限堆积
+  check("通知已无 status 字段", !("status" in many.notifications[0]));
 }
 
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);

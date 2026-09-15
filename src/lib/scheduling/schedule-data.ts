@@ -54,6 +54,16 @@ export interface RescheduleRecord {
   conflicts: Conflict[]; // 提交或批准前校验时的冲突结果
   confirmedAt?: string;
   resolvedAt?: string;
+  /**
+   * 负责人代为核对双方商定的时间点。
+   *
+   * 存在的理由：实际约赛是两个队长私下商定（QQ/微信），再由一方到平台填时间。
+   * 对手往往不会再上平台点一次「确认」，于是申请会永远停在「待对手确认」。
+   * 有这个字段，负责人可以直接把它落库，同时**记录是谁做的担保**——
+   * 而不是假装对手点过确认去改 teamBConfirmed。
+   * 保证 HC-02（双方须确认同一时间）的语义仍然成立：确认来自负责人核对，不是无人确认。
+   */
+  ownerAttestedAt?: string;
 }
 
 /** 赛程版本快照 */
@@ -64,12 +74,19 @@ export interface ScheduleVersion {
   createdAt: string;
 }
 
-/** 通知草稿 */
+/**
+ * 赛程变更通知。
+ *
+ * ⚠️ 这里**没有**「草稿 / 已发送」状态（2026-09-15 移除）。
+ * 原设计假定负责人发完通知会回来点「标记已发布」，实测这条路径不会发生——
+ * 通知实际是复制到赛事群里发，平台上的状态因此永远停在「草稿」，
+ * 列表只增不减，最后变成一堆没人处理的待办。
+ * 现在改为「按时间倒序取最近数条」，列表天然有界，也不再要求一个不会发生的动作。
+ */
 export interface NotificationDraft {
   id: string;
   version: number;
   content: string;
-  status: "草稿" | "已发送";
   createdAt: string;
 }
 

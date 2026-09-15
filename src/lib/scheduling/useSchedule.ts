@@ -16,7 +16,6 @@ import {
   approveRequestOp,
   rejectRequestOp,
   toggleFrozenOp,
-  markNotificationSentOp,
   reportGameResultsOp,
   setMatchTimeOp,
   saveBPMapsOp,
@@ -114,9 +113,16 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
    * 批准改期：批准前基于当前赛程与版本重新校验（AC-03）。
    * 返回 null 表示操作无效（申请不存在或已处理）；返回 ValidationResult 表示校验结果。
    */
+  /**
+   * 批准改期：批准前基于当前赛程与版本重新校验（AC-03）。
+   * 返回 null 表示操作无效（申请不存在或已处理）；返回 ValidationResult 表示校验结果。
+   *
+   * `ownerAttestsBothTeams` 为 true 时允许批准「待对手确认」的申请，
+   * 由负责人核对双方私下商定的时间（并在记录里留下 ownerAttestedAt 作为凭据）。
+   */
   const approveRequest = useCallback(
-    (requestId: string): ValidationResult | null => {
-      const out = approveRequestOp(state, requestId, state.config);
+    (requestId: string, options?: { ownerAttestsBothTeams?: boolean }): ValidationResult | null => {
+      const out = approveRequestOp(state, requestId, state.config, options);
       dirtyRef.current = true;
       setState(out.state);
       return out.value ?? null;
@@ -134,12 +140,6 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
   const toggleFrozen = useCallback((matchId: string) => {
     dirtyRef.current = true;
     setState((s) => toggleFrozenOp(s, matchId));
-  }, []);
-
-  /** 标记通知为已发送 */
-  const markNotificationSent = useCallback((notificationId: string) => {
-    dirtyRef.current = true;
-    setState((s) => markNotificationSentOp(s, notificationId));
   }, []);
 
   /**
@@ -216,7 +216,6 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     approveRequest,
     rejectRequest,
     toggleFrozen,
-    markNotificationSent,
     reportGameResults,
     setMatchTime,
     importMatches,
