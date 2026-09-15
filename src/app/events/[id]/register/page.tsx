@@ -13,6 +13,49 @@ const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡"
 const inputClass =
   "min-h-11 w-full border border-gray-300 px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
 
+/**
+ * 赛事群公告。在四处复用：填表页顶部 / 已报名页 / 报名成功页。
+ *
+ * 为什么要多放几处：玩家可能从三条不同路径走到「该加群了」这一刻——
+ * 第一次看到表单、报名成功、或者换设备找回参赛信息。
+ * 漏掉群公告的代价不是少看一条通知，而是**错过自己的比赛时间**（改期、开赛提醒都在群里）。
+ *
+ * 群号为空时由调用方决定不渲染（见各处的 `event.eventQqGroup &&`）。
+ */
+function GroupNotice({ group }: { group: string }) {
+  const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  function copy() {
+    // 手机上从网页里选中一串数字再复制很别扭，给个一键复制。
+    // 剪贴板 API 在非安全上下文（非 https / 非 localhost）会失败，
+    // 此时提示「请手动记下」而不是静默无反应——否则玩家以为复制成功了。
+    navigator.clipboard.writeText(group)
+      .then(() => setCopied(true))
+      .catch(() => setFailed(true));
+  }
+
+  return (
+    <div className="border border-[#ff4655]/35 bg-[#fff1f2] p-4 sm:p-5">
+      <p className="text-sm font-black text-[#171a1f]">请加入赛事 QQ 群</p>
+      <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
+        赛程、分组、改期与开赛提醒都在群内发布。
+        <span className="font-bold text-[#c83242]">未进群可能错过自己的比赛时间。</span>
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <span className="font-mono text-xl font-black tracking-wider text-[#c83242]">{group}</span>
+        <button
+          type="button"
+          onClick={copy}
+          className="inline-flex min-h-11 items-center border border-[#ff4655] bg-white px-4 text-xs font-black text-[#c83242] transition hover:bg-[#ff4655] hover:text-white"
+        >
+          {copied ? "已复制" : failed ? "请手动记下" : "复制群号"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const event = useCurrentEventConfig(id);
@@ -93,7 +136,14 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">REGISTRATION COMPLETE</p>
           <h1 className="mt-3 text-2xl font-black text-[#171a1f]">已完成参赛报名</h1>
           <p className="mt-2 text-sm font-bold text-[#34383f]">{participant.data.player.gameId}</p>
-          <Link href={`/events/${id}/manage?section=team`} className="mt-7 block bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
+          {/* 原来这里没有群号——换设备找回参赛信息的人就永远看不到群公告。
+              这类人恰好最需要它（换了设备，群里消息可能也没了）。 */}
+          {event.eventQqGroup && (
+            <div className="mt-5 text-left">
+              <GroupNotice group={event.eventQqGroup} />
+            </div>
+          )}
+          <Link href={`/events/${id}/manage?section=team`} className="mt-5 block bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
             {participant.data.team ? "查看我的队伍" : "创建或加入队伍"}
           </Link>
           <Link href={`/events/${id}`} className="mt-3 block border border-black/15 px-5 py-3 text-sm font-black text-[#34383f]">
@@ -116,9 +166,8 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <h2 className="text-lg font-bold text-gray-900">报名成功</h2>
           <p className="mt-3 text-sm font-medium text-slate-600">参赛身份已保存在当前浏览器</p>
           {event.eventQqGroup && (
-            <div className="mt-4 border border-[#ff4655]/30 bg-red-50 p-4 text-left">
-              <p className="text-sm font-black text-[#171a1f]">请加入赛事 QQ 群</p>
-              <p className="mt-1 text-xs font-medium leading-5 text-slate-600">后续通知、分组与对阵信息都在群内发布。群号：<span className="font-black text-[#c83242]">{event.eventQqGroup}</span></p>
+            <div className="mt-4 text-left">
+              <GroupNotice group={event.eventQqGroup} />
             </div>
           )}
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -165,6 +214,15 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
           )}
         </div>
+
+        {/* 群公告放**表单之前**：一进页面就能看到，也方便先加群问清楚再报名。
+            原先放在表单最底部（自我介绍之后），等于填完才看到——
+            和「报完名才知道」是同一个问题，只提前了一步。 */}
+        {event.eventQqGroup && (
+          <div className="mb-4 md:mb-5">
+            <GroupNotice group={event.eventQqGroup} />
+          </div>
+        )}
 
         <div className="border border-gray-200 bg-white p-5 shadow-sm md:p-6">
           <div className="space-y-3 md:space-y-4">
@@ -226,13 +284,6 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <label className="mb-1 block text-sm font-medium text-gray-700">自我介绍（选填）</label>
               <textarea value={intro} onChange={(e) => setIntro(e.target.value)} placeholder="简单介绍自己，比如擅长英雄、参赛经历等" rows={4} className={inputClass} />
             </div>
-
-            {event.eventQqGroup && (
-              <div className="border border-[#ff4655]/30 bg-red-50 p-4">
-                <p className="text-sm font-black text-[#171a1f]">报名后请加入赛事 QQ 群</p>
-                <p className="mt-1 text-xs font-medium leading-5 text-slate-600">赛事通知、分组与对阵信息将在群内发布，请务必进群。群号：<span className="font-black text-[#c83242]">{event.eventQqGroup}</span></p>
-              </div>
-            )}
 
             {error && (
               <div className="bg-red-50 p-3 text-sm text-red-600">{error}</div>
