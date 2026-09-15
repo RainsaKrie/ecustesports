@@ -6,12 +6,27 @@
 //
 // 本文件不引入任何供应商 SDK，只用 fetch；`fetchImpl` 可注入，因此网络路径
 // 也能在没有密钥、没有外网的情况下被测到。
+//
+// ★ 提示词与解析逻辑不在本文件，而是从生产模块 `@/lib/referee/result-vision` 引入。
+//   理由：评测要回答的是「生产环境下准确率如何」。若两处各写一套提示词，
+//   早晚会漂移，那时评测量到的就不是生产行为了。
+//   依赖方向是 tools → src（已有先例：tools/seed-registration.ts）。
 // =====================
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import {
+  callVisionModel,
+  normalizeModelJson as normalizeFromProduction,
+  PROMPT_VERSION,
+  type VisionCallOptions,
+} from "@/lib/referee/result-vision";
 import { validateParsedOutput } from "./schema";
 import type { CaseInput, ParsedOutput, TokenUsage } from "./types";
+
+// 提示词是生产模块的唯一来源，这里只做转出，方便调用方与测试引用。
+// 改提示词请改 @/lib/referee/result-vision，并同时升 PROMPT_VERSION。
+export { PROMPT_VERSION };
 
 export interface AdapterRunContext {
   datasetDir: string;
@@ -41,58 +56,6 @@ export interface VisionAdapter {
   run(input: CaseInput, ctx: AdapterRunContext): Promise<AdapterResult>;
 }
 
-/** 提示词版本号。改提示词必须同时改这个值，否则历史结果无法复现。 */
-export const PROMPT_VERSION = "result-vision-prompt-v4";
-
-/**
- * 期望模型输出的 JSON 结构说明。写进提示词，也是解析时的唯一依据。
- * 明确要求「不确定就拒答」——这是 Gate 里「不得猜测」的前置条件。
- */
-export const OUTPUT_CONTRACT = [
-  "只输出一个 JSON 对象，不要任何解释文字或代码块标记。",
-  "字段：",
-  '- "refuse": 布尔。看不清、图不对、关键信息缺失时为 true。**宁可拒答也不要猜。**',
-  '- "reason": 字符串，仅在 refuse 为 true 时给出原因。',
-  '- "rows": 数组，结算表每一行一项，**按图上从上到下的顺序**，每项形如',
-  '  {"index": 1, "name": "昵称原文", "side": "a" 或 "b"}。',
-  "  **必须先逐行判定 side，再汇总出 groups；groups 只能由 rows 汇总，不得另行判断。**",
-  '- "groups": {"a": [昵称...], "b": [昵称...]}，把结算表上的 10 个昵称按队伍分成两组，',
-  "  每侧各 5 个。**必须与 rows 中同 side 的昵称完全一致。**",
-  '- "series": {"a": 整数, "b": 整数}，系列赛大比分；不确定填 null。',
-  '- "winnerSide": "A" 或 "B"，胜方；不确定填 null。',
-  '- "games": 数组，每局 {"map": 地图名或 null, "teamAScore": 整数, "teamBScore": 整数}。',
-  "A 指第一支队伍，B 指第二支。不允许编造图上没有的信息。",
-].join("\n");
-
-/**
- * 读图方法的提示。这些是「怎么看」，不涉及答案，所以放进提示词是合理的。
- *
- * 每一条都对应一个真实踩过的坑（2026-09-12 与 09-14 依据真实截图确定）：
- *   · 结算表按平均战斗评分降序**跨队排列**，两队成员交错，
- *     靠「前几行是哪队」会判错，必须看行底色。
- *   · **底色有三种不是两种**：除两队各自的颜色外，截图者自己那一行是另一种高亮色，
- *     容易误判成第三支队伍。那行属于截图者所在的队伍，不是独立队伍。
- *   · 图上没有局次标识。局次只能靠地图名反查给出的地图序列。
- *   · 图上没有队名，只有玩家昵称。
- *   · 大数字是**本局比分**（单局 13 分制），不是系列赛大比分。
- */
-export const READING_GUIDE = [
-  "读图方法（务必遵守）：",
-  "1. 左上角有本局地图名，顶部中央是本局比分（形如「13 胜利 6」）。",
-  "   这一行是「本方比分 / 结果 / 对方比分」：**左边那个数所属的队伍，就是截图者那一队**。",
-  "   中间的字（胜利 / 败北）描述的是截图者那一队的输赢。",
-  "   两个数字是**带颜色的**（一个偏绿、一个偏红），**数字的颜色与下方列表的行底色相对应**，",
-  "   据此可以确定哪种底色是「左侧那个数」的队伍。",
-  "2. 玩家列表每行有行底色，**底色代表队伍**。列表按个人评分从高到低排序，",
-  "   两队成员会交错出现，所以**绝不能按「前几行是哪队」判断，必须看底色**。",
-  "3. **底色有三种，不是两种**：除了两队各自的颜色，还会有一行是截图者「自己」的高亮色。",
-  "   那一行属于截图者所在的队伍，**不是第三支队伍**，不要单独成组。",
-  "   自检：分完应该是 5 人对 5 人；若出现 4 / 5 / 1，说明把自己那行单算了。",
-  "4. 图上没有写这是第几局。请用左上角的地图名，去比对下面给出的地图序列，",
-  "   找到它的位置（第几个就是第几局）。",
-  "5. 图上没有队名，只有玩家昵称。若下面提供了双方队员昵称，用它判断哪一组对应 A 队、哪一组对应 B 队。",
-  "6. 系列赛大比分 = 各局胜负数一数，不要直接读图上那个大数字（那是单局比分）。",
-].join("\n");
 
 // ---------------------------------------------------------------
 // mock 适配器：无密钥、无外网，用于框架自测
@@ -238,51 +201,16 @@ function guessMime(file: string): string {
 }
 
 /** 从模型返回的文本里取出 JSON。取不到就返回 null，由上层记为解析错误。 */
-export function extractJson(text: string): { ok: true; value: unknown } | { ok: false; error: string } {
-  const trimmed = text.trim();
-  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(trimmed);
-  const candidate = fenced ? fenced[1].trim() : trimmed;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return { ok: false, error: "输出中找不到 JSON 对象" };
-  try {
-    return { ok: true, value: JSON.parse(candidate.slice(start, end + 1)) };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "JSON 解析失败" };
-  }
-}
+// 解析与规范化复用生产实现，保证「评测口径 = 生产口径」。
+// 这里只做类型转出：生产返回 RecognizedResult，评测用的是本目录的 ParsedOutput，
+// 两者结构一致（series / winnerSide / games / groups），故可直接赋值。
+export { extractJson } from "@/lib/referee/result-vision";
 
-/** 把模型输出的 JSON 规范成 ParsedOutput。结构不对时如实报错，不做修补。 */
 export function normalizeModelJson(value: unknown): { parsed: ParsedOutput | null; problems: string[] } {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { parsed: null, problems: ["模型输出不是 JSON 对象"] };
-  }
-  const record = value as Record<string, unknown>;
-  if (record.refuse === true) {
-    return { parsed: null, problems: [] };
-  }
-  const parsed: ParsedOutput = {
-    series: (record.series as ParsedOutput["series"]) ?? null,
-    winnerSide: (record.winnerSide as ParsedOutput["winnerSide"]) ?? null,
-    games: Array.isArray(record.games)
-      ? (record.games as ParsedOutput["games"]).map((g) => ({
-          map: typeof g?.map === "string" ? g.map : null,
-          teamAScore: Number(g?.teamAScore),
-          teamBScore: Number(g?.teamBScore),
-        }))
-      : [],
-    groups: normalizeGroups(record.groups),
-  };
-  return { parsed, problems: validateParsedOutput(parsed) };
+  const result = normalizeFromProduction(value);
+  return { parsed: result.parsed, problems: result.problems };
 }
 
-function normalizeGroups(value: unknown): ParsedOutput["groups"] {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const rec = value as Record<string, unknown>;
-  const pick = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : [];
-  return { a: pick(rec.a), b: pick(rec.b) };
-}
 
 export function createVisionAdapter(
   config: VisionAdapterConfig,
@@ -304,126 +232,52 @@ export function createVisionAdapter(
     },
     async run(input, ctx) {
       const images = [...input.images].sort((a, b) => a.order - b.order);
-      const content: Array<Record<string, unknown>> = [
+      // 评测框架从数据集目录读图，转成 data URL 后交给生产侧的调用函数，
+      // 从而与生产走同一条请求构造、提示词与解析路径。
+      const dataUrls = images.map((image) =>
+        toDataUrl(path.join(ctx.datasetDir, "images", image.file), guessMime(image.file)),
+      );
+
+      const options: VisionCallOptions = {
+        model: config.model,
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+        thinking: config.thinking,
+        maxOutputTokens: config.maxOutputTokens,
+        temperature: config.temperature,
+        timeoutMs: ctx.timeoutMs,
+        inputPerMillionUsd: config.inputPerMillionUsd,
+        outputPerMillionUsd: config.outputPerMillionUsd,
+      };
+
+      const outcome = await callVisionModel(
         {
-          type: "text",
-          text: [
-            `比赛：${input.teams.a}（A）对 ${input.teams.b}（B）`,
-            `赛制：${input.boType}`,
-            `游戏：${input.game}　页面：${input.pageType}`,
-            input.knownMaps?.length
-              ? [
-                  "BP 已确定地图（按局序，用来反查截图的局次）：",
-                  ...input.knownMaps.map((map, index) => `  第 ${index + 1} 局：${map}`),
-                ].join("\n")
-              : "BP 地图未知，无法据此判断局次",
-            input.squads
-              ? [
-                  "双方队员昵称（已去掉 # 标签，与截图上的显示一致）：",
-                  `  A 队 ${input.teams.a}：${input.squads.a.join("、")}`,
-                  `  B 队 ${input.teams.b}：${input.squads.b.join("、")}`,
-                ].join("\n")
-              : "未提供双方队员昵称，无法确定底色对应哪支队",
-            input.note ? `作业说明：${input.note}` : "",
-            "",
-            "请从下面这些截图里读出赛果。",
-            READING_GUIDE,
-            OUTPUT_CONTRACT,
-          ].filter(Boolean).join("\n"),
+          caseId: input.caseId,
+          teams: input.teams,
+          boType: input.boType,
+          game: input.game,
+          pageType: input.pageType,
+          knownMaps: input.knownMaps,
+          squads: input.squads ?? null,
+          note: input.note,
+          images: dataUrls,
         },
-      ];
-      for (const image of images) {
-        const filePath = path.join(ctx.datasetDir, "images", image.file);
-        content.push({ type: "image_url", image_url: { url: toDataUrl(filePath, guessMime(image.file)) } });
-      }
+        options,
+        fetchImpl,
+      );
 
-      const response = await fetchImpl(`${config.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
-        body: JSON.stringify({
-          model: config.model,
-          temperature: config.temperature ?? 0,
-          // 默认给足预算：思考型模型的思考 token 也算在这里，给少了会返回空结果
-          max_tokens: config.maxOutputTokens ?? 4096,
-          ...(config.thinking ? { thinking: { type: config.thinking } } : {}),
-          messages: [{ role: "user", content }],
-        }),
-        signal: AbortSignal.timeout(ctx.timeoutMs),
-      });
+      // 结构校验仍在评测侧做：它用的是本框架自己的 schema，
+      // 与生产侧的「类型规范化」是两层不同的检查，不能互相替代。
+      const problems = outcome.parsed ? validateParsedOutput(outcome.parsed) : (outcome.problems ?? []);
 
-      if (!response.ok) {
-        const detail = await response.text().catch(() => "");
-        // 不回显响应体全文，避免把供应商侧可能的回显内容带进日志
-        return {
-          refused: false,
-          parsed: null,
-          parseError: `供应商返回 HTTP ${response.status}（${detail.slice(0, 80)}）`,
-          usage: { images: images.length },
-        };
-      }
-
-      const body = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-        usage?: {
-          prompt_tokens?: number;
-          completion_tokens?: number;
-          completion_tokens_details?: { reasoning_tokens?: number };
-        };
-      };
-      const choice = body.choices?.[0];
-      const text = choice?.message?.content ?? "";
-      const usage: TokenUsage = {
-        images: images.length,
-        inputTokens: body.usage?.prompt_tokens,
-        outputTokens: body.usage?.completion_tokens,
-        reasoningTokens: body.usage?.completion_tokens_details?.reasoning_tokens,
-      };
-      if (config.inputPerMillionUsd !== undefined && config.outputPerMillionUsd !== undefined) {
-        usage.costUsd =
-          ((usage.inputTokens ?? 0) / 1_000_000) * config.inputPerMillionUsd
-          + ((usage.outputTokens ?? 0) / 1_000_000) * config.outputPerMillionUsd;
-      }
-
-      // 输出被截断要单独报出来，不能退化成一句含糊的「解析失败」。
-      // 最常见的原因是思考 token 把 max_tokens 预算吃光了——此时 content 为空字符串，
-      // 若只记「找不到 JSON 对象」，排查时会误以为是提示词或格式问题。
-      if (choice?.finish_reason === "length") {
-        const reasoning = usage.reasoningTokens ?? 0;
-        const budget = config.maxOutputTokens ?? 4096;
-        return {
-          refused: false,
-          parsed: null,
-          parseError:
-            `模型输出被截断（finish_reason=length，预算 ${budget} tokens，其中思考占用 ${reasoning}）` +
-            (reasoning >= budget * 0.9
-              ? "。思考把预算吃光了——需要改用 thinking:\"disabled\"，或调大 maxOutputTokens。"
-              : "。需要调大 maxOutputTokens。"),
-          raw: text,
-          usage,
-        };
-      }
-
-      const extracted = extractJson(text);
-      if (!extracted.ok) {
-        return { refused: false, parsed: null, parseError: extracted.error, raw: text, usage };
-      }
-      const object = extracted.value as Record<string, unknown>;
-      if (object.refuse === true) {
-        return {
-          refused: true,
-          refusedReason: typeof object.reason === "string" ? object.reason : null,
-          parsed: null,
-          raw: text,
-          usage,
-        };
-      }
-      const normalized = normalizeModelJson(object);
       return {
-        refused: false,
-        parsed: normalized.parsed,
-        validatorErrors: normalized.problems,
-        raw: text,
-        usage,
+        refused: outcome.refused,
+        refusedReason: outcome.refusedReason ?? null,
+        parsed: outcome.parsed,
+        parseError: outcome.parseError ?? null,
+        validatorErrors: problems,
+        raw: outcome.raw ?? null,
+        usage: outcome.usage,
       };
     },
   };

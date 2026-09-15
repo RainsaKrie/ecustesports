@@ -35,10 +35,17 @@ import {
   projectAdminReviewQueue,
   projectAcceptedResults,
   buildResultContext,
+  type MyMatchSummary,
   type ReportingOpResult,
   type ReportingState,
 } from "@/lib/scheduling/reporting-service";
 import { resolveReviewOp, correctResultOp } from "@/lib/scheduling/result-ops";
+import {
+  initialRegistration,
+  normalizeRegistrationState,
+  type RegistrationState,
+} from "@/lib/scheduling/registration-data";
+import { buildSquadsByTeamId } from "@/lib/referee/identity-match";
 
 // 文档名（须通过 assertSafeDocumentName：仅 a-zA-Z0-9_-）
 const DOC_REFEREE = "referee-ledger";
@@ -276,7 +283,45 @@ export async function refereeMyMatches(eventId: string, credential: string) {
   const state = await loadReportingState(eventId);
   const login = loginRefereeOp(credential, eventId, state);
   if (!login.ok) return { ok: false, error: login.code ?? login.error };
-  return { ok: true, matches: projectMyMatches(state, login.value!.refereeId), scheduleVersion: state.scheduleVersion };
+
+  // 报名名单用于把截图里的行底色对上队伍——截图只有玩家昵称、没有队名。
+  // 读不到就退化为 null：此时裁判仍可手工报分，只是无法自动定向哪组是哪队。
+  const registration = await readEventData<RegistrationState>(eventId, "registration", initialRegistration());
+  const squadsByTeamId = buildSquadsByTeamId(normalizeRegistrationState(registration).players);
+
+  return {
+    ok: true,
+    matches: projectMyMatches(state, login.value!.refereeId, squadsByTeamId),
+    scheduleVersion: state.scheduleVersion,
+  };
+}
+
+/**
+ * 取某场比赛的报分上下文（鉴权 + 赛果识别所需依据）。
+ *
+ * 先鉴权再返回：未分配的比赛直接拒绝，不泄露队伍或名单信息。
+ * 分配关系的判定复用 projectMyMatches——那里已有一份经过测试的权限逻辑，
+ * 不另写一份「这个裁判能不能报这场」，避免两处规则漂移。
+ */
+export async function refereeMatchContext(
+  eventId: string,
+  credential: string,
+  matchId: string,
+): Promise<
+  | { ok: true; value: { match: MyMatchSummary } }
+  | { ok: false; error: string; code?: string }
+> {
+  if (eventId === DEMO_EVENT_ID) await seedDemoReporting();
+  const state = await loadReportingState(eventId);
+  const login = loginRefereeOp(credential, eventId, state);
+  if (!login.ok) return { ok: false, error: "裁判凭证无效", code: login.code ?? "INVALID_CREDENTIAL" };
+
+  const registration = await readEventData<RegistrationState>(eventId, "registration", initialRegistration());
+  const squadsByTeamId = buildSquadsByTeamId(normalizeRegistrationState(registration).players);
+  const match = projectMyMatches(state, login.value!.refereeId, squadsByTeamId)
+    .find((item) => item.matchId === matchId);
+  if (!match) return { ok: false, error: "这场比赛没有分配给你", code: "NOT_ASSIGNED" };
+  return { ok: true, value: { match } };
 }
 
 export async function refereeSubmit(

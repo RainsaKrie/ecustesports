@@ -4,7 +4,8 @@ import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { isHostedRuntime } from "@/lib/deployment";
 
-// 不需要登录的公开 API 写接口（登录/登出、玩家报名与组队、BP 会话[服务端按操作校验身份]）
+// 不需要登录的公开 API 写接口
+// （登录/登出、玩家报名与组队、BP 会话、裁判端点[服务端按裁判凭证校验身份]）
 const PUBLIC_WRITE_PATHS = [
   "/api/admin/login",
   "/api/admin/logout",
@@ -18,6 +19,9 @@ const PUBLIC_WRITE_PATHS = [
   "/api/referee/login",
   "/api/referee/submit",
   "/api/referee/upload",
+  // 裁判传图识别：与 submit/upload 同类，身份由裁判凭证在服务端校验，
+  // 不走管理员会话。漏加这个会让该接口在浏览器里恒返回 401。
+  "/api/referee/recognize",
 ];
 
 const WRITE_LIMITS: Array<{ prefix: string; action: string; limit: number; windowSeconds: number }> = [

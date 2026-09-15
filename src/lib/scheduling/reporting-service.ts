@@ -218,20 +218,63 @@ export function uploadRefereeEvidenceOp(
 // 最小化投影：对外不泄露凭证 / 内部 ID / 哈希
 // ---------------------------------------------------------------
 
-/** 裁判端「我的比赛」列表：只返回被分配比赛的必要字段 */
-export function projectMyMatches(state: ReportingState, refereeId: string): Array<{
+/**
+ * 裁判端「我的比赛」条目。
+ *
+ * 除展示字段外，还带上**赛果识别所需的两样依据**（2026-09-15 补）：
+ *   · `mapSequence` —— BP 已确定的地图序列（按局序）。界面据此按局形成上传位，
+ *     「这是第几局」由上传位决定，不必再让模型从图上去猜。
+ *   · `squads` —— 双方登场队员昵称。截图只有玩家昵称、没有队名，
+ *     必须靠它才能确定「哪种底色是哪支队」；缺了它就只能猜左右。
+ * 两样都取自既有数据（赛程的 bpMaps、报名名单），不额外增加任何录入负担。
+ */
+export interface MyMatchSummary {
   matchId: string;
   teamAName: string;
   teamBName: string;
   boType: string;
   status: string;
-}> {
+  /**
+   * 地图序列（按局序）。
+   * 空数组表示 BP 尚未完成——此时界面不应预生成上传位，因为无从判断局次。
+   * 注意 `bpMaps` 可能多于本场实际局数（BO3 若 2:0 结束就只有 2 局），
+   * 所以它给的是「按序可用的地图」，不是「一定会打这么多局」。
+   */
+  mapSequence: string[];
+  /** 双方登场队员昵称（已去 # 标签）。null 表示拿不到报名名单。 */
+  squads: { a: string[]; b: string[] } | null;
+}
+
+/**
+ * 投影「我的比赛」。
+ *
+ * `squadsByTeamId` 由调用方从报名数据构造后传入——本函数是纯函数，
+ * 不直接读报名文档，这样它可以在没有数据层的测试里被完整覆盖。
+ */
+export function projectMyMatches(
+  state: ReportingState,
+  refereeId: string,
+  squadsByTeamId?: Map<string, string[]>,
+): MyMatchSummary[] {
   const assigned = state.referee.assignments
     .filter((a) => a.refereeId === refereeId && a.status === "assigned")
     .map((a) => a.matchId);
   return state.matches
     .filter((m) => assigned.includes(m.id))
-    .map((m) => ({ matchId: m.id, teamAName: m.teamAName, teamBName: m.teamBName, boType: m.boType, status: m.status }));
+    .map((m) => {
+      const a = squadsByTeamId?.get(m.teamAId);
+      const b = squadsByTeamId?.get(m.teamBId);
+      return {
+        matchId: m.id,
+        teamAName: m.teamAName,
+        teamBName: m.teamBName,
+        boType: m.boType,
+        status: m.status,
+        mapSequence: Array.isArray(m.bpMaps) ? [...m.bpMaps] : [],
+        // 只有两队名单都拿得到时才提供，避免一边有一边没有造成误判
+        squads: a?.length && b?.length ? { a, b } : null,
+      };
+    });
 }
 
 /** 公开端赛程：只返回已 accepted 的正式赛果（不暴露提交记录、凭证、哈希、内部 ID） */

@@ -367,3 +367,36 @@ export function buildRoster(input: {
     .filter((g) => typeof g === "string" && g.trim() !== "");
   return { teamId: input.teamId, teamName: input.teamName, gameIds };
 }
+
+/** 报名选手的最小形状。只声明本模块用到的字段，避免与报名模块耦合。 */
+export interface SquadPlayerLike {
+  gameId?: string;
+  teamId?: string;
+  role?: string;
+  status?: string;
+}
+
+/**
+ * 把报名选手列表整理成「队伍 ID → 该队登场队员昵称」。
+ *
+ * 三件必须做的事：
+ *   1. **排除教练** —— 教练不上场，结算表里不会出现，留着会干扰匹配。
+ *   2. **排除已退赛** —— 退赛选手不计入名单。
+ *   3. **规范化昵称**（取 `#` 之前）—— 截图只显示昵称，带标签的 ID 匹配不上。
+ *
+ * 顺序保持报名顺序，便于人工核对时一一对应。
+ */
+export function buildSquadsByTeamId(players: SquadPlayerLike[]): Map<string, string[]> {
+  const byTeam = new Map<string, string[]>();
+  for (const player of players) {
+    if (!player.teamId) continue;
+    if (player.role === "教练") continue;
+    if (player.status === "已退赛") continue;
+    const name = normalizeGameId(player.gameId ?? "");
+    if (!name) continue;
+    const list = byTeam.get(player.teamId) ?? [];
+    if (!list.includes(name)) list.push(name);
+    byTeam.set(player.teamId, list);
+  }
+  return byTeam;
+}

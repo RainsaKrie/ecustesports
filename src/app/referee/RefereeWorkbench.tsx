@@ -2,9 +2,15 @@
 
 // =====================
 // RPT-05 手机端裁判工作台
-// 流程：登录 → 我的比赛 → 逐局报分（自动算大比分）→ 凭证上传 → 汇总确认（回显系统判定胜者）→ 提交结果
+//
+// 流程：登录 → 我的比赛 → 按 BP 逐局传图（AI 预填，可改）→ 汇总确认 → 提交结果
 // 数据：走真实 /api/referee/*（本地 file 后端即可跑，接 Supabase 只改 DATA_BACKEND）。
-// 凭证只存内存，刷新即清；本地草稿不伪装成已提交。
+//
+// 2026-09-15 调整：把「传图」从最后一步挪到最前面。
+//   原流程是先手工填完比分、最后才上传截图，等于截图只是存档；识图拿不到支配地位的输入。
+//   新流程按 BP 已确定的地图序列**预生成上传位**（第几局由格子决定，不靠模型猜），
+//   传图即识别、识别结果直接预填，裁判核对即可。
+//   手工填分全程保留可用——识别失败或不准时不影响报分。
 // =====================
 
 import { useMemo, useRef, useState } from "react";
@@ -16,16 +22,51 @@ type MatchSummary = {
   teamBName: string;
   boType: string;
   status: string;
+  /** BP 已确定的地图序列（按局序）。空数组表示 BP 未完成，此时不预生成上传位 */
+  mapSequence?: string[];
+  /** 双方登场队员昵称；前端不直接展示，仅用于确认「识别有依据可用」 */
+  squads?: { a: string[]; b: string[] } | null;
 };
 
 type Stage = "login" | "matches" | "report" | "confirm" | "done";
 
-type GameDraft = { map: string; teamAScore: number; teamBScore: number };
 type ConfirmPayload = {
   matchId: string;
   games: Array<{ map?: string; teamAScore: number; teamBScore: number }>;
   declaredWinnerTeamName: string;
   declaredWinnerSide: "A" | "B";
+};
+
+/** 一局的填报状态。图片与识别建议都挂在局上，而不是整场共用。 */
+type GameDraft = {
+  map: string;
+  teamAScore: number;
+  teamBScore: number;
+  /** 本地预览用的 objectURL；仅用于显示，服务端不回传图片地址（凭证存在私有空间） */
+  previewUrl?: string;
+  /** 该局已上传的凭证 id，提交时一并带上 */
+  evidenceId?: string;
+  /** 该局上传/识别中的状态 */
+  busy?: boolean;
+  /** 识别给出的提示（地图不符、左右已校正、人数异常等） */
+  notices?: string[];
+  /** 识别是否成功过 */
+  recognized?: boolean;
+};
+
+/** /api/referee/recognize 的返回结构 */
+type RecognizeResponse = {
+  evidenceId?: string;
+  expiresAt?: string;
+  recognized?: boolean;
+  message?: string;
+  suggestion?: {
+    game: { map: string | null; teamAScore: number; teamBScore: number } | null;
+    suggestedMap: string | null;
+    mapMatchesBp: boolean | null;
+    identity: { status: string; swapped: boolean; reasons: string[] } | null;
+    issues: string[];
+  } | null;
 };
 
 export default function RefereeWorkbench({ initialEventId }: { initialEventId: string }) {
@@ -35,22 +76,21 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [activeMatch, setActiveMatch] = useState<MatchSummary | null>(null);
   const [games, setGames] = useState<GameDraft[]>([]);
-  const [evidenceNames, setEvidenceNames] = useState<string[]>([]);
-  const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [confirmPayload, setConfirmPayload] = useState<ConfirmPayload | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [banner, setBanner] = useState("");
   const [lastScheduleVersion, setLastScheduleVersion] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** 当前正在给哪一局传图（用于让 input 知道传回来的文件属于谁） */
+  const uploadTargetRef = useRef<number>(0);
 
   const boType = activeMatch?.boType ?? "BO3";
   const winTarget = useMemo(() => ({ BO1: 1, BO3: 2, BO5: 3 }[boType] ?? 2), [boType]);
   const maxGames = winTarget * 2 - 1;
 
-  function winsOf(games: GameDraft[], side: "A" | "B"): number {
-    return games.filter((g) => (side === "A" ? g.teamAScore > g.teamBScore : g.teamBScore > g.teamAScore)).length;
+  function winsOf(list: GameDraft[], side: "A" | "B"): number {
+    return list.filter((g) => (side === "A" ? g.teamAScore > g.teamBScore : g.teamBScore > g.teamAScore)).length;
   }
 
   async function doLogin(e?: React.FormEvent) {
@@ -90,11 +130,21 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
   function openMatch(match: MatchSummary) {
     setActiveMatch(match);
-    setGames([]);
-    setEvidenceNames([]);
-    setEvidenceIds([]);
+    // 按 BP 已确定的地图序列**预生成上传位**：第几局由格子决定，不靠模型从图上猜。
+    // BP 未完成时只给一格，裁判自行加局。
+    const seq = match.mapSequence ?? [];
+    setGames(
+      seq.length > 0
+        ? seq.map((map) => ({ map, teamAScore: 0, teamBScore: 0 }))
+        : [{ map: "", teamAScore: 0, teamBScore: 0 }],
+    );
     setStage("report");
     setError("");
+    setBanner("");
+  }
+
+  function patchGame(index: number, patch: Partial<GameDraft>) {
+    setGames((prev) => prev.map((g, i) => (i === index ? { ...g, ...patch } : g)));
   }
 
   function addGame() {
@@ -103,11 +153,21 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   }
 
   function updateGame(index: number, patch: Partial<GameDraft>) {
-    setGames((prev) => prev.map((g, i) => (i === index ? { ...g, ...patch } : g)));
+    patchGame(index, patch);
   }
 
   function removeGame(index: number) {
     setGames((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  /**
+   * 已填写的局。
+   *
+   * 0:0 视为「这一局还没打」——BO3 预生成 3 格，若 2:0 就结束，第 3 格会留空。
+   * 若不这样处理，空格子会被当成「平局」而拒绝提交。
+   */
+  function playedGames(): GameDraft[] {
+    return games.filter((g) => !(g.teamAScore === 0 && g.teamBScore === 0));
   }
 
   function currentMapOptions(index: number): string[] {
@@ -117,10 +177,10 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
   function autoWinner(): { side: "A" | "B"; name: string } | null {
     if (!activeMatch) return null;
-    if (games.length === 0) return null;
-    const a = winsOf(games, "A");
-    const b = winsOf(games, "B");
-    if (a === 0 && b === 0) return null;
+    const played = playedGames();
+    if (played.length === 0) return null;
+    const a = played.filter((g) => g.teamAScore > g.teamBScore).length;
+    const b = played.filter((g) => g.teamBScore > g.teamAScore).length;
     // 未达胜负分时不给最终胜者，只显示进程
     if (a < winTarget && b < winTarget) return null;
     return a > b
@@ -129,16 +189,17 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   }
 
   function validatedGames(): Array<{ map?: string; teamAScore: number; teamBScore: number }> | null {
-    if (games.length === 0) { setError("请至少录入一局比分"); return null; }
+    const played = playedGames();
+    if (played.length === 0) { setError("请至少录入一局比分"); return null; }
     // 每局须无平局且分数非负
-    for (const g of games) {
+    for (const g of played) {
       if (!Number.isSafeInteger(g.teamAScore) || !Number.isSafeInteger(g.teamBScore)) { setError("比分必须是整数"); return null; }
       if (g.teamAScore === g.teamBScore) { setError("每局比分不能平局"); return null; }
       if (g.teamAScore < 0 || g.teamBScore < 0) { setError("比分不能为负"); return null; }
     }
     const winner = autoWinner();
     if (!winner) { setError(`该赛制需一方先达到 ${winTarget} 胜局`); return null; }
-    return games.map((g) => ({ map: g.map || undefined, teamAScore: g.teamAScore, teamBScore: g.teamBScore }));
+    return played.map((g) => ({ map: g.map || undefined, teamAScore: g.teamAScore, teamBScore: g.teamBScore }));
   }
 
   function toConfirm() {
@@ -155,49 +216,74 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     setError("");
   }
 
-  function onPickEvidence() {
+  function onPickEvidence(index: number) {
+    uploadTargetRef.current = index;
     fileInputRef.current?.click();
   }
 
   function onEvidenceChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 5);
-    if (files.length === 0) return;
-    setUploading(true);
-    setError("");
-    setBanner("");
-    uploadFiles(files);
+    const file = e.target.files?.[0];
+    const index = uploadTargetRef.current;
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    void recognizeForGame(index, file);
   }
 
-  async function uploadFiles(files: File[]) {
-    const names: string[] = [];
-    const ids: string[] = [];
-    let failed = 0;
-    for (const file of files) {
+  /**
+   * 传一张图并识别，结果预填到对应那一局。
+   *
+   * 图会一并存成凭证——所以即使识别失败，凭证也已留档，裁判手工填分即可。
+   * 识别只是「省打字」，不是报分的前置条件。
+   */
+  async function recognizeForGame(index: number, file: File) {
+    // 用本地预览：凭证存在私有空间，服务端不回传图片地址
+    const previous = games[index]?.previewUrl;
+    if (previous) URL.revokeObjectURL(previous);
+    const previewUrl = URL.createObjectURL(file);
+
+    patchGame(index, { busy: true, previewUrl, notices: [], recognized: false });
+    setError("");
+    setBanner("");
+
+    try {
       const form = new FormData();
       form.append("file", file);
       form.append("eventId", eventId);
       form.append("matchId", activeMatch?.matchId ?? "");
+      form.append("gameIndex", String(index + 1));
       form.append("credential", credential.trim());
-      try {
-        const res = await fetch("/api/referee/upload", { method: "POST", body: form });
-        const data = (await res.json().catch(() => ({}))) as { evidenceId?: string; message?: string };
-        if (!res.ok || !data.evidenceId) {
-          failed++;
-          names.push(`${file.name}（失败：${data.message ?? "上传失败"}）`);
-          continue;
-        }
-        names.push(file.name);
-        ids.push(data.evidenceId);
-      } catch {
-        failed++;
-        names.push(`${file.name}（网络失败）`);
+
+      const res = await fetch("/api/referee/recognize", { method: "POST", body: form });
+      const data = (await res.json().catch(() => ({}))) as RecognizeResponse;
+
+      if (!res.ok) {
+        patchGame(index, { busy: false, notices: [data.message ?? "上传失败，请重试"] });
+        return;
       }
+
+      const suggestion = data.suggestion;
+      const notices = [...(suggestion?.issues ?? [])];
+      if (!data.recognized || !suggestion) {
+        notices.push(data.message ?? "没有识别出可用比分，请手工填写");
+        patchGame(index, { busy: false, evidenceId: data.evidenceId, notices, recognized: false });
+        return;
+      }
+
+      // 只在识别出数字时覆盖：避免把裁判已经填好的分数清成 0
+      patchGame(index, {
+        busy: false,
+        evidenceId: data.evidenceId,
+        recognized: true,
+        notices,
+        ...(suggestion.game
+          ? { teamAScore: suggestion.game.teamAScore, teamBScore: suggestion.game.teamBScore }
+          : {}),
+        ...(suggestion.suggestedMap ? { map: suggestion.suggestedMap } : {}),
+      });
+      setBanner(notices.length > 0 ? "识别完成，请核对提示项" : "识别完成，请核对后提交");
+    } catch {
+      patchGame(index, { busy: false, notices: ["网络失败，可重试或直接手工填写"] });
     }
-    setEvidenceNames((prev) => [...prev, ...names].slice(0, 5));
-    setEvidenceIds((prev) => [...prev, ...ids].slice(0, 5));
-    setUploading(false);
-    setBanner(failed > 0 ? `${failed} 张上传失败，已上传 ${ids.length} 张` : `已上传 ${ids.length} 张凭证`);
   }
 
   async function doSubmit() {
@@ -205,6 +291,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     setSubmitting(true);
     setError("");
     try {
+      // 凭证按局收集：传过图的局才有 id
+      const evidenceIds = games.map((g) => g.evidenceId).filter((id): id is string => Boolean(id));
       const res = await fetch("/api/referee/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -321,8 +409,10 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
   if (stage === "report" && activeMatch) {
     const winner = autoWinner();
+    const played = playedGames();
+    const bpReady = (activeMatch.mapSequence?.length ?? 0) > 0;
     return (
-      <Shell title="录入比分" onBack={() => setStage("matches")}>
+      <Shell title="逐局传图与报分" onBack={() => setStage("matches")}>
         <div className="border border-[#0f1923]/25 bg-white p-5">
           <p className="mono-label text-[#d83b48]">{activeMatch.boType} · {activeMatch.matchId}</p>
           <div className="mt-2 flex items-center justify-between">
@@ -333,31 +423,94 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           <div className="mt-3 grid grid-cols-2 border-t border-[#0f1923]/15 pt-3 text-center">
             <div>
               <span className="mono-label text-[#667078]">A 胜局</span>
-              <div className="display-type mt-1 text-3xl font-extrabold text-[#0f1923]">{winsOf(games, "A")}</div>
+              <div className="display-type mt-1 text-3xl font-extrabold text-[#0f1923]">{winsOf(played, "A")}</div>
             </div>
             <div>
               <span className="mono-label text-[#667078]">B 胜局</span>
-              <div className="display-type mt-1 text-3xl font-extrabold text-[#0f1923]">{winsOf(games, "B")}</div>
+              <div className="display-type mt-1 text-3xl font-extrabold text-[#0f1923]">{winsOf(played, "B")}</div>
             </div>
           </div>
+          <p className="mt-3 text-sm leading-relaxed text-[#667078]">
+            {bpReady
+              ? "按下方格子逐局上传结果截图。上传后会自动读出比分，核对无误再提交。"
+              : "这场还没有 BP 地图记录，格子里的地图需要你手动选择。"}
+          </p>
         </div>
+
+        {/* 隐藏的文件输入：每次只服务一个格子，由 uploadTargetRef 记住是哪一局 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={onEvidenceChange}
+          className="hidden"
+        />
 
         {games.map((g, i) => (
           <div key={i} className="mt-4 border border-[#0f1923]/25 bg-white p-4">
             <div className="flex items-center justify-between">
-              <span className="mono-label text-[#d83b48]">局 {i + 1}</span>
-              <button onClick={() => removeGame(i)} className="text-sm text-[#667078] hover:text-[#ff4655]">移除</button>
+              <div className="flex items-center gap-2">
+                <span className="mono-label text-[#d83b48]">局 {i + 1}</span>
+                {g.recognized && <span className="mono-label text-[#1a7f5a]">已识别</span>}
+              </div>
+              <button
+                onClick={() => removeGame(i)}
+                className="inline-flex min-h-11 items-center px-2 text-sm text-[#667078] hover:text-[#ff4655]"
+              >
+                移除
+              </button>
             </div>
-            <select
-              value={g.map}
-              onChange={(e) => updateGame(i, { map: e.target.value })}
-              className="mt-3 h-11 w-full border border-[#0f1923]/25 bg-white px-3 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
-              style={{ borderRadius: 0 }}
-            >
-              <option value="">选择地图</option>
-              {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
-              {g.map && !VALORANT_MAPS.some((m) => m.name === g.map) && <option value={g.map}>{g.map}</option>}
-            </select>
+
+            {/* 地图：BP 已确定时展示为文字（不让改，避免与 BP 记录不一致），未确定时才给下拉 */}
+            {bpReady && activeMatch.mapSequence?.[i] ? (
+              <p className="mt-2 text-base font-bold text-[#0f1923]">
+                {activeMatch.mapSequence[i]}
+                {g.map && g.map !== activeMatch.mapSequence[i] && (
+                  <span className="ml-2 text-sm font-normal text-[#ff4655]">图上读到：{g.map}</span>
+                )}
+              </p>
+            ) : (
+              <select
+                value={g.map}
+                onChange={(e) => updateGame(i, { map: e.target.value })}
+                className="mt-2 h-11 w-full border border-[#0f1923]/25 bg-white px-3 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
+                style={{ borderRadius: 0 }}
+              >
+                <option value="">选择地图</option>
+                {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
+                {g.map && !VALORANT_MAPS.some((m) => m.name === g.map) && <option value={g.map}>{g.map}</option>}
+              </select>
+            )}
+
+            <div className="mt-3 flex items-start gap-3">
+              {g.previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={g.previewUrl}
+                  alt={"第 " + (i + 1) + " 局截图"}
+                  className="h-24 w-40 shrink-0 border border-[#0f1923]/20 object-cover"
+                />
+              ) : (
+                <div className="flex h-24 w-40 shrink-0 items-center justify-center border border-dashed border-[#0f1923]/25 text-xs text-[#667078]">
+                  未上传
+                </div>
+              )}
+              <button
+                onClick={() => onPickEvidence(i)}
+                disabled={g.busy}
+                className="min-h-11 flex-1 border border-[#0f1923]/25 bg-white px-4 text-sm text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                style={{ borderRadius: 0 }}
+              >
+                {g.busy ? "识别中…" : g.previewUrl ? "重新上传" : "上传这一局截图"}
+              </button>
+            </div>
+
+            {g.notices && g.notices.length > 0 && (
+              <ul className="mt-2 space-y-1 border-l-2 border-[#ff4655] pl-3 text-xs leading-relaxed text-[#667078]">
+                {g.notices.map((n, k) => <li key={k}>· {n}</li>)}
+              </ul>
+            )}
+
             <div className="mt-3 grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1">
                 <span className="mono-label text-[#667078]">{activeMatch.teamAName}</span>
@@ -389,14 +542,15 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           </div>
         ))}
 
-        <button
-          onClick={addGame}
-          disabled={games.length >= maxGames}
-          className="mt-4 w-full border border-dashed border-[#0f1923]/30 bg-transparent px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-40"
-          style={{ borderRadius: 0 }}
-        >
-          + 添加一局（最多 {maxGames} 局）
-        </button>
+        {games.length < maxGames && (
+          <button
+            onClick={addGame}
+            className="mt-4 w-full border border-dashed border-[#0f1923]/30 bg-transparent px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655]"
+            style={{ borderRadius: 0 }}
+          >
+            + 添加一局（最多 {maxGames} 局）
+          </button>
+        )}
 
         {winner && (
           <div className="mt-4 border-l-4 border-[#ff4655] bg-white p-4">
@@ -410,10 +564,10 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
         <div className="mt-6 flex flex-col gap-3 pb-8">
           <button
             onClick={toConfirm}
-            disabled={games.length === 0}
+            disabled={played.length === 0}
             className="btn-cut h-13 w-full bg-[#ff4655] text-base font-bold text-white hover:bg-[#d83b48] disabled:opacity-40"
           >
-            下一步：凭证与确认
+            下一步：确认提交
           </button>
         </div>
       </Shell>
@@ -421,6 +575,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   }
 
   if (stage === "confirm" && confirmPayload && activeMatch) {
+    const uploadedCount = games.filter((g) => g.evidenceId).length;
     return (
       <Shell title="确认提交" onBack={() => setStage("report")}>
         <div className="border border-[#0f1923]/25 bg-white p-5">
@@ -446,21 +601,30 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           </p>
         </div>
 
+        {/* 凭证在上一屏已随图上传，这里只做核对展示，不再重复上传 */}
         <div className="mt-4 border border-[#0f1923]/25 bg-white p-5">
           <p className="mono-label text-[#0f1923]">比赛凭证（截图）</p>
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={onEvidenceChange} className="hidden" />
-          <button
-            onClick={onPickEvidence}
-            disabled={uploading}
-            className="mt-3 w-full border border-[#0f1923]/25 bg-white px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
-            style={{ borderRadius: 0 }}
-          >
-            {uploading ? "上传中…" : evidenceIds.length > 0 ? `已上传 ${evidenceIds.length} 张` : "选择截图"}
-          </button>
-          {evidenceNames.length > 0 && (
-            <ul className="mt-2 text-sm text-[#667078]">
-              {evidenceNames.map((n, i) => <li key={i}>· {n}</li>)}
-            </ul>
+          {uploadedCount > 0 ? (
+            <>
+              <p className="mt-2 text-sm text-[#667078]">
+                已随各局上传 {uploadedCount} 张，提交时会一并归档。
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {games.map((g, i) =>
+                  g.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <li key={i} className="border border-[#0f1923]/20">
+                      <img src={g.previewUrl} alt={"第 " + (i + 1) + " 局截图"} className="h-20 w-32 object-cover" />
+                      <p className="mono-label px-2 py-1 text-[#667078]">局 {i + 1}</p>
+                    </li>
+                  ) : null,
+                )}
+              </ul>
+            </>
+          ) : (
+            <p className="mt-2 text-sm leading-relaxed text-[#667078]">
+              这一场还没有上传截图。可以返回上一屏补传，也可以直接提交——凭证不是提交的必要条件。
+            </p>
           )}
           {banner && <p className="mt-2 text-sm text-[#0f1923]">{banner}</p>}
         </div>
