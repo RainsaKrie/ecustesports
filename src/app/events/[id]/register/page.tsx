@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/Container";
+import GroupNotice from "@/components/events/GroupNotice";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { participantTokenKey, usePublicRegistration } from "@/lib/scheduling/usePublicRegistration";
 import { useParticipant } from "@/lib/scheduling/useParticipant";
@@ -12,49 +13,6 @@ const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡"
 
 const inputClass =
   "min-h-11 w-full border border-gray-300 px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
-
-/**
- * 赛事群公告。在四处复用：填表页顶部 / 已报名页 / 报名成功页。
- *
- * 为什么要多放几处：玩家可能从三条不同路径走到「该加群了」这一刻——
- * 第一次看到表单、报名成功、或者换设备找回参赛信息。
- * 漏掉群公告的代价不是少看一条通知，而是**错过自己的比赛时间**（改期、开赛提醒都在群里）。
- *
- * 群号为空时由调用方决定不渲染（见各处的 `event.eventQqGroup &&`）。
- */
-function GroupNotice({ group }: { group: string }) {
-  const [copied, setCopied] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  function copy() {
-    // 手机上从网页里选中一串数字再复制很别扭，给个一键复制。
-    // 剪贴板 API 在非安全上下文（非 https / 非 localhost）会失败，
-    // 此时提示「请手动记下」而不是静默无反应——否则玩家以为复制成功了。
-    navigator.clipboard.writeText(group)
-      .then(() => setCopied(true))
-      .catch(() => setFailed(true));
-  }
-
-  return (
-    <div className="border border-[#ff4655]/35 bg-[#fff1f2] p-4 sm:p-5">
-      <p className="text-sm font-black text-[#171a1f]">请加入赛事 QQ 群</p>
-      <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
-        赛程、分组、改期与开赛提醒都在群内发布。
-        <span className="font-bold text-[#c83242]">未进群可能错过自己的比赛时间。</span>
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="font-mono text-xl font-black tracking-wider text-[#c83242]">{group}</span>
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex min-h-11 items-center border border-[#ff4655] bg-white px-4 text-xs font-black text-[#c83242] transition hover:bg-[#ff4655] hover:text-white"
-        >
-          {copied ? "已复制" : failed ? "请手动记下" : "复制群号"}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

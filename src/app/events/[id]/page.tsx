@@ -5,6 +5,7 @@ import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import EventDetailTabs from "@/components/events/EventDetailTabs";
+import GroupNotice from "@/components/events/GroupNotice";
 import ParticipantStageActions from "@/components/events/ParticipantStageActions";
 import Container from "@/components/layout/Container";
 import Badge from "@/components/ui/Badge";
@@ -129,6 +130,15 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
                 </div>
               </div>
             </div>
+
+            {/* 群公告放在阶段卡之后、标签页之前：
+                玩家看完「当前该做什么」，紧接着看到「去哪接收后续通知」。
+                非报名期也同样显示——赛后仍要通知领奖等事宜。 */}
+            {event.eventQqGroup && (
+              <div className="mt-5">
+                <GroupNotice group={event.eventQqGroup} />
+              </div>
+            )}
           </div>
         </Container>
       </div>

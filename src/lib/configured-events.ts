@@ -28,6 +28,9 @@ export function toConfiguredEvent(event: EditableEvent): EsportEvent {
     dateLabel: event.eventDateLabel,
     registrationLabel: event.registrationLabel,
     stageSummary: event.stageSummary,
+    // 顺手补上群号透传：原先漏了这个字段，导致赛事详情页拿不到群号，
+    // 想展示也无从展示（不是「没写渲染」那么表面）。
+    eventQqGroup: event.eventQqGroup,
     preparationSteps: event.preparationSteps,
     rulesList: event.rules,
     mapPool: event.mapPool,

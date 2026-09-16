@@ -84,6 +84,13 @@ export interface EsportEvent {
   dateLabel?: string;
   registrationLabel?: string;
   stageSummary?: string;
+  /**
+   * 赛事 QQ 群号（纯数字，空表示未设置）。
+   *
+   * 玩家侧多页会展示它——报名表单、报名成功、找回信息、赛事详情。
+   * 空值时不渲染任何群公告块（见 GroupNotice 的调用处）。
+   */
+  eventQqGroup?: string;
   preparationSteps?: Array<{ number: string; title: string; detail: string }>;
   rulesList?: Array<{
     title: string;
