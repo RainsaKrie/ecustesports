@@ -18,6 +18,19 @@ const MAX_UPDATE_ATTEMPTS = 40;
 const MAX_READ_ATTEMPTS = 3;
 const READ_RETRY_DELAYS_MS = [80, 180];
 
+/**
+ * 时钟偏差故障（PGRST303）的专用重试。
+ *
+ * Supabase 平台在请求时现场铸造 token，其 `iat` 可能比验证器时钟快 30 秒以上，
+ * 被 PostgREST 拒绝（它只容忍 30 秒偏差）。**同一个 token 过一两秒就能通过**，
+ * 所以这类失败必须等待后重试，而不是立刻抛错。
+ *
+ * 普通重试的 80/180ms 太短，跨不过这个窗口；因此单独给一组更长的延迟，
+ * 并把尝试次数从 3 提到 4（总等待约 4.5 秒）。
+ */
+const CLOCK_SKEW_ATTEMPTS = 4;
+const CLOCK_SKEW_RETRY_DELAYS_MS = [1000, 1500, 2000];
+
 function config(): { url: string; secret: string } {
   const url = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL);
   const secret = process.env.SUPABASE_SECRET_KEY;
@@ -55,17 +68,57 @@ function documentsUrl(filters?: Record<string, string>): string {
   return endpoint.toString();
 }
 
-async function responseError(response: Response): Promise<Error> {
+/**
+ * 带 PostgREST 错误码的请求错误。
+ *
+ * 需要 code 是因为 **401 不能一概而论**：`PGRST303`（时钟偏差）值得重试，
+ * 而其它 401（凭证真错）必须立即失败。只看 HTTP 状态码无法区分这两者。
+ */
+class SupabaseRequestError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(status: number, detail: string, code?: string) {
+    super(`Supabase 数据请求失败（HTTP ${status}）${detail ? `：${detail.slice(0, 300)}` : ""}`);
+    this.name = "SupabaseRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+async function responseError(response: Response): Promise<SupabaseRequestError> {
   const detail = await response.text().catch(() => "");
-  return new Error(`Supabase 数据请求失败（HTTP ${response.status}）${detail ? `：${detail.slice(0, 300)}` : ""}`);
+  let code: string | undefined;
+  if (detail) {
+    try {
+      const parsed = JSON.parse(detail) as { code?: unknown };
+      if (typeof parsed.code === "string") code = parsed.code;
+    } catch {
+      // 非 JSON 响应体：没有可用的错误码，交给统一错误处理。
+    }
+  }
+  return new SupabaseRequestError(response.status, detail, code);
 }
 
-function isRetryableReadStatus(status: number): boolean {
-  return status === 429 || status >= 500;
+/**
+ * 判定读取失败是否值得重试。
+ *
+ * 除 429 与 5xx 外，**还要重试 401 + PGRST303**：那是 Supabase 平台的时钟偏差故障
+ * （status.supabase.com 的「401 errors due to JWT rejections」，2026-08 起多次发生），
+ * 平台现场铸造的 token 的 iat 落在验证器时钟之后超过 30 秒，被 PostgREST 拒绝。
+ * 同一个 token 过一两秒即可通过 —— 有报告指出「两个并发请求带同一 token，一个 401、一个 200」。
+ *
+ * ⚠️ 只对 PGRST303 放宽。**其它 401 必须立即失败**，否则会把「凭证配错」这类
+ * 真实配置问题伪装成「偶发网络抖动」，排查难度大幅上升。
+ */
+function isRetryableReadStatus(status: number, code?: string): boolean {
+  if (status === 429 || status >= 500) return true;
+  return status === 401 && code === "PGRST303";
 }
 
-async function waitBeforeReadRetry(attempt: number): Promise<void> {
-  const baseDelay = READ_RETRY_DELAYS_MS[attempt] ?? READ_RETRY_DELAYS_MS.at(-1) ?? 180;
+async function waitBeforeReadRetry(attempt: number, clockSkew = false): Promise<void> {
+  const delays = clockSkew ? CLOCK_SKEW_RETRY_DELAYS_MS : READ_RETRY_DELAYS_MS;
+  const baseDelay = delays[attempt] ?? delays.at(-1) ?? 180;
   const jitter = Math.floor(Math.random() * 40);
   await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
 }
@@ -87,7 +140,12 @@ async function readRow<T>(scope: "site" | "event", eventId: string, name: string
   });
 
   let lastError: unknown;
-  for (let attempt = 0; attempt < MAX_READ_ATTEMPTS; attempt += 1) {
+  // 一旦遇到时钟偏差故障，本次读取就切换到「更多次 + 更长等待」的重试策略。
+  let clockSkewSeen = false;
+  for (let attempt = 0; ; attempt += 1) {
+    const maxAttempts = clockSkewSeen ? CLOCK_SKEW_ATTEMPTS : MAX_READ_ATTEMPTS;
+    if (attempt >= maxAttempts) break;
+
     let response: Response;
     try {
       response = await fetch(url, {
@@ -97,8 +155,8 @@ async function readRow<T>(scope: "site" | "event", eventId: string, name: string
       });
     } catch (error) {
       lastError = error;
-      if (attempt === MAX_READ_ATTEMPTS - 1) throw error;
-      await waitBeforeReadRetry(attempt);
+      if (attempt >= maxAttempts - 1) throw error;
+      await waitBeforeReadRetry(attempt, clockSkewSeen);
       continue;
     }
 
@@ -107,11 +165,18 @@ async function readRow<T>(scope: "site" | "event", eventId: string, name: string
       return rows[0] ?? null;
     }
 
-    lastError = await responseError(response);
-    if (!isRetryableReadStatus(response.status) || attempt === MAX_READ_ATTEMPTS - 1) {
+    const failure = await responseError(response);
+    lastError = failure;
+
+    // 平台的时钟偏差故障：token 的 iat 太新被拒，等一下再试就能过。
+    const clockSkew = failure.status === 401 && failure.code === "PGRST303";
+    if (clockSkew) clockSkewSeen = true;
+
+    const limit = clockSkewSeen ? CLOCK_SKEW_ATTEMPTS : MAX_READ_ATTEMPTS;
+    if (!isRetryableReadStatus(failure.status, failure.code) || attempt >= limit - 1) {
       throw lastError;
     }
-    await waitBeforeReadRetry(attempt);
+    await waitBeforeReadRetry(attempt, clockSkewSeen);
   }
 
   throw lastError instanceof Error ? lastError : new Error("Supabase 数据读取失败");
