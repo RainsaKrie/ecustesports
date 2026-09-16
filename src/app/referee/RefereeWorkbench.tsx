@@ -838,7 +838,15 @@ function Shell({ title, onBack, children }: { title: string; onBack: () => void;
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <div className="mb-5 flex items-center justify-between border-b border-[#0f1923]/20 pb-4">
-        <button onClick={onBack} className="text-base text-[#0f1923] hover:text-[#ff4655]">← 返回</button>
+        {/* min-h-11 = 44px：手机上可点。此前只有 text-base（约 24px 高），
+            是裁判端手机适配里最后一处未达标的触控目标。宽度 53px 本来就够，故不加横向 padding，
+            以免按钮变宽把标题挤歪（右侧只有 w-8 的占位）。 */}
+        <button
+          onClick={onBack}
+          className="inline-flex min-h-11 items-center text-base text-[#0f1923] hover:text-[#ff4655]"
+        >
+          ← 返回
+        </button>
         <h1 className="display-type text-xl font-extrabold tracking-[-0.04em] text-[#0f1923]">{title}</h1>
         <span className="w-8" />
       </div>
