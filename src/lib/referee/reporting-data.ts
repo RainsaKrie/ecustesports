@@ -412,12 +412,31 @@ async function mutateLedgerWithCredential(
  * 比赛本身的合法性（存在、已排期、未完成）在锁外判断。理由：
  * 这些是慢变数据，不会在毫秒级内变化；而「谁先抢到」才是真正的竞争点。
  */
+/**
+ * 裁判认领比赛。
+ *
+ * ★ 顺序：**先鉴权，再查比赛**。
+ *
+ * 反例（原实现）：先 `find` 比赛、发现不存在就回「比赛不存在」，
+ * 把鉴权留到 `mutateLedgerWithCredential` 里面。后果是**未登录者也能探测比赛**：
+ * 靠不同的报错文案（「比赛不存在」/「该场已结束」/「该场还没有约赛时间」）
+ * 就能枚举出哪些比赛存在、什么状态。比赛 ID 是 `M01`/`M02`…连续可猜，抽签后可被逐个问出来。
+ *
+ * 正确做法与 `submitRefereeResultOp` / `uploadRefereeEvidenceOp` 保持一致：
+ * 未鉴权时**只回「凭证无效」**，不透露任何资源信息。
+ */
 export async function refereeClaimMatch(
   eventId: string,
   credential: string,
   matchId: string,
 ): Promise<{ ok: true; reason?: string } | { ok: false; error: string; code?: string }> {
   const state = await loadReportingState(eventId);
+
+  // 1. 越权 / 未分配 / 凭证失效 → 统一拒绝，且不泄露比赛是否存在
+  const auth = authenticateReferee(credential, eventId, state.referee);
+  if (!auth.ok) return { ok: false, error: "裁判凭证无效", code: auth.reason };
+
+  // 2. 鉴权通过后才查比赛（此处报错只回给已确认身份的裁判）
   const match = state.matches.find((m) => m.id === matchId);
   if (!match) return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
   if (match.status === "已完成") return { ok: false, error: "该场已结束，不需要裁判", code: "MATCH_COMPLETED" };
@@ -425,12 +444,19 @@ export async function refereeClaimMatch(
     return { ok: false, error: "该场还没有约赛时间，等双方确定时间后再认领", code: "NOT_SCHEDULED" };
   }
 
+  // 3. 复用第 1 步已确认的 refereeId，不再重复鉴权
   return mutateLedgerWithCredential(eventId, credential, (refereeId, current) =>
     claimMatchOp({ eventId, matchId, refereeId }, current),
   );
 }
 
-/** 裁判释放自己认领的比赛（被指派的场次不能自己释放，须负责人撤销） */
+/**
+ * 裁判释放自己认领的比赛（被指派的场次不能自己释放，须负责人撤销）。
+ *
+ * 未在此处加前置鉴权：资源查询（「你有没有认领这场」）发生在
+ * `releaseClaimOp` 内部，而该 op 是在 `mutateLedgerWithCredential` 的
+ * **已鉴权回调**里执行的——所以顺序本身就是对的，不会泄露。
+ */
 export async function refereeReleaseMatch(
   eventId: string,
   credential: string,
