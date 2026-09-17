@@ -5,6 +5,7 @@
 
 import { getSiteConfig, saveSiteConfig } from "@/lib/site-config";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { recordOperationAuditSafely } from "@/lib/operation-audit";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -26,7 +27,15 @@ export async function POST(request: NextRequest) {
       return Response.json({ message: "赛事不存在" }, { status: 400 });
     }
 
+    const previousEventId = config.currentEventId;
     await saveSiteConfig({ ...config, currentEventId: eventId });
+    await recordOperationAuditSafely(request, {
+      eventId,
+      actorType: "admin",
+      action: "event.current.switched",
+      // 只改「当前焦点赛事」指针，但会影响后台默认进入哪一场，记下前后值便于回溯。
+      metadata: { from: previousEventId ?? null, to: eventId },
+    });
     return Response.json({ message: "已切换当前赛事" });
   } catch {
     return Response.json({ message: "切换失败，请稍后重试" }, { status: 400 });
