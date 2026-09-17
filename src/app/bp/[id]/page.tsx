@@ -151,6 +151,14 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
   const stepLabel = (side: "first" | "second", action: "ban" | "pick") =>
     `${side === "first" ? session?.firstTeamName : session?.secondTeamName} ${action === "ban" ? "Ban" : "Pick"}`;
 
+  /**
+   * 副标题片段去重：入围赛比赛的 `phase` 与 `round` 值相同（都是「入围赛」），
+   * 直接拼会显示成「入围赛 · 入围赛」。16 场入围赛都受影响。
+   */
+  const matchMeta = [match.phase, match.round, match.boType].filter(
+    (value, index, all) => Boolean(value) && all.indexOf(value) === index,
+  );
+
   return (
     <div className="min-h-screen bg-[#0f1923] text-white">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
@@ -158,9 +166,9 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold">BP 房间 · {match.id}</h1>
-            <p className="mt-1 text-sm text-gray-400">
-              {match.phase} · {match.round} · {match.boType} · 地图池 {poolForBO} 张
-            </p>
+              <p className="mt-1 text-sm text-gray-400">
+                {matchMeta.join(" · ")} · 地图池 {poolForBO} 张
+              </p>
           </div>
           <div className="flex items-center gap-3">
             {admin && <Badge className="bg-[#ff4655] text-white">裁判模式</Badge>}
@@ -189,19 +197,23 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
           </div>
         )}
 
-        {/* 队伍条 */}
+        {/* 队伍条
+            点位色表示**队伍身份**（A=品牌红 / B=深墨），与 BP 列表页一致；
+            卡片高亮表示**先手**（统一品牌红）。
+            此前点位色表示先手且两处判定互相矛盾 —— 导致两点永远同色、
+            且「先手」在 A 侧是红、在 B 侧是蓝。同时蓝色不在设计令牌内。 */}
         <div className="mb-6 grid grid-cols-2 gap-4">
           <div className={`border-2 p-4 transition-colors ${session && session.firstTeamSide === "A" ? "border-[#ff4655] bg-[#ff4655]/10" : "border-gray-700 bg-gray-800/50"}`}>
             <div className="flex items-center gap-2">
-              <div className={`h-3 w-3  ${session?.firstTeamSide === "A" ? "bg-[#ff4655]" : "bg-[#4f8ef7]"}`} />
+              <div className="h-3 w-3 bg-[#ff4655]" />
               <span className="font-bold">{match.teamAName}</span>
               {session && session.firstTeamId === match.teamAId && <Badge className="bg-yellow-500 text-black">先手</Badge>}
             </div>
             <p className="mt-1 text-xs text-gray-400">A 侧</p>
           </div>
-          <div className={`border-2 p-4 transition-colors ${session && session.firstTeamSide === "B" ? "border-[#4f8ef7] bg-[#4f8ef7]/10" : "border-gray-700 bg-gray-800/50"}`}>
+          <div className={`border-2 p-4 transition-colors ${session && session.firstTeamSide === "B" ? "border-[#ff4655] bg-[#ff4655]/10" : "border-gray-700 bg-gray-800/50"}`}>
             <div className="flex items-center gap-2">
-              <div className={`h-3 w-3  ${session?.firstTeamSide === "B" ? "bg-[#4f8ef7]" : "bg-[#ff4655]"}`} />
+              <div className="h-3 w-3 bg-[#25313b]" />
               <span className="font-bold">{match.teamBName}</span>
               {session && session.firstTeamId === match.teamBId && <Badge className="bg-yellow-500 text-black">先手</Badge>}
             </div>
@@ -238,22 +250,29 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
           </div>
         )}
 
-        {session && session.status === "进行中" && (
+        {/*
+          已完成与进行中共用同一套展示（地图网格 / 流程条 / BP 记录），
+          只把「当前提示」和「操作按钮」限制为进行中 —— 设计文档 §2.5 要求
+          完成后「下方保留完整记录供回溯」，所以记录不能在完成时消失。
+        */}
+        {session && (
           <>
-            {/* 当前提示 */}
-            <div className="mb-6 text-center">
-              {step ? (
-                <div className="inline-flex items-center gap-2 bg-[#ff4655]/20 px-5 py-2.5">
-                  <span className="font-bold text-[#ff6572]">
-                    {stepLabel(step.side, step.action)} 一张地图
-                  </span>
-                  <span className="text-sm text-gray-400">（第 {session.actions.length + 1}/{session.order.length} 步）</span>
-                </div>
-              ) : null}
-              {session.boType !== "BO5" && session.order.length - session.actions.length === 1 && (
-                <p className="mt-2 text-xs text-yellow-400">剩余地图为{session.boType === "BO1" ? "比赛地图" : "决胜图"}</p>
-              )}
-            </div>
+            {/* 当前提示（仅进行中） */}
+            {session.status === "进行中" && (
+              <div className="mb-6 text-center">
+                {step ? (
+                  <div className="inline-flex items-center gap-2 bg-[#ff4655]/20 px-5 py-2.5">
+                    <span className="font-bold text-[#ff6572]">
+                      {stepLabel(step.side, step.action)} 一张地图
+                    </span>
+                    <span className="text-sm text-gray-400">（第 {session.actions.length + 1}/{session.order.length} 步）</span>
+                  </div>
+                ) : null}
+                {session.boType !== "BO5" && session.order.length - session.actions.length === 1 && (
+                  <p className="mt-2 text-xs text-yellow-400">剩余地图为{session.boType === "BO1" ? "比赛地图" : "决胜图"}</p>
+                )}
+              </div>
+            )}
 
             {/* 地图网格 */}
             <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
@@ -353,8 +372,8 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
               </div>
             </div>
 
-            {/* 操作记录 + 裁判工具 */}
-            <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+            {/* 操作记录；工具按钮仅进行中可见（完成态只读回溯） */}
+            <div className={`grid gap-4 ${session.status === "进行中" ? "md:grid-cols-[1fr_auto]" : ""}`}>
               <div className="bg-gray-800/50 p-4">
                 <p className="mb-3 text-xs font-bold text-gray-400">BP 记录</p>
                 {session.actions.length === 0 ? (
@@ -373,20 +392,22 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                   </div>
                 )}
               </div>
-              <div className="flex flex-col gap-2">
-                {(admin || canUndoLast) && (
-                  <button onClick={handleUndo} disabled={busy} className="border border-gray-600 px-5 py-2.5 text-xs font-bold text-gray-300 hover:bg-gray-800 disabled:opacity-50">回退上一步</button>
-                )}
-                {(admin || (isCaptain && inMatch && session.actions.length === 0)) && (
-                  <button onClick={handleCoinflip} disabled={busy} className="border border-yellow-600 px-5 py-2.5 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50">掷硬币</button>
-                )}
-                {admin && (
-                  <>
-                    <button onClick={handleSwap} disabled={busy} className="border border-gray-600 px-5 py-2.5 text-xs font-bold text-gray-300 hover:bg-gray-800 disabled:opacity-50">手动交换先手</button>
-                    <button onClick={handleReset} disabled={busy} className="border border-red-600 px-5 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50">重置 BP</button>
-                  </>
-                )}
-              </div>
+              {session.status === "进行中" && (
+                <div className="flex flex-col gap-2">
+                  {(admin || canUndoLast) && (
+                    <button onClick={handleUndo} disabled={busy} className="border border-gray-600 px-5 py-2.5 text-xs font-bold text-gray-300 hover:bg-gray-800 disabled:opacity-50">回退上一步</button>
+                  )}
+                  {(admin || (isCaptain && inMatch && session.actions.length === 0)) && (
+                    <button onClick={handleCoinflip} disabled={busy} className="border border-yellow-600 px-5 py-2.5 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50">掷硬币</button>
+                  )}
+                  {admin && (
+                    <>
+                      <button onClick={handleSwap} disabled={busy} className="border border-gray-600 px-5 py-2.5 text-xs font-bold text-gray-300 hover:bg-gray-800 disabled:opacity-50">手动交换先手</button>
+                      <button onClick={handleReset} disabled={busy} className="border border-red-600 px-5 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50">重置 BP</button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

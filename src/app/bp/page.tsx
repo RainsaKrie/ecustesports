@@ -6,12 +6,22 @@ import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
+import { buildBPOrder } from "@/lib/scheduling/bp";
 import type { BPSession } from "@/lib/scheduling/bp-ops";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
   return iso.slice(5, 16).replace("T", " ");
 }
+
+/** 展示顺序用的 BO 列表 */
+const BO_TYPES = ["BO1", "BO3", "BO5"] as const;
+
+/**
+ * 各 BO 需要的最终地图数，用于提示地图池是否够。
+ * 与 `lib/scheduling/bp.ts` 的 `MAPS_NEEDED` 保持一致（BO1 剩 1 / BO3 剩 3 / BO5 选满 5）。
+ */
+const MIN_POOL: Record<(typeof BO_TYPES)[number], number> = { BO1: 1, BO3: 3, BO5: 5 };
 
 interface BPEntryPageProps {
   searchParams: Promise<{ eventId?: string }>;
@@ -44,7 +54,18 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
     };
   }, [eventId]);
 
-  const bpMatches = state.matches.filter((m) => m.status === "已排期" && m.teamAId !== "TBD" && m.teamBId !== "TBD");
+  /**
+   * 显示「已排期可 BP」与「已有 BP 会话」两类比赛。
+   *
+   * 原来只筛「已排期」，导致比赛一旦打完（状态变为「已完成」），
+   * 它的 BP 记录就从列表里消失 —— 现场争议时无法回溯。现在已完成的一并列出。
+   */
+  const bpMatches = state.matches.filter(
+    (m) => m.teamAId !== "TBD" && m.teamBId !== "TBD" && (m.status === "已排期" || Boolean(sessions[m.id])),
+  );
+  const pendingCount = bpMatches.filter((m) => !sessions[m.id]).length;
+  const doneCount = bpMatches.filter((m) => sessions[m.id]).length;
+  const poolSize = (event.mapPool ?? []).length;
 
   return (
     <Container className="py-8">
@@ -56,31 +77,59 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
       {/* How it works */}
       <div className="border border-gray-200 bg-white p-6 mb-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-3">BP 规则</h2>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          {["A禁", "B禁", "A禁", "B禁", "A选", "B选", "决胜图"].map((step, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <span
-                className={`px-3 py-1.5 text-xs font-medium ${
-                  step.includes("禁")
-                    ? "bg-red-100 text-red-700"
-                    : step.includes("选")
-                    ? "bg-green-100 text-green-700"
-                    : "bg-yellow-100 text-yellow-700"
-                }`}
-              >
-                {step}
-              </span>
-              {idx < 6 && <span className="text-gray-300">→</span>}
-            </div>
-          ))}
+        {/*
+          顺序由 `buildBPOrder` 生成，与 BP 房间实际使用的逻辑同源 ——
+          原先这里写死了 BO3 的七步顺序却冠以「BP 规则」，
+          对 BO1（6 个禁步）和 BO5（2 禁 + 5 选）都是错的，会误导用户。
+        */}
+        <div className="space-y-2">
+          {BO_TYPES.map((bo) => {
+            const steps = buildBPOrder(bo, poolSize);
+            return (
+              <div key={bo} className="flex flex-wrap items-center gap-2">
+                <span className="w-10 shrink-0 text-xs font-bold text-gray-900">{bo}</span>
+                {steps.length === 0 ? (
+                  <span className="text-xs font-bold text-red-600">
+                    地图池不足（需至少 {MIN_POOL[bo]} 张，当前 {poolSize} 张）
+                  </span>
+                ) : (
+                  <>
+                    {steps.map((s, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium ${
+                            s.action === "ban" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {idx % 2 === 0 ? "A" : "B"}{s.action === "ban" ? "禁" : "选"}
+                        </span>
+                        {idx < steps.length - 1 && <span className="text-gray-300">→</span>}
+                      </div>
+                    ))}
+                    {bo !== "BO5" && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-300">→</span>
+                        <span className="bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
+                          {bo === "BO1" ? "唯一图" : "决胜图"}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
         <p className="mt-3 text-xs text-gray-400">
-          BO1：各禁 3 张；BO3：各禁 2 张、各选 1 张；BO5：各禁 1 张。
+          A 为先手方。BO1 剩最后一张即比赛地图；BO3 剩余那张为决胜图；BO5 全部由 Pick 决定，无决胜图。
         </p>
       </div>
 
-      {/* Available matches */}
-      <h2 className="text-lg font-bold text-gray-900 mb-4">可 BP 的比赛</h2>
+      {/* Matches */}
+      <h2 className="text-lg font-bold text-gray-900 mb-1">BP 比赛</h2>
+      <p className="mb-4 text-xs text-gray-500">
+        待 BP {pendingCount} 场 · 已有记录 {doneCount} 场（已完成的可点进去回溯选图过程）
+      </p>
       {bpMatches.length === 0 ? (
         <div className="border border-gray-200 bg-white p-8 text-center">
           <p className="text-gray-400">暂无待 BP 的比赛</p>
@@ -115,7 +164,8 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
                   <span className="text-gray-300 text-sm">vs</span>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">{match.teamBName}</span>
-                    <div className="h-3 w-3  bg-[#4f8ef7]" />
+                    {/* B 侧用 --ink-soft（深墨）而非令牌外的蓝色，与房间页点位一致 */}
+                    <div className="h-3 w-3 bg-[#25313b]" />
                   </div>
                 </div>
                 <p className="mt-3 text-xs text-gray-400">开赛时间：{fmt(match.startTime)}</p>
