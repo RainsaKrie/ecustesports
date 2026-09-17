@@ -35,7 +35,7 @@ function player(id: string, overrides: Partial<RegistrationPlayer> = {}): Regist
     rank: "钻石",
     submittedAt: "2026-08-21T00:00:00.000Z",
     status: "已入队",
-    reviewStatus: "待审核",
+    reviewStatus: "已通过",
     teamId: "T-1",
     role: "首发",
     ...overrides,
@@ -65,23 +65,43 @@ function fixture(): RegistrationState {
   };
 }
 
-test("未审核成员阻止正式名单确认", () => {
-  const result = confirmTeamAdminOp(fixture(), "T-1");
+test("被标记为需修改的成员阻止正式名单确认", () => {
+  const state = fixture();
+  state.players = state.players.map((candidate) =>
+    candidate.teamId === "T-1" ? { ...candidate, reviewStatus: "需修改" as const } : candidate,
+  );
+  const result = confirmTeamAdminOp(state, "T-1");
   assert.equal(result.ok, false);
   assert.match(result.message, /未审核通过/);
 });
 
-test("旧版已冻结队伍成员迁移为已审核通过", () => {
+test("未设置审核状态的选手一律归一化为已通过（默认通过）", () => {
   const state = fixture();
   state.teams[0].status = "已冻结";
   state.players = state.players.map((candidate) => ({ ...candidate, reviewStatus: undefined }));
   const normalized = normalizeRegistrationState(state);
   assert.equal(normalized.players.find((candidate) => candidate.id === "1")?.reviewStatus, "已通过");
-  assert.equal(normalized.players.find((candidate) => candidate.id === "6")?.reviewStatus, "待审核");
+  // 未组队的选手同样默认通过——不再有「人人都要审」这一步
+  assert.equal(normalized.players.find((candidate) => candidate.id === "6")?.reviewStatus, "已通过");
 });
 
-test("五名首发全部审核通过后可以确认名单", () => {
+test("历史「待审核」归一化为已通过，明确标记的「需修改」保留", () => {
+  const state = fixture();
+  state.players = state.players.map((candidate) =>
+    candidate.id === "1"
+      ? { ...candidate, reviewStatus: "待审核" as RegistrationPlayer["reviewStatus"] }
+      : candidate.id === "2" ? { ...candidate, reviewStatus: "需修改" as const } : candidate,
+  );
+  const normalized = normalizeRegistrationState(state);
+  assert.equal(normalized.players.find((candidate) => candidate.id === "1")?.reviewStatus, "已通过");
+  assert.equal(normalized.players.find((candidate) => candidate.id === "2")?.reviewStatus, "需修改");
+});
+
+test("把被标记的成员恢复为已通过后可以确认名单", () => {
   let state = fixture();
+  state.players = state.players.map((candidate) =>
+    candidate.teamId === "T-1" ? { ...candidate, reviewStatus: "需修改" as const } : candidate,
+  );
   for (const id of ["1", "2", "3", "4", "5"]) {
     const result = reviewPlayerAdminOp(state, { playerId: id, reviewStatus: "已通过" });
     assert.equal(result.ok, true);
@@ -91,6 +111,16 @@ test("五名首发全部审核通过后可以确认名单", () => {
   assert.equal(confirmed.ok, true);
   assert.equal(confirmed.state.teams[0].status, "已冻结");
   assert.equal(confirmed.state.operationLogs?.[0].action, "confirm-team");
+});
+
+test("标记需修改不会把已确认的名单打回报名中", () => {
+  const state = fixture();
+  state.teams[0].status = "已冻结";
+  const result = reviewPlayerAdminOp(state, { playerId: "1", reviewStatus: "需修改" });
+  assert.equal(result.ok, true);
+  // 只标人，不动队伍——负责人不该为了一个人的资料问题重新确认整支队伍
+  assert.equal(result.state.teams[0].status, "已冻结");
+  assert.equal(result.state.players.find((candidate) => candidate.id === "1")?.reviewStatus, "需修改");
 });
 
 test("资料更正保留原数据并留下操作记录", () => {
@@ -193,16 +223,24 @@ test("已退赛队伍不能解散", () => {
 });
 
 test("仅可安全撤销最新操作", () => {
-  const reviewed = reviewPlayerAdminOp(fixture(), { playerId: "1", reviewStatus: "已通过" });
+  const flagged = fixture();
+  flagged.players = flagged.players.map((candidate) =>
+    candidate.id === "1" ? { ...candidate, reviewStatus: "需修改" as const } : candidate,
+  );
+  const reviewed = reviewPlayerAdminOp(flagged, { playerId: "1", reviewStatus: "已通过" });
   const logId = reviewed.state.operationLogs?.[0].id ?? "";
   const undone = undoRegistrationAdminOp(reviewed.state, logId);
   assert.equal(undone.ok, true);
-  assert.equal(undone.state.players[0].reviewStatus, "待审核");
+  assert.equal(undone.state.players[0].reviewStatus, "需修改");
   assert.ok(undone.state.operationLogs?.[0].undoneAt);
 });
 
 test("操作后出现外部数据变化时拒绝撤销", () => {
-  const reviewed = reviewPlayerAdminOp(fixture(), { playerId: "1", reviewStatus: "已通过" });
+  const flagged = fixture();
+  flagged.players = flagged.players.map((candidate) =>
+    candidate.id === "1" ? { ...candidate, reviewStatus: "需修改" as const } : candidate,
+  );
+  const reviewed = reviewPlayerAdminOp(flagged, { playerId: "1", reviewStatus: "已通过" });
   const changed = {
     ...reviewed.state,
     players: [...reviewed.state.players, player("7", { status: "已报名", teamId: undefined, role: undefined })],
@@ -295,34 +333,35 @@ test("删除不存在的选手失败", () => {
   assert.match(result.message, /不存在/);
 });
 
-test("一键全部通过放行所有待审核与需修改选手并只记一条记录", () => {
+test("一键全部通过恢复所有被标记的选手并只记一条记录", () => {
   const state = fixture();
-  state.players = state.players.map((candidate) => candidate.id === "2" ? { ...candidate, reviewStatus: "需修改" as const } : candidate);
-  state.players = [...state.players, player("7", { status: "已退赛", teamId: undefined, role: undefined })];
+  state.players = state.players.map((candidate) =>
+    candidate.id === "2" || candidate.id === "3" ? { ...candidate, reviewStatus: "需修改" as const } : candidate,
+  );
+  state.players = [...state.players, player("7", { status: "已退赛", teamId: undefined, role: undefined, reviewStatus: "需修改" as const })];
   const result = approveAllPlayersAdminOp(state);
   assert.equal(result.ok, true);
   assert.equal(result.state.players.filter((candidate) => candidate.reviewStatus === "已通过").length, 6);
-  // 已退赛选手不参与批量通过
-  assert.equal(result.state.players.find((candidate) => candidate.id === "7")?.reviewStatus, "待审核");
+  // 已退赛选手不参与批量通过，保持被标记的状态
+  assert.equal(result.state.players.find((candidate) => candidate.id === "7")?.reviewStatus, "需修改");
   assert.equal(result.state.operationLogs?.filter((log) => log.action === "approve-all-players").length, 1);
-  assert.match(result.message, /批量通过 5 名/);
+  assert.match(result.message, /批量通过 2 名/);
 });
 
 test("一键全部通过可一次撤销", () => {
-  const result = approveAllPlayersAdminOp(fixture());
+  const state = fixture();
+  state.players = state.players.map((candidate) => ({ ...candidate, reviewStatus: "需修改" as const }));
+  const result = approveAllPlayersAdminOp(state);
   assert.equal(result.ok, true);
   const undone = undoRegistrationAdminOp(result.state, result.state.operationLogs?.[0].id ?? "");
   assert.equal(undone.ok, true);
-  assert.equal(undone.state.players.filter((candidate) => candidate.reviewStatus === "待审核").length, 5);
-  assert.equal(undone.state.players.find((candidate) => candidate.id === "6")?.reviewStatus, "已通过");
+  assert.equal(undone.state.players.filter((candidate) => candidate.reviewStatus === "需修改").length, 6);
 });
 
-test("没有待审核选手时一键全部通过失败", () => {
-  const state = fixture();
-  for (const candidate of state.players) candidate.reviewStatus = "已通过";
-  const result = approveAllPlayersAdminOp(state);
+test("没有被标记的选手时一键全部通过失败", () => {
+  const result = approveAllPlayersAdminOp(fixture());
   assert.equal(result.ok, false);
-  assert.match(result.message, /没有待审核/);
+  assert.match(result.message, /没有被标记为不通过/);
 });
 
 test("代建队伍可指定队长角色", () => {

@@ -176,7 +176,9 @@ export async function PATCH(request: NextRequest) {
         message = "该游戏 ID 已被其他报名使用。";
         return state;
       }
-      updatedPlayer = { ...player, gameId, rank, qq, phone, positions, intro };
+      // 选手自己更正资料后自动回到「已通过」：标记「需修改」的目的就是让他改，
+      // 改完不该再由负责人手动点一次通过。
+      updatedPlayer = { ...player, gameId, rank, qq, phone, positions, intro, reviewStatus: "已通过" as const };
       return { ...state, players: state.players.map((item) => item.id === player.id ? updatedPlayer! : item) };
     });
     if (message || !updatedPlayer) return Response.json({ message: message || "修改失败。" }, { status: message.includes("无效") ? 401 : 400 });

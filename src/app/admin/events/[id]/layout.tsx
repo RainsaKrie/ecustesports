@@ -54,7 +54,7 @@ export default async function EventWorkspaceLayout({
     activeTeamCount: activeTeams.length,
     confirmedTeamCount: confirmedTeams.length,
     requiredTeamCount,
-    pendingReviewCount: activePlayers.filter((player) => player.reviewStatus === "待审核" || player.reviewStatus === "需修改").length,
+    pendingReviewCount: activePlayers.filter((player) => player.reviewStatus === "需修改" || player.reviewStatus === "已拒绝").length,
     hasFormat,
     matchCount: schedule.matches.length,
     unscheduledMatchCount: schedule.matches.filter((match) => match.status === "待排期").length,

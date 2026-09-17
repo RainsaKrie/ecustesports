@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
         await readEventData<RegistrationState>(eventId, "registration", initialRegistration()),
       );
       const activePlayers = registration.players.filter((player) => player.status !== "已退赛");
-      const pendingReviewCount = activePlayers.filter((player) => (player.reviewStatus ?? "待审核") !== "已通过").length;
+      const pendingReviewCount = activePlayers.filter((player) => (player.reviewStatus ?? "已通过") !== "已通过").length;
       const confirmedTeamCount = registration.teams.filter((team) => team.status === "已冻结").length;
       if (pendingReviewCount > 0) {
-        throw new StageTransitionError(`仍有 ${pendingReviewCount} 名选手尚未审核通过`, 409);
+        throw new StageTransitionError(`仍有 ${pendingReviewCount} 名选手被标记为资料不合规，请先处理`, 409);
       }
       if (confirmedTeamCount < currentEvent.teamCount) {
         throw new StageTransitionError(`正式队伍 ${confirmedTeamCount}/${currentEvent.teamCount} 支，暂不能进入分组`, 409);

@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       player.intro ?? "",
       team?.name ?? "",
       player.role ?? "",
-      player.reviewStatus ?? "待审核",
+      player.reviewStatus ?? "已通过",
       player.status,
       player.submittedAt,
     ].map((value) => csvEscape(value ?? ""));

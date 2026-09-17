@@ -70,12 +70,6 @@ function fail(state: RegistrationState, message: string): AdminRegistrationResul
   return { ok: false, message, state };
 }
 
-function reopenPlayerTeam(state: RegistrationState, playerId: string) {
-  const teamId = state.players.find((player) => player.id === playerId)?.teamId;
-  if (!teamId) return state.teams;
-  return state.teams.map((team) => team.id === teamId && team.status === "已冻结" ? { ...team, status: "报名中" as const } : team);
-}
-
 export function createTeamAdminOp(
   rawState: RegistrationState,
   input: { name: string; captainId: string; captainRole?: PlayerRole },
@@ -135,23 +129,26 @@ export function reviewPlayerAdminOp(
   const state = normalizeRegistrationState(rawState);
   const player = state.players.find((candidate) => candidate.id === input.playerId);
   if (!player) return fail(state, "选手不存在。");
-  const allowed: ReviewStatus[] = ["待审核", "已通过", "需修改", "已拒绝"];
+  // 审核改为「默认通过 + 手动标记需修改」后不再有「待审核」这个动作，
+  // 只允许在「已通过」（撤销标记）与「需修改 / 已拒绝」（标记不通过）之间切换。
+  const allowed: ReviewStatus[] = ["已通过", "需修改", "已拒绝"];
   if (!allowed.includes(input.reviewStatus)) return fail(state, "审核状态不合法。");
   const next = {
     ...state,
     players: state.players.map((candidate) => candidate.id === player.id ? { ...candidate, reviewStatus: input.reviewStatus } : candidate),
-    teams: input.reviewStatus === "已通过" ? state.teams : reopenPlayerTeam(state, player.id),
+    // 刻意**不动队伍状态**：标记「需修改」只表示这位选手的资料要改，
+    // 不该顺手把已确认的名单打回「报名中」——那会让负责人重新确认整支队伍。
   };
   return commit(state, next, "review-player", `${player.gameId}：审核状态改为${input.reviewStatus}`, input.reason);
 }
 
-/** 一键全部通过：把所有待审核/需修改的有效选手置为已通过，只记一条操作记录。 */
+/** 一键全部通过：把被标记为「需修改 / 已拒绝」的有效选手恢复为已通过，只记一条操作记录。 */
 export function approveAllPlayersAdminOp(rawState: RegistrationState): AdminRegistrationResult {
   const state = normalizeRegistrationState(rawState);
   const pending = state.players.filter((player) =>
-    player.status !== "已退赛" && (player.reviewStatus === "待审核" || player.reviewStatus === "需修改"),
+    player.status !== "已退赛" && (player.reviewStatus === "需修改" || player.reviewStatus === "已拒绝"),
   );
-  if (pending.length === 0) return fail(state, "没有待审核的选手。");
+  if (pending.length === 0) return fail(state, "没有被标记为不通过的选手。");
   const pendingIds = new Set(pending.map((player) => player.id));
   const next = {
     ...state,

@@ -110,15 +110,22 @@ export function normalizeRegistrationState(value: unknown): RegistrationState {
   const legacyFrozen = source.frozen === true;
   const hasPlayerClosedFlag = typeof source.playerRegistrationClosed === "boolean";
   const hasTeamClosedFlag = typeof source.teamRegistrationClosed === "boolean";
-  const reviewStatuses = new Set(["待审核", "已通过", "需修改", "已拒绝"]);
+  /**
+   * 审核口径（2026-09-17 改为「默认通过 + 手动标记需修改」）：
+   * 负责人不需要逐个审核报名；只有在选手列表里**主动标记**过的才是不通过。
+   * 因此这里把未设置、历史「待审核」、以及任何脏值都归为「已通过」，
+   * 只保留明确标记的「需修改」「已拒绝」——这两个会挡住建队/入队/换人/冻结名单
+   * （见 registration-admin-ops.ts 的四处门槛）。
+   *
+   * 这样归一化后无需迁移生产数据：库里即使是「待审核」，读写时也按「已通过」处理，
+   * 下次写回即自动落成「已通过」。
+   */
+  const flaggedStatuses = new Set(["需修改", "已拒绝"]);
   const teams = Array.isArray(source.teams) ? source.teams : [];
-  const legacyConfirmedTeamIds = new Set(teams.filter((team) => team.status === "已冻结").map((team) => team.id));
   return {
     players: Array.isArray(source.players) ? source.players.map((player) => ({
       ...player,
-      reviewStatus: reviewStatuses.has(player.reviewStatus ?? "")
-        ? player.reviewStatus
-        : player.teamId && legacyConfirmedTeamIds.has(player.teamId) ? "已通过" : "待审核",
+      reviewStatus: flaggedStatuses.has(player.reviewStatus ?? "") ? player.reviewStatus : "已通过",
     })) : [],
     teams,
     teamRequests: Array.isArray(source.teamRequests) ? source.teamRequests : [],

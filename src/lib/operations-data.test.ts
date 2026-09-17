@@ -36,7 +36,7 @@ const registration = getStageGuidance("报名", {
   confirmedTeamCount: 6,
   pendingReviewCount: 3,
 });
-assert.equal(registration.actionLabel, "审核 3 名选手");
+assert.equal(registration.actionLabel, "处理 3 名资料待修改的选手");
 assert.equal(registration.actionHref, "/admin/events/event-test/registration");
 
 const rosterReady = getStageGuidance("报名", base);

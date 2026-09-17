@@ -144,7 +144,7 @@ export function getStageGuidance(stage: EventStage, input: StageGuidanceInput): 
   if (stage === "报名") {
     const blockers = [
       ...visibilityBlocker,
-      ...(input.pendingReviewCount > 0 ? [`${input.pendingReviewCount} 名选手等待审核`] : []),
+      ...(input.pendingReviewCount > 0 ? [`${input.pendingReviewCount} 名选手资料待修改`] : []),
       ...(input.requiredTeamCount > 0 && input.confirmedTeamCount < input.requiredTeamCount
         ? [`正式队伍 ${input.confirmedTeamCount}/${input.requiredTeamCount} 支`]
         : []),
@@ -152,10 +152,10 @@ export function getStageGuidance(stage: EventStage, input: StageGuidanceInput): 
     const rosterReady = input.requiredTeamCount > 0 && input.confirmedTeamCount >= input.requiredTeamCount;
     return {
       label: "报名中",
-      objective: "完成选手资格审核与正式参赛名单确认。",
+      objective: "确认正式参赛名单。报名默认通过，只需处理标记为待修改的选手。",
       blockers,
       actionLabel: input.pendingReviewCount > 0
-        ? `审核 ${input.pendingReviewCount} 名选手`
+        ? `处理 ${input.pendingReviewCount} 名资料待修改的选手`
         : rosterReady ? "结束报名并进入分组" : `继续确认队伍（${input.activeTeamCount} 支）`,
       actionHref: rosterReady ? `${base}/schedule/draw` : `${base}/registration`,
       ...(rosterReady && input.pendingReviewCount === 0 && input.visibility === "public"
