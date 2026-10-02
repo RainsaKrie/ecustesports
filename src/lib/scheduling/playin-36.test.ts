@@ -10,7 +10,12 @@ import { buildQualificationMatches } from "./bracket-engine";
 import { buildPlayInPairs, rankTeamsByAvgRank, type Matchup } from "./format-data";
 import { resolveSupportedFormat } from "./format-support";
 import { resolvePlayInGate, resolveStagedDrawGate } from "./staged-format";
-import type { StageConfig } from "./format-templates";
+import {
+  buildDefaultEventRules,
+  buildEventFromTemplate,
+  resolveTemplateIdFromStages,
+  type StageConfig,
+} from "./format-templates";
 import { appendMatchesOp, reportGameResultsOp } from "./schedule-ops";
 import { emptySchedule } from "./schedule-data";
 import type { RegistrationPlayer, RegistrationTeam } from "./registration-data";
@@ -136,5 +141,34 @@ check(
   "轮空数 32−36 为负，证明轮空不增加容量",
   32 - 36 < 0,
 );
+
+// ---------- 5. 新建赛事路径的参赛规模 ----------
+// 第 1 节查的是 resolveSupportedFormat 的 requiredTeams（赛制识别层）；
+// 而「新建赛事」真正写进 event.teamCount 的是 buildEventFromTemplate 这条路径，
+// 两者是分开的代码。这里曾经直接取首阶段队伍数，把 36 队赛事声明成「8 队」。
+function buildFor(stages: StageConfig[], suffix: string) {
+  return buildEventFromTemplate({
+    id: `event-playin36-${suffix}`,
+    name: "36 队四阶段赛事",
+    game: "无畏契约",
+    organizer: "赛事组",
+    templateId: resolveTemplateIdFromStages(stages),
+    stageConfigs: stages,
+  });
+}
+
+const built36 = buildFor(stages4, "a");
+check("新建赛事按 36 队声明参赛规模", built36.teamCount === 36, String(built36.teamCount));
+
+const scaleRule = buildDefaultEventRules(stages4, 5).find((rule) => rule.title === "参赛规模");
+check(
+  "规程「参赛规模」文案写的是 36 个席位",
+  Boolean(scaleRule?.detail.includes("36 个参赛席位")),
+  scaleRule?.detail,
+);
+
+// 反向：三阶段 32 队不能被这条推导改错
+const built32 = buildFor(stages3, "b");
+check("三阶段 32 队赛事规模仍为 32", built32.teamCount === 32, String(built32.teamCount));
 
 console.log(`\n${passed} play-in tests passed`);

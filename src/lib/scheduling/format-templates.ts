@@ -414,11 +414,30 @@ export function resolveTemplateIdFromStages(stages: StageConfig[]): string {
   return FORMAT_TEMPLATES[0].id;
 }
 
+/**
+ * 这套阶段配置一共需要多少支队伍报名。
+ *
+ * 不能用 `stages[0].teamCount`：四阶段赛制的第一个阶段是**并入型**资格赛
+ * （8 队里 4 队晋级，并入 32 队入围赛），报名的实际是 28 + 8 = 36 支。
+ * 之前直接取首阶段队伍数，会把 36 队赛事声明成「8 队」，报名页与赛事规模都跟着错。
+ *
+ * 判据：下一阶段比本阶段大 → 本阶段是并入型，总队伍数 = (本阶段 − 本阶段一半) + 下一阶段。
+ */
+export function totalTeamsFromStages(stages: StageConfig[]): number {
+  const first = stages[0];
+  if (!first) return 0;
+  const next = stages[1];
+  if (next && first.type === "single-elim" && next.teamCount > first.teamCount) {
+    return first.teamCount - first.teamCount / 2 + next.teamCount;
+  }
+  return first.teamCount;
+}
+
 function formatRulesFromStages(stages: StageConfig[], teamSize: number): EditableRule[] {
   const rules: EditableRule[] = [
     {
       title: "参赛规模",
-      detail: `赛事设置 ${stages[0]?.teamCount ?? 0} 个参赛席位，每支队伍注册 ${teamSize} 名首发选手。`,
+      detail: `赛事设置 ${totalTeamsFromStages(stages)} 个参赛席位，每支队伍注册 ${teamSize} 名首发选手。`,
       category: "format",
       emphasis: "normal",
     },
@@ -514,7 +533,7 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
     game: input.game.trim() || "无畏契约",
     status: "draft",
     visibility: "private",
-    teamCount: stageConfigs[0]?.teamCount ?? template.teamCount,
+    teamCount: totalTeamsFromStages(stageConfigs) || template.teamCount,
     teamSize: template.teamSize,
     description: input.description?.trim() || `${template.name}。竞赛日期、报名安排及奖金奖项以赛事组正式公告为准。`,
     organizer: input.organizer.trim() || "赛事组",

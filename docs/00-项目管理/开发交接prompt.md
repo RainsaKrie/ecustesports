@@ -28,6 +28,13 @@
 - 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → 20 个测试套件 → 构建）
   · 环境变量 `CODEBUDDY_SAFE_DELETE_ENABLED=0` 是必须的：本机删除守卫会在 Next 清理构建缓存时拦截，报
   `SAFE_DELETE_BULK_CONFIRM_REQUIRED`，**不是代码问题**；CI 不需要该开关。
+- 端到端验收（不在上面的门禁里）：`npm run test:rehearsal36`
+  = 新建一场**隔离赛事**，把「36 队 → 资格赛 → 入围赛 → 小组赛 → 淘汰赛」跑完并自清理，
+  含抽签工作台的真实渲染实测，约 2.5 分钟。`npm run test:rehearsal36:fast` 跳过界面那一段。
+  `npm run gate:full` = 常规门禁 + 完整演练。
+  · **为什么不在 `npm run gate` 里**：它要起 dev server 再拉无头浏览器，比其余套件重得多，
+  放进每次门禁会拖慢快速反馈，也把「本机浏览器可用」变成门禁前提。
+  · 结果与未覆盖范围见 `docs/10-后续开发规划/15-36队赛制改造方案_资格赛.md` 第七节。
 
 ## 设计基线
 
