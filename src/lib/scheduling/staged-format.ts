@@ -22,6 +22,16 @@ export interface StagedFormatState {
   stageConfigs?: StageConfig[];
   /** 入围赛轮空直接晋级的队伍 id（32 强签位中与 BYE 相邻的队伍）。 */
   qualifierByes?: string[];
+  /**
+   * 资格赛抽签结果（仅四阶段赛制使用）。
+   *
+   * 独立于 stageDraws：四阶段赛制里「入围赛/小组赛/淘汰赛」沿用 stageIndex 0/1/2，
+   * 与既有三阶段语义完全一致，不必为资格赛腾序号。
+   */
+  playInDraw?: {
+    drawOrder: string[];
+    publishedAt?: string;
+  };
 }
 
 export interface GroupQualifier {
@@ -44,6 +54,74 @@ function completedWinners(matches: ScheduleMatch[]): string[] {
   return matches
     .filter((match) => match.status === "已完成" && Boolean(match.winnerTeamId) && match.winnerTeamId !== "TBD")
     .map((match) => match.winnerTeamId as string);
+}
+
+/**
+ * 资格赛门控结果。字段形状与 StagedDrawGate 对齐（含 stageIndex / message），
+ * 便于抽签界面共用同一套渲染分支。
+ */
+export type PlayInGate =
+  | { status: "ready"; stageIndex: 0; stage: StageConfig; entrantIds: string[] }
+  | { status: "waiting"; stageIndex: 0; stage: StageConfig; completedMatches: number; totalMatches: number; message: string }
+  | { status: "blocked"; stageIndex: 0; stage: StageConfig; message: string }
+  | { status: "complete"; stageIndex: 0; stage: StageConfig; message: string; advancingTeamIds: string[] };
+
+/**
+ * 资格赛门控（并入型阶段）。
+ *
+ * 用于队伍数超过入围赛席位的情况：先让最弱的一批打一轮资格赛，
+ * 胜者并入入围赛，把队伍数收敛到入围赛容量（如 36 → 32）。
+ *
+ * **为什么资格赛必须独立成阶段**：入围赛的席位里有一部分来自资格赛结果，
+ * 抽签时还不知道是哪几支——必须先打完资格赛、赛果全部确认，才能抽入围赛。
+ * 这与既有原则一致（D-054：每个阶段只在前一阶段赛果全部确认后解锁）。
+ *
+ * 资格赛队伍数恒为偶数，一半晋级。
+ */
+export function resolvePlayInGate(
+  playInStage: StageConfig,
+  playInTeamIds: string[],
+  matches: ScheduleMatch[],
+): PlayInGate {
+  if (playInTeamIds.length !== playInStage.teamCount) {
+    return {
+      status: "blocked",
+      stageIndex: 0,
+      stage: playInStage,
+      message: `${playInStage.name}需要 ${playInStage.teamCount} 支队伍，当前为 ${playInTeamIds.length} 支。`,
+    };
+  }
+  const playInMatches = stageMatches(matches, playInStage.name);
+  if (playInMatches.length === 0) {
+    return { status: "ready", stageIndex: 0, stage: playInStage, entrantIds: playInTeamIds };
+  }
+  const expected = playInStage.teamCount / 2;
+  if (playInMatches.length !== expected) {
+    return {
+      status: "blocked",
+      stageIndex: 0,
+      stage: playInStage,
+      message: `${playInStage.name}应有 ${expected} 场，当前赛程为 ${playInMatches.length} 场，请先核对赛程。`,
+    };
+  }
+  const winners = completedWinners(playInMatches);
+  if (winners.length < expected) {
+    return {
+      status: "waiting",
+      stageIndex: 0,
+      stage: playInStage,
+      completedMatches: winners.length,
+      totalMatches: expected,
+      message: `完成全部 ${expected} 场${playInStage.name}并提交赛果后，才会开放入围赛抽签。`,
+    };
+  }
+  return {
+    status: "complete",
+    stageIndex: 0,
+    stage: playInStage,
+    message: `${playInStage.name}已完成，${winners.length} 支胜者并入入围赛。`,
+    advancingTeamIds: winners,
+  };
 }
 
 export function extractGslQualifiers(matches: ScheduleMatch[], phase: string): GroupQualifier[] {

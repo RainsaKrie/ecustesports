@@ -142,6 +142,41 @@ export interface FormatTemplate {
 /** 内置赛制模板（覆盖当前真实赛与常见校园赛规模） */
 export const FORMAT_TEMPLATES: FormatTemplate[] = [
   {
+    id: "val-36playin-32qual-16gsl-8de",
+    name: "36 队 · 资格赛 + 入围赛 + GSL 小组赛 + 双败淘汰",
+    scale: "36 队",
+    description: "报名队伍超出 32 个入围赛席位时使用。最弱的 8 支先打 4 场资格赛（同档互打、BO1），4 支胜者并入入围赛，之后与 32 队标准赛制一致。",
+    teamCount: 36,
+    teamSize: 5,
+    stages: [
+      { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1", advance: "4 支队伍并入入围赛" },
+      { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1", advance: "16 支队伍晋级" },
+      { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3", advance: "每组 2 支队伍晋级" },
+      { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3", advance: "冠军产生" },
+    ],
+    stageSummary: "36 队 → 最弱 8 队打资格赛（同档互打）→ 32 队单败入围（BO1）→ 16 队 GSL → 8 队双败",
+    matchCount: 54,
+    hourEstimate: 70,
+    defaultRules: [
+      { title: "参赛规模", detail: "赛事设置 36 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "资格赛", detail: "依首发 5 名选手报名截止时的段位平均分排序，最弱的 8 支队伍参加资格赛，按段位相近配对、单败 BO1；4 支胜者并入入围赛，负者淘汰。" },
+      { title: "入围赛", detail: "其余 28 支队伍与资格赛 4 支胜者共 32 支，经抽签确定首轮对阵，单败 BO1；16 支胜者晋级小组赛。" },
+      { title: "小组赛", detail: "16 支晋级队伍分入 4 个小组，每组采用 GSL 双败赛制，所有比赛为 BO3；各组前两名晋级淘汰赛。" },
+      { title: "淘汰赛", detail: "8 支晋级队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。" },
+      { title: "种子分档", detail: "小组赛参赛队伍依据首发 5 名选手报名截止时的段位平均分划入 4 个种子池；每组分别抽取各档 1 支队伍。" },
+      { title: "淘汰赛抽签", detail: "小组第一对阵其他小组第二；同组晋级队伍分入不同半区。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
+    ],
+    constraints: {
+      maxConcurrent: 2,
+      durations: { BO1: 45, BO3: 90, BO5: 150 },
+      sessionStart: "12:00",
+      sessionEnd: "18:00",
+      matchdays: [6, 7],
+    },
+    mapPoolIds: DEFAULT_MAP_POOL.map((m) => m.id),
+  },
+  {
     id: "val-32qual-16gsl-8de",
     name: "32 队 · 入围赛 + GSL 小组赛 + 双败淘汰",
     scale: "32 队",
@@ -393,8 +428,10 @@ function formatRulesFromStages(stages: StageConfig[], teamSize: number): Editabl
     const next = stages[index + 1];
     let detail = "";
     if (stage.type === "single-elim") {
+      // 并入型阶段（如资格赛 8 队）：胜者并入下一阶段，晋级数 = 本阶段队伍数的一半。
+      const advancing = next && next.teamCount > stage.teamCount ? stage.teamCount / 2 : next?.teamCount;
       detail = next
-        ? `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；${next.teamCount} 支胜者晋级${next.name}。`
+        ? `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；${advancing} 支胜者${next.teamCount > stage.teamCount ? "并入" : "晋级"}${next.name}。`
         : `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；负者淘汰，直至决出冠军。`;
     } else if (stage.type === "gsl-groups") {
       const groups = stage.groupCount ?? 1;

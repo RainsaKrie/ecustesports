@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { buildSeedPots, generateMatchups, type Group, type SeedPot } from "@/lib/scheduling/format-data";
+import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, type Group, type SeedPot } from "@/lib/scheduling/format-data";
 import {
   buildDoubleEliminationMatches,
   buildGslGroupMatches,
@@ -19,8 +19,10 @@ import {
   buildKnockoutDrawOrder,
   buildQualifierSlots,
   nextMatchStartIndex,
+  resolvePlayInGate,
   resolveStagedDrawGate,
   type GroupQualifier,
+  type PlayInGate,
   type StagedDrawGate,
   type StagedFormatState,
 } from "@/lib/scheduling/staged-format";
@@ -80,7 +82,8 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   const [activeStageIndex, setActiveStageIndex] = useState<number | null>(null);
   const [eligibleTeamIds, setEligibleTeamIds] = useState<string[]>([]);
   const [qualifiers, setQualifiers] = useState<GroupQualifier[]>([]);
-  const [stagedGate, setStagedGate] = useState<StagedDrawGate | null>(null);
+  const [stagedGate, setStagedGate] = useState<StagedDrawGate | PlayInGate | null>(null);
+  const [isPlayInStage, setIsPlayInStage] = useState(false);
   const [pots, setPots] = useState<SeedPot[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupQueue, setGroupQueue] = useState<GroupQueueItem[]>([]);
@@ -127,8 +130,55 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
       const frozenTeams = registration.teams.filter((team) => team.status === "已冻结");
       const frozenIds = frozenTeams.map((team) => team.id);
 
-      if (resolved.kind === "staged-32-gsl-double-elim") {
-        const gate = resolveStagedDrawGate(resolved.stages, frozenIds, loadedSchedule.matches, loadedFormat.qualifierByes ?? []);
+      // 四阶段赛制：先跑资格赛；赛果全部确认后，把 4 支胜者并入入围赛，再走既有三阶段流程。
+      let stagedEntrantsOverride: string[] | null = null;
+      if (resolved.kind === "staged-playin") {
+        const playInIds = rankTeamsByAvgRank(frozenTeams, registration.players)
+          .slice(-resolved.playInTeams)
+          .map((item) => item.id);
+        const playInGate = resolvePlayInGate(resolved.playInStage, playInIds, loadedSchedule.matches);
+        setStagedGate(playInGate);
+
+        if (playInGate.status === "blocked") {
+          setError(playInGate.message);
+          setIsPlayInStage(true);
+          setDrawMode("locked");
+          setLoaded(true);
+          return;
+        }
+        if (playInGate.status === "waiting") {
+          setIsPlayInStage(true);
+          setDrawMode("locked");
+          setLoaded(true);
+          return;
+        }
+        if (playInGate.status === "ready") {
+          // 资格赛按段位同档互打，顺序确定、不随机；「抽签」在这里是逐一揭示。
+          setDrawMode("slot");
+          setIsPlayInStage(true);
+          setActiveStage(resolved.playInStage);
+          setActiveStageIndex(0);
+          setEligibleTeamIds(playInIds);
+          const playInSet = new Set(playInIds);
+          const existingPlayIn = (loadedFormat.playInDraw?.drawOrder ?? []).filter((id) => playInSet.has(id));
+          setDrawOrder(existingPlayIn);
+          const ordered = buildPlayInPairs(playInIds).flatMap((pair) => [pair.teamAId, pair.teamBId]);
+          setSlotQueue(ordered.filter((id) => !existingPlayIn.includes(id)));
+          setLoaded(true);
+          return;
+        }
+        // complete：其余队伍 + 资格赛胜者 = 入围赛的 32 支
+        const playInSet = new Set(playInIds);
+        stagedEntrantsOverride = [
+          ...frozenIds.filter((id) => !playInSet.has(id)),
+          ...playInGate.advancingTeamIds,
+        ];
+      }
+
+      if (resolved.kind === "staged-32-gsl-double-elim" || resolved.kind === "staged-playin") {
+        const stagedStages = resolved.stages;
+        const stagedEntrants = stagedEntrantsOverride ?? frozenIds;
+        const gate = resolveStagedDrawGate(stagedStages, stagedEntrants, loadedSchedule.matches, loadedFormat.qualifierByes ?? []);
         setStagedGate(gate);
         if (gate.status !== "ready") {
           setDrawMode("locked");
@@ -195,7 +245,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         const existing = (loadedFormat.drawOrder ?? []).filter((teamId) => frozenSet.has(teamId));
         setDrawOrder(existing);
         setSlotQueue(shuffle(frozenIds.filter((teamId) => !existing.includes(teamId))));
-      } else {
+      } else if (resolved.kind === "gsl-double-elim") {
         setDrawMode("groups");
         setActiveStage(resolved.groupStage);
         setEligibleTeamIds(frozenIds);
@@ -280,9 +330,12 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     if (!format || format.kind === "unsupported" || drawMode === "locked") return;
     if (drawMode === "slot") {
       setDrawOrder([]);
-      setSlotQueue(activeStageIndex === 2 && qualifiers.length === 8
-        ? buildKnockoutDrawOrder(qualifiers)
-        : shuffle(eligibleTeamIds));
+      // 资格赛按段位同档互打，顺序由段位决定（可重复「重抽」但结果一致）；其余阶段随机或按晋级规则。
+      setSlotQueue(isPlayInStage
+        ? buildPlayInPairs(eligibleTeamIds).flatMap((pair) => [pair.teamAId, pair.teamBId])
+        : activeStageIndex === 2 && qualifiers.length === 8
+          ? buildKnockoutDrawOrder(qualifiers)
+          : shuffle(eligibleTeamIds));
     } else {
       const emptyGroups = ["A 组", "B 组", "C 组", "D 组"].map((name) => ({ name, teamIds: [] as string[] }));
       const queue: GroupQueueItem[] = [];
@@ -324,10 +377,54 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     setError("");
     try {
       const currentSchedule = await readJson<ScheduleState>(`/api/data/schedule?eventId=${encodeURIComponent(eventId)}`);
-      if (format.kind === "staged-32-gsl-double-elim") {
+      // 资格赛发布：4 场对阵写入赛程，等待赛果确认后再开放入围赛抽签。
+      if (format.kind === "staged-playin" && isPlayInStage) {
+        const frozenTeamsNow = reg.teams.filter((team) => team.status === "已冻结");
+        const playInIds = rankTeamsByAvgRank(frozenTeamsNow, reg.players)
+          .slice(-format.playInTeams)
+          .map((item) => item.id);
+        const currentGate = resolvePlayInGate(format.playInStage, playInIds, currentSchedule.matches);
+        if (currentGate.status !== "ready") {
+          throw new Error("赛事阶段已经变化，请刷新页面后再操作。");
+        }
+        const startIndex = nextMatchStartIndex(currentSchedule.matches);
+        const built = buildQualificationMatches(drawOrder, teamName, {
+          startIndex,
+          phase: format.playInStage.name,
+          boType: format.playInStage.boType,
+          advancingTeams: format.playInTeams / 2,
+        });
+        const nextFormat: StagedFormatState = {
+          ...savedFormat,
+          drawType: "staged-playin",
+          stageConfigs: event.stageConfigs,
+          playInDraw: { drawOrder, publishedAt: new Date().toISOString() },
+        };
+        const nextSchedule = appendMatchesOp(currentSchedule, built.matches, `${format.playInStage.name}抽签发布`);
+
+        await writeJson(`/api/data/format?eventId=${encodeURIComponent(eventId)}`, nextFormat);
+        await writeJson(`/api/data/schedule?eventId=${encodeURIComponent(eventId)}`, nextSchedule, currentSchedule.version);
+        router.push(`/admin/events/${eventId}/schedule`);
+        return;
+      }
+
+      if (format.kind === "staged-32-gsl-double-elim" || format.kind === "staged-playin") {
         if (activeStageIndex === null) throw new Error("当前阶段信息缺失，请刷新后重试。");
-        const frozenIds = reg.teams.filter((team) => team.status === "已冻结").map((team) => team.id);
-        const currentGate = resolveStagedDrawGate(format.stages, frozenIds, currentSchedule.matches, savedFormat.qualifierByes ?? []);
+        const frozenTeamsNow = reg.teams.filter((team) => team.status === "已冻结");
+        const frozenIds = frozenTeamsNow.map((team) => team.id);
+        let entrants = frozenIds;
+        if (format.kind === "staged-playin") {
+          const playInIds = rankTeamsByAvgRank(frozenTeamsNow, reg.players)
+            .slice(-format.playInTeams)
+            .map((item) => item.id);
+          const playInSet = new Set(playInIds);
+          const playInResult = resolvePlayInGate(format.playInStage, playInIds, currentSchedule.matches);
+          if (playInResult.status !== "complete") {
+            throw new Error("资格赛尚未全部完成，无法进行入围赛抽签。");
+          }
+          entrants = [...frozenIds.filter((id) => !playInSet.has(id)), ...playInResult.advancingTeamIds];
+        }
+        const currentGate = resolveStagedDrawGate(format.stages, entrants, currentSchedule.matches, savedFormat.qualifierByes ?? []);
         if (currentGate.status !== "ready" || currentGate.stageIndex !== activeStageIndex) {
           throw new Error("赛事阶段已经变化，请刷新页面后再操作。");
         }
@@ -436,7 +533,15 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     );
   }
 
-  const isStaged = format?.kind === "staged-32-gsl-double-elim";
+  const isStaged = format?.kind === "staged-32-gsl-double-elim" || format?.kind === "staged-playin";
+  // 四阶段赛制的进度条要带上资格赛；且三阶段门控的 stageIndex 需整体后移一位。
+  const stageList: StageConfig[] = format?.kind === "staged-playin"
+    ? [format.playInStage, ...format.stages]
+    : format?.kind === "staged-32-gsl-double-elim"
+      ? format.stages
+      : [];
+  const progressOffset = format?.kind === "staged-playin" ? 1 : 0;
+  const progressIndex = (index: number) => (isPlayInStage ? index : index + progressOffset);
   if (isStaged && stagedGate && stagedGate.status !== "ready") {
     const isComplete = stagedGate.status === "complete";
     return (
@@ -447,7 +552,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           status={isComplete ? "赛事完成" : stagedGate.status === "waiting" ? `${stagedGate.completedMatches} / ${stagedGate.totalMatches} 场完成` : "需要处理"}
           actions={<button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回赛程处理</button>}
         />
-        <StageProgress stages={format.stages} activeIndex={stagedGate.stageIndex} complete={isComplete} />
+        <StageProgress stages={stageList} activeIndex={progressIndex(stagedGate.stageIndex)} complete={isComplete} />
         <div className={`border p-8 text-center ${stagedGate.status === "blocked" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
           <p className="text-base font-black text-slate-950">{isComplete ? "三个阶段均已完成" : "下一阶段尚未解锁"}</p>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">{stagedGate.message}</p>
@@ -457,15 +562,18 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   }
 
   const drawTitle = activeStage ? `${activeStage.name}抽签` : drawMode === "groups" ? "分组抽签" : "对阵抽签";
-  const drawDescription = activeStageIndex === 0
-    ? "32 支队伍 · 16 场 BO1"
-    : activeStageIndex === 1
-      ? "16 支队伍 · 四档种子池 · 每组各一队"
-      : activeStageIndex === 2
-        ? "小组第一对阵其他组第二 · 同组分列不同半区"
-        : drawMode === "groups"
-          ? "A—D 组 · 每组四队"
-          : "相邻签位构成首轮对阵";
+  const playInTeams = format && format.kind === "staged-playin" ? format.playInTeams : 0;
+  const drawDescription = isPlayInStage
+    ? `最弱 ${playInTeams} 支 · 按段位同档互打 · ${playInTeams / 2} 场 ${activeStage?.boType ?? "BO1"}`
+    : activeStageIndex === 0
+      ? "32 支队伍 · 16 场 BO1"
+      : activeStageIndex === 1
+        ? "16 支队伍 · 四档种子池 · 每组各一队"
+        : activeStageIndex === 2
+          ? "小组第一对阵其他组第二 · 同组分列不同半区"
+          : drawMode === "groups"
+            ? "A—D 组 · 每组四队"
+            : "相邻签位构成首轮对阵";
 
   return (
     <div>
@@ -482,7 +590,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         }
       />
 
-      {isStaged && activeStageIndex !== null && <StageProgress stages={format.stages} activeIndex={activeStageIndex} complete={false} />}
+      {isStaged && activeStageIndex !== null && <StageProgress stages={stageList} activeIndex={progressIndex(activeStageIndex)} complete={false} />}
 
       {error && <div className="mb-5 border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
 
@@ -639,7 +747,7 @@ function DrawActions({
   );
 }
 
-function StageProgress({ stages, activeIndex, complete }: { stages: [StageConfig, StageConfig, StageConfig]; activeIndex: number; complete: boolean }) {
+function StageProgress({ stages, activeIndex, complete }: { stages: StageConfig[]; activeIndex: number; complete: boolean }) {
   return (
     <div className="mb-5 grid border border-slate-200 bg-white sm:grid-cols-3">
       {stages.map((stage, index) => {

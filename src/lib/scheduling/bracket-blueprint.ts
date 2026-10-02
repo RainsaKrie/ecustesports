@@ -35,6 +35,15 @@ export function buildBracketBlueprint(stages: StageConfig[]): ScheduleMatch[] {
   const format = resolveSupportedFormat(stages);
   if (format.kind === "unsupported") return [];
 
+  if (format.kind === "staged-playin") {
+    // 空骨架展示第一阶段（资格赛）：8 队 → 4 场，胜者并入入围赛。
+    return buildQualificationMatches(slotIds(format.playInStage.teamCount), placeholderName, {
+      phase: format.playInStage.name,
+      boType: format.playInStage.boType,
+      advancingTeams: format.playInStage.teamCount / 2,
+    }).matches;
+  }
+
   if (format.kind === "staged-32-gsl-double-elim") {
     const [qualification, groups] = format.stages;
     return buildQualificationMatches(slotIds(qualification.teamCount), placeholderName, {
@@ -69,7 +78,11 @@ function expectedStageMatches(stages: StageConfig[], stageIndex: number): number
   if (!stage) return null;
   if (stage.type === "single-elim") {
     const nextStage = stages[stageIndex + 1];
-    return nextStage ? stage.teamCount - nextStage.teamCount : stage.teamCount - 1;
+    if (!nextStage) return stage.teamCount - 1;
+    // 并入型阶段（资格赛）：下一阶段比本阶段大，说明本阶段的胜者是「并入」而非「成为」下一阶段。
+    // 此时场次 = 本阶段队伍数的一半（如 8 队 → 4 场，4 支胜者并入 32 队入围赛）。
+    if (nextStage.teamCount > stage.teamCount) return stage.teamCount / 2;
+    return stage.teamCount - nextStage.teamCount;
   }
   if (stage.type === "gsl-groups") return (stage.groupCount ?? 0) * 5;
   if (stage.type === "double-elim" && stage.teamCount === 8) return 14;

@@ -89,6 +89,36 @@ export function generateMatchups(groups: Group[], seedPots: SeedPot[]): Matchup[
   return matchups;
 }
 
+/** 按平均段位降序排列（强 → 弱）。用于资格赛挑出最弱的队伍。 */
+export function rankTeamsByAvgRank(
+  teams: RegistrationTeam[],
+  players: RegistrationPlayer[],
+): Array<{ id: string; avg: number }> {
+  return teams
+    .map((team) => ({ id: team.id, avg: teamAvgRank(team, players) }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+/**
+ * 资格赛配对：**同档互打**。
+ *
+ * 传入已按段位降序排列的资格赛队伍（强 → 弱），每 4 支为一档，
+ * 档内按「第 1 对第 4、第 2 对第 3」配对（与小组赛首轮同一条规则）。
+ *
+ * 目的：让资格赛内部是相近水平互打，且**最弱那一档里必然有队伍能赢**——
+ * 若改用「保护靠前」（第 1 对第 8、第 2 对第 7），最弱的几支会全数出局，
+ * 与「让低段位队伍不被打爆、能打上比赛」的目标相反。
+ */
+export function buildPlayInPairs(orderedTeamIds: string[]): Matchup[] {
+  const pairs: Matchup[] = [];
+  for (let blockStart = 0; blockStart + 3 < orderedTeamIds.length; blockStart += 4) {
+    const block = orderedTeamIds.slice(blockStart, blockStart + 4);
+    pairs.push({ teamAId: block[0], teamBId: block[3] });
+    pairs.push({ teamAId: block[1], teamBId: block[2] });
+  }
+  return pairs;
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
