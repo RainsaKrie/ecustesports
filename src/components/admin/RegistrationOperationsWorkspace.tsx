@@ -630,32 +630,32 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
               >
                 一键确认满编队伍{teamBuckets["满编待确认"] > 0 ? `（${teamBuckets["满编待确认"]}）` : ""}
               </button>
-              <div className="flex shrink-0 overflow-hidden border border-slate-200">
+              {/* 筛选与排序收成下拉。原来是两组分段按钮、一共 6 个格子，
+                  把「一键确认满编队伍」和「复制队长联系方式」挤到第二行，
+                  工具栏白白高一截。选手标签页的审核筛选本来就是 <select>，
+                  这里跟着统一成同一种控件。 */}
+              <select
+                value={teamFilter}
+                onChange={(event) => setTeamFilter(event.target.value as TeamFilter)}
+                aria-label="按队伍状态筛选"
+                title="按队伍状态筛选；括号里是该状态下的队伍数"
+                className="min-h-[32px] shrink-0 border border-slate-200 bg-white px-[8px] text-[13px] font-bold leading-tight text-slate-700 outline-none"
+              >
                 {TEAM_FILTERS.map((bucket) => (
-                  <button
-                    key={bucket}
-                    type="button"
-                    onClick={() => setTeamFilter(bucket)}
-                    className={`inline-flex min-h-[32px] items-center gap-[5px] border-r border-slate-200 px-[10px] text-[13px] font-bold leading-tight last:border-r-0 ${teamFilter === bucket ? "bg-[#fff1f2] text-[#c83242]" : "bg-white text-slate-500 hover:text-slate-950"}`}
-                  >
-                    {bucket}
-                    <span className="font-mono text-[11px] font-bold text-slate-400">{teamBuckets[bucket]}</span>
-                  </button>
+                  <option key={bucket} value={bucket}>{bucket}（{teamBuckets[bucket]}）</option>
                 ))}
-              </div>
-              <div className="flex shrink-0 overflow-hidden border border-slate-200">
+              </select>
+              <select
+                value={teamSort}
+                onChange={(event) => setTeamSort(event.target.value as TeamSort)}
+                aria-label="队伍排序方式"
+                title="待办优先：缺人、待确认的队伍排在前面；平均段位：按首发 5 人的段位均值，强 → 弱（替补与教练不计）"
+                className="min-h-[32px] shrink-0 border border-slate-200 bg-white px-[8px] text-[13px] font-bold leading-tight text-slate-700 outline-none"
+              >
                 {TEAM_SORTS.map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setTeamSort(mode)}
-                    title={mode === "平均段位" ? "按首发 5 人的段位均值排序，强 → 弱（替补与教练不计）" : "缺人、待确认的队伍排在前面"}
-                    className={`inline-flex min-h-[32px] items-center gap-[5px] border-r border-slate-200 px-[10px] text-[13px] font-bold leading-tight last:border-r-0 ${teamSort === mode ? "bg-[#fff1f2] text-[#c83242]" : "bg-white text-slate-500 hover:text-slate-950"}`}
-                  >
-                    排序：{mode}
-                  </button>
+                  <option key={mode} value={mode}>排序：{mode}</option>
                 ))}
-              </div>
+              </select>
               {/* 汇总复制：队长群缺人时，一次拿到当前列表全部队长的号，
                   不用在 36 张卡里挨个点。复制的是**当前筛选与排序下的队伍**，
                   按钮上直接写出队数，避免「筛了一半却以为复制的是全部」。 */}
