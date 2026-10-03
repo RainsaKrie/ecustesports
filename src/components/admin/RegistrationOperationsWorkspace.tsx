@@ -55,6 +55,10 @@ const TEAM_SORTS: readonly TeamSort[] = ["待办优先", "平均段位"];
 
 interface TeamRoster {
   members: RegistrationPlayer[];
+  /** 队长本人（`team.captainId` 指向的那名选手）；数据异常时可能找不到，故为可选。 */
+  captain?: RegistrationPlayer;
+  /** 队长的联系方式（QQ 优先，其次手机号）；查不到队长或两栏都空时是「未填写」。 */
+  contact: string;
   starterCount: number;
   complete: boolean;
   frozen: boolean;
@@ -68,8 +72,11 @@ interface TeamRoster {
 function teamRoster(state: RegistrationState, team: RegistrationTeam): TeamRoster {
   const members = state.players.filter((player) => player.teamId === team.id);
   const starters = members.filter((player) => player.role === "首发");
+  const captain = members.find((player) => player.id === team.captainId);
   return {
     members,
+    captain,
+    contact: captain ? contactOf(captain) : "未填写",
     starterCount: starters.length,
     complete: starters.length >= TEAM_SIZE,
     frozen: team.status === "已冻结",
@@ -77,6 +84,22 @@ function teamRoster(state: RegistrationState, team: RegistrationTeam): TeamRoste
     avgRank: teamAvgRank(team, state.players),
     unrankedStarters: starters.filter((player) => !(RANK_VALUE[player.rank] > 0)).length,
   };
+}
+
+/**
+ * 把队伍列表里每位队长的联系方式汇总成一段可直接粘贴的文本。
+ *
+ * 用途很具体：队长群缺人时，负责人要挨个加人，不能靠「点开队伍 → 记 ID → 去选手列表搜」
+ * 这条路走 36 遍。制表符分隔是为了**粘进表格就是三列**（Excel / 腾讯文档），
+ * 直接粘进聊天窗口也仍然读得懂。
+ */
+function captainContactSheet(rows: Array<{ team: RegistrationTeam; roster: TeamRoster }>): string {
+  const lines = rows.map(({ team, roster }) => [
+    team.name,
+    roster.captain?.gameId ?? "（队长不在名单中）",
+    roster.contact,
+  ].join("\t"));
+  return ["队伍\t队长\t联系方式", ...lines].join("\n");
 }
 
 function matchesTeamFilter(filter: TeamFilter, roster: TeamRoster): boolean {
@@ -103,6 +126,13 @@ function teamSortRank(roster: TeamRoster): number {
  * min-h-10 = 40px，在移动端可用与桌面密度之间取折中。
  */
 const textActionClass = "inline-flex min-h-[32px] items-center whitespace-nowrap text-[13px] font-bold leading-tight hover:underline";
+
+/**
+ * 卡片内的一键复制。与 `textActionClass` 同一密度档，但带框 ——
+ * 它按下去会改自己的文案（复制 / 已复制 / 复制失败），
+ * 没有边框的话这三个状态在同一行里看起来只是文字抖动。
+ */
+const copyActionClass = "inline-flex h-[22px] shrink-0 items-center border border-slate-300 bg-white px-[6px] text-[11px] font-bold leading-none text-slate-600 hover:border-slate-900 hover:text-slate-900";
 const subscribeStatic = () => () => {};
 
 /**
@@ -215,6 +245,51 @@ function formatTime(value: string) {
 
 function contactOf(player: RegistrationPlayer) {
   return player.qq || player.phone || "未填写";
+}
+
+/**
+ * 一键复制。
+ *
+ * 这是**联系人**类信息，手工记数字必然出错（QQ 与手机号都是长数字串），
+ * 所以复制按钮不是锦上添花，而是这条动线上唯一可靠的输入方式。
+ *
+ * 用 `navigator.clipboard`（只在安全上下文可用，localhost 与 https 都在其内），
+ * 且**必须留失败兜底**：剪贴板被拒时（无权限、非安全上下文）要让人知道，
+ * 不能让按钮看起来点了没反应 —— 那会让人以为号码已经复制走了。
+ */
+function CopyButton({ text, label = "复制", copiedLabel = "已复制", title, className = "", disabled = false }: {
+  text: string;
+  label?: string;
+  /** 复制成功后的文案。长标签的按钮要传等长的文案，否则按钮宽度会跳。 */
+  copiedLabel?: string;
+  title?: string;
+  className?: string;
+  disabled?: boolean;
+}) {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const timer = useRef<number | null>(null);
+  useEffect(() => () => { if (timer.current !== null) window.clearTimeout(timer.current); }, []);
+  const settle = (next: "copied" | "failed") => {
+    setStatus(next);
+    if (timer.current !== null) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setStatus("idle"), 1600);
+  };
+  const tone = status === "copied" ? "text-emerald-700" : status === "failed" ? "text-red-700" : "";
+  return (
+    <button
+      type="button"
+      title={title}
+      disabled={disabled}
+      onClick={() => {
+        const pending = navigator.clipboard?.writeText(text);
+        if (!pending) { settle("failed"); return; }
+        pending.then(() => settle("copied")).catch(() => settle("failed"));
+      }}
+      className={`${className} ${tone}`}
+    >
+      {status === "copied" ? copiedLabel : status === "failed" ? "复制失败" : label}
+    </button>
+  );
 }
 
 /**
@@ -581,6 +656,17 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                   </button>
                 ))}
               </div>
+              {/* 汇总复制：队长群缺人时，一次拿到当前列表全部队长的号，
+                  不用在 36 张卡里挨个点。复制的是**当前筛选与排序下的队伍**，
+                  按钮上直接写出队数，避免「筛了一半却以为复制的是全部」。 */}
+              <CopyButton
+                text={captainContactSheet(visibleTeams)}
+                disabled={visibleTeams.length === 0}
+                label={`复制队长联系方式（${visibleTeams.length} 队）`}
+                copiedLabel={`已复制（${visibleTeams.length} 队）`}
+                title="按当前筛选与排序复制：队名 / 队长游戏 ID / 联系方式，制表符分隔，可直接粘进表格或聊天窗口"
+                className="inline-flex min-h-[32px] shrink-0 items-center border border-slate-300 bg-white px-[10px] text-[13px] font-bold leading-tight text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300"
+              />
             </div>
           )}
         </div>
@@ -640,6 +726,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 <div className="grid gap-px bg-slate-200 md:grid-cols-2 xl:grid-cols-3">
               {visibleTeams.map(({ team, roster }) => {
                 const members = roster.members;
+                const captain = roster.captain;
                 const flaggedCount = members.filter((player) => isFlagged(player.reviewStatus)).length;
                 // 低频/破坏性操作收进「更多」，队头只留一个主操作。
                 // 原先 4 个按钮横排 + shrink-0，把队名挤到换行、右列还会溢出被裁。
@@ -671,6 +758,23 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                       </div>
                     </div>
                     {flaggedCount > 0 && <p className={`mt-[4px] ${DENSE_META} font-bold text-amber-700`}>{flaggedCount} 人资料待修改，需先标记通过才能确认名单</p>}
+                    {/* 队长联系方式直接摆在卡片上。负责人要把队长逐个拉进队长群，
+                        原来的路径是「点开队伍 → 记住队长 ID → 去选手列表搜这个 ID → 再找联系方式」，
+                        36 支队就是 36 遍。这里一次给全：ID、号码、是 QQ 还是手机、一键复制。
+                        号码缺失时显式标黄，避免「看着有空位、实际没填」被漏掉。 */}
+                    <div className={`mt-[5px] flex min-w-0 items-center gap-[6px] ${DENSE_META}`}>
+                      <span className={`${DENSE_MICRO} font-bold text-slate-400`}>队长</span>
+                      {captain ? (
+                        <>
+                          <span className="min-w-0 truncate font-bold text-slate-900">{captain.gameId}</span>
+                          <span className={`shrink-0 ${DENSE_MICRO} font-bold text-slate-400`}>{captain.qq ? "QQ" : captain.phone ? "手机" : "联系方式"}</span>
+                          <span className={`truncate font-mono ${roster.contact === "未填写" ? "font-bold text-amber-700" : "text-slate-700"}`}>{roster.contact}</span>
+                          {roster.contact !== "未填写" && <CopyButton text={roster.contact} title={`复制队长 ${captain.gameId} 的联系方式`} className={copyActionClass} />}
+                        </>
+                      ) : (
+                        <span className="font-bold text-amber-700">队长不在名单中</span>
+                      )}
+                    </div>
                     <div className="mt-[6px] grid gap-[3px] border-t border-slate-100 pt-[5px]">
                       {([
                         { role: "首发" as const, limit: TEAM_SIZE },
