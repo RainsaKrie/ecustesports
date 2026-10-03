@@ -5,6 +5,7 @@ import {
   getPublicSiteConfig,
   PUBLIC_CACHE_CONTROL,
 } from "@/lib/public-data-cache";
+import { selectPublicRoster } from "@/lib/scheduling/public-roster";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,8 +17,10 @@ export async function GET(request: NextRequest) {
   if (!event) return Response.json({ message: "赛事不存在或尚未公开。" }, { status: 404 });
 
   const state = await getPublicRegistration(eventId);
-  const activePlayers = state.players.filter((item) => item.status !== "已退赛");
-  const activeTeams = state.teams.filter((item) => item.status !== "已退赛");
+  // 公开页面只给「可以对外公布」的那部分名单（规则集中在 public-roster.ts）：
+  // 退赛的，以及正式名单公布后仍未满编的队伍与选手，不出现在公开数据里。
+  // 数据本身一条未删 —— 后台仍完整可见。
+  const { teams: activeTeams, players: activePlayers } = selectPublicRoster(state);
   const playerById = new Map(activePlayers.map((player) => [player.id, player]));
   const teamById = new Map(activeTeams.map((team) => [team.id, team]));
 

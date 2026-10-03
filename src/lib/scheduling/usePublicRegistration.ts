@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { selectPublicRoster } from "./public-roster";
+
 export interface PublicRegistrationSummary {
   playerCount: number;
   teamCount: number;
@@ -52,8 +54,13 @@ function summarize(value: unknown, preview: boolean): PublicRegistrationSummary 
     };
   };
   const state = source.state ?? {};
-  const players = state.players?.filter((player) => player.status !== "已退赛") ?? [];
-  const teams = state.teams?.filter((team) => team.status !== "已退赛") ?? [];
+  // 管理端预览走的是未过滤的后台数据，这里套用与公开接口**同一份**可见性规则，
+  // 否则「预览」看到的名单和玩家看到的不是一回事。
+  const { teams, players } = selectPublicRoster({
+    teams: state.teams ?? [],
+    players: state.players ?? [],
+    teamRegistrationClosed: state.teamRegistrationClosed === true,
+  });
   const playerById = new Map(players.map((player) => [player.id, player]));
   const teamById = new Map(teams.map((team) => [team.id, team]));
   return {

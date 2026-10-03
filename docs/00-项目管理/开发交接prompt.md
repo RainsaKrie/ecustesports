@@ -25,7 +25,7 @@
 - Node：使用系统命令 `node` / `npm`（当前环境 Node.js 22）
 - **项目根目录：`D:\Projects\esports-operations-assistant-production-fixes`**
   （文档里出现的 `D:\桌面\esports-operations-assistant` 是**旧路径**，已迁盘，不要再使用）
-- 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → 20 个测试套件 → 构建）
+- 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → 21 个测试套件 → 构建）
   · 环境变量 `CODEBUDDY_SAFE_DELETE_ENABLED=0` 是必须的：本机删除守卫会在 Next 清理构建缓存时拦截，报
   `SAFE_DELETE_BULK_CONFIRM_REQUIRED`，**不是代码问题**；CI 不需要该开关。
 - 端到端验收（不在上面的门禁里）：`npm run test:rehearsal36`
@@ -128,6 +128,13 @@ typecheck 通过、**20 个测试套件全部通过**、构建 19/19 静态页�
   现在错误面板与阶段未解锁面板都可点，弹窗内显示当前报名队伍数与满编/已确认数。
   → **这也补齐了「报名截止 → 冻结 36 支 → 抽签」这条链路上最容易卡死的一步**：
   冻结不满编队伍会被数据层拒绝，一键确认只处理能冻的那部分。
+  ④ 公开赛事页的「参赛选手／参赛队伍」改为只呈现**正式名单**（真实浏览器实测 16/16）：
+  组队申报截止且已有正式队伍之后，未满编队伍、未组队选手不再出现在公开接口与公开页面上
+  （线上 42 支 195 人 → 公开 36 支 180 人），**数据一条未删** —— 后台照旧完整可见、可撤销、可申诉。
+  规则集中在 `src/lib/scheduling/public-roster.ts`，公开接口与管理端预览共用同一份，避免两处走歪。
+  报名期（组队申报未截止）行为完全不变：那时玩家要靠这份名单找队伍加入，
+  且「组队刚截止、还没确认任何队伍」时会退回显示全部，避免公开页出现空名单。
+  新增套件 `npm run test:public-roster`（15 条断言），已并入 `test:all`。
 
 ## 2026-08-21 当前实现与实测证据
 
