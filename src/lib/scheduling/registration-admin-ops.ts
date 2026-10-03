@@ -8,6 +8,7 @@ import {
   type RegistrationPlayer,
   type RegistrationSnapshot,
   type RegistrationState,
+  type RegistrationTeam,
 } from "./registration-data";
 import { normalizeRegistrationState } from "./registration-data";
 import { addMemberOp, createTeamOp, renameTeamOp, setMemberRoleOp, type PlayerRole } from "./registration-ops";
@@ -279,18 +280,57 @@ export function deletePlayerAdminOp(
   return commit(state, next, "delete-player", `删除选手 ${player.gameId}${team ? `（原 ${team.name} ${player.role ?? "成员"}）` : ""}`);
 }
 
+/**
+ * 一支队伍能否确认（冻结）正式名单；返回 `null` 表示可以，否则返回不能确认的原因。
+ *
+ * 抽出来是为了让「逐队确认」与「一键确认满编队伍」走同一套判定 ——
+ * 两处各写一遍的话，改了一处漏掉另一处就会让批量操作放进不合规的名单。
+ */
+function confirmTeamBlocker(state: RegistrationState, team: RegistrationTeam): string | null {
+  if (team.status === "已退赛") return "退赛队伍不能确认名单。";
+  const members = state.players.filter((player) => player.teamId === team.id && player.status === "已入队");
+  const starters = members.filter((player) => player.role === "首发");
+  if (starters.length !== TEAM_SIZE) return `名单需要恰好 ${TEAM_SIZE} 名首发，当前为 ${starters.length} 名。`;
+  const notApproved = members.filter((player) => player.reviewStatus !== "已通过");
+  if (notApproved.length > 0) return `仍有 ${notApproved.length} 名成员未审核通过。`;
+  return null;
+}
+
 export function confirmTeamAdminOp(rawState: RegistrationState, teamId: string): AdminRegistrationResult {
   const state = normalizeRegistrationState(rawState);
   const team = state.teams.find((candidate) => candidate.id === teamId);
   if (!team) return fail(state, "队伍不存在。");
-  if (team.status === "已退赛") return fail(state, "退赛队伍不能确认名单。");
-  const members = state.players.filter((player) => player.teamId === team.id && player.status === "已入队");
-  const starters = members.filter((player) => player.role === "首发");
-  if (starters.length !== TEAM_SIZE) return fail(state, `名单需要恰好 ${TEAM_SIZE} 名首发，当前为 ${starters.length} 名。`);
-  const notApproved = members.filter((player) => player.reviewStatus !== "已通过");
-  if (notApproved.length > 0) return fail(state, `仍有 ${notApproved.length} 名成员未审核通过。`);
+  const blocker = confirmTeamBlocker(state, team);
+  if (blocker) return fail(state, blocker);
   const next = { ...state, teams: state.teams.map((candidate) => candidate.id === team.id ? { ...candidate, status: "已冻结" as const } : candidate) };
   return commit(state, next, "confirm-team", `确认 ${team.name} 的正式参赛名单`);
+}
+
+/**
+ * 一键确认全部满编队伍：把「恰好 5 名首发且全员资料通过」的报名中队伍一次性冻结，
+ * 合并成一条操作记录（一次可撤销）。
+ *
+ * 不满足条件的队伍只是被跳过，不影响其余队伍 —— 报名截止后常见的状态就是
+ * 「36 支满编 + 6 支缺人」，逐队点 36 次没有意义，缺人的那几支本来也冻不了。
+ */
+export function confirmEligibleTeamsAdminOp(rawState: RegistrationState): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const openTeams = state.teams.filter((team) => team.status === "报名中");
+  if (openTeams.length === 0) return fail(state, "没有处于报名中的队伍。");
+  const eligible = openTeams.filter((team) => confirmTeamBlocker(state, team) === null);
+  if (eligible.length === 0) {
+    return fail(state, `${openTeams.length} 支报名中队伍都不满足确认条件（需要恰好 ${TEAM_SIZE} 名首发且全员资料通过）。`);
+  }
+  const eligibleIds = new Set(eligible.map((team) => team.id));
+  const next = {
+    ...state,
+    teams: state.teams.map((candidate) => eligibleIds.has(candidate.id) ? { ...candidate, status: "已冻结" as const } : candidate),
+  };
+  const skipped = openTeams.length - eligible.length;
+  const summary = skipped > 0
+    ? `一键确认 ${eligible.length} 支满编队伍（另有 ${skipped} 支未满编，未确认）`
+    : `一键确认 ${eligible.length} 支满编队伍`;
+  return commit(state, next, "confirm-eligible-teams", summary);
 }
 
 export function reopenTeamAdminOp(rawState: RegistrationState, teamId: string, reason: string): AdminRegistrationResult {

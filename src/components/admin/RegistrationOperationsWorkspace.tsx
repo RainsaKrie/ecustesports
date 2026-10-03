@@ -10,6 +10,7 @@ import {
   initialRegistration,
   normalizeRegistrationState,
   POSITIONS,
+  TEAM_SIZE,
   type RegistrationAuditLog,
   type RegistrationPlayer,
   type RegistrationState,
@@ -35,6 +36,50 @@ type Modal =
 const inputClass = "w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15";
 
 /**
+ * 队伍视图分档。报名截止后的真实状态是「一批满编 + 几支还缺人」，
+ * 混在一起看既找不到要催的队，也看不出哪些已经可以确认。
+ */
+type TeamFilter = "全部" | "未满编" | "满编待确认" | "已确认";
+const TEAM_FILTERS: readonly TeamFilter[] = ["全部", "未满编", "满编待确认", "已确认"];
+
+interface TeamRoster {
+  members: RegistrationPlayer[];
+  starterCount: number;
+  complete: boolean;
+  frozen: boolean;
+  withdrawn: boolean;
+}
+
+function teamRoster(state: RegistrationState, team: RegistrationTeam): TeamRoster {
+  const members = state.players.filter((player) => player.teamId === team.id);
+  const starterCount = members.filter((player) => player.role === "首发").length;
+  return {
+    members,
+    starterCount,
+    complete: starterCount >= TEAM_SIZE,
+    frozen: team.status === "已冻结",
+    withdrawn: team.status === "已退赛",
+  };
+}
+
+function matchesTeamFilter(filter: TeamFilter, roster: TeamRoster): boolean {
+  switch (filter) {
+    case "未满编": return !roster.withdrawn && !roster.complete;
+    case "满编待确认": return !roster.withdrawn && roster.complete && !roster.frozen;
+    case "已确认": return roster.frozen;
+    default: return true;
+  }
+}
+
+/** 排序：需要处理的排前面 —— 缺人 → 满编待确认 → 已确认 → 已退赛。 */
+function teamSortRank(roster: TeamRoster): number {
+  if (roster.withdrawn) return 3;
+  if (!roster.complete) return 0;
+  if (!roster.frozen) return 1;
+  return 2;
+}
+
+/**
  * 卡片内的文字型操作按钮（编辑资料 / 删除选手等）。
  *
  * 触控区仍要够大：其中「删除选手」是破坏性操作，误触代价是丢数据。
@@ -51,11 +96,21 @@ const subscribeStatic = () => () => {};
  * 所以这里**字号与间距一律写固定 px**（`text-[14px]`、`min-h-[40px]`、`gap-[10px]`），
  * 不随根字号放大，密度才可控。改动本文件时请沿用这个约定，
  * 不要退回 `min-h-11` / `gap-3` 这类 rem 类，否则桌面又会撑开。
+ *
+ * 队伍卡片 2026-10-03 又压了一轮：原来是「每名成员占一整行」，一支满编队要 7 行、
+ * 一屏只看得到 2 支多。现在成员做成 22px 的行内标签流，7 个槽位通常压成 3 行，
+ * 列数由 2 列提到 3 列。**再改这里时请守住「标签流 + 固定 px」这两条**，
+ * 否则很快会退回一屏两支的状态。
  */
-const DENSE_TITLE = "text-[18px]";     // 队名
+const DENSE_TITLE = "text-[15px]";     // 队名
 const DENSE_BODY = "text-[14px]";      // 成员名、正文
 const DENSE_META = "text-[12px]";      // 摘要、次级信息
 const DENSE_MICRO = "text-[11px]";     // 徽章
+const DENSE_CHIP = "text-[13px]";      // 成员标签
+const ROSTER_SLOT_LABEL = "w-[44px] shrink-0 pt-[5px]"; // 角色名 + 计数列的固定宽度与对齐
+
+/** 标签流里每个成员/空缺槽位的高度 —— 卡片密度的主要旋钮。 */
+const CHIP_HEIGHT = "h-[22px]";
 
 /** 只有被标记为不合规的选手才显示徽章 —— 默认通过不产生视觉噪音。 */
 function isFlagged(status: ReviewStatus | undefined) {
@@ -67,9 +122,11 @@ function isFlagged(status: ReviewStatus | undefined) {
  * 用受控 state 而不是 <details>，因为卡片列表里需要「点开一个自动关掉另一个」，
  * 且要支持点击外部关闭。
  */
-function InlineMenu({ label, items }: {
+function InlineMenu({ label, items, compact = false }: {
   label: string;
   items: Array<{ text: string; onSelect: () => void; tone?: string }>;
+  /** 嵌在成员标签里时用无边框的小按钮，避免一个标签出现两层框。 */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -95,7 +152,9 @@ function InlineMenu({ label, items }: {
         aria-label={label}
         aria-expanded={open}
         title={label}
-        className="inline-flex h-[30px] w-[30px] items-center justify-center border border-slate-300 bg-white text-[14px] font-black leading-none text-slate-500 hover:border-slate-900 hover:text-slate-900"
+        className={`inline-flex items-center justify-center leading-none ${compact
+          ? "h-[20px] w-[18px] text-[13px] font-black text-slate-400 hover:bg-slate-100 hover:text-slate-900"
+          : "h-[30px] w-[30px] border border-slate-300 bg-white text-[14px] font-black text-slate-500 hover:border-slate-900 hover:text-slate-900"}`}
       >
         ⋯
       </button>
@@ -141,42 +200,45 @@ function contactOf(player: RegistrationPlayer) {
   return player.qq || player.phone || "未填写";
 }
 
-function RosterMemberRow({
+/**
+ * 名单里的一个成员标签。角色与序号由所在那一行决定，标签本身只放
+ * 游戏 ID + 队长标记 + 异常徽章 + 一个收起式操作入口 —— 一行 40px 的信息
+ * 压进 22px 里，是队伍列表能一屏看十来支的关键。
+ */
+function RosterMemberChip({
   player,
   team,
-  role,
-  index,
   onReplace,
   onRemove,
   onChangeRole,
 }: {
   player: RegistrationPlayer;
   team: RegistrationTeam;
-  role: Role;
-  index: number;
   onReplace: () => void;
   onRemove: () => void;
   onChangeRole?: () => void;
 }) {
-  const rosterLabel = team.captainId === player.id ? "队长" : `${role} ${index + 1}`;
+  const isCaptain = team.captainId === player.id;
   // 低频操作收进菜单：改角色 / 换人 / 移出原本常驻每一行，
   // 一支满编队 7 个槽位就是 21 个按钮 —— 这是列表显得挤压的主因。
   const actions: Array<{ text: string; onSelect: () => void; tone?: string }> = [];
   if (team.status === "报名中" && onChangeRole) actions.push({ text: "改角色", onSelect: onChangeRole });
   if (team.status !== "已退赛") actions.push({ text: "换人", onSelect: onReplace, tone: "text-[#c83242]" });
   if (team.status === "报名中") actions.push({ text: "移出", onSelect: onRemove, tone: "text-red-700" });
+  const flagged = isFlagged(player.reviewStatus);
+  const tone = flagged
+    ? reviewTone(player.reviewStatus)
+    : isCaptain
+      ? "border-slate-400 bg-slate-50 text-slate-900"
+      : "border-slate-200 bg-white text-slate-800";
 
   return (
-    <div className="flex min-h-[40px] items-center gap-[10px] border border-slate-200 bg-white px-[10px] py-[2px] leading-tight">
-      <div className="flex min-w-0 flex-1 items-baseline gap-[6px]">
-        <p className={`truncate ${DENSE_BODY} font-bold text-slate-950`} title={player.gameId}>{player.gameId}</p>
-        <span className={`shrink-0 ${DENSE_MICRO} font-bold text-slate-400`}>{rosterLabel}</span>
-        {isFlagged(player.reviewStatus) && (
-          <span className={`shrink-0 border px-[6px] py-[1px] ${DENSE_MICRO} font-bold ${reviewTone(player.reviewStatus)}`}>{player.reviewStatus}</span>
-        )}
-      </div>
-      {actions.length > 0 && <InlineMenu label={`${player.gameId} 的操作`} items={actions} />}
-    </div>
+    <span className={`inline-flex ${CHIP_HEIGHT} max-w-full items-center border ${tone}`} title={`${player.gameId}${isCaptain ? "（队长）" : ""}`}>
+      <span className={`max-w-[104px] truncate pl-[6px] ${DENSE_CHIP} font-bold leading-none`}>{player.gameId}</span>
+      {isCaptain && <span className={`ml-[4px] shrink-0 ${DENSE_MICRO} font-bold text-slate-400`}>队长</span>}
+      {flagged && <span className={`ml-[4px] shrink-0 ${DENSE_MICRO} font-bold`}>{player.reviewStatus}</span>}
+      {actions.length > 0 ? <InlineMenu compact label={`${player.gameId} 的操作`} items={actions} /> : <span className="w-[5px]" />}
+    </span>
   );
 }
 
@@ -226,6 +288,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const [tab, setTab] = useState<Tab>("players");
   const [query, setQuery] = useState("");
   const [reviewFilter, setReviewFilter] = useState<"全部" | ReviewStatus>("全部");
+  const [teamFilter, setTeamFilter] = useState<TeamFilter>("全部");
   const [playerPage, setPlayerPage] = useState(1);
   const [modal, setModal] = useState<Modal | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -272,6 +335,25 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const safePlayerPage = Math.min(playerPage, playerPageCount);
   const pagedPlayers = visiblePlayers.slice((safePlayerPage - 1) * pageSize, safePlayerPage * pageSize);
   const latestUndoable = (state.operationLogs ?? []).find((log) => !log.undoneAt);
+
+  const teamRows = useMemo(
+    () => state.teams.map((team) => ({ team, roster: teamRoster(state, team) })),
+    [state],
+  );
+  const teamBuckets = useMemo(() => {
+    const counts: Record<TeamFilter, number> = { 全部: teamRows.length, 未满编: 0, 满编待确认: 0, 已确认: 0 };
+    for (const { roster } of teamRows) {
+      for (const filter of TEAM_FILTERS) {
+        if (filter !== "全部" && matchesTeamFilter(filter, roster)) counts[filter] += 1;
+      }
+    }
+    return counts;
+  }, [teamRows]);
+  const visibleTeams = useMemo(
+    // sort 在现代 JS 里是稳定的，所以同档队伍仍保持原来的报名顺序
+    () => teamRows.filter(({ roster }) => matchesTeamFilter(teamFilter, roster)).sort((a, b) => teamSortRank(a.roster) - teamSortRank(b.roster)),
+    [teamRows, teamFilter],
+  );
 
   function openModal(next: Modal) {
     setModal(next);
@@ -438,6 +520,32 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
               </select>
             </div>
           )}
+          {tab === "teams" && (
+            <div className="flex flex-wrap items-center gap-[6px] px-[10px] pb-[10px] md:pb-0">
+              <button
+                type="button"
+                onClick={() => runOperation("confirm-eligible-teams")}
+                disabled={busy || teamBuckets["满编待确认"] === 0}
+                title="把首发满 5 人且资料全部通过的队伍一次性确认为正式名单"
+                className="inline-flex min-h-[32px] shrink-0 items-center bg-[#ff4655] px-[10px] text-[13px] font-bold leading-tight text-white hover:bg-[#d83b48] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                一键确认满编队伍{teamBuckets["满编待确认"] > 0 ? `（${teamBuckets["满编待确认"]}）` : ""}
+              </button>
+              <div className="flex shrink-0 overflow-hidden border border-slate-200">
+                {TEAM_FILTERS.map((bucket) => (
+                  <button
+                    key={bucket}
+                    type="button"
+                    onClick={() => setTeamFilter(bucket)}
+                    className={`inline-flex min-h-[32px] items-center gap-[5px] border-r border-slate-200 px-[10px] text-[13px] font-bold leading-tight last:border-r-0 ${teamFilter === bucket ? "bg-[#fff1f2] text-[#c83242]" : "bg-white text-slate-500 hover:text-slate-950"}`}
+                  >
+                    {bucket}
+                    <span className="font-mono text-[11px] font-bold text-slate-400">{teamBuckets[bucket]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {tab === "players" && (
@@ -487,13 +595,14 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         )}
 
         {tab === "teams" && (
-          state.teams.length === 0 ? <p className="px-5 py-16 text-center text-xs text-slate-400">暂无队伍</p> : (
-            <div className="grid gap-px bg-slate-200 xl:grid-cols-2">
-              {state.teams.map((team) => {
-                const members = state.players.filter((player) => player.teamId === team.id);
-                const starters = members.filter((player) => player.role === "首发");
-                const subs = members.filter((player) => player.role === "替补");
-                const coaches = members.filter((player) => player.role === "教练");
+          state.teams.length === 0
+            ? <p className="px-5 py-16 text-center text-xs text-slate-400">暂无队伍</p>
+            : visibleTeams.length === 0
+              ? <p className="px-5 py-16 text-center text-xs text-slate-400">这个筛选下没有队伍</p>
+              : (
+                <div className="grid gap-px bg-slate-200 md:grid-cols-2 xl:grid-cols-3">
+              {visibleTeams.map(({ team, roster }) => {
+                const members = roster.members;
                 const flaggedCount = members.filter((player) => isFlagged(player.reviewStatus)).length;
                 // 低频/破坏性操作收进「更多」，队头只留一个主操作。
                 // 原先 4 个按钮横排 + shrink-0，把队名挤到换行、右列还会溢出被裁。
@@ -508,48 +617,48 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                   teamActions.push({ text: "整队退赛", onSelect: () => openModal({ kind: "withdraw-team", team }), tone: "text-red-700" });
                 }
                 return (
-                  <article key={team.id} className="bg-white p-[12px] leading-tight">
-                    <div className="flex items-start justify-between gap-[10px]">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-[6px]">
-                          <h3 className={`truncate ${DENSE_TITLE} font-black text-slate-950`}>{team.name}</h3>
-                          <span className={`shrink-0 border px-[6px] py-[1px] ${DENSE_MICRO} font-bold ${teamTone(team.status)}`}>{team.status === "已冻结" ? "正式名单" : team.status}</span>
-                        </div>
-                        <p className={`mt-[3px] ${DENSE_META} text-slate-400`}>首发 {starters.length}/5 · 替补 {subs.length}/1 · 教练 {coaches.length}/1{flaggedCount > 0 ? ` · ${flaggedCount} 人资料待修改` : ""}</p>
+                  <article key={team.id} className={`bg-white px-[10px] py-[8px] leading-tight ${roster.withdrawn ? "bg-slate-50/70 text-slate-400" : ""}`}>
+                    <div className="flex items-start justify-between gap-[8px]">
+                      <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
+                        <h3 className={`truncate ${DENSE_TITLE} font-black text-slate-950`}>{team.name}</h3>
+                        <span className={`shrink-0 border px-[6px] py-[1px] ${DENSE_MICRO} font-bold ${teamTone(team.status)}`}>{team.status === "已冻结" ? "正式名单" : team.status}</span>
+                        <span className={`shrink-0 font-mono ${DENSE_MICRO} font-bold ${roster.complete ? "text-slate-400" : "text-amber-600"}`}>首发 {roster.starterCount}/{TEAM_SIZE}</span>
                       </div>
-                      <div className="flex shrink-0 items-center gap-[6px]">
-                        {team.status === "报名中" && <button type="button" onClick={() => runOperation("confirm-team", { teamId: team.id })} disabled={busy} className="bg-[#ff4655] inline-flex min-h-[32px] items-center px-[11px] text-[13px] font-bold leading-tight text-white disabled:opacity-50">确认名单</button>}
-                        {team.status === "已冻结" && <button type="button" onClick={() => openModal({ kind: "reopen-team", team })} className="border border-slate-300 inline-flex min-h-[32px] items-center px-[11px] text-[13px] font-bold leading-tight text-slate-700">开放调整</button>}
-                        <InlineMenu label={`${team.name} 的更多操作`} items={teamActions} />
+                      <div className="flex shrink-0 items-center gap-[4px]">
+                        {team.status === "已冻结" && <button type="button" onClick={() => openModal({ kind: "reopen-team", team })} className="border border-slate-300 inline-flex h-[24px] items-center px-[8px] text-[12px] font-bold leading-tight text-slate-700 hover:border-slate-950">开放调整</button>}
+                        <InlineMenu compact label={`${team.name} 的更多操作`} items={teamActions} />
                       </div>
                     </div>
-                    <div className="mt-[10px] grid gap-[5px] border-t border-slate-100 pt-[8px]">
+                    {flaggedCount > 0 && <p className={`mt-[4px] ${DENSE_META} font-bold text-amber-700`}>{flaggedCount} 人资料待修改，需先标记通过才能确认名单</p>}
+                    <div className="mt-[6px] grid gap-[3px] border-t border-slate-100 pt-[5px]">
                       {([
-                        { role: "首发" as const, limit: 5 },
+                        { role: "首发" as const, limit: TEAM_SIZE },
                         { role: "替补" as const, limit: 1 },
                         { role: "教练" as const, limit: 1 },
                       ]).map(({ role, limit }) => {
                         const roleMembers = members.filter((player) => player.role === role);
+                        // 数据异常（超出上限）时也要把多出来的人渲染出来，
+                        // 否则会出现「列表里看不见、也就删不掉」的成员。
+                        const slots = Math.max(limit, roleMembers.length);
+                        const short = role === "首发" && roleMembers.length < limit;
                         return (
-                          <div key={role} className="grid gap-[6px] sm:grid-cols-[44px_minmax(0,1fr)]">
-                            <div className={`pt-[10px] ${DENSE_MICRO} font-black text-slate-500`}>{role} {roleMembers.length}/{limit}</div>
-                            <div className="grid min-w-0 gap-[4px]">
-                              {Array.from({ length: limit }, (_, index) => {
+                          <div key={role} className="flex items-start gap-[6px]">
+                            <span className={`${ROSTER_SLOT_LABEL} ${DENSE_MICRO} font-black ${short ? "text-amber-600" : "text-slate-400"}`}>{role} {roleMembers.length}/{limit}</span>
+                            <div className="flex min-w-0 flex-1 flex-wrap gap-[3px]">
+                              {Array.from({ length: slots }, (_, index) => {
                                 const player = roleMembers[index];
                                 return player ? (
-                                  <RosterMemberRow
+                                  <RosterMemberChip
                                     key={player.id}
                                     player={player}
                                     team={team}
-                                    role={role}
-                                    index={index}
                                     onChangeRole={() => openModal({ kind: "set-member-role", player })}
                                     onReplace={() => openModal({ kind: "replace-player", team, outgoing: player })}
                                     onRemove={() => openModal({ kind: "remove-player", player })}
                                   />
                                 ) : (
-                                  <button key={`${role}-${index}`} type="button" onClick={() => openModal({ kind: "assign-player", team, role })} disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0} className={`min-h-[40px] border border-dashed border-slate-300 bg-slate-50 px-[10px] py-[2px] text-left ${DENSE_BODY} font-bold leading-tight text-slate-400 enabled:hover:border-[#ff4655] enabled:hover:text-[#c83242] disabled:cursor-default`}>
-                                    {role === "首发" ? `首发 ${index + 1}` : role} · 空缺
+                                  <button key={`${role}-${index}`} type="button" onClick={() => openModal({ kind: "assign-player", team, role })} disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0} className={`inline-flex ${CHIP_HEIGHT} items-center border border-dashed border-slate-300 bg-slate-50 px-[6px] ${DENSE_META} font-bold leading-none text-slate-400 enabled:hover:border-[#ff4655] enabled:hover:text-[#c83242] disabled:cursor-default`}>
+                                    {role === "首发" ? `首发 ${index + 1} 空缺` : `${role}空缺`}
                                   </button>
                                 );
                               })}
@@ -561,8 +670,8 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                   </article>
                 );
               })}
-            </div>
-          )
+                </div>
+              )
         )}
 
         {tab === "history" && (

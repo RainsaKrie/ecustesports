@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   approveAllPlayersAdminOp,
+  confirmEligibleTeamsAdminOp,
   confirmTeamAdminOp,
   createTeamAdminOp,
   deletePlayerAdminOp,
@@ -111,6 +112,47 @@ test("把被标记的成员恢复为已通过后可以确认名单", () => {
   assert.equal(confirmed.ok, true);
   assert.equal(confirmed.state.teams[0].status, "已冻结");
   assert.equal(confirmed.state.operationLogs?.[0].action, "confirm-team");
+});
+
+test("一键确认只冻结满编队伍，未满编的原地留下", () => {
+  const state = fixture();
+  state.teams = [
+    ...state.teams,
+    { id: "T-2", name: "缺人队", captainId: "7", memberIds: ["7", "8", "9", "10"], status: "报名中", createdAt: "2026-08-21T00:00:00.000Z" },
+  ];
+  state.players = [...state.players, ...[7, 8, 9, 10].map((index) => player(String(index), { teamId: "T-2" }))];
+  const result = confirmEligibleTeamsAdminOp(state);
+  assert.equal(result.ok, true);
+  assert.equal(result.state.teams.find((team) => team.id === "T-1")?.status, "已冻结");
+  assert.equal(result.state.teams.find((team) => team.id === "T-2")?.status, "报名中");
+  // 一次批量只记一条记录，撤销时一并回退
+  assert.equal(result.state.operationLogs?.length, 1);
+  assert.equal(result.state.operationLogs?.[0].action, "confirm-eligible-teams");
+  assert.match(result.message, /另有 1 支未满编/);
+});
+
+test("一键确认可一次撤销并恢复全部队伍", () => {
+  const result = confirmEligibleTeamsAdminOp(fixture());
+  assert.equal(result.ok, true);
+  const undone = undoRegistrationAdminOp(result.state, result.state.operationLogs?.[0].id ?? "");
+  assert.equal(undone.ok, true);
+  assert.equal(undone.state.teams[0].status, "报名中");
+});
+
+test("没有满编队伍时一键确认失败并说明条件", () => {
+  const state = fixture();
+  state.players = state.players.map((candidate) => candidate.id === "5" ? { ...candidate, role: "替补" as const } : candidate);
+  const result = confirmEligibleTeamsAdminOp(state);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /都不满足确认条件/);
+});
+
+test("一键确认跳过资料未通过的满编队伍", () => {
+  const state = fixture();
+  state.players = state.players.map((candidate) => candidate.id === "3" ? { ...candidate, reviewStatus: "需修改" as const } : candidate);
+  const result = confirmEligibleTeamsAdminOp(state);
+  assert.equal(result.ok, false);
+  assert.equal(result.state.teams[0].status, "报名中");
 });
 
 test("标记需修改不会把已确认的名单打回报名中", () => {

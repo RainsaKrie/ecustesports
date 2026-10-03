@@ -5,6 +5,7 @@ import { readEventData, updateEventData } from "@/lib/data-store";
 import {
   approveAllPlayersAdminOp,
   assignPlayerAdminOp,
+  confirmEligibleTeamsAdminOp,
   confirmTeamAdminOp,
   createTeamAdminOp,
   deletePlayerAdminOp,
@@ -115,6 +116,8 @@ function dispatch(
       });
     case "confirm-team":
       return confirmTeamAdminOp(state, text(payload.teamId, 80));
+    case "confirm-eligible-teams":
+      return confirmEligibleTeamsAdminOp(state);
     case "reopen-team":
       return reopenTeamAdminOp(state, text(payload.teamId, 80), text(payload.reason));
     case "replace-player":

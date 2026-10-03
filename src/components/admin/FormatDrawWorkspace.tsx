@@ -517,6 +517,36 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     }
   }
 
+  /**
+   * 「调整赛制」必须能在**被拦住**的抽签页上点到 —— 赛制与报名规模不匹配时
+   * 才有调整需求，而那时页面正好会走早退分支。这段提示让负责人不用先去数队伍。
+   */
+  const rosterHint = useMemo(() => {
+    const active = reg.teams.filter((team) => team.status !== "已退赛");
+    if (active.length === 0) return "";
+    const complete = active.filter((team) =>
+      reg.players.filter((player) => player.teamId === team.id && player.role === "首发").length >= 5,
+    ).length;
+    const frozen = active.filter((team) => team.status === "已冻结").length;
+    return `当前 ${active.length} 支报名队伍：${complete} 支首发满 5 人，${frozen} 支已确认为正式名单。`;
+  }, [reg]);
+
+  function openFormatModal() {
+    setTargetTemplate(event?.formatTemplateId ?? FORMAT_TEMPLATES[0].id);
+    setFormatModalOpen(true);
+  }
+
+  const formatModalNode = formatModalOpen ? (
+    <FormatChangeModal
+      hint={rosterHint}
+      targetTemplate={targetTemplate}
+      onSelect={setTargetTemplate}
+      onClose={() => setFormatModalOpen(false)}
+      onConfirm={changeFormat}
+      busy={changingFormat}
+    />
+  ) : null;
+
   if (!loaded) {
     return <div className="border border-slate-200 bg-white p-16 text-center text-sm text-slate-500">加载抽签数据…</div>;
   }
@@ -527,8 +557,12 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         <AdminPageHeader eyebrow="MODULE 02 / DRAW" title="抽签" />
         <div className="border border-amber-200 bg-amber-50 p-10 text-center">
           <p className="text-sm font-bold text-amber-900">{error}</p>
-          <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="mt-5 border border-amber-300 bg-white px-4 py-2.5 text-xs font-bold text-amber-900">返回赛程</button>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <button type="button" onClick={openFormatModal} className="bg-[#ff4655] px-4 py-2.5 text-xs font-black text-white hover:bg-[#d83b48]">调整赛制</button>
+            <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-amber-300 bg-white px-4 py-2.5 text-xs font-bold text-amber-900">返回赛程</button>
+          </div>
         </div>
+        {formatModalNode}
       </div>
     );
   }
@@ -550,13 +584,19 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           eyebrow="MODULE 02 / STAGED DRAW"
           title={isComplete ? "全部阶段已完成" : `${stagedGate.stage.name}进行中`}
           status={isComplete ? "赛事完成" : stagedGate.status === "waiting" ? `${stagedGate.completedMatches} / ${stagedGate.totalMatches} 场完成` : "需要处理"}
-          actions={<button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回赛程处理</button>}
+          actions={
+            <>
+              <button type="button" onClick={openFormatModal} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">调整赛制</button>
+              <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回赛程处理</button>
+            </>
+          }
         />
         <StageProgress stages={stageList} activeIndex={progressIndex(stagedGate.stageIndex)} complete={isComplete} />
         <div className={`border p-8 text-center ${stagedGate.status === "blocked" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
           <p className="text-base font-black text-slate-950">{isComplete ? "三个阶段均已完成" : "下一阶段尚未解锁"}</p>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">{stagedGate.message}</p>
         </div>
+        {formatModalNode}
       </div>
     );
   }
@@ -584,7 +624,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         status={done ? "抽签完成" : `已抽 ${drawnCount} / ${totalSlots}`}
         actions={
           <>
-            <button type="button" onClick={() => { setTargetTemplate(event?.formatTemplateId ?? FORMAT_TEMPLATES[0].id); setFormatModalOpen(true); }} disabled={done} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:opacity-40">调整赛制</button>
+            <button type="button" onClick={openFormatModal} disabled={done} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:opacity-40">调整赛制</button>
             <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回对阵图</button>
           </>
         }
@@ -675,34 +715,58 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         </div>
       ) : null}
 
-      {formatModalOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-slate-300 bg-[#f8f6f1] shadow-2xl">
-            <div className="flex items-start justify-between gap-5 border-b border-slate-200 bg-white px-5 py-4">
-              <div>
-                <h2 className="text-base font-black text-slate-950">调整赛制</h2>
-                <p className="mt-1 text-xs leading-5 text-slate-500">报名人数与预期不符时，可在生成赛程前调整赛制；已生成赛程后将无法调整。</p>
-              </div>
-              <button type="button" onClick={() => setFormatModalOpen(false)} className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-900">关闭</button>
-            </div>
-            <div className="space-y-3 p-5">
-              {FORMAT_TEMPLATES.filter((template) => template.teamCount >= 8).map((template) => (
-                <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[#ff4655] bg-[#fff1f2]" : "border-slate-200 bg-white hover:border-slate-400"}`}>
-                  <input type="radio" name="template" value={template.id} checked={targetTemplate === template.id} onChange={() => setTargetTemplate(template.id)} className="mt-0.5" />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-black text-slate-900">{template.name}</span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500">{template.description}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4">
-              <button type="button" onClick={() => setFormatModalOpen(false)} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button>
-              <button type="button" onClick={changeFormat} disabled={changingFormat || !targetTemplate} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{changingFormat ? "调整中…" : "确认调整"}</button>
-            </div>
+      {formatModalNode}
+    </div>
+  );
+}
+
+/**
+ * 调整赛制的弹窗。抽成独立组件是因为它要能出现在**被拦住**的抽签页上：
+ * 赛制规模与报名队伍数不符时才有调整需求，而那一刻页面正好走早退分支，
+ * 原先按钮只挂在正常抽签页的页头 → 最该用的时候反而找不到。
+ */
+function FormatChangeModal({
+  hint,
+  targetTemplate,
+  onSelect,
+  onClose,
+  onConfirm,
+  busy,
+}: {
+  hint: string;
+  targetTemplate: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+  busy: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-slate-300 bg-[#f8f6f1] shadow-2xl">
+        <div className="flex items-start justify-between gap-5 border-b border-slate-200 bg-white px-5 py-4">
+          <div>
+            <h2 className="text-base font-black text-slate-950">调整赛制</h2>
+            <p className="mt-1 text-xs leading-5 text-slate-500">报名人数与预期不符时，可在生成赛程前调整赛制；已生成赛程后将无法调整。</p>
           </div>
+          <button type="button" onClick={onClose} className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-900">关闭</button>
         </div>
-      )}
+        <div className="space-y-3 p-5">
+          {hint && <p className="border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold leading-5 text-slate-700">{hint}</p>}
+          {FORMAT_TEMPLATES.filter((template) => template.teamCount >= 8).map((template) => (
+            <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[#ff4655] bg-[#fff1f2]" : "border-slate-200 bg-white hover:border-slate-400"}`}>
+              <input type="radio" name="template" value={template.id} checked={targetTemplate === template.id} onChange={() => onSelect(template.id)} className="mt-0.5" />
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-slate-900">{template.name}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{template.description}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4">
+          <button type="button" onClick={onClose} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button>
+          <button type="button" onClick={onConfirm} disabled={busy || !targetTemplate} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{busy ? "调整中…" : "确认调整"}</button>
+        </div>
+      </div>
     </div>
   );
 }
