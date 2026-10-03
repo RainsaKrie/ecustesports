@@ -209,7 +209,11 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       visibility: "private",
       teamCount: 32,
       teamSize: 5,
-      description: "华东理工大学第三届《无畏契约》校内赛事。赛事设入围赛、小组赛与淘汰赛三个阶段，最终决出本届瓦理杯冠军。",
+      // 简介里不写死阶段数。这个默认事件自己的 stageConfigs 是三阶段（32/16/8），
+      // 但阶段结构会变 —— 本届加上资格赛就成了四阶段，而简介仍写着「三个阶段」，
+      // 于是官网上的简介与赛程自相矛盾。阶段构成已经由 stageSummary 逐段列出，
+      // 简介再复述一遍只会多一处会过期的数字。
+      description: "华东理工大学第三届《无畏契约》校内赛事。赛事分阶段进行，最终决出本届瓦理杯冠军。",
       organizer: "华东理工大学电竞社",
       registrationStart: "2026-08-01",
       registrationEnd: "2026-09-30",

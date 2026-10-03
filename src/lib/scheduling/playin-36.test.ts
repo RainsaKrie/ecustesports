@@ -17,7 +17,7 @@ import {
   type StageConfig,
 } from "./format-templates";
 import { appendMatchesOp, reportGameResultsOp } from "./schedule-ops";
-import { emptySchedule } from "./schedule-data";
+import { emptySchedule, normalizeScheduleState } from "./schedule-data";
 import type { RegistrationPlayer, RegistrationTeam } from "./registration-data";
 
 const stages4: StageConfig[] = [
@@ -170,5 +170,47 @@ check(
 // 反向：三阶段 32 队不能被这条推导改错
 const built32 = buildFor(stages3, "b");
 check("三阶段 32 队赛事规模仍为 32", built32.teamCount === 32, String(built32.teamCount));
+
+// ---------- 6. 资格赛的轮次名 ----------
+// 背景：`buildQualificationMatches` 原来把轮次名写死成「入围赛」，
+// 三阶段赛制下阶段名与轮次名都是「入围赛」所以看不出来，
+// 四阶段赛制下资格赛会显示成「资格赛（阶段）· 入围赛（轮次）」。
+//
+// 这里必须**同时**钉住生成侧与读取侧：
+//   · 生成侧 —— 新抽的签直接带正确的轮次名；
+//   · 读取侧 —— 已经落库的旧对阵读一次就被修正（后台下次保存赛程才写回）。
+// 且要有一条「输入确实是错的」的护栏，否则断言可能在错数据上也恒真。
+
+const generatedRounds = qualification.matches.map((match) => match.round);
+check(
+  "新生成的资格赛对阵，轮次名等于阶段名「资格赛」",
+  generatedRounds.every((round) => round === "资格赛"),
+  JSON.stringify(generatedRounds),
+);
+check(
+  "护栏：生成侧确实改掉了写死值（否则上面的断言无区分度）",
+  generatedRounds.every((round) => round !== "入围赛"),
+);
+
+const legacyMatch = { ...qualification.matches[0], round: "入围赛" };
+check("护栏：构造的旧数据轮次名确实是错的「入围赛」", legacyMatch.round === "入围赛");
+const repaired = normalizeScheduleState({ matches: [legacyMatch] });
+check("旧数据的资格赛轮次名被修正为「资格赛」", repaired.matches[0].round === "资格赛", String(repaired.matches[0].round));
+
+// 反向：入围赛 / 小组赛 / 淘汰赛的轮次名不能被这条修正动到
+const untouched = normalizeScheduleState({
+  matches: [
+    { ...qualification.matches[0], phase: "入围赛", round: "入围赛" },
+    { ...qualification.matches[0], phase: "小组赛", round: "小组赛" },
+    { ...qualification.matches[0], phase: "淘汰赛", round: "胜者组第 1 轮" },
+  ],
+});
+check(
+  "非资格赛阶段不受修正影响",
+  untouched.matches[0].round === "入围赛"
+    && untouched.matches[1].round === "小组赛"
+    && untouched.matches[2].round === "胜者组第 1 轮",
+  JSON.stringify(untouched.matches.map((match) => match.round)),
+);
 
 console.log(`\n${passed} play-in tests passed`);

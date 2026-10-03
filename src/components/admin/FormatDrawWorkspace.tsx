@@ -593,7 +593,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         />
         <StageProgress stages={stageList} activeIndex={progressIndex(stagedGate.stageIndex)} complete={isComplete} />
         <div className={`border p-8 text-center ${stagedGate.status === "blocked" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
-          <p className="text-base font-black text-slate-950">{isComplete ? "三个阶段均已完成" : "下一阶段尚未解锁"}</p>
+          <p className="text-base font-black text-slate-950">{isComplete ? "全部阶段均已完成" : "下一阶段尚未解锁"}</p>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">{stagedGate.message}</p>
         </div>
         {formatModalNode}

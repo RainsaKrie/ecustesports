@@ -20,6 +20,12 @@ interface Slot {
 interface MatchFactoryOptions {
   startIndex?: number;
   phase: string;
+  /**
+   * 该场比赛所属的轮次名。单轮阶段（资格赛、入围赛）不传时默认等于阶段名 ——
+   * 不能写死成「入围赛」：四阶段赛制里资格赛也复用这个构造器，写死会让
+   * 资格赛的对阵显示成「资格赛 · 入围赛」。
+   */
+  round?: string;
   boType: ScheduleMatch["boType"];
 }
 
@@ -140,7 +146,7 @@ export function buildQualificationMatches(
       byes.push(teamAId);
       continue;
     }
-    matches.push(createMatch(matchId(start + matchOffset), options.phase, "入围赛", options.boType, {
+    matches.push(createMatch(matchId(start + matchOffset), options.phase, options.round ?? options.phase, options.boType, {
       teamAId,
       teamBId,
       teamAName: teamName(teamAId),

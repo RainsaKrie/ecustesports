@@ -139,6 +139,22 @@ export function emptySchedule(): ScheduleState {
   };
 }
 
+/**
+ * 旧数据修复：四阶段赛制（资格赛 → 入围赛 → 小组赛 → 淘汰赛）上线时，
+ * `buildQualificationMatches` 把轮次名写死成了「入围赛」，于是资格赛的 4 场
+ * 在页面上显示成「资格赛（阶段）· 入围赛（轮次）」自相矛盾。
+ *
+ * 资格赛是单轮阶段，轮次名就等于阶段名，所以这里的修正是确定的、不会误伤：
+ * 生成侧已改为 `options.round ?? options.phase`（见 `bracket-engine.ts`），
+ * 这里负责让**已经落库的旧对阵**读一次就正常显示 —— 后台下次保存赛程时会把修正后的值写回。
+ */
+function repairQualifierRound(match: ScheduleMatch): ScheduleMatch {
+  if (match.phase === "资格赛" && match.round !== "资格赛") {
+    return { ...match, round: "资格赛" };
+  }
+  return match;
+}
+
 /** 兼容早期没有 config 的赛程文件。 */
 export function normalizeScheduleState(value: unknown): ScheduleState {
   const source = typeof value === "object" && value !== null
@@ -156,7 +172,9 @@ export function normalizeScheduleState(value: unknown): ScheduleState {
     },
     configConfirmed: source.configConfirmed === true,
     version: typeof source.version === "number" ? source.version : 0,
-    matches: Array.isArray(source.matches) ? source.matches : [],
+    matches: Array.isArray(source.matches)
+      ? source.matches.map((match) => repairQualifierRound(match as ScheduleMatch))
+      : [],
     versions: Array.isArray(source.versions) ? source.versions : [],
     requests: Array.isArray(source.requests) ? source.requests : [],
     notifications: Array.isArray(source.notifications) ? source.notifications : [],

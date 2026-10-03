@@ -230,7 +230,9 @@ export function resolveStagedDrawGate(
       message: `淘汰赛已发布，当前完成 ${completedKnockoutMatches} / ${knockoutExpected} 场。`,
     };
   }
-  return { status: "complete", stageIndex: 3, message: "三个阶段均已发布并完成。" };
+  // 不写死「三个阶段」：这个函数既服务三阶段赛制、也服务四阶段（资格赛 + 这三段），
+  // 在四阶段赛事里说「三个阶段均已发布」会和进度条上的四段对不上。
+  return { status: "complete", stageIndex: 3, message: "全部阶段均已发布并完成。" };
 }
 
 function shuffled<T>(values: T[], random: () => number): T[] {
