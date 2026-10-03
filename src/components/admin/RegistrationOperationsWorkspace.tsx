@@ -16,6 +16,7 @@ import {
   type RegistrationState,
   type RegistrationTeam,
 } from "@/lib/scheduling/registration-data";
+import { RANK_VALUE, teamAvgRank } from "@/lib/scheduling/format-data";
 
 type Tab = "players" | "teams" | "history";
 type ReviewStatus = NonNullable<RegistrationPlayer["reviewStatus"]>;
@@ -42,23 +43,39 @@ const inputClass = "w-full border border-slate-300 bg-white px-3 py-2.5 text-sm 
 type TeamFilter = "全部" | "未满编" | "满编待确认" | "已确认";
 const TEAM_FILTERS: readonly TeamFilter[] = ["全部", "未满编", "满编待确认", "已确认"];
 
+/**
+ * 队伍排序方式。
+ *
+ * 「平均段位」沿用**赛制里那一套口径**（`teamAvgRank`）：只算首发 5 人、段位值 铁1→无畏战魂9、
+ * 未填段位的人被剔除。资格赛的参赛队就是按这个顺序取最弱的一批，
+ * 所以这里必须跟赛制共用同一个函数，不能各算一份。
+ */
+type TeamSort = "待办优先" | "平均段位";
+const TEAM_SORTS: readonly TeamSort[] = ["待办优先", "平均段位"];
+
 interface TeamRoster {
   members: RegistrationPlayer[];
   starterCount: number;
   complete: boolean;
   frozen: boolean;
   withdrawn: boolean;
+  /** 首发段位均值（口径见 `teamAvgRank`）；一个人都没填段位时为 0。 */
+  avgRank: number;
+  /** 首发里没填段位（或段位值无法识别）的人数 —— 会影响均值可信度，要显式提示。 */
+  unrankedStarters: number;
 }
 
 function teamRoster(state: RegistrationState, team: RegistrationTeam): TeamRoster {
   const members = state.players.filter((player) => player.teamId === team.id);
-  const starterCount = members.filter((player) => player.role === "首发").length;
+  const starters = members.filter((player) => player.role === "首发");
   return {
     members,
-    starterCount,
-    complete: starterCount >= TEAM_SIZE,
+    starterCount: starters.length,
+    complete: starters.length >= TEAM_SIZE,
     frozen: team.status === "已冻结",
     withdrawn: team.status === "已退赛",
+    avgRank: teamAvgRank(team, state.players),
+    unrankedStarters: starters.filter((player) => !(RANK_VALUE[player.rank] > 0)).length,
   };
 }
 
@@ -289,6 +306,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const [query, setQuery] = useState("");
   const [reviewFilter, setReviewFilter] = useState<"全部" | ReviewStatus>("全部");
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("全部");
+  const [teamSort, setTeamSort] = useState<TeamSort>("待办优先");
   const [playerPage, setPlayerPage] = useState(1);
   const [modal, setModal] = useState<Modal | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -350,9 +368,15 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
     return counts;
   }, [teamRows]);
   const visibleTeams = useMemo(
-    // sort 在现代 JS 里是稳定的，所以同档队伍仍保持原来的报名顺序
-    () => teamRows.filter(({ roster }) => matchesTeamFilter(teamFilter, roster)).sort((a, b) => teamSortRank(a.roster) - teamSortRank(b.roster)),
-    [teamRows, teamFilter],
+    // sort 在现代 JS 里是稳定的，所以同分/同档队伍仍保持原来的报名顺序。
+    // 「平均段位」用「强 → 弱」（分高在前），与赛制里取最弱一批的方向一致，
+    // 同分时再按待办优先级排，避免看起来是乱的。
+    () => teamRows
+      .filter(({ roster }) => matchesTeamFilter(teamFilter, roster))
+      .sort((a, b) => teamSort === "平均段位"
+        ? b.roster.avgRank - a.roster.avgRank || teamSortRank(a.roster) - teamSortRank(b.roster)
+        : teamSortRank(a.roster) - teamSortRank(b.roster)),
+    [teamRows, teamFilter, teamSort],
   );
 
   function openModal(next: Modal) {
@@ -544,6 +568,19 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                   </button>
                 ))}
               </div>
+              <div className="flex shrink-0 overflow-hidden border border-slate-200">
+                {TEAM_SORTS.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setTeamSort(mode)}
+                    title={mode === "平均段位" ? "按首发 5 人的段位均值排序，强 → 弱（替补与教练不计）" : "缺人、待确认的队伍排在前面"}
+                    className={`inline-flex min-h-[32px] items-center gap-[5px] border-r border-slate-200 px-[10px] text-[13px] font-bold leading-tight last:border-r-0 ${teamSort === mode ? "bg-[#fff1f2] text-[#c83242]" : "bg-white text-slate-500 hover:text-slate-950"}`}
+                  >
+                    排序：{mode}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -623,6 +660,10 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         <h3 className={`truncate ${DENSE_TITLE} font-black text-slate-950`}>{team.name}</h3>
                         <span className={`shrink-0 border px-[6px] py-[1px] ${DENSE_MICRO} font-bold ${teamTone(team.status)}`}>{team.status === "已冻结" ? "正式名单" : team.status}</span>
                         <span className={`shrink-0 font-mono ${DENSE_MICRO} font-bold ${roster.complete ? "text-slate-400" : "text-amber-600"}`}>首发 {roster.starterCount}/{TEAM_SIZE}</span>
+                        {/* 平均段位是资格赛选队的依据，必须看得见 —— 否则「按段位排序」也是黑箱。
+                            一个人都没填段位时不显示 0.00，那会让人误以为是「最弱」。 */}
+                        <span className={`shrink-0 font-mono ${DENSE_MICRO} font-bold text-slate-500`} title="首发 5 人段位均值（铁 1 → 无畏战魂 9）">均 {roster.avgRank > 0 ? roster.avgRank.toFixed(2) : "—"}</span>
+                        {roster.unrankedStarters > 0 && <span className={`shrink-0 border border-amber-300 px-[5px] py-[1px] ${DENSE_MICRO} font-bold text-amber-700`}>{roster.unrankedStarters} 人未填段位</span>}
                       </div>
                       <div className="flex shrink-0 items-center gap-[4px]">
                         {team.status === "已冻结" && <button type="button" onClick={() => openModal({ kind: "reopen-team", team })} className="border border-slate-300 inline-flex h-[24px] items-center px-[8px] text-[12px] font-bold leading-tight text-slate-700 hover:border-slate-950">开放调整</button>}
