@@ -4,7 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
-import { validateGames, maxGames, winTarget, recentNotifications, RECENT_NOTIFICATION_LIMIT } from "@/lib/scheduling/schedule-ops";
+import { validateGames, maxGames, winTarget } from "@/lib/scheduling/schedule-ops";
 import type { ScheduleMatch, GameResult } from "@/lib/scheduling/schedule-data";
 import type { ValidationResult } from "@/lib/scheduling/rule-engine";
 import type { BPSession } from "@/lib/scheduling/bp-ops";
@@ -294,7 +294,6 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   );
   const showingBlueprint = state.matches.length === 0 && blueprintMatches.length > 0;
   const activeRequests = state.requests.filter((request) => ["待对手确认", "待审批"].includes(request.status));
-  const recentNotices = recentNotifications(state);
   const eventLocked = eventConfig?.status === "completed" || eventConfig?.status === "archived";
 
   return (
@@ -383,12 +382,12 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       </details>
       )}
 
-      {!eventLocked && (activeRequests.length > 0 || recentNotices.length > 0) && (
+      {!eventLocked && activeRequests.length > 0 && (
         <section className="mb-5 border border-slate-200 bg-white">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div>
               <p className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-[#c83242]">MATCH COORDINATION</p>
-              <h2 className="mt-1 text-sm font-black text-slate-950">约赛审批与通知</h2>
+              <h2 className="mt-1 text-sm font-black text-slate-950">约赛审批</h2>
             </div>
             {/* 与顶部工具条的「刷新数据」是同一个操作，只是放在手边。
                 刻意做成文字按钮而不是第二个按钮——避免看起来像两件事。 */}
@@ -401,7 +400,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
               刷新
             </button>
           </div>
-          <div className="grid gap-5 p-5 lg:grid-cols-2">
+          <div className="p-5">
             <div>
               <h3 className="text-xs font-black text-slate-700">进行中的约赛 · {activeRequests.length}</h3>
               {activeRequests.length === 0 ? <p className="mt-3 text-xs text-slate-400">暂无约赛申请</p> : (
@@ -425,15 +424,6 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                     </div>;
                   })}
                 </div>
-              )}
-            </div>
-            <div>
-              <h3 className="text-xs font-black text-slate-700">最近的赛程变更通知</h3>
-              {recentNotices.length === 0 ? <p className="mt-3 text-xs text-slate-400">暂无变更通知</p> : (
-                <>
-                  <div className="mt-3 space-y-3">{recentNotices.map((notification) => <div key={notification.id} className="border border-slate-200 p-4"><p className="font-mono text-[0.5625rem] font-bold text-slate-400">v{notification.version}</p><p className="mt-1 text-xs font-medium leading-6 text-slate-700">{notification.content}</p><button onClick={() => void navigator.clipboard.writeText(notification.content)} className="mt-3 inline-flex min-h-11 items-center border border-slate-300 px-3 text-xs font-bold text-slate-600">复制通知</button></div>)}</div>
-                  <p className="mt-3 text-[0.6875rem] leading-5 text-slate-400">复制后发到赛事群即可。这里最多保留 {RECENT_NOTIFICATION_LIMIT} 条，更早的可在版本历史里查。</p>
-                </>
               )}
             </div>
           </div>
