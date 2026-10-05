@@ -244,6 +244,78 @@ export function withdrawPlayerAdminOp(
   return commit(state, next, "withdraw-player", `${player.gameId} 退出比赛`, input.reason);
 }
 
+/**
+ * 负责人代录选手：为没有线上报名记录的选手补一条完整报名数据，并可选地直接编入一支队伍。
+ *
+ * 使用场景是**开赛后临时加人**（队员缺席、临时补位），这时选手本人已经来不及走报名流程，
+ * 又必须要有一个选手身份才能进名单、拿到参赛码。
+ *
+ * 两条硬规则：
+ * 1. 游戏 ID 唯一——和报名接口同一口径，避免公开名单里出现两个同名选手。
+ * 2. 代录即视为审核通过。审核口径本身已是「默认通过 + 手动标记」，
+ *    代录时再卡一道「待审核」只会让负责人多点一次「标记通过」，没有实际防线意义。
+ *
+ * 若同时给了 teamId，则复用 addMemberOp 的角色与人数上限校验，不另写一套。
+ */
+export function createPlayerAdminOp(
+  rawState: RegistrationState,
+  input: {
+    name: string;
+    studentId: string;
+    gameId: string;
+    rank: string;
+    qq?: string;
+    phone?: string;
+    positions?: string[];
+    intro?: string;
+    teamId?: string;
+    role?: RosterRole;
+    reason?: string;
+  },
+): AdminRegistrationResult {
+  const state = normalizeRegistrationState(rawState);
+  const name = input.name.trim();
+  const studentId = input.studentId.trim();
+  const gameId = input.gameId.trim();
+  const rank = input.rank.trim();
+  if (!name || !studentId || !gameId || !rank) return fail(state, "姓名、学号、游戏 ID 和段位不能为空。");
+  if (state.players.some((candidate) => candidate.gameId.toLowerCase() === gameId.toLowerCase())) {
+    return fail(state, `游戏 ID「${gameId}」已被占用，请核对是否重复代录。`);
+  }
+  const positions = (input.positions ?? [])
+    .filter((item): item is Position => POSITIONS.includes(item as Position))
+    .slice(0, POSITIONS.length);
+  if (positions.length === 0) return fail(state, "请至少选择一个擅长位置。");
+
+  const player: RegistrationPlayer = {
+    id: `P-${Date.now()}${Math.random().toString(36).slice(2, 8)}`,
+    name: name.slice(0, 40),
+    studentId: studentId.slice(0, 40),
+    gameId: gameId.slice(0, 40),
+    rank: rank.slice(0, 20),
+    qq: input.qq?.trim().slice(0, 60) || undefined,
+    phone: input.phone?.trim().slice(0, 60) || undefined,
+    positions,
+    intro: input.intro?.trim().slice(0, 500) || undefined,
+    submittedAt: new Date().toISOString(),
+    status: "已报名",
+    reviewStatus: "已通过",
+  };
+
+  let next: RegistrationState = { ...state, players: [...state.players, player] };
+  let teamNote = "";
+  if (input.teamId) {
+    const result = addMemberOp(next, { teamId: input.teamId, playerId: player.id, role: input.role ?? "首发" });
+    if (!result.ok || !result.state) {
+      // 入队失败则整条操作作废，不留下「录了人但没进队」的半截状态。
+      return fail(state, `${player.gameId} 已录入，但入队失败：${result.message ?? "未知原因"}`);
+    }
+    next = result.state;
+    teamNote = ` 并加入 ${result.team?.name ?? "队伍"}（${input.role ?? "首发"}）`;
+  }
+  return commit(state, next, "create-player", `代录选手 ${player.gameId}${teamNote}`, input.reason);
+}
+
 /** 删除选手：彻底移除报名数据，自动腾出队伍位置、移交队长、清理相关组队请求。 */
 export function deletePlayerAdminOp(
   rawState: RegistrationState,

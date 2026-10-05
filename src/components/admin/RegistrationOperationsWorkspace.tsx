@@ -32,7 +32,12 @@ type Modal =
   | { kind: "withdraw-team"; team: RegistrationTeam }
   | { kind: "dissolve-team"; team: RegistrationTeam }
   | { kind: "rename-team"; team: RegistrationTeam }
-  | { kind: "set-member-role"; player: RegistrationPlayer };
+  | { kind: "set-member-role"; player: RegistrationPlayer }
+  /**
+   * 代录选手：给没走线上报名的选手补一条报名数据，可直接编入指定队伍。
+   * 开赛后临时加人走这条路 —— 本人来不及报名，但名单里必须有个选手身份。
+   */
+  | { kind: "create-player"; team?: RegistrationTeam; role?: Role };
 
 const inputClass = "w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15";
 
@@ -491,6 +496,21 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
       });
       return;
     }
+    if (next.kind === "create-player") {
+      setForm({
+        name: "",
+        studentId: "",
+        gameId: "",
+        rank: "",
+        qq: "",
+        phone: "",
+        teamId: next.team?.id ?? activeTeams.find((team) => team.status === "报名中")?.id ?? "",
+        role: next.role ?? "替补",
+        reason: "",
+      });
+      setEditPositions([]);
+      return;
+    }
     if (next.kind === "replace-player") {
       const members = state.players.filter((player) => player.teamId === next.team.id);
       setForm({ outgoingPlayerId: next.outgoing?.id ?? members[0]?.id ?? "", incomingPlayerId: unteamedApproved[0]?.id ?? "", reason: "" });
@@ -534,6 +554,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
     if (modal.kind === "dissolve-team") return runOperation("dissolve-team", { teamId: modal.team.id, reason: form.reason });
     if (modal.kind === "rename-team") return runOperation("rename-team", { teamId: modal.team.id, name: form.name, reason: form.reason });
     if (modal.kind === "set-member-role") return runOperation("set-member-role", { playerId: modal.player.id, role: form.role, reason: form.reason });
+    if (modal.kind === "create-player") return runOperation("create-player", { ...form, positions: editPositions });
   }
 
   function captainReplacementOptions(player: RegistrationPlayer) {
@@ -557,6 +578,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
           <>
             <a href={`/api/admin/registration/export?eventId=${encodeURIComponent(eventId)}`} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950">导出报名</a>
             <button type="button" onClick={() => openModal({ kind: "create-team" })} disabled={busy || state.teamRegistrationClosed} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300">代建队伍</button>
+            <button type="button" onClick={() => openModal({ kind: "create-player" })} disabled={busy} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300">代录选手</button>
             <button type="button" onClick={() => runOperation("toggle-player-registration")} disabled={busy} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:opacity-50">{state.playerRegistrationClosed ? "开放选手报名" : "截止选手报名"}</button>
             <button type="button" onClick={() => runOperation("toggle-team-registration")} disabled={busy} className={`inline-flex min-h-11 items-center px-4 text-xs font-bold disabled:opacity-50 ${state.teamRegistrationClosed ? "border border-slate-300 bg-white text-slate-700" : "bg-[#ff4655] text-white hover:bg-[#d83b48]"}`}>{state.teamRegistrationClosed ? "开放队伍申报" : "截止队伍申报"}</button>
           </>
@@ -864,7 +886,34 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
 
       {modal?.kind === "set-member-role" && <ModalShell title={`调整角色 · ${modal.player.gameId}`} subtitle="仅组队期可改；目标角色须有空位。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.role || !form.reason?.trim()} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认调整</button></>}><Field label="新角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field><Field label="调整原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：队长与队员协商后调整位置" /></Field></ModalShell>}
 
-      {modal?.kind === "assign-player" && <ModalShell title="添加队员" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.playerId || !form.teamId} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认加入</button></>}><Field label="选手"><select className={inputClass} value={form.playerId ?? ""} onChange={(event) => setForm({ ...form, playerId: event.target.value })}><option value="">选择已审核且未组队选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="队伍"><select className={inputClass} value={form.teamId ?? ""} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">选择报名中的队伍</option>{activeTeams.filter((team) => team.status === "报名中").map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></Field><Field label="队内角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field></ModalShell>}
+      {modal?.kind === "assign-player" && <ModalShell title="添加队员" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.playerId || !form.teamId} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认加入</button><button type="button" onClick={() => openModal({ kind: "create-player", team: activeTeams.find((team) => team.id === form.teamId), role: (form.role as Role) ?? "替补" })} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950">人不在列表里，代录</button></>}><Field label="选手"><select className={inputClass} value={form.playerId ?? ""} onChange={(event) => setForm({ ...form, playerId: event.target.value })}><option value="">选择已审核且未组队选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="队伍"><select className={inputClass} value={form.teamId ?? ""} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">选择报名中的队伍</option>{activeTeams.filter((team) => team.status === "报名中").map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></Field><Field label="队内角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field></ModalShell>}
+
+      {modal?.kind === "create-player" && <ModalShell title="代录选手" subtitle="给没有线上报名记录的选手补一条报名数据。代录即视为资料已通过，并会生成一个新的参赛码（只显示一次，请转交本人）。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.gameId?.trim() || !form.name?.trim() || !form.studentId?.trim() || !form.rank?.trim() || editPositions.length === 0} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认代录</button></>}>
+        <Field label="游戏 ID"><input autoFocus className={inputClass} value={form.gameId ?? ""} onChange={(event) => setForm({ ...form, gameId: event.target.value })} placeholder="如：炫炫子#8961" /></Field>
+        <Field label="姓名"><input className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="真实姓名" /></Field>
+        <Field label="学号"><input className={inputClass} value={form.studentId ?? ""} onChange={(event) => setForm({ ...form, studentId: event.target.value })} placeholder="如：Y40251577" /></Field>
+        <Field label="段位"><input className={inputClass} value={form.rank ?? ""} onChange={(event) => setForm({ ...form, rank: event.target.value })} placeholder="如：铂金 / 钻石 / 超凡" /></Field>
+        <Field label="QQ 号"><input className={inputClass} value={form.qq ?? ""} onChange={(event) => setForm({ ...form, qq: event.target.value })} placeholder="选填" /></Field>
+        <Field label="手机号"><input className={inputClass} value={form.phone ?? ""} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="选填" /></Field>
+        <Field label="擅长位置" help="至少选一个。">
+          <div className="flex flex-wrap gap-2">
+            {POSITIONS.map((position) => {
+              const active = editPositions.includes(position);
+              return (
+                <button key={position} type="button" onClick={() => setEditPositions(active ? editPositions.filter((item) => item !== position) : [...editPositions, position])} className={`border px-3 py-2 text-xs font-bold ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-950"}`}>{position}</button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field label="直接编入队伍" help="留空则只录入选手，不进队。">
+          <select className={inputClass} value={form.teamId ?? ""} onChange={(event) => setForm({ ...form, teamId: event.target.value })}>
+            <option value="">不编入队伍</option>
+            {activeTeams.filter((team) => team.status !== "已退赛").map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+          </select>
+        </Field>
+        <Field label="队内角色"><select className={inputClass} value={form.role ?? "替补"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>替补</option><option>首发</option><option>教练</option></select></Field>
+        <Field label="代录原因"><textarea className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：开赛后临时补位，本人未及报名" /></Field>
+      </ModalShell>}
 
       {modal?.kind === "remove-player" && (() => { const options = captainReplacementOptions(modal.player); return <ModalShell title={`移出名单 · ${modal.player.gameId}`} subtitle="选手会回到未组队状态，队伍名单重新进入待确认。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim() || (options.length > 0 && !form.replacementCaptainId)} className="bg-red-600 inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认执行</button></>}>
         {options.length > 0 && <Field label="新队长" help="当前选手是队长，必须先移交队长身份。"><select className={inputClass} value={form.replacementCaptainId ?? ""} onChange={(event) => setForm({ ...form, replacementCaptainId: event.target.value })}><option value="">请选择新队长</option>{options.map((player) => <option key={player.id} value={player.id}>{player.gameId}</option>)}</select></Field>}<Field label="原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="请记录申请来源和原因" /></Field>

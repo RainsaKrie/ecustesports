@@ -7,6 +7,7 @@ import {
   assignPlayerAdminOp,
   confirmEligibleTeamsAdminOp,
   confirmTeamAdminOp,
+  createPlayerAdminOp,
   createTeamAdminOp,
   deletePlayerAdminOp,
   dissolveTeamAdminOp,
@@ -66,6 +67,40 @@ function dispatch(
       const playerId = text(payload.playerId, 80);
       const credential = issueParticipantToken();
       return resetPlayerTokenAdminOp(state, { playerId, tokenHash: credential.tokenHash, newToken: credential.token });
+    }
+    case "create-player": {
+      // 代录选手同时要发参赛码：选手本人没走报名流程，拿不到平台发的码，
+      // 这里生成一次明文码透传给负责人，由他转交。库里只落 tokenHash。
+      const credential = issueParticipantToken();
+      const result = createPlayerAdminOp(state, {
+        name: text(payload.name, 40),
+        studentId: text(payload.studentId, 40),
+        gameId: text(payload.gameId, 40),
+        rank: text(payload.rank, 20),
+        qq: text(payload.qq, 60),
+        phone: text(payload.phone, 60),
+        positions: arrayOfStrings(payload.positions),
+        intro: text(payload.intro, 500),
+        teamId: text(payload.teamId, 80) || undefined,
+        role: (text(payload.role, 20) || undefined) as RosterRole | undefined,
+        reason: text(payload.reason),
+      });
+      if (!result.ok) return result;
+      const playerId = result.state.players.find(
+        (player) => player.gameId.toLowerCase() === text(payload.gameId, 40).toLowerCase(),
+      )?.id;
+      const withToken = playerId
+        ? {
+            ...result,
+            state: {
+              ...result.state,
+              players: result.state.players.map((player) =>
+                player.id === playerId ? { ...player, manageTokenHash: credential.tokenHash } : player,
+              ),
+            },
+          }
+        : result;
+      return { ...withToken, newToken: credential.token };
     }
     case "review-player":
       return reviewPlayerAdminOp(state, {

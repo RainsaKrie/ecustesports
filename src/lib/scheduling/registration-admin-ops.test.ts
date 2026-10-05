@@ -4,6 +4,7 @@ import {
   approveAllPlayersAdminOp,
   confirmEligibleTeamsAdminOp,
   confirmTeamAdminOp,
+  createPlayerAdminOp,
   createTeamAdminOp,
   deletePlayerAdminOp,
   dissolveTeamAdminOp,
@@ -429,6 +430,95 @@ test("负责人可调整成员角色并记审计日志", () => {
   assert.equal(result.ok, true);
   assert.equal(result.state.players.find((candidate) => candidate.id === "2")?.role, "替补");
   assert.equal(result.state.operationLogs?.[0].action, "set-member-role");
+});
+
+// =====================
+// 代录选手（开赛后临时加人）
+// =====================
+
+test("代录选手：补齐资料、默认已通过、可选直接编入队伍", () => {
+  const state = fixture();
+  // 先把队伍腾出一个替补位，避免受人数上限影响
+  const result = createPlayerAdminOp(state, {
+    name: "严晨怿",
+    studentId: "Y40251577",
+    gameId: "炫炫子#8961",
+    rank: "铂金",
+    qq: "10001",
+    phone: "13817038442",
+    positions: ["先锋"],
+    teamId: "T-1",
+    role: "替补",
+    reason: "开赛后临时补位",
+  });
+  assert.equal(result.ok, true);
+  const created = result.state.players.find((candidate) => candidate.gameId === "炫炫子#8961");
+  assert.ok(created, "应生成新的选手记录");
+  assert.equal(created?.name, "严晨怿");
+  assert.equal(created?.studentId, "Y40251577");
+  assert.equal(created?.reviewStatus, "已通过");
+  assert.equal(created?.status, "已入队");
+  assert.equal(created?.teamId, "T-1");
+  assert.equal(created?.role, "替补");
+  assert.deepEqual(created?.positions, ["先锋"]);
+  // 队名单同步包含新选手
+  assert.ok(result.state.teams[0].memberIds.includes(created!.id));
+  // 审计日志写入，且带原因
+  assert.equal(result.state.operationLogs?.[0].action, "create-player");
+  assert.equal(result.state.operationLogs?.[0].reason, "开赛后临时补位");
+});
+
+test("代录选手：不编入队伍时只落在选手池", () => {
+  const result = createPlayerAdminOp(fixture(), {
+    name: "张三", studentId: "S1", gameId: "新人甲#1111", rank: "黄金", positions: ["烟位"],
+  });
+  assert.equal(result.ok, true);
+  const created = result.state.players.find((candidate) => candidate.gameId === "新人甲#1111");
+  assert.equal(created?.status, "已报名");
+  assert.equal(created?.teamId, undefined);
+  assert.equal(result.state.teams[0].memberIds.includes(created!.id), false);
+});
+
+test("代录选手：游戏 ID 重复时拒绝（大小写不敏感）", () => {
+  const state = fixture();
+  const result = createPlayerAdminOp(state, {
+    name: "重复者", studentId: "S2", gameId: "PLAYER-1", rank: "黄金", positions: ["哨位"],
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /已被占用/);
+});
+
+test("代录选手：必填项缺失时拒绝", () => {
+  const base = { name: "李四", studentId: "S3", gameId: "新人乙#2222", rank: "白银", positions: ["一突"] as string[] };
+  assert.equal(createPlayerAdminOp(fixture(), { ...base, name: "" }).ok, false);
+  assert.equal(createPlayerAdminOp(fixture(), { ...base, studentId: "" }).ok, false);
+  assert.equal(createPlayerAdminOp(fixture(), { ...base, gameId: "" }).ok, false);
+  assert.equal(createPlayerAdminOp(fixture(), { ...base, rank: "" }).ok, false);
+  assert.equal(createPlayerAdminOp(fixture(), { ...base, positions: [] }).ok, false);
+});
+
+test("代录选手：入队失败时整条操作作废，不留半截记录", () => {
+  const state = fixture();
+  // T-1 是「报名中」，但首发已满 5 人；强行代录成「首发」必须被拦下
+  const result = createPlayerAdminOp(state, {
+    name: "越位者", studentId: "S4", gameId: "新人丙#3333", rank: "黄金",
+    positions: ["二突"], teamId: "T-1", role: "首发",
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /首发已满/);
+  // 关键：选手没有被半途写进去
+  assert.equal(result.state.players.some((candidate) => candidate.gameId === "新人丙#3333"), false);
+});
+
+test("代录选手：队伍已冻结时不能直接编入（需先开放调整）", () => {
+  const state = fixture();
+  state.teams[0].status = "已冻结";
+  const result = createPlayerAdminOp(state, {
+    name: "迟到者", studentId: "S5", gameId: "新人丁#4444", rank: "黄金",
+    positions: ["哨位"], teamId: "T-1", role: "替补",
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.message, /入队失败/);
 });
 
 console.log(`\n${passed}/${passed} registration admin tests passed`);
