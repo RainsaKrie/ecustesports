@@ -1,7 +1,7 @@
 // =====================
 // BP 会话接口
 // GET 公开读取；POST 为公开写接口，但服务端按操作校验身份：
-// - 双方队长（参赛管理码鉴权）可推进本方步骤、启动、掷硬币、回退本方上一步
+// - 双方队长（参赛管理码鉴权）可推进本方步骤、启动、掷骰子定先手、回退本方上一步
 // - 管理员（会话 cookie）可代任意操作、手动交换先手、重置
 // =====================
 
@@ -26,10 +26,12 @@ import {
   undoBP,
   swapFirstBP,
   resetBP,
+  rollFirstBP,
   stepTeam,
   sessionMatchesMatch,
   type BPStore,
   type BPSession,
+  type BPDiceRoll,
 } from "@/lib/scheduling/bp-ops";
 
 export const runtime = "nodejs";
@@ -149,7 +151,8 @@ export async function POST(request: NextRequest) {
 
     let outputSession: BPSession | undefined;
     let outputFinalMaps: string[] | undefined;
-    let outputSwapped: boolean | undefined;
+    let outputRoll: BPDiceRoll | undefined;
+    let outputAttempts: number | undefined;
 
     await updateEventData<BPStore>(eventId, "bp", {}, (latestStore) => {
       const store = { ...latestStore };
@@ -185,7 +188,16 @@ export async function POST(request: NextRequest) {
           outputSession = result.session;
           return { ...store, [matchId]: result.session };
         }
-        case "coinflip": {
+        case "roll": {
+          /*
+           * 掷骰子比大小决定先手。
+           *
+           * 由「双方各掷一颗」取代原「掷硬币」：硬币只有"变/不变"，
+           * 输的一方无法验证；骰子把两个点数都亮出来，谁赢当场可算。
+           *
+           * 未开始时自动建会话（与原先 coinflip 一致），
+           * 使队长在房间里点一下就能定先手，不必先点「开始 BP」。
+           */
           let active: BPSession | undefined = session;
           if (active && !sessionMatchesMatch(active, match)) {
             delete store[matchId];
@@ -196,12 +208,15 @@ export async function POST(request: NextRequest) {
             if (!started.ok || !started.session) fail(started.message ?? "启动失败");
             active = started.session;
           }
-          if (active.status !== "进行中") fail("BP 已结束，不能交换先手");
-          outputSwapped = Math.random() < 0.5;
-          const result = outputSwapped ? swapFirstBP(active) : { ok: true, session: active };
-          if (!result.ok || !result.session) fail(result.message ?? "掷硬币失败");
-          outputSession = result.session;
-          return { ...store, [matchId]: result.session };
+          if (!isAdmin && !(requester.isCaptain && teamId === match.teamAId) && !(requester.isCaptain && teamId === match.teamBId)) {
+            fail("只有双方队长或裁判可以掷骰子", 403);
+          }
+          const rolled = rollFirstBP(active);
+          if (!rolled.ok || !rolled.session) fail(rolled.message ?? "掷骰子失败");
+          outputSession = rolled.session;
+          outputRoll = rolled.session.diceRoll;
+          outputAttempts = rolled.attempts;
+          return { ...store, [matchId]: rolled.session };
         }
         case "swap": {
           if (!isAdmin) fail("只有裁判可以手动交换先手", 403);
@@ -234,7 +249,8 @@ export async function POST(request: NextRequest) {
       ok: true,
       session: outputSession,
       ...(outputFinalMaps ? { finalMaps: outputFinalMaps } : {}),
-      ...(outputSwapped !== undefined ? { swapped: outputSwapped } : {}),
+      ...(outputRoll ? { diceRoll: outputRoll } : {}),
+      ...(outputAttempts !== undefined ? { attempts: outputAttempts } : {}),
     });
   } catch (error) {
     if (error instanceof BPRequestError) {

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import Container from "@/components/layout/Container";
-import Button from "@/components/ui/Button";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import { buildBPOrder } from "@/lib/scheduling/bp";
@@ -153,7 +152,7 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
                       进行中 {session.actions.length}/{session.order.length}
                     </span>
                   ) : (
-                    <span className="bg-slate-100 px-2 py-1 text-[0.625rem] font-bold text-slate-500">未开始</span>
+                    <span className="bg-slate-100 px-2 py-1 text-[0.625rem] font-bold text-slate-500">待定先手</span>
                   )}
                 </div>
                 <div className="mt-2 flex items-center justify-between">
@@ -178,7 +177,6 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
         </div>
       )}
 
-      {bpMatches.length > 0 && <div className="mt-6 text-center"><Button href={`/bp/${bpMatches[0].id}?eventId=${encodeURIComponent(eventId)}`} variant="outline">进入第一场 BP 房间 →</Button></div>}
     </Container>
   );
 }

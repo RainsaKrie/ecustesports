@@ -4,7 +4,7 @@
 // =====================
 
 import { buildBPOrder, remainingMaps, isBPComplete } from "./bp.ts";
-import { startBP, advanceBP, undoBP, swapFirstBP, resetBP, canStartBP, teamInSession, stepTeam, type BPStore } from "./bp-ops.ts";
+import { startBP, advanceBP, undoBP, swapFirstBP, resetBP, canStartBP, teamInSession, stepTeam, rollFirstBP, rollDice, DICE_MIN, DICE_MAX, type BPStore } from "./bp-ops.ts";
 import type { ScheduleMatch } from "./schedule-data.ts";
 
 const POOL7 = ["Ascent", "Bind", "Haven", "Split", "Icebox", "Breeze", "Lotus"];
@@ -153,6 +153,83 @@ console.log("== 7. 违规操作 ==");
   session = r.session!;
   check("重复 Ban 被拒", !advanceBP(session, { mapId: m1, operatorRole: "team" }, POOL7).ok);
   check("完成前 isBPComplete = false", !isBPComplete(session.order, session.actions));
+}
+
+console.log("== 8. 掷骰子比大小决定先手 ==");
+{
+  /** 用固定序列构造随机的可复现替身：值 0 → 点数 1，接近 1 → 点数 6 */
+  const seq = (...values: number[]) => {
+    let i = 0;
+    return () => values[i++ % values.length];
+  };
+  const p = (n: number) => (n - DICE_MIN) / (DICE_MAX - DICE_MIN + 1) + 1e-9; // 掷出恰好 n 点
+  const SIX = p(6); const ONE = p(1); const FIVE = p(5); const THREE = p(3);
+
+  check("rollDice 输出落在 1–6", Array.from({ length: 200 }, () => rollDice()).every((n) => n >= DICE_MIN && n <= DICE_MAX && Number.isInteger(n)));
+  check("rollDice 注入随机可得指定点", rollDice(seq(SIX)) === 6 && rollDice(seq(ONE)) === 1);
+
+  const match = mkMatch("D1", "BO3");
+  const base = startBP({}, { match, pool: POOL7 }).session!;
+  check("初始先手为 A 侧（甲队）", base.firstTeamSide === "A" && base.firstTeamId === "T-A");
+
+  // A=6 B=1 → A 先手（保持不变）
+  const aWins = rollFirstBP(base, seq(SIX, ONE));
+  check("A 点大 → A 侧先手", aWins.session!.firstTeamSide === "A" && aWins.session!.firstTeamId === "T-A");
+  check("A 点大 → 记录双方点数", aWins.session!.diceRoll!.teamA === 6 && aWins.session!.diceRoll!.teamB === 1);
+  check("A 点大 → 一次定胜负", aWins.attempts === 1);
+
+  // A=1 B=5 → B 先手（交换）
+  const bWins = rollFirstBP(base, seq(ONE, FIVE));
+  check("B 点大 → B 侧先手", bWins.session!.firstTeamSide === "B" && bWins.session!.firstTeamId === "T-B");
+  check("B 点大 → 第二队变甲队", bWins.session!.secondTeamId === "T-A" && bWins.session!.secondTeamName === "甲队");
+
+  /*
+   * 关键回归：连续掷多次后先手必须与点数严格一致。
+   * 只看单次结果测不出"某次掷骰后 firstTeamSide 没更新"这类错误 ——
+   * 因为 next 是从上一次 session 派生的，一旦中间漏更新，
+   * 后续轮次会持续错位。这里连掷 12 次，每次都校验点数大的那侧在先手。
+   */
+  let cursor = base;
+  let streakOk = true;
+  let sawA = false;
+  let sawB = false;
+  for (let i = 0; i < 12; i++) {
+    const a = i % 6 + 1;
+    const b = (i * 3) % 6 + 1;
+    if (a === b) continue;
+    const out = rollFirstBP(cursor, seq(p(a), p(b)));
+    const s = out.session!;
+    const expectSide = a > b ? "A" : "B";
+    if (s.firstTeamSide !== expectSide) streakOk = false;
+    // 先手侧名字必须与 side 对应
+    if (s.firstTeamName !== (expectSide === "A" ? "甲队" : "乙队")) streakOk = false;
+    if (expectSide === "A") sawA = true; else sawB = true;
+    cursor = s;
+  }
+  check("连续 12 轮：先手侧与点数始终一致", streakOk);
+  check("连续 12 轮两种结果都出现过（夹具有效）", sawA && sawB);
+
+  // 平局重掷：第一轮 3:3，第二轮 6:1 → 应记 6:1 且 attempts=2
+  const tie = rollFirstBP(base, seq(THREE, THREE, SIX, ONE));
+  check("平局自动重掷一轮", tie.attempts === 2);
+  check("平局重掷后记录的是最终点数", tie.session!.diceRoll!.teamA === 6 && tie.session!.diceRoll!.teamB === 1);
+  check("平局重掷后先手正确", tie.session!.firstTeamSide === "A");
+
+  // 已在操作中的会话不能再掷
+  const played = advanceBP(base, { mapId: POOL7[0], operatorRole: "team" }, POOL7).session!;
+  check("已开始 BP 后不能重新掷骰子", !rollFirstBP(played, seq(SIX, ONE)).ok);
+  check("已完成会话不能掷骰子", !rollFirstBP({ ...base, status: "已完成" }, seq(SIX, ONE)).ok);
+
+  /*
+   * 回归：重置必须把点数一起清掉。
+   * 只断 actions 长度会漏掉"点数还挂在界面上"这个真实 bug。
+   */
+  const rolled = rollFirstBP(base, seq(SIX, ONE)).session!;
+  check("掷完后会话带点数", Boolean(rolled.diceRoll));
+  const afterReset = resetBP(rolled).session!;
+  check("重置清空操作", afterReset.actions.length === 0);
+  check("重置清空骰子点数", afterReset.diceRoll === undefined);
+  check("重置后点数不可见（键不存在而非 null）", !("diceRoll" in afterReset));
 }
 
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);

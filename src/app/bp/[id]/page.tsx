@@ -7,7 +7,7 @@ import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import { useParticipant } from "@/lib/scheduling/useParticipant";
 import { currentStep, type BPAction } from "@/lib/scheduling/bp";
-import type { BPSession } from "@/lib/scheduling/bp-ops";
+import type { BPSession, BPDiceRoll } from "@/lib/scheduling/bp-ops";
 import { mapImageOf } from "@/lib/maps";
 import Badge from "@/components/ui/Badge";
 
@@ -32,7 +32,8 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
   const [admin, setAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [coinResult, setCoinResult] = useState<{ swapped: boolean; firstName: string } | null>(null);
+  /** 刚掷出的点数（用于高亮提示；会话里也存了一份，刷新后仍可见） */
+  const [rolledNow, setRolledNow] = useState<{ roll: BPDiceRoll; attempts: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +73,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
   }, [shouldPoll, eventId, matchId]);
 
   const post = useCallback(
-    async (body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; session?: BPSession; swapped?: boolean }> => {
+    async (body: Record<string, unknown>): Promise<{ ok: boolean; message?: string; session?: BPSession; diceRoll?: BPDiceRoll; attempts?: number }> => {
       setBusy(true);
       setMessage("");
       try {
@@ -84,13 +85,13 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
           },
           body: JSON.stringify({ ...body, eventId, matchId }),
         });
-        const json = (await res.json()) as { ok: boolean; message?: string; session?: BPSession; swapped?: boolean };
+        const json = (await res.json()) as { ok: boolean; message?: string; session?: BPSession; diceRoll?: BPDiceRoll; attempts?: number };
         if (!res.ok || !json.ok) {
           setMessage(json.message ?? "操作失败");
           return { ok: false, message: json.message };
         }
         if (json.session) setSession(json.session);
-        return { ok: true, session: json.session, swapped: json.swapped };
+        return { ok: true, session: json.session, diceRoll: json.diceRoll, attempts: json.attempts };
       } catch {
         setMessage("网络异常，请稍后重试");
         return { ok: false };
@@ -126,14 +127,18 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
   const handleStart = () => void post({ action: "start" });
   const handleMapClick = (mapName: string) => void post({ action: "advance", mapId: mapName });
   const handleUndo = () => void post({ action: "undo" });
-  const handleReset = () => void post({ action: "reset" });
+  const handleReset = () => {
+    // 重置会连先手一起清掉，先说清楚再执行 —— 这一步不可撤销
+    if (!window.confirm("重置会清空本局 BP 的全部操作，并取消已掷出的先手结果。\n\n确认重置？")) return;
+    setRolledNow(null);
+    void post({ action: "reset" });
+  };
   const handleSwap = () => void post({ action: "swap" });
 
-  const handleCoinflip = async () => {
-    const r = await post({ action: "coinflip" });
-    if (r.ok && r.session) {
-      setCoinResult({ swapped: Boolean(r.swapped), firstName: r.session.firstTeamName });
-      setTimeout(() => setCoinResult(null), 4000);
+  const handleRoll = async () => {
+    const r = await post({ action: "roll" });
+    if (r.ok && r.session && r.diceRoll) {
+      setRolledNow({ roll: r.diceRoll, attempts: r.attempts ?? 1 });
     }
   };
 
@@ -191,11 +196,34 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
           <div className="mb-4 border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400">{message}</div>
         )}
 
-        {coinResult && (
-          <div className="mb-4 border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-yellow-300">
-            掷硬币结果：{coinResult.swapped ? `先手交换！现在由 ${coinResult.firstName} 先手` : "保持不变，先手不变"}
-          </div>
-        )}
+        {/* 掷骰子结果：两个点数都摆出来，谁先手当场可验算 */}
+        {(rolledNow || session?.diceRoll) && (() => {
+          const roll = rolledNow?.roll ?? session!.diceRoll!;
+          const attempts = rolledNow?.attempts ?? 1;
+          const aFirst = roll.teamA > roll.teamB;
+          const firstName = aFirst ? match.teamAName : match.teamBName;
+          const tie = roll.teamA === roll.teamB;
+          return (
+            <div className="mb-4 border border-yellow-500/40 bg-yellow-500/10 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="text-xs font-bold text-yellow-300">掷骰子定先手</span>
+                <span className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-300">A 侧 {match.teamAName}</span>
+                  <span className={`text-xl font-black ${aFirst && !tie ? "text-yellow-300" : "text-gray-400"}`}>{roll.teamA}</span>
+                </span>
+                <span className="text-xs text-gray-500">比</span>
+                <span className="flex items-center gap-2 text-sm">
+                  <span className={`text-xl font-black ${!aFirst && !tie ? "text-yellow-300" : "text-gray-400"}`}>{roll.teamB}</span>
+                  <span className="text-gray-300">B 侧 {match.teamBName}</span>
+                </span>
+                <span className="text-sm font-bold text-yellow-300">
+                  {tie ? "点数相同，先手保持不变" : `${roll.teamA > roll.teamB ? "A" : "B"} 侧点数大，由 ${firstName} 先手`}
+                </span>
+                {attempts > 1 && <span className="text-xs text-gray-400">（平局重掷 {attempts} 轮）</span>}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 队伍条
             点位色表示**队伍身份**（A=品牌红 / B=深墨），与 BP 列表页一致；
@@ -225,16 +253,18 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
         {!session && (
           <div className="bg-gray-800/50 p-10 text-center">
             <p className="text-sm text-gray-400">BP 尚未开始</p>
-            <p className="mt-2 text-xs text-gray-500">默认先手：A 侧</p>
-            <div className="mt-6 flex justify-center gap-3">
+            <p className="mt-2 text-xs text-gray-500">
+              默认先手：A 侧（{match.teamAName}）；双方也可各掷一颗骰子比大小决定
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
               {((isCaptain && inMatch) || admin) && (
                 <button onClick={handleStart} disabled={busy} className="bg-[#ff4655] px-6 py-3 text-sm font-bold text-white hover:bg-[#d83b48] disabled:opacity-50">
-                  开始 BP
+                  开始 BP（A 侧先手）
                 </button>
               )}
               {((isCaptain && inMatch) || admin) && (
-                <button onClick={handleCoinflip} disabled={busy} className="border border-yellow-500 px-6 py-3 text-sm font-bold text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50">
-                  掷硬币决定先手
+                <button onClick={handleRoll} disabled={busy} className="border border-yellow-500 px-6 py-3 text-sm font-bold text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50">
+                  掷骰子比大小决定先手
                 </button>
               )}
             </div>
@@ -398,12 +428,12 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                     <button onClick={handleUndo} disabled={busy} className="border border-gray-600 px-5 py-2.5 text-xs font-bold text-gray-300 hover:bg-gray-800 disabled:opacity-50">回退上一步</button>
                   )}
                   {(admin || (isCaptain && inMatch && session.actions.length === 0)) && (
-                    <button onClick={handleCoinflip} disabled={busy} className="border border-yellow-600 px-5 py-2.5 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50">掷硬币</button>
+                    <button onClick={handleRoll} disabled={busy} className="border border-yellow-600 px-5 py-2.5 text-xs font-bold text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50">掷骰子比大小</button>
                   )}
                   {admin && (
                     <>
                       <button onClick={handleSwap} disabled={busy} className="border border-gray-600 px-5 py-2.5 text-xs font-bold text-gray-300 hover:bg-gray-800 disabled:opacity-50">手动交换先手</button>
-                      <button onClick={handleReset} disabled={busy} className="border border-red-600 px-5 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50">重置 BP</button>
+                      <button onClick={handleReset} disabled={busy} className="border border-red-600 px-5 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50">重置 BP（含先手结果）</button>
                     </>
                   )}
                 </div>

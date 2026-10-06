@@ -32,6 +32,20 @@ export interface BPSession {
   startedAt: string;
   completedAt?: string;
   finalMaps?: string[]; // 完成后写入的比赛地图
+  /**
+   * 双方掷骰子的点数（1–6），按对阵侧记录。
+   *
+   * 只存**当场掷出的原始点数**，不存"谁赢了" —— 胜负由
+   * `firstTeamSide` 与点数大小推导，避免两者不一致时无法判断谁对。
+   */
+  diceRoll?: BPDiceRoll;
+}
+
+/** 掷骰子比大小的结果 */
+export interface BPDiceRoll {
+  teamA: number; // A 侧点数 1–6
+  teamB: number; // B 侧点数 1–6
+  at: string; // 掷出时间（ISO）
 }
 
 /** BP 存储：按 matchId 索引的会话表 */
@@ -180,12 +194,106 @@ export function swapFirstBP(session: BPSession): BPOpResult {
   };
 }
 
-/** 整体重置：清空操作（仅进行中会话） */
+/** 骰子点数范围（含两端） */
+export const DICE_MIN = 1;
+export const DICE_MAX = 6;
+
+/**
+ * 按对阵侧取队伍（先手交换后 first/second 会互换，
+ * 所以「A 侧队伍」不等于 `firstTeamId`，必须按 `firstTeamSide` 反查）。
+ */
+function teamOnSide(session: BPSession, side: "A" | "B"): { id: string; name: string } {
+  const firstIsA = session.firstTeamSide === "A";
+  const onA = side === "A";
+  return {
+    id: (onA === firstIsA) ? session.firstTeamId : session.secondTeamId,
+    name: (onA === firstIsA) ? session.firstTeamName : session.secondTeamName,
+  };
+}
+
+/** 掷一枚骰子（1–6）。`random` 可注入，便于测试固定点数。 */
+export function rollDice(random: () => number = Math.random): number {
+  return DICE_MIN + Math.floor(random() * (DICE_MAX - DICE_MIN + 1));
+}
+
+/**
+ * 掷骰子比大小决定先手。
+ *
+ * 为什么不是「掷硬币」：硬币在页面上只有「先手交换 / 保持不变」一种表述，
+ * **输的一方无法验证** —— 抛出哪面对谁有利，只有代码知道。
+ * 改成双方各掷一颗骰子比大小后，两个点数都摆在界面上，
+ * 谁赢当场可验算，输了也没话说。
+ *
+ * 平局时重掷**整轮**（不是单方重掷，那样会变成"落后方免费加掷一次"）。
+ * `attempts` 记录实际掷了几轮，页面上据此说明"平局，已重掷"。
+ *
+ * 骰子不做滚动动画：服务端的随机数本来就是瞬间生成的，
+ * 加动画等于演一个假过程，直接亮出点数更诚实。
+ */
+export function rollFirstBP(
+  session: BPSession,
+  random: () => number = Math.random,
+): BPOpResult & { attempts?: number } {
+  if (session.status !== "进行中") {
+    return { ok: false, message: "BP 已结束，不能掷骰子" };
+  }
+  if (session.actions.length > 0) {
+    return { ok: false, message: "BP 已开始，不能再掷骰子决定先手；如需重来请重置" };
+  }
+
+  let teamA = 0;
+  let teamB = 0;
+  let attempts = 0;
+  do {
+    teamA = rollDice(random);
+    teamB = rollDice(random);
+    attempts += 1;
+    // 上限只是防御死循环；真实情况下 1–2 轮必出结果
+  } while (teamA === teamB && attempts < 20);
+
+  const diceRoll: BPDiceRoll = { teamA, teamB, at: new Date().toISOString() };
+
+  // 连续平局到上限时保持当前先手，把点数如实记下并说明
+  if (teamA === teamB) {
+    return {
+      ok: true,
+      message: "连续 20 轮平局，先手保持当前设定",
+      session: { ...session, diceRoll },
+      attempts,
+    };
+  }
+
+  const winner = teamA > teamB ? teamOnSide(session, "A") : teamOnSide(session, "B");
+  const loser = teamA > teamB ? teamOnSide(session, "B") : teamOnSide(session, "A");
+  return {
+    ok: true,
+    attempts,
+    session: {
+      ...session,
+      diceRoll,
+      firstTeamSide: teamA > teamB ? "A" : "B",
+      firstTeamId: winner.id,
+      firstTeamName: winner.name,
+      secondTeamId: loser.id,
+      secondTeamName: loser.name,
+    },
+  };
+}
+
+/**
+ * 整体重置：清空操作**与骰子点数**（仅进行中会话）。
+ *
+ * ⚠️ `diceRoll` 必须一起清掉。原先只清 `actions`，
+ * 结果「重置 BP」后掷出的点数还留在界面上 —— 用户会以为重置没生效。
+ * 重置的语义是"回到本局 BP 尚未开始的状态"，先手是怎么定的属于那个状态。
+ */
 export function resetBP(session: BPSession): BPOpResult {
   if (session.status !== "进行中") {
     return { ok: false, message: "BP 已结束，不能重置" };
   }
-  return { ok: true, session: { ...session, actions: [] } };
+  const { diceRoll: _cleared, ...rest } = session;
+  void _cleared;
+  return { ok: true, session: { ...rest, actions: [] } };
 }
 
 /** 会话中某支队伍是否参与本场比赛（用于身份校验） */
