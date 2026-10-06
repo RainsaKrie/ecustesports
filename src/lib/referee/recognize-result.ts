@@ -14,6 +14,7 @@
 // =====================
 
 import { buildRoster, matchTeamsByIdentity, type TeamRoster } from "./identity-match";
+import { resolveMapName } from "./map-name";
 import { checkGroupSanity, type RecognizedResult } from "./result-vision";
 
 export interface RecognizeContext {
@@ -94,13 +95,25 @@ export function buildRecognizeSuggestion(
   }
 
   // ---- 地图核对 ----
+  // 先把手读到的地图名对齐到官方中文名：模型会把「亚海悬城」读成「蔚海悬城」，
+  // 而这个错名字会一路写进正式赛果。对齐之后再参与后续比对与预填。
+  // 对不齐的**不猜**——保留原样并提示裁判核对，避免静默替换成另一张图。
+  const rawMap = picked?.map ?? null;
+  const mapName = resolveMapName(rawMap);
+  const pickedMap = mapName.resolved ?? rawMap;
+  if (rawMap && !mapName.resolved) {
+    issues.push(`图上的地图名「${mapName.original}」不在官方地图表里，请手工核对是否选错地图`);
+  } else if (mapName.changed) {
+    issues.push(`图上的地图名已按官方写法校正为「${mapName.resolved}」（图上读到「${mapName.original}」）`);
+  }
+
   const expectedMap = context.mapSequence[context.gameIndex - 1] ?? null;
   let mapMatchesBp: boolean | null = null;
-  if (expectedMap && picked?.map) {
-    mapMatchesBp = picked.map === expectedMap;
+  if (expectedMap && pickedMap) {
+    mapMatchesBp = pickedMap === expectedMap;
     if (!mapMatchesBp) {
       issues.push(
-        `图上读到的地图是「${picked.map}」，但 BP 记录里第 ${context.gameIndex} 局应是「${expectedMap}」——` +
+        `图上读到的地图是「${pickedMap}」，但 BP 记录里第 ${context.gameIndex} 局应是「${expectedMap}」——` +
           "请确认是否传错了图",
       );
     }
@@ -163,8 +176,8 @@ export function buildRecognizeSuggestion(
 
   const hasScores = aScore !== null && bScore !== null;
   return {
-    game: hasScores ? { map: picked?.map ?? null, teamAScore: aScore!, teamBScore: bScore! } : null,
-    suggestedMap: expectedMap ?? picked?.map ?? null,
+    game: hasScores ? { map: pickedMap, teamAScore: aScore!, teamBScore: bScore! } : null,
+    suggestedMap: expectedMap ?? pickedMap,
     mapMatchesBp,
     identity,
     issues,

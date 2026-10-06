@@ -174,5 +174,45 @@ console.log("\n== 组10 · 确定性 ==");
   check("同一输入结论一致", JSON.stringify(a) === JSON.stringify(b));
 }
 
+console.log("\n== 组11 · 地图名读错要校正（实测「蔚海悬城」） ==");
+{
+  // 没有 BP 记录时，模型读到的地图名会直接成为预填值——正是错名字流进赛果的路径
+  const misread = alignedResult();
+  misread.games = [{ map: "蔚海悬城", teamAScore: 13, teamBScore: 10 }];
+  const s = buildRecognizeSuggestion(misread, context({ mapSequence: [] }));
+  check("错名字被校正为官方名", s.suggestedMap === "亚海悬城", String(s.suggestedMap));
+  check("预填比分也带正确的图名", s.game?.map === "亚海悬城", String(s.game?.map));
+  check("提示已校正", s.issues.some((x) => x.includes("校正为「亚海悬城」")), s.issues.join("；"));
+}
+
+console.log("\n== 组12 · 地图名对不上官方表时不猜 ==");
+{
+  const unknown = alignedResult();
+  unknown.games = [{ map: "完全不存在的图", teamAScore: 13, teamBScore: 10 }];
+  const s = buildRecognizeSuggestion(unknown, context({ mapSequence: [] }));
+  check("不认识的名字原样保留", s.suggestedMap === "完全不存在的图", String(s.suggestedMap));
+  check("提示手工核对", s.issues.some((x) => x.includes("不在官方地图表里")), s.issues.join("；"));
+}
+
+console.log("\n== 组13 · 官方写法的图名不产生多余提示 ==");
+{
+  const clean = buildRecognizeSuggestion(alignedResult(), context());
+  check("没有地图相关提示", !clean.issues.some((x) => x.includes("地图") || x.includes("校正")), clean.issues.join("；"));
+  check("地图核对通过", clean.mapMatchesBp === true);
+}
+
+console.log("\n== 组14 · BP 存在时仍以 BP 记录为准 ==");
+{
+  // 即使图上读错名字，只要 BP 有记录，预填应该用 BP 的那张图
+  const misread = alignedResult();
+  misread.games = [{ map: "蔚海悬城", teamAScore: 13, teamBScore: 9 }];
+  const s = buildRecognizeSuggestion(misread, context());
+  check("预填取 BP 序列", s.suggestedMap === "森寒冬港", String(s.suggestedMap));
+  // 校正后是「亚海悬城」，与 BP 的「森寒冬港」仍不一致 —— 这是真信号：
+  // 要么传错图，要么这一局打的就不是 BP 记的图。必须报出来，不能被校正掩盖。
+  check("校正后仍与 BP 不一致，如实报出", s.mapMatchesBp === false, String(s.mapMatchesBp));
+  check("提示传错图", s.issues.some((x) => x.includes("传错了图")), s.issues.join("；"));
+}
+
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);
 if (fail > 0) process.exit(1);
