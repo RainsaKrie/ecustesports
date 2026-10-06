@@ -1582,3 +1582,24 @@ summary:focus-visible {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+
+/* ==========================================================================
+   比分输入框
+   ==========================================================================
+   浏览器给 `input[type=number]` 画的原生 spinner（右侧上下箭头方块）会
+   占掉内容区宽度、并把 `text-center` 顶掉 —— 实测在裁判报分弹窗里，
+   比分数字贴着左边、两个框看起来还不对称。
+
+   已在 `RefereeWorkbench` 里改用 `type="text"` 从根上避开；
+   这里再兜一层，防止别处（如数字型后台表单）出现同样的错位。
+   ========================================================================== */
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.score-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

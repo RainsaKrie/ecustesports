@@ -226,6 +226,19 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     patchGame(index, patch);
   }
 
+  /**
+   * 比分输入。
+   *
+   * 刻意用 `type="text"` 而不是 `type="number"`：原生数字输入框会画出 spinner
+   * （右侧那个上下箭头方块），它既占宽度又把 `text-center` 顶掉，
+   * 结果就是比分贴着左边、两个框看起来还不对称 —— 实测在裁判报分弹窗里就是这样。
+   * 改成文本 + 这里过滤非数字，视觉可控，且提交前的整数校验仍然兜底。
+   */
+  function toScore(raw: string): number {
+    const digits = raw.replace(/\D/g, "").slice(0, 3);
+    return digits ? Number(digits) : 0;
+  }
+
   function removeGame(index: number) {
     setGames((prev) => prev.filter((_, i) => i !== index));
   }
@@ -669,26 +682,22 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               <label className="flex flex-col gap-1">
                 <span className="mono-label text-[#667078]">{activeMatch.teamAName}</span>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min={0}
-                  step={1}
                   value={g.teamAScore}
-                  onChange={(e) => updateGame(i, { teamAScore: Number(e.target.value) || 0 })}
-                  className="h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
+                  onChange={(e) => updateGame(i, { teamAScore: toScore(e.target.value) })}
+                  className="score-input h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
                   style={{ borderRadius: 0 }}
                 />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="mono-label text-[#667078]">{activeMatch.teamBName}</span>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min={0}
-                  step={1}
                   value={g.teamBScore}
-                  onChange={(e) => updateGame(i, { teamBScore: Number(e.target.value) || 0 })}
-                  className="h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
+                  onChange={(e) => updateGame(i, { teamBScore: toScore(e.target.value) })}
+                  className="score-input h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
                   style={{ borderRadius: 0 }}
                 />
               </label>
@@ -696,7 +705,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           </div>
         ))}
 
-        {games.length < maxGames && (
+        {games.length < maxGames && maxGames > 1 && (
           <button
             onClick={addGame}
             className="mt-4 w-full border border-dashed border-[#0f1923]/30 bg-transparent px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655]"
