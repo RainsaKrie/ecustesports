@@ -45,6 +45,7 @@ import {
   type ReportingState,
 } from "@/lib/scheduling/reporting-service";
 import { resolveReviewOp, correctResultOp } from "@/lib/scheduling/result-ops";
+import { expirePendingRequests } from "@/lib/scheduling/schedule-ops";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -127,7 +128,35 @@ async function updateReportingState<T>(
       committedValue = outcome.value;
       const patch: Partial<ReportingDocuments> = {};
       if (outcome.state.matches !== current.matches) {
-        patch.schedule = { ...schedule, matches: outcome.state.matches };
+        /**
+         * 报分 / 改分落地时，把这场上还挂着的改期申请一并作废。
+         *
+         * 申请与比赛是两份独立数据，报分只改 matches，申请不会自己消失。
+         * 留着它的后果很实际：负责人点「批准并更新赛程」会把这场**已完成的比赛**
+         * 改回「已排期」（approveRescheduleOp 里的 updatedMatch），而 `...match` 又带着
+         * 已写好的赛果 —— 比赛显示未开始、赛果还挂着，还会重新出现在 BP 列表里。
+         *
+         * 收口放在这里而不是 result-ops：ReportingState 里没有 requests，
+         * 而这里恰好同时持有 schedule 原文档与操作结果，是本链路唯一能同时改两者的地方。
+         */
+        const beforeStatus = new Map(current.matches.map((m) => [m.id, m.status]));
+        const affected = new Set(
+          outcome.state.matches
+            .filter((m) => m.status === "已完成" && beforeStatus.get(m.id) !== "已完成")
+            .map((m) => m.id),
+        );
+        const requests = affected.size > 0
+          ? [...affected].reduce(
+              (acc, matchId) => expirePendingRequests(acc, matchId),
+              schedule.requests ?? [],
+            )
+          : schedule.requests;
+        const requestsChanged = affected.size > 0 && requests !== schedule.requests;
+        patch.schedule = {
+          ...schedule,
+          matches: outcome.state.matches,
+          ...(requestsChanged ? { requests } : {}),
+        };
       }
       if (outcome.state.result !== current.result) patch.result = outcome.state.result;
       if (outcome.state.evidence !== current.evidence) patch.evidence = outcome.state.evidence;

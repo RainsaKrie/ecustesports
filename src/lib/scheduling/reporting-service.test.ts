@@ -25,7 +25,9 @@ import {
   type RefereeOpResult,
 } from "./referee-ops";
 import type { RefereeLedger } from "./referee-domain";
-import type { ScheduleMatch } from "./schedule-data";
+import type { ScheduleMatch, RescheduleRecord } from "./schedule-data";
+import { DEFAULT_CONFIG } from "./rule-engine";
+import { expirePendingRequests, reportGameResultsOp } from "./schedule-ops";
 
 let pass = 0;
 let fail = 0;
@@ -425,6 +427,65 @@ console.log("\n== 组6 · 管理员异常队列投影（RPT-06） ==");
       })(),
     );
   }
+}
+
+console.log("\n== 报分后作废该场的改期申请 ==");
+{
+  // 场景：一场比赛挂着「待审批」的改期申请，比赛随后被打完。
+  // 若不处理这条申请，负责人点「批准并更新赛程」会把已完成的比赛改回「已排期」，
+  // 而 approveRescheduleOp 的 `...match` 会带着已写好的赛果 —— 状态自相矛盾。
+  const base = {
+    id: "REQ-1",
+    matchId: "M1",
+    newStartTime: "2026-10-07T20:00:00",
+    reason: "队员时间冲突",
+    teamAConfirmed: true,
+    teamBConfirmed: true,
+    basedOnVersion: 1,
+    submittedAt: "2026-10-06T00:00:00.000Z",
+    proposedByTeamId: "team-a",
+    conflicts: [],
+  };
+
+  const pending: RescheduleRecord = { ...base, status: "待审批" };
+  const waiting: RescheduleRecord = { ...base, id: "REQ-2", status: "待对手确认" };
+  const approved: RescheduleRecord = { ...base, id: "REQ-3", status: "已批准", resolvedAt: "2026-10-06T01:00:00.000Z" };
+  const otherMatch: RescheduleRecord = { ...base, id: "REQ-4", matchId: "M2", status: "待审批" };
+
+  const out = expirePendingRequests([pending, waiting, approved, otherMatch], "M1");
+  const byId = new Map(out.map((r) => [r.id, r]));
+
+  check("待审批 → 已失效", byId.get("REQ-1")?.status === "已失效" && !!byId.get("REQ-1")?.resolvedAt);
+  check("待对手确认 → 已失效", byId.get("REQ-2")?.status === "已失效");
+  check("已批准的申请不动", byId.get("REQ-3")?.status === "已批准");
+  check("别场比赛的申请不动", byId.get("REQ-4")?.status === "待审批");
+  check("作废时留下原因", (byId.get("REQ-1")?.conflicts ?? []).some((c) => c.message.includes("比赛已完成")));
+  check("不修改原数组", pending.status === "待审批");
+
+  // 真实入口：报分把比赛标记完成后，该场申请必须一并作废
+  const state = {
+    config: DEFAULT_CONFIG,
+    configConfirmed: true,
+    version: 2,
+    matches: [match("M1")],
+    versions: [],
+    requests: [{ ...base, status: "待审批" as const }],
+    notifications: [],
+  };
+  const reported = reportGameResultsOp(state, "M1", [
+    { map: "图A", teamAScore: 13, teamBScore: 5 },
+    { map: "图B", teamAScore: 13, teamBScore: 8 },
+  ]);
+  check("报分后该场申请已失效", reported.state.requests[0].status === "已失效", reported.state.requests[0].status);
+  check("报分后比赛标记完成", reported.state.matches[0].status === "已完成");
+
+  // 反向确认：没有申请时不该凭空造出一条
+  const noReqs = { ...state, requests: [] };
+  const r2 = reportGameResultsOp(noReqs, "M1", [
+    { map: "图A", teamAScore: 13, teamBScore: 5 },
+    { map: "图B", teamAScore: 13, teamBScore: 8 },
+  ]);
+  check("没有申请时不凭空产生", r2.state.requests.length === 0);
 }
 
 console.log(`\n结果：通过 ${pass} / ${pass + fail}`);

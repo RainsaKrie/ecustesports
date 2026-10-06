@@ -103,6 +103,15 @@ export function determineWinnerTeamId(match: ScheduleMatch, games: GameResult[])
 /**
  * 把已校验赛果写入比赛并推进胜者/败者路径。
  * 管理员手工报分与裁判报分共用这一处，避免两套晋级逻辑逐渐分叉。
+ *
+ * ★ 同时**作废这场比赛上所有未完结的改期申请**。
+ *   原因：报分把比赛标成「已完成」，但改期申请是独立记录，不会自己消失。
+ *   留着它有两个实际后果：
+ *     1. 「待审批」的申请被批准时，approveRescheduleOp 会把这场比赛改回「已排期」
+ *        （见下方 updatedMatch 的 status），而 `...match` 会带上已写好的赛果——
+ *        比赛显示未开始、赛果还挂着，且它重新出现在 BP 列表里，可能被当成没打。
+ *     2. 「待对手确认」的申请，对手再点确认会推进到「待审批」，等于给上面那条铺路。
+ *   两处都靠「申请状态」自我把关，都不看比赛是否已完成，所以必须在这里收口。
  */
 export function applyGameResultsToBracket(
   source: ScheduleMatch[],
@@ -520,6 +529,31 @@ export function recentNotifications(
     .slice(0, limit);
 }
 
+/**
+ * 作废某场比赛上所有未完结的改期申请（「待对手确认」/「待审批」）。
+ *
+ * 报分后必须调用。这些申请自己不会消失，而它们的状态检查都不看比赛是否已完成：
+ * approveRescheduleOp 会把已完成的比赛改回「已排期」并覆盖时间（赛果仍挂着），
+ * resolveCaptainRequestOp 又会把「待对手确认」推进到「待审批」给前者铺路。
+ *
+ * 记成「已失效」而不是删掉——负责人事后要能查到「这场曾经申请过改期、后来作废了」。
+ */
+export function expirePendingRequests(
+  requests: RescheduleRecord[],
+  matchId: string,
+  reason = "比赛已完成，改期申请自动失效",
+): RescheduleRecord[] {
+  const now = new Date().toISOString();
+  return requests.map((request) =>
+    request.matchId === matchId && ["待对手确认", "待审批"].includes(request.status)
+      ? { ...request, status: "已失效" as const, resolvedAt: now, conflicts: [
+          ...request.conflicts,
+          { code: "HC-01" as const, message: reason },
+        ] }
+      : request,
+  );
+}
+
 /** 报分：校验逐局结果、判定胜者、标记完成，并推进胜者与败者进入后续场次 */
 export function reportGameResultsOp(
   state: ScheduleState,
@@ -537,7 +571,10 @@ export function reportGameResultsOp(
   }
 
   const matches = applyGameResultsToBracket(state.matches, match, gameResults);
-  return { state: { ...state, matches }, value: { ok: true } };
+  // 比赛已结束，这场上还挂着的改期申请必须一起作废——
+  // 否则「批准改期」会把已完成的比赛改回「已排期」，赛果被架在中间。
+  const requests = expirePendingRequests(state.requests ?? [], matchId);
+  return { state: { ...state, matches, requests }, value: { ok: true } };
 }
 
 /**
