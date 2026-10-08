@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type ReactNode } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,13 +8,14 @@ import { VALORANT_MAPS, mapImageOf } from "@/lib/maps";
 import { buildDefaultEventRules } from "@/lib/scheduling/format-templates";
 import type { EditableEvent, EditableRule, EditableStep } from "@/lib/site-config-schema";
 import { publicationChecklist } from "@/lib/publication-check";
+import { Field, Panel, adminInputClass, adminTextareaClass, useAdminConfirm, type AdminBadgeTone } from "@/components/admin/ui";
 
 type ViewKey = "overview" | "event" | "handbook" | "maps" | "public";
 type HandbookSection = "steps" | NonNullable<EditableRule["category"]>;
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-const inputClass = "w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/20";
-const textareaClass = `${inputClass} resize-y`;
+const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 
 const STATUS_OPTIONS: { value: EditableEvent["status"]; label: string }[] = [
   { value: "draft", label: "筹备中" },
@@ -52,40 +53,11 @@ const SOURCE_LABELS: Record<NonNullable<EditableRule["source"]>, string> = {
   event: "本届新增",
 };
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-bold text-slate-700">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function Panel({ eyebrow, title, children, actions }: { eyebrow: string; title: string; children: ReactNode; actions?: ReactNode }) {
-  return (
-    <section className="border border-slate-200 bg-white">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-        <div>
-          <p className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-[#c83242]">{eyebrow}</p>
-          <h2 className="mt-1 text-base font-black text-slate-950">{title}</h2>
-        </div>
-        {actions}
-      </header>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
 function SourceBadge({ rule }: { rule: EditableRule }) {
   const source = rule.source ?? "event";
+  const tone: AdminBadgeTone = source === "format" ? "neutral" : source === "common" ? "neutral" : "active";
   return (
-    <span className={`border px-2 py-1 text-[0.5625rem] font-bold ${
-      source === "format"
-        ? "border-blue-200 bg-blue-50 text-blue-700"
-        : source === "common"
-          ? "border-slate-200 bg-slate-50 text-slate-600"
-          : "border-[#ff4655]/30 bg-[#fff1f2] text-[#c83242]"
-    }`}>
+    <span className="adm-chip" data-tone={tone}>
       {SOURCE_LABELS[source]}{rule.customized ? " · 本届已调整" : ""}
     </span>
   );
@@ -93,6 +65,7 @@ function SourceBadge({ rule }: { rule: EditableRule }) {
 
 export default function EventSettingsWorkspace({ initialEvent, initialCommonRules, eventCount }: { initialEvent: EditableEvent; initialCommonRules: EditableRule[]; eventCount: number }) {
   const router = useRouter();
+  const confirm = useAdminConfirm();
   const [event, setEvent] = useState(initialEvent);
   const [commonPreset, setCommonPreset] = useState(initialCommonRules);
   const [view, setView] = useState<ViewKey>("overview");
@@ -238,6 +211,17 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
     }
   }
 
+  async function regenerateRules() {
+    const confirmed = await confirm({
+      title: "按当前赛制重新生成本届规则？",
+      body: "将按当前赛制和通用规则重新生成本届全部规则，已修改及新增的内容会被覆盖。参赛程序不受影响。",
+      confirmLabel: "重新生成",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+    patchEvent({ rules: buildDefaultEventRules(event.stageConfigs, event.teamSize, commonPreset) });
+  }
+
   async function archiveEvent() {
     if (dirty) {
       setSaveState("error");
@@ -245,7 +229,13 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
       return;
     }
     if (event.status !== "completed") return;
-    if (!window.confirm("归档后赛事资料与赛果继续保留，并标记为往届赛事。确认归档？")) return;
+    const confirmed = await confirm({
+      title: "归档本届赛事？",
+      body: "归档后赛事资料与赛果继续保留，并标记为往届赛事。",
+      confirmLabel: "归档赛事",
+      tone: "danger",
+    });
+    if (!confirmed) return;
 
     setEventAction("archiving");
     setMessage("");
@@ -324,34 +314,44 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        {/* 5 个分区在窄屏装不下（内容宽 720px），容器可横向滚动。
-            必须给提示：滚动条在部分手机上不显示，用户会以为只有前几个分区。 */}
-        <p className="mb-1.5 text-[0.625rem] font-bold text-slate-500 xl:hidden">分区较多，可左右滑动查看</p>
-        <nav aria-label="赛事设置分区" className="overflow-x-auto border border-slate-200 bg-white">
-          <div className="grid min-w-[45rem] grid-cols-5 xl:min-w-0">
-            {VIEWS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setView(item.key)}
-                className={`border-r border-slate-200 px-5 py-4 text-left transition ${view === item.key ? "border-b-[3px] border-b-[#ff4655] bg-[#fff7f6]" : "border-b-[3px] border-b-transparent hover:bg-slate-50"}`}
-              >
-                <span className="font-mono text-[0.5625rem] font-black text-[#c83242]">{item.index}</span>
-                <span className="ml-3 text-xs font-black text-slate-800">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-      </div>
+    // 左分组导航 + 右表单（设计文档 4.3）。窄屏自动退化成单列上下堆叠 ——
+    // 改造前是 5 个卡片横向滚动，原代码里就留了「滚动条在部分手机上不显示，
+    // 用户会以为只有前几个分区」的警告，竖列直接消掉这个问题。
+    <div className="grid gap-5 lg:grid-cols-[minmax(11rem,13rem)_1fr] lg:items-start">
+      {/* sticky 让右侧长表单滚动时导航不丢。top 用 px 定值：桌面根字号是 150%，
+          写成 rem 会按 24px 换算，跟顶栏的 h-16（4rem＝96px）对不上。 */}
+      <nav
+        aria-label="赛事设置分区"
+        className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] lg:sticky lg:top-[104px]"
+      >
+        {VIEWS.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setView(item.key)}
+            className={`flex w-full items-baseline gap-3 border-b border-[var(--adm-line-soft)] px-4 py-3 text-left transition last:border-b-0 lg:border-l-[3px] ${view === item.key ? "bg-[var(--adm-surface-2)] lg:border-l-[var(--adm-red)]" : "lg:border-l-transparent hover:bg-[var(--adm-surface-2)]"}`}
+          >
+            <span className="text-[length:var(--adm-fs-xs)] font-medium text-[var(--adm-red-text)]">{item.index}</span>
+            <span className={`text-[length:var(--adm-fs-md)] font-semibold ${view === item.key ? "text-[var(--adm-text)]" : "text-[var(--adm-text-soft)]"}`}>{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
+      {/* 右栏。下面这些块保持原有缩进没重排 —— 重排会在 CRLF 仓库里产生几百行假 diff，
+          审阅成本比缩进不整齐大得多。 */}
+      <div className="min-w-0 space-y-5">
+
+      {/* 工具条只留「保存」。原来左边那个「← 返回发布概览」删掉了 ——
+          左侧导航第一项就是发布概览，同一动作不留两个入口（设计文档 5.1 / 5.2）。
+          左侧写当前分组名，替代原来「返回」按钮占的位置。 */}
       {view !== "overview" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-5 py-3">
-          <button type="button" onClick={() => setView("overview")} className="inline-flex min-h-11 items-center text-xs font-bold text-slate-600 hover:text-slate-950">← 返回发布概览</button>
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-5 py-3">
+          <span className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">
+            {VIEWS.find((item) => item.key === view)?.index} · {VIEWS.find((item) => item.key === view)?.label}
+          </span>
           <div className="flex items-center gap-3">
-            {message && <span className={`text-xs font-bold ${saveState === "error" ? "text-red-600" : "text-emerald-700"}`}>{message}</span>}
-            <button type="button" onClick={save} disabled={!dirty || saveState === "saving" || uploading} className="bg-[#ff4655] px-5 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+            {message && <span className={`text-[length:var(--adm-fs-md)] font-bold ${saveState === "error" ? "text-[var(--adm-red-text)]" : "text-[var(--adm-ok-text)]"}`}>{message}</span>}
+            <button type="button" onClick={save} disabled={!dirty || saveState === "saving" || uploading} className="adm-btn adm-btn--primary adm-btn--md">
               {saveState === "saving" ? "正在保存…" : dirty ? "保存当前修改" : "已保存"}
             </button>
           </div>
@@ -360,80 +360,80 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
 
       {view === "overview" && (
         <>
-          <section className="border border-l-4 border-slate-200 border-l-[#ff4655] bg-white px-5 py-5">
+          <section className="adm-note border-l-[var(--adm-red)] px-5 py-5">
             <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-black text-slate-950">发布状态</h2>
-                  <span className={`border px-2 py-1 text-[0.5625rem] font-bold ${event.visibility === "public" ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-[#ff4655]/40 bg-[#fff1f2] text-[#c83242]"}`}>{event.visibility === "public" ? "已公开" : "未公开"}</span>
-                  <span className="border border-slate-200 bg-slate-50 px-2 py-1 text-[0.5625rem] font-bold text-slate-600">{STATUS_OPTIONS.find((item) => item.value === event.status)?.label}</span>
+                  <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">发布状态</h2>
+                  <span className="adm-chip" data-tone={event.visibility === "public" ? "done" : "attention"}>{event.visibility === "public" ? "已公开" : "未公开"}</span>
+                  <span className="adm-chip" data-dot="off">{STATUS_OPTIONS.find((item) => item.value === event.status)?.label}</span>
                 </div>
-                <p className="mt-2 text-xs font-bold text-slate-600">{readyToPublish ? "发布前检查已通过" : `仍有 ${publishChecks.filter((item) => !item.ok).length} 项需要确认`}</p>
+                <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">{readyToPublish ? "发布前检查已通过" : `仍有 ${publishChecks.filter((item) => !item.ok).length} 项需要确认`}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {dirty && (
-                  <button type="button" onClick={save} disabled={saveState === "saving" || uploading} className="border border-[#ff4655] bg-white px-4 py-2.5 text-xs font-black text-[#c83242] disabled:opacity-40">
+                  <button type="button" onClick={save} disabled={saveState === "saving" || uploading} className="adm-btn adm-btn--danger adm-btn--md">
                     {saveState === "saving" ? "正在保存…" : "保存全部修改"}
                   </button>
                 )}
-                <Link href={`/events/${event.id}?preview=1`} target="_blank" className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700">预览玩家页面</Link>
+                <Link href={`/events/${event.id}?preview=1`} target="_blank" className="adm-btn adm-btn--secondary adm-btn--md">预览玩家页面</Link>
                 {event.visibility === "public" ? (
-                  <button type="button" onClick={() => updatePublication("unpublish")} disabled={publishing || dirty} className="border border-red-300 bg-white px-4 py-2.5 text-xs font-black text-red-700 disabled:opacity-40">从玩家侧撤回</button>
+                  <button type="button" onClick={() => updatePublication("unpublish")} disabled={publishing || dirty} className="adm-btn adm-btn--danger adm-btn--md">从玩家侧撤回</button>
                 ) : (
-                  <button type="button" onClick={() => updatePublication("publish")} disabled={publishing || dirty || !readyToPublish} className="bg-[#ff4655] px-4 py-2.5 text-xs font-black text-white disabled:opacity-40">发布到玩家侧</button>
+                  <button type="button" onClick={() => updatePublication("publish")} disabled={publishing || dirty || !readyToPublish} className="adm-btn adm-btn--primary adm-btn--md">发布到玩家侧</button>
                 )}
               </div>
             </div>
-            {dirty && <p className="mt-4 border-t border-amber-200 pt-3 text-xs font-bold text-amber-800">存在未保存修改，保存后方可更新公开状态。</p>}
+            {dirty && <p className="mt-4 border-t border-[var(--adm-line-soft)] pt-3 text-[length:var(--adm-fs-md)] text-[var(--adm-warn-text)]">存在未保存修改，保存后方可更新公开状态。</p>}
           </section>
 
-          <Panel eyebrow="PUBLICATION CHECK" title="发布前待确认">
-            <div className="grid border-l border-t border-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+          <Panel eyebrow="发布检查" title="发布前待确认">
+            <div className="grid border-l border-t border-[var(--adm-line-soft)] sm:grid-cols-2 lg:grid-cols-3">
               {publishChecks.map((item) => (
-                <button key={item.key} type="button" onClick={() => setView(checkView(item.key))} className="flex min-h-24 items-start justify-between gap-4 border-b border-r border-slate-200 p-4 text-left hover:bg-slate-50">
+                <button key={item.key} type="button" onClick={() => setView(checkView(item.key))} className="flex min-h-24 items-start justify-between gap-4 border-b border-r border-[var(--adm-line-soft)] p-4 text-left hover:bg-[var(--adm-surface-2)]">
                   <div>
-                    <p className="text-xs font-black text-slate-900">{item.label}</p>
-                    <p className="mt-2 text-[0.625rem] leading-5 text-slate-500">{item.detail}</p>
+                    <p className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">{item.label}</p>
+                    <p className="mt-2 text-[length:var(--adm-fs-sm)] leading-[1.65] text-[var(--adm-text-soft)]">{item.detail}</p>
                   </div>
-                  <span className={`font-mono text-xs font-black ${item.ok ? "text-emerald-600" : "text-red-600"}`}>{item.ok ? "PASS" : "TODO"}</span>
+                  <span className={`text-[length:var(--adm-fs-md)] font-medium ${item.ok ? "text-[var(--adm-ok-text)]" : "text-[var(--adm-red-text)]"}`}>{item.ok ? "PASS" : "TODO"}</span>
                 </button>
               ))}
             </div>
           </Panel>
 
-          <Panel eyebrow="CONFIGURATION" title="配置摘要">
-            <div className="grid border-l border-t border-slate-200 md:grid-cols-2">
-              <button type="button" onClick={() => setView("event")} className="border-b border-r border-slate-200 p-5 text-left hover:bg-slate-50">
-                <p className="font-mono text-[0.5625rem] font-black text-[#c83242]">01 / EVENT</p>
-                <h3 className="mt-2 text-sm font-black text-slate-950">赛事与报名</h3>
-                <p className="mt-2 text-xs text-slate-600">{event.name} · {event.teamCount} 队 · {event.registrationStart || "报名时间待定"}</p>
+          <Panel eyebrow="配置概览" title="配置摘要">
+            <div className="grid border-l border-t border-[var(--adm-line-soft)] md:grid-cols-2">
+              <button type="button" onClick={() => setView("event")} className="border-b border-r border-[var(--adm-line-soft)] p-5 text-left hover:bg-[var(--adm-surface-2)]">
+                <p className="text-[length:var(--adm-fs-xs)] font-medium text-[var(--adm-red-text)]">01 / 赛事信息</p>
+                <h3 className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">赛事与报名</h3>
+                <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">{event.name} · {event.teamCount} 队 · {event.registrationStart || "报名时间待定"}</p>
               </button>
-              <button type="button" onClick={() => setView("handbook")} className="border-b border-r border-slate-200 p-5 text-left hover:bg-slate-50">
-                <p className="font-mono text-[0.5625rem] font-black text-[#c83242]">02 / HANDBOOK</p>
-                <h3 className="mt-2 text-sm font-black text-slate-950">赛事规程</h3>
-                <p className="mt-2 text-xs text-slate-600">赛制规则 {formatRuleCount} · 通用规则 {commonRuleCount} · 本届新增 {eventRuleCount}{pendingRuleCount ? ` · ${pendingRuleCount} 条处罚待确认` : ""}</p>
+              <button type="button" onClick={() => setView("handbook")} className="border-b border-r border-[var(--adm-line-soft)] p-5 text-left hover:bg-[var(--adm-surface-2)]">
+                <p className="text-[length:var(--adm-fs-xs)] font-medium text-[var(--adm-red-text)]">02 / 赛事规程</p>
+                <h3 className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">赛事规程</h3>
+                <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">赛制规则 {formatRuleCount} · 通用规则 {commonRuleCount} · 本届新增 {eventRuleCount}{pendingRuleCount ? ` · ${pendingRuleCount} 条处罚待确认` : ""}</p>
               </button>
-              <button type="button" onClick={() => setView("maps")} className="border-b border-r border-slate-200 p-5 text-left hover:bg-slate-50">
-                <p className="font-mono text-[0.5625rem] font-black text-[#c83242]">03 / MAP & BP</p>
-                <h3 className="mt-2 text-sm font-black text-slate-950">地图与 BP</h3>
-                <p className="mt-2 text-xs text-slate-600">已启用 {event.mapPool.length} 张赛事地图</p>
+              <button type="button" onClick={() => setView("maps")} className="border-b border-r border-[var(--adm-line-soft)] p-5 text-left hover:bg-[var(--adm-surface-2)]">
+                <p className="text-[length:var(--adm-fs-xs)] font-medium text-[var(--adm-red-text)]">03 / 地图与 BP</p>
+                <h3 className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">地图与 BP</h3>
+                <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">已启用 {event.mapPool.length} 张赛事地图</p>
               </button>
-              <button type="button" onClick={() => setView("public")} className="border-b border-r border-slate-200 p-5 text-left hover:bg-slate-50">
-                <p className="font-mono text-[0.5625rem] font-black text-[#c83242]">04 / PUBLIC PAGE</p>
-                <h3 className="mt-2 text-sm font-black text-slate-950">玩家页面</h3>
-                <p className="mt-2 text-xs text-slate-600">简介、奖项与赛事视觉</p>
+              <button type="button" onClick={() => setView("public")} className="border-b border-r border-[var(--adm-line-soft)] p-5 text-left hover:bg-[var(--adm-surface-2)]">
+                <p className="text-[length:var(--adm-fs-xs)] font-medium text-[var(--adm-red-text)]">04 / 玩家页面</p>
+                <h3 className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">玩家页面</h3>
+                <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">简介、奖项与赛事视觉</p>
               </button>
             </div>
           </Panel>
 
-          <Panel eyebrow="EVENT MANAGEMENT" title="赛事归档与删除">
-            <div className="divide-y divide-slate-200 border border-slate-200">
+          <Panel eyebrow="赛事管理" title="赛事归档与删除">
+            <div className="divide-y divide-[var(--adm-line-soft)] border border-[var(--adm-line-soft)]">
               <div className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center">
                 <div>
-                  <h3 className="text-sm font-black text-slate-950">归档为往届赛事</h3>
-                  <p className="mt-1 text-xs font-medium text-slate-600">保留报名、赛程、赛果及 BP 数据，赛事标记为已归档。</p>
+                  <h3 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">归档为往届赛事</h3>
+                  <p className="mt-1 text-[length:var(--adm-fs-md)] font-medium text-[var(--adm-text-soft)]">保留报名、赛程、赛果及 BP 数据，赛事标记为已归档。</p>
                 </div>
-                <button type="button" onClick={archiveEvent} disabled={!canArchive} className="min-h-11 shrink-0 border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">
+                <button type="button" onClick={archiveEvent} disabled={!canArchive} className="adm-btn adm-btn--secondary adm-btn--md shrink-0">
                   {event.status === "archived" ? "已归档" : eventAction === "archiving" ? "正在归档…" : event.status === "completed" ? "归档赛事" : "赛事结束后可归档"}
                 </button>
               </div>
@@ -441,49 +441,49 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
               <div className="p-4">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
-                    <h3 className="text-sm font-black text-red-700">永久删除测试赛事</h3>
-                    <p className="mt-1 text-xs font-medium text-slate-600">报名、队伍、抽签、赛程和 BP 数据将全部删除，无法恢复。</p>
-                    {event.visibility === "public" && <p className="mt-2 text-xs font-bold text-red-700">请先从玩家侧撤回赛事。</p>}
-                    {event.visibility === "private" && event.status !== "draft" && event.status !== "archived" && <p className="mt-2 text-xs font-bold text-red-700">只有筹备中或已归档赛事可以永久删除。</p>}
-                    {eventCount <= 1 && <p className="mt-2 text-xs font-bold text-red-700">系统至少需要保留一场赛事。</p>}
+                    <h3 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-red-text)]">永久删除测试赛事</h3>
+                    <p className="mt-1 text-[length:var(--adm-fs-md)] font-medium text-[var(--adm-text-soft)]">报名、队伍、抽签、赛程和 BP 数据将全部删除，无法恢复。</p>
+                    {event.visibility === "public" && <p className="mt-2 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">请先从玩家侧撤回赛事。</p>}
+                    {event.visibility === "private" && event.status !== "draft" && event.status !== "archived" && <p className="mt-2 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">只有筹备中或已归档赛事可以永久删除。</p>}
+                    {eventCount <= 1 && <p className="mt-2 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">系统至少需要保留一场赛事。</p>}
                   </div>
-                  <button type="button" onClick={() => { setDeleteConfirmOpen(true); setDeleteConfirmName(""); setMessage(""); }} disabled={!canDelete} className="min-h-11 shrink-0 border border-red-300 bg-white px-4 py-2.5 text-xs font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-40">
+                  <button type="button" onClick={() => { setDeleteConfirmOpen(true); setDeleteConfirmName(""); setMessage(""); }} disabled={!canDelete} className="adm-btn adm-btn--danger adm-btn--md shrink-0">
                     永久删除
                   </button>
                 </div>
 
                 {deleteConfirmOpen && deleteEligible && (
-                  <div className="mt-4 border border-red-300 bg-red-50 p-4">
-                    <p className="text-xs font-black text-red-800">输入完整赛事名称确认：{event.name}</p>
+                  <div className="adm-note adm-note--danger mt-4">
+                    <p className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-red-text)]">输入完整赛事名称确认：{event.name}</p>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                      <input value={deleteConfirmName} onChange={(change) => setDeleteConfirmName(change.target.value)} autoComplete="off" className={`${inputClass} border-red-300`} />
-                      <button type="button" onClick={deleteEventPermanently} disabled={deleteConfirmName.trim() !== event.name || eventAction === "deleting"} className="min-h-11 shrink-0 bg-red-700 px-5 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+                      <input value={deleteConfirmName} onChange={(change) => setDeleteConfirmName(change.target.value)} autoComplete="off" className={`${inputClass} border-[var(--adm-red-line)]`} />
+                      <button type="button" onClick={deleteEventPermanently} disabled={deleteConfirmName.trim() !== event.name || eventAction === "deleting"} className="adm-btn adm-btn--primary adm-btn--md shrink-0">
                         {eventAction === "deleting" ? "正在删除…" : "确认永久删除"}
                       </button>
-                      <button type="button" onClick={() => { setDeleteConfirmOpen(false); setDeleteConfirmName(""); }} disabled={eventAction === "deleting"} className="min-h-11 shrink-0 border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 disabled:opacity-40">取消</button>
+                      <button type="button" onClick={() => { setDeleteConfirmOpen(false); setDeleteConfirmName(""); }} disabled={eventAction === "deleting"} className="adm-btn adm-btn--secondary adm-btn--md shrink-0">取消</button>
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            {message && <p className={`mt-3 text-xs font-bold ${saveState === "error" ? "text-red-700" : "text-emerald-700"}`}>{message}</p>}
+            {message && <p className={`mt-3 text-[length:var(--adm-fs-md)] font-bold ${saveState === "error" ? "text-[var(--adm-red-text)]" : "text-[var(--adm-ok-text)]"}`}>{message}</p>}
           </Panel>
         </>
       )}
 
       {view === "event" && (
-        <Panel eyebrow="EVENT & REGISTRATION" title="赛事与报名">
+        <Panel eyebrow="基础信息" title="赛事与报名">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="赛事名称"><input value={event.name} onChange={(change) => patchEvent({ name: change.target.value })} className={inputClass} /></Field>
             <Field label="比赛项目"><input value={event.game} onChange={(change) => patchEvent({ game: change.target.value })} className={inputClass} /></Field>
             <Field label="主办方"><input value={event.organizer} onChange={(change) => patchEvent({ organizer: change.target.value })} className={inputClass} /></Field>
             <Field label="赛事阶段"><select value={event.status} onChange={(change) => patchEvent({ status: change.target.value as EditableEvent["status"] })} className={inputClass}>{STATUS_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
           </div>
-          <div className="mt-5 grid border-l border-t border-slate-200 sm:grid-cols-3">
-            <div className="border-b border-r border-slate-200 p-4"><p className="text-[0.625rem] font-bold text-slate-500">参赛规模</p><p className="mt-1 text-sm font-black">{event.teamCount} 队 / 每队 {event.teamSize} 名首发</p></div>
-            <div className="border-b border-r border-slate-200 p-4 sm:col-span-2"><p className="text-[0.625rem] font-bold text-slate-500">赛制摘要</p><p className="mt-1 text-sm font-black leading-6">{event.stageSummary}</p></div>
+          <div className="mt-5 grid border-l border-t border-[var(--adm-line-soft)] sm:grid-cols-3">
+            <div className="border-b border-r border-[var(--adm-line-soft)] p-4"><p className="text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text-soft)]">参赛规模</p><p className="mt-1 text-[length:var(--adm-fs-lg)] font-semibold">{event.teamCount} 队 / 每队 {event.teamSize} 名首发</p></div>
+            <div className="border-b border-r border-[var(--adm-line-soft)] p-4 sm:col-span-2"><p className="text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text-soft)]">赛制摘要</p><p className="mt-1 text-[length:var(--adm-fs-lg)] font-semibold leading-[1.75]">{event.stageSummary}</p></div>
           </div>
-          <div className="mt-6 grid gap-4 border-t border-slate-200 pt-5 md:grid-cols-2">
+          <div className="mt-6 grid gap-4 border-t border-[var(--adm-line-soft)] pt-5 md:grid-cols-2">
             <Field label="报名开始日期"><input type="date" value={event.registrationStart} onChange={(change) => patchEvent({ registrationStart: change.target.value })} className={inputClass} /></Field>
             <Field label="选手报名截止"><input type="date" value={event.registrationEnd} onChange={(change) => patchEvent({ registrationEnd: change.target.value })} className={inputClass} /></Field>
             <Field label="队伍申报截止"><input type="date" value={event.teamRegistrationEnd} onChange={(change) => patchEvent({ teamRegistrationEnd: change.target.value })} className={inputClass} /></Field>
@@ -496,22 +496,28 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
 
       {view === "handbook" && (
         <Panel
-          eyebrow="COMPETITION HANDBOOK"
+          eyebrow="规程与规则"
           title="赛事规程"
-          actions={<div className="flex flex-wrap gap-2"><button type="button" onClick={saveAsCommonPreset} disabled={syncingPreset} className="border border-[#ff4655] px-3 py-2 text-xs font-bold text-[#c83242] disabled:opacity-40">{syncingPreset ? "正在保存…" : "保存为以后赛事的通用规则"}</button><button type="button" onClick={() => { if (window.confirm("将按当前赛制和通用规则重新生成本届全部规则，已修改及新增内容会被覆盖，参赛程序不受影响。确认继续？")) patchEvent({ rules: buildDefaultEventRules(event.stageConfigs, event.teamSize, commonPreset) }); }} className="border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600">重新生成本届规则</button></div>}
+          actions={<div className="flex flex-wrap gap-2"><button type="button" onClick={saveAsCommonPreset} disabled={syncingPreset} className="adm-btn adm-btn--danger adm-btn--md">{syncingPreset ? "正在保存…" : "保存为以后赛事的通用规则"}</button><button type="button" onClick={() => { void regenerateRules(); }} className="adm-btn adm-btn--secondary adm-btn--md">重新生成本届规则</button></div>}
         >
-          <div className="mb-5 grid border-l border-t border-slate-200 sm:grid-cols-4">
-            <div className="border-b border-r border-slate-200 p-3"><p className="text-[0.5625rem] text-slate-500">赛制规则</p><p className="mt-1 text-lg font-black">{formatRuleCount}</p></div>
-            <div className="border-b border-r border-slate-200 p-3"><p className="text-[0.5625rem] text-slate-500">通用规则</p><p className="mt-1 text-lg font-black">{commonRuleCount}</p></div>
-            <div className="border-b border-r border-slate-200 p-3"><p className="text-[0.5625rem] text-slate-500">本届新增</p><p className="mt-1 text-lg font-black">{eventRuleCount}</p></div>
-            <div className={`border-b border-r border-slate-200 p-3 ${pendingRuleCount ? "bg-amber-50" : ""}`}><p className="text-[0.5625rem] text-slate-500">待确认处罚</p><p className={`mt-1 text-lg font-black ${pendingRuleCount ? "text-amber-700" : "text-emerald-700"}`}>{pendingRuleCount}</p></div>
+          <div className="mb-5 grid border-l border-t border-[var(--adm-line-soft)] sm:grid-cols-4">
+            <div className="border-b border-r border-[var(--adm-line-soft)] p-3"><p className="text-[length:var(--adm-fs-xs)] text-[var(--adm-text-soft)]">赛制规则</p><p className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold">{formatRuleCount}</p></div>
+            <div className="border-b border-r border-[var(--adm-line-soft)] p-3"><p className="text-[length:var(--adm-fs-xs)] text-[var(--adm-text-soft)]">通用规则</p><p className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold">{commonRuleCount}</p></div>
+            <div className="border-b border-r border-[var(--adm-line-soft)] p-3"><p className="text-[length:var(--adm-fs-xs)] text-[var(--adm-text-soft)]">本届新增</p><p className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold">{eventRuleCount}</p></div>
+            <div className="border-b border-r border-[var(--adm-line-soft)] p-3"><p className="text-[length:var(--adm-fs-xs)] text-[var(--adm-text-soft)]">待确认处罚</p><p className={`mt-1 text-[length:var(--adm-fs-xl)] font-semibold tabular-nums ${pendingRuleCount ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text)]"}`}>{pendingRuleCount}</p></div>
           </div>
 
-          <div className="mb-5 overflow-x-auto border-y border-slate-200">
+          <div className="mb-5 overflow-x-auto border-y border-[var(--adm-line-soft)]">
             <div className="flex min-w-max">
               {HANDBOOK_SECTIONS.map((item) => {
                 const count = item.key === "steps" ? event.preparationSteps.length : event.rules.filter((rule) => (rule.category ?? "conduct") === item.key).length;
-                return <button key={item.key} type="button" onClick={() => { setHandbookSection(item.key); setEditingRule(null); setEditingStep(null); }} className={`border-r border-slate-200 px-4 py-3 text-xs font-bold ${handbookSection === item.key ? "bg-[#171a1f] text-white" : "text-slate-600 hover:bg-slate-50"}`}>{item.label} <span className="ml-1 opacity-60">{count}</span></button>;
+                // 选中态原来是深墨块（bg-[var(--adm-text)] + 白字），是管理端最后一处深色填充。
+                // 改成「白底墨字 + 底部 2px 红条」：结构线负责分隔，品牌红负责指认当前项。
+                // 非选中项也占 2px 透明底边，这样切换时文字不会上下跳。
+                // ⚠️ `border-b-transparent` 必须写进非选中分支：放进基础类会和选中分支的
+                //    `border-b-[var(--adm-red)]` 同时命中，产物里 transparent 排在后面把它盖住，
+                //    实测底边色会读成 rgba(0,0,0,0)，红条根本不显示。
+                return <button key={item.key} type="button" onClick={() => { setHandbookSection(item.key); setEditingRule(null); setEditingStep(null); }} className={`border-r border-b-2 border-[var(--adm-line-soft)] px-4 py-3 text-[length:var(--adm-fs-md)] font-bold ${handbookSection === item.key ? "border-b-[var(--adm-red)] text-[var(--adm-text)]" : "border-b-transparent text-[var(--adm-text-soft)] hover:bg-[var(--adm-surface-2)]"}`}>{item.label} <span className="ml-1 opacity-60">{count}</span></button>;
               })}
             </div>
           </div>
@@ -519,58 +525,59 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
           {handbookSection === "steps" ? (
             <div className="space-y-2">
               {event.preparationSteps.map((step, index) => (
-                <article key={index} className="border border-slate-200">
+                <article key={index} className="border border-[var(--adm-line-soft)]">
                   <div className="flex items-center justify-between gap-4 px-4 py-3">
-                    <div className="flex items-center gap-4"><span className="font-mono text-[0.625rem] font-black text-[#c83242]">{step.number}</span><h3 className="text-sm font-black">{step.title}</h3></div>
-                    <button type="button" onClick={() => setEditingStep(editingStep === index ? null : index)} className="text-xs font-bold text-slate-600">{editingStep === index ? "收起" : "编辑"}</button>
+                    <div className="flex items-center gap-4"><span className="text-[length:var(--adm-fs-sm)] font-medium text-[var(--adm-red-text)]">{step.number}</span><h3 className="text-[length:var(--adm-fs-lg)] font-semibold">{step.title}</h3></div>
+                    <button type="button" onClick={() => setEditingStep(editingStep === index ? null : index)} className="adm-btn adm-btn--ghost adm-btn--md">{editingStep === index ? "收起" : "编辑"}</button>
                   </div>
-                  {editingStep === index && <div className="grid gap-3 border-t border-slate-200 bg-slate-50 p-4 md:grid-cols-[5rem_12rem_1fr_auto]"><input value={step.number} onChange={(change) => updateStep(index, { number: change.target.value })} className={inputClass} /><input value={step.title} onChange={(change) => updateStep(index, { title: change.target.value })} className={inputClass} /><textarea rows={2} value={step.detail} onChange={(change) => updateStep(index, { detail: change.target.value })} className={textareaClass} /><button type="button" onClick={() => patchEvent({ preparationSteps: event.preparationSteps.filter((_, stepIndex) => stepIndex !== index) })} className="self-end border border-red-200 px-3 py-2.5 text-xs font-bold text-red-600">删除</button></div>}
+                  {editingStep === index && <div className="grid gap-3 border-t border-[var(--adm-line-soft)] bg-[var(--adm-surface-2)] p-4 md:grid-cols-[5rem_12rem_1fr_auto]"><input value={step.number} onChange={(change) => updateStep(index, { number: change.target.value })} className={inputClass} /><input value={step.title} onChange={(change) => updateStep(index, { title: change.target.value })} className={inputClass} /><textarea rows={2} value={step.detail} onChange={(change) => updateStep(index, { detail: change.target.value })} className={textareaClass} /><button type="button" onClick={() => patchEvent({ preparationSteps: event.preparationSteps.filter((_, stepIndex) => stepIndex !== index) })} className="adm-btn adm-btn--danger adm-btn--md self-end">删除</button></div>}
                 </article>
               ))}
-              <button type="button" onClick={() => { const next = event.preparationSteps.length; patchEvent({ preparationSteps: [...event.preparationSteps, { number: String(next + 1).padStart(2, "0"), title: "新步骤", detail: "待填写" }] }); setEditingStep(next); }} className="border border-dashed border-slate-300 px-4 py-3 text-xs font-bold text-slate-600">＋ 添加参赛步骤</button>
+              <button type="button" onClick={() => { const next = event.preparationSteps.length; patchEvent({ preparationSteps: [...event.preparationSteps, { number: String(next + 1).padStart(2, "0"), title: "新步骤", detail: "待填写" }] }); setEditingStep(next); }} className="adm-btn adm-btn--secondary adm-btn--md border-dashed">＋ 添加参赛步骤</button>
             </div>
           ) : (
             <div className="space-y-2">
               {filteredRules.map(({ rule, index }) => (
-                <article key={index} className={`border ${rule.confirmed === false ? "border-amber-300" : "border-slate-200"}`}>
+                <article key={index} className={`border ${rule.confirmed === false ? "border-[var(--adm-line)] bg-[var(--adm-surface-2)]" : "border-[var(--adm-line-soft)]"}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-black text-slate-950">{rule.title}</h3>{editingRule === index && <SourceBadge rule={rule} />}{rule.emphasis === "warning" && <span className={`border px-2 py-1 text-[0.5625rem] font-bold ${rule.confirmed === false ? "border-amber-300 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{rule.confirmed === false ? "待负责人确认" : "已确认"}</span>}</div>
-                    <div className="flex gap-3">{rule.emphasis === "warning" && <button type="button" onClick={() => updateRule(index, { confirmed: rule.confirmed === false }, false)} className="text-xs font-bold text-amber-700">{rule.confirmed === false ? "确认条款" : "撤销确认"}</button>}<button type="button" onClick={() => setEditingRule(editingRule === index ? null : index)} className="text-xs font-bold text-slate-600">{editingRule === index ? "收起" : "编辑"}</button></div>
+                    <div className="flex flex-wrap items-center gap-2"><h3 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{rule.title}</h3>{editingRule === index && <SourceBadge rule={rule} />}{rule.emphasis === "warning" && <span className="adm-chip" data-tone={rule.confirmed === false ? "attention" : "done"}>{rule.confirmed === false ? "待负责人确认" : "已确认"}</span>}</div>
+                    <div className="flex gap-3">{rule.emphasis === "warning" && <button type="button" onClick={() => updateRule(index, { confirmed: rule.confirmed === false }, false)} className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-warn-text)]">{rule.confirmed === false ? "确认条款" : "撤销确认"}</button>}<button type="button" onClick={() => setEditingRule(editingRule === index ? null : index)} className="adm-btn adm-btn--ghost adm-btn--md">{editingRule === index ? "收起" : "编辑"}</button></div>
                   </div>
                   {editingRule === index ? (
-                    <div className="border-t border-slate-200 bg-slate-50 p-4">
-                      <div className="grid gap-3 md:grid-cols-[1fr_11rem_9rem_auto]"><input value={rule.title} onChange={(change) => updateRule(index, { title: change.target.value })} className={inputClass} /><select value={rule.category ?? "conduct"} onChange={(change) => updateRule(index, { category: change.target.value as NonNullable<EditableRule["category"]> })} className={inputClass}>{RULE_CATEGORY_OPTIONS.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select><select value={rule.emphasis ?? "normal"} onChange={(change) => updateRule(index, { emphasis: change.target.value as NonNullable<EditableRule["emphasis"]>, confirmed: change.target.value === "warning" ? false : true })} className={inputClass}><option value="normal">常规</option><option value="important">重点</option><option value="warning">警示</option></select><button type="button" onClick={() => patchEvent({ rules: event.rules.filter((_, ruleIndex) => ruleIndex !== index) })} className="border border-red-200 px-3 py-2.5 text-xs font-bold text-red-600">删除</button></div>
+                    <div className="border-t border-[var(--adm-line-soft)] bg-[var(--adm-surface-2)] p-4">
+                      <div className="grid gap-3 md:grid-cols-[1fr_11rem_9rem_auto]"><input value={rule.title} onChange={(change) => updateRule(index, { title: change.target.value })} className={inputClass} /><select value={rule.category ?? "conduct"} onChange={(change) => updateRule(index, { category: change.target.value as NonNullable<EditableRule["category"]> })} className={inputClass}>{RULE_CATEGORY_OPTIONS.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select><select value={rule.emphasis ?? "normal"} onChange={(change) => updateRule(index, { emphasis: change.target.value as NonNullable<EditableRule["emphasis"]>, confirmed: change.target.value === "warning" ? false : true })} className={inputClass}><option value="normal">常规</option><option value="important">重点</option><option value="warning">警示</option></select><button type="button" onClick={() => patchEvent({ rules: event.rules.filter((_, ruleIndex) => ruleIndex !== index) })} className="adm-btn adm-btn--danger adm-btn--md">删除</button></div>
                       <textarea rows={3} value={rule.detail} onChange={(change) => updateRule(index, { detail: change.target.value })} className={`${textareaClass} mt-3`} />
                     </div>
-                  ) : <p className="border-t border-slate-100 px-4 py-3 text-xs leading-6 text-slate-600">{rule.detail}</p>}
+                  ) : <p className="border-t border-[var(--adm-line-soft)] px-4 py-3 text-[length:var(--adm-fs-md)] leading-[1.75] text-[var(--adm-text-soft)]">{rule.detail}</p>}
                 </article>
               ))}
-              <button type="button" onClick={() => { const next = event.rules.length; patchEvent({ rules: [...event.rules, { title: "新规则", detail: "待填写", category: handbookSection, emphasis: "normal", source: "event", customized: true, confirmed: true }] }); setEditingRule(next); }} className="border border-dashed border-slate-300 px-4 py-3 text-xs font-bold text-slate-600">＋ 添加本届规则</button>
+              <button type="button" onClick={() => { const next = event.rules.length; patchEvent({ rules: [...event.rules, { title: "新规则", detail: "待填写", category: handbookSection, emphasis: "normal", source: "event", customized: true, confirmed: true }] }); setEditingRule(next); }} className="adm-btn adm-btn--secondary adm-btn--md border-dashed">＋ 添加本届规则</button>
             </div>
           )}
         </Panel>
       )}
 
       {view === "maps" && (
-        <Panel eyebrow="MAP POOL & BP" title="地图与 BP">
-          <div className="mb-4 flex items-center justify-between gap-3"><p className="text-xs font-bold text-slate-600">当前启用 {event.mapPool.length} 张地图</p>{event.mapPool.length < 5 && <span className="text-xs font-bold text-red-600">BO5 至少需要5张地图</span>}</div>
+        <Panel eyebrow="地图池" title="地图与 BP">
+          <div className="mb-4 flex items-center justify-between gap-3"><p className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">当前启用 {event.mapPool.length} 张地图</p>{event.mapPool.length < 5 && <span className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">BO5 至少需要5张地图</span>}</div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {VALORANT_MAPS.map((map) => { const active = event.mapPool.some((item) => item.id === map.id); return <button key={map.id} type="button" onClick={() => toggleMap(map)} className={`overflow-hidden border text-left ${active ? "border-[#ff4655] bg-[#fff1f2]" : "border-slate-200 bg-white"}`}>{mapImageOf(map) && <Image src={mapImageOf(map)!} alt={map.name} width={320} height={80} className={`h-20 w-full object-cover ${active ? "opacity-100" : "opacity-45"}`} />}<span className="flex items-center justify-between px-3 py-2 text-xs font-bold">{map.name}<span className={active ? "text-[#c83242]" : "text-slate-400"}>{active ? "已启用" : "未启用"}</span></span></button>; })}
+            {VALORANT_MAPS.map((map) => { const active = event.mapPool.some((item) => item.id === map.id); return <button key={map.id} type="button" onClick={() => toggleMap(map)} aria-pressed={active} className={`overflow-hidden border text-left transition ${active ? "border-[var(--adm-red)] bg-[var(--adm-surface)]" : "border-[var(--adm-line-soft)] bg-[var(--adm-surface)] hover:border-[var(--adm-line)]"}`}>{mapImageOf(map) && <Image src={mapImageOf(map)!} alt={map.name} width={320} height={80} className={`h-20 w-full object-cover ${active ? "opacity-100" : "opacity-40"}`} />}<span className="flex items-center justify-between px-3 py-2 text-[length:var(--adm-fs-md)]"><span className={active ? "font-semibold text-[var(--adm-text)]" : "text-[var(--adm-text-soft)]"}>{map.name}</span><span className={`text-[length:var(--adm-fs-xs)] ${active ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text-mute)]"}`}>{active ? "已启用" : "未启用"}</span></span></button>; })}
           </div>
         </Panel>
       )}
 
       {view === "public" && (
-        <Panel eyebrow="PUBLIC EVENT PAGE" title="玩家页面">
+        <Panel eyebrow="公开内容" title="玩家页面">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2"><Field label="赛事简介"><textarea rows={4} value={event.description} onChange={(change) => patchEvent({ description: change.target.value })} className={textareaClass} /></Field></div>
             <div className="md:col-span-2"><Field label="奖项说明"><textarea rows={3} value={event.prizePool} onChange={(change) => patchEvent({ prizePool: change.target.value })} className={textareaClass} /></Field></div>
-            <Field label="赛事主题色"><input type="color" value={event.coverColor} onChange={(change) => patchEvent({ coverColor: change.target.value })} className={`${inputClass} h-11 p-1`} /></Field>
-            <Field label="赛事海报"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPoster} className="block w-full border border-slate-300 bg-white text-xs text-slate-500 file:mr-3 file:border-0 file:bg-[#ff4655] file:px-3 file:py-2.5 file:text-xs file:font-bold file:text-white" /></Field>
-            {event.posterImage && <div className="md:col-span-2 flex items-start gap-4 border border-slate-200 p-4"><Image src={event.posterImage} alt="赛事海报预览" width={96} height={128} className="h-32 w-24 object-cover" /><div><p className="text-xs font-bold">当前海报</p><button type="button" onClick={() => patchEvent({ posterImage: "" })} className="mt-3 border border-red-200 px-3 py-2 text-xs font-bold text-red-600">移除海报</button></div></div>}
+            <Field label="赛事主题色"><input type="color" value={event.coverColor} onChange={(change) => patchEvent({ coverColor: change.target.value })} className={`${inputClass} h-[44px] p-1`} /></Field>
+            <Field label="赛事海报"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPoster} className="block w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)] file:mr-3 file:border-0 file:bg-[var(--adm-red)] file:px-3 file:py-2.5 file:text-[length:var(--adm-fs-md)] file:font-bold file:text-white" /></Field>
+            {event.posterImage && <div className="md:col-span-2 flex items-start gap-4 border border-[var(--adm-line-soft)] p-4"><Image src={event.posterImage} alt="赛事海报预览" width={96} height={128} className="h-32 w-24 object-cover" /><div><p className="text-[length:var(--adm-fs-md)] font-bold">当前海报</p><button type="button" onClick={() => patchEvent({ posterImage: "" })} className="adm-btn adm-btn--danger adm-btn--md mt-3">移除海报</button></div></div>}
           </div>
         </Panel>
       )}
+      </div>
     </div>
   );
 }

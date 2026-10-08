@@ -43,6 +43,7 @@
     "test:route-guards": "tsx src/lib/admin-route-guards.test.ts"
   },
   "dependencies": {
+    "geist": "^1.7.2",
     "next": "16.3.0",
     "qrcode.react": "^4.2.0",
     "react": "19.2.8",

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminModal } from "@/components/admin/ui";
 import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, type Group, type SeedPot } from "@/lib/scheduling/format-data";
 import {
   buildDoubleEliminationMatches,
@@ -548,18 +549,18 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   ) : null;
 
   if (!loaded) {
-    return <div className="border border-slate-200 bg-white p-16 text-center text-sm text-slate-500">加载抽签数据…</div>;
+    return <div className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-16 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">加载抽签数据…</div>;
   }
 
   if (error && (!format || format.kind === "unsupported" || totalSlots === 0)) {
     return (
       <div>
-        <AdminPageHeader eyebrow="MODULE 02 / DRAW" title="抽签" />
-        <div className="border border-amber-200 bg-amber-50 p-10 text-center">
-          <p className="text-sm font-bold text-amber-900">{error}</p>
+        <AdminPageHeader eyebrow="模块 02" title="抽签" />
+        <div className="adm-note adm-note--warn p-10 text-center">
+          <p className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{error}</p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <button type="button" onClick={openFormatModal} className="bg-[#ff4655] px-4 py-2.5 text-xs font-black text-white hover:bg-[#d83b48]">调整赛制</button>
-            <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-amber-300 bg-white px-4 py-2.5 text-xs font-bold text-amber-900">返回赛程</button>
+            <button type="button" onClick={openFormatModal} className="adm-btn adm-btn--primary adm-btn--md hover:bg-[var(--adm-red-hover)]">调整赛制</button>
+            <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="adm-btn adm-btn--secondary adm-btn--md">返回赛程</button>
           </div>
         </div>
         {formatModalNode}
@@ -581,20 +582,20 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     return (
       <div>
         <AdminPageHeader
-          eyebrow="MODULE 02 / STAGED DRAW"
+          eyebrow="模块 02"
           title={isComplete ? "全部阶段已完成" : `${stagedGate.stage.name}进行中`}
           status={isComplete ? "赛事完成" : stagedGate.status === "waiting" ? `${stagedGate.completedMatches} / ${stagedGate.totalMatches} 场完成` : "需要处理"}
           actions={
             <>
-              <button type="button" onClick={openFormatModal} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">调整赛制</button>
-              <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回赛程处理</button>
+              <button type="button" onClick={openFormatModal} className="adm-btn adm-btn--secondary adm-btn--md">调整赛制</button>
+              <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="adm-btn adm-btn--secondary adm-btn--md">返回赛程处理</button>
             </>
           }
         />
         <StageProgress stages={stageList} activeIndex={progressIndex(stagedGate.stageIndex)} complete={isComplete} />
-        <div className={`border p-8 text-center ${stagedGate.status === "blocked" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
-          <p className="text-base font-black text-slate-950">{isComplete ? "全部阶段均已完成" : "下一阶段尚未解锁"}</p>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">{stagedGate.message}</p>
+        <div className={`p-8 text-center ${stagedGate.status === "blocked" ? "adm-note adm-note--warn" : "border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]"}`}>
+          <p className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{isComplete ? "全部阶段均已完成" : "下一阶段尚未解锁"}</p>
+          <p className="mx-auto mt-2 max-w-2xl text-[length:var(--adm-fs-lg)] leading-[1.75] text-[var(--adm-text-soft)]">{stagedGate.message}</p>
         </div>
         {formatModalNode}
       </div>
@@ -618,54 +619,54 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   return (
     <div>
       <AdminPageHeader
-        eyebrow="MODULE 02 / DRAW"
+        eyebrow="模块 02"
         title={drawTitle}
         description={drawDescription}
         status={done ? "抽签完成" : `已抽 ${drawnCount} / ${totalSlots}`}
         actions={
           <>
-            <button type="button" onClick={openFormatModal} disabled={done} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:opacity-40">调整赛制</button>
-            <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-950">返回对阵图</button>
+            <button type="button" onClick={openFormatModal} disabled={done} className="adm-btn adm-btn--secondary adm-btn--md">调整赛制</button>
+            <button onClick={() => router.push(`/admin/events/${eventId}/schedule`)} className="adm-btn adm-btn--secondary adm-btn--md">返回对阵图</button>
           </>
         }
       />
 
       {isStaged && activeStageIndex !== null && <StageProgress stages={stageList} activeIndex={progressIndex(activeStageIndex)} complete={false} />}
 
-      {error && <div className="mb-5 border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</div>}
+      {error && <div className="adm-note adm-note--danger mb-5 text-[length:var(--adm-fs-lg)] font-semibold">{error}</div>}
 
       {drawMode === "slot" ? (
         <div className="grid gap-5 xl:grid-cols-[280px_1fr]">
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">{activeStageIndex === 2 ? "小组赛晋级队伍" : "待抽队伍"}</h2>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{activeStageIndex === 2 ? "小组赛晋级队伍" : "待抽队伍"}</h2>
             </div>
             <div className="space-y-1.5 p-4">
               {eligibleTeamIds.map((teamId) => {
                 const position = drawOrder.indexOf(teamId);
                 const qualifier = qualifiers.find((item) => item.teamId === teamId);
                 return (
-                  <div key={teamId} className={`flex items-center justify-between gap-3 border px-3 py-2 text-xs ${lastTeamId === teamId ? "border-[#ff4655] bg-[#fff1f2] font-black text-[#c83242]" : position >= 0 ? "border-emerald-200 bg-emerald-50 text-slate-500" : "border-slate-200"}`}>
+                  <div key={teamId} className={`flex items-center justify-between gap-3 border px-3 py-2 text-[length:var(--adm-fs-md)] ${lastTeamId === teamId ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)] font-semibold text-[var(--adm-red-text)]" : position >= 0 ? "border-[var(--adm-line)] bg-[var(--adm-surface-2)] text-[var(--adm-text-soft)]" : "border-[var(--adm-line-soft)]"}`}>
                     <span className="truncate">{teamName(teamId)}</span>
-                    <span className="shrink-0 font-mono text-[0.5625rem]">{position >= 0 ? `签位 ${position + 1}` : qualifier ? `${qualifier.group}第${qualifier.placement}` : "待抽"}</span>
+                    <span className="shrink-0 text-[length:var(--adm-fs-xs)] tabular-nums text-[var(--adm-text-mute)]">{position >= 0 ? `签位 ${position + 1}` : qualifier ? `${qualifier.group}第${qualifier.placement}` : "待抽"}</span>
                   </div>
                 );
               })}
             </div>
           </section>
 
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">{activeStageIndex === 2 ? "胜者组第一轮签位" : "首轮对阵签位"}</h2>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{activeStageIndex === 2 ? "胜者组第一轮签位" : "首轮对阵签位"}</h2>
             </div>
             <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: totalSlots / 2 }, (_, matchIndex) => (
-                <div key={matchIndex} className="border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-2 font-mono text-[0.625rem] font-black text-slate-400">首轮 {String(matchIndex + 1).padStart(2, "0")}</p>
+                <div key={matchIndex} className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface-2)] p-3">
+                  <p className="mb-2 text-[length:var(--adm-fs-sm)] font-medium text-[var(--adm-text-mute)]">首轮 {String(matchIndex + 1).padStart(2, "0")}</p>
                   {[0, 1].map((side) => {
                     const position = matchIndex * 2 + side;
                     const teamId = drawOrder[position];
-                    return <div key={side} className={`mb-1 flex h-10 items-center border px-3 text-xs font-bold ${teamId ? "border-emerald-200 bg-white text-slate-900" : "border-dashed border-slate-300 text-slate-300"}`}>{teamId ? teamName(teamId) : `签位 ${position + 1}`}</div>;
+                    return <div key={side} className={`mb-1 flex h-10 items-center border px-3 text-[length:var(--adm-fs-md)] font-semibold ${teamId ? "border-[var(--adm-line)] bg-[var(--adm-surface-2)] text-[var(--adm-text)]" : "border-dashed border-[var(--adm-line)] text-[var(--adm-text-mute)]"}`}>{teamId ? teamName(teamId) : <span className="tabular-nums">签位 {position + 1}</span>}</div>;
                   })}
                 </div>
               ))}
@@ -675,36 +676,36 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         </div>
       ) : drawMode === "groups" ? (
         <div className="grid gap-5 xl:grid-cols-[280px_1fr]">
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">种子池</h2>
-              <p className="mt-1 text-[0.625rem] text-slate-400">按首发平均段位分为四档</p>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">种子池</h2>
+              <p className="mt-1 text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">按首发平均段位分为四档</p>
             </div>
             <div className="space-y-4 p-4">
               {pots.map((pot) => (
                 <div key={pot.name}>
-                  <p className="mb-2 text-xs font-bold text-slate-700">{pot.name}</p>
+                  <p className="mb-2 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">{pot.name}</p>
                   <div className="space-y-1.5">
-                    {pot.teamIds.map((teamId) => <div key={teamId} className={`border px-3 py-2 text-xs ${lastTeamId === teamId ? "border-[#ff4655] bg-[#fff1f2] font-black text-[#c83242]" : drawnGroupIds.has(teamId) ? "border-emerald-200 bg-emerald-50 text-slate-500" : "border-slate-200"}`}>{teamName(teamId)}</div>)}
+                    {pot.teamIds.map((teamId) => <div key={teamId} className={`border px-3 py-2 text-[length:var(--adm-fs-md)] ${lastTeamId === teamId ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)] font-semibold text-[var(--adm-red-text)]" : drawnGroupIds.has(teamId) ? "border-[var(--adm-line)] bg-[var(--adm-surface-2)] text-[var(--adm-text-soft)]" : "border-[var(--adm-line-soft)]"}`}>{teamName(teamId)}</div>)}
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">小组签位</h2>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">小组签位</h2>
             </div>
             <div className="grid gap-4 p-5 md:grid-cols-4">
               {groups.map((group, groupIndex) => (
                 <div key={group.name}>
-                  <p className="mb-2 text-center font-mono text-xs font-black tracking-[0.12em] text-slate-500">{group.name}</p>
+                  <p className="mb-2 text-center text-[length:var(--adm-fs-md)] font-medium tracking-[0.12em] text-[var(--adm-text-soft)]">{group.name}</p>
                   <div className="space-y-2">
                     {[0, 1, 2, 3].map((position) => {
                       const teamId = group.teamIds[position];
                       const highlight = teamId && lastTeamId === teamId && lastGroupIndex === groupIndex;
-                      return <div key={position} className={`flex h-12 items-center justify-center border px-3 text-sm ${highlight ? "border-[#ff4655] bg-[#fff1f2] font-black text-[#c83242]" : teamId ? "border-emerald-200 bg-emerald-50 font-bold text-slate-900" : "border-dashed border-slate-200 text-slate-300"}`}>{teamId ? teamName(teamId) : <span className="font-mono text-lg">?</span>}</div>;
+                      return <div key={position} className={`flex h-[52px] items-center justify-center border px-3 text-[length:var(--adm-fs-lg)] ${highlight ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)] font-semibold text-[var(--adm-red-text)]" : teamId ? "border-[var(--adm-line)] bg-[var(--adm-surface-2)] font-semibold text-[var(--adm-text)]" : "border-dashed border-[var(--adm-line-soft)] text-[var(--adm-text-mute)]"}`}>{teamId ? teamName(teamId) : <span className="text-[length:var(--adm-fs-xl)]">?</span>}</div>;
                     })}
                   </div>
                 </div>
@@ -741,33 +742,32 @@ function FormatChangeModal({
   busy: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-slate-300 bg-[#f8f6f1] shadow-2xl">
-        <div className="flex items-start justify-between gap-5 border-b border-slate-200 bg-white px-5 py-4">
-          <div>
-            <h2 className="text-base font-black text-slate-950">调整赛制</h2>
-            <p className="mt-1 text-xs leading-5 text-slate-500">报名人数与预期不符时，可在生成赛程前调整赛制；已生成赛程后将无法调整。</p>
-          </div>
-          <button type="button" onClick={onClose} className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-900">关闭</button>
-        </div>
+    <AdminModal
+      title="调整赛制"
+      subtitle="报名人数与预期不符时，可在生成赛程前调整赛制；已生成赛程后将无法调整。"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="adm-btn adm-btn--secondary adm-btn--md">取消</button>
+          <button type="button" onClick={onConfirm} disabled={busy || !targetTemplate} className="adm-btn adm-btn--primary adm-btn--md">{busy ? "调整中…" : "确认调整"}</button>
+        </>
+      }
+    >
+      <>
         <div className="space-y-3 p-5">
-          {hint && <p className="border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold leading-5 text-slate-700">{hint}</p>}
+          {hint && <p className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-md)] font-bold leading-[1.65] text-[var(--adm-text-soft)]">{hint}</p>}
           {FORMAT_TEMPLATES.filter((template) => template.teamCount >= 8).map((template) => (
-            <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[#ff4655] bg-[#fff1f2]" : "border-slate-200 bg-white hover:border-slate-400"}`}>
+            <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)]" : "border-[var(--adm-line-soft)] bg-[var(--adm-surface)] hover:border-[var(--adm-text)]"}`}>
               <input type="radio" name="template" value={template.id} checked={targetTemplate === template.id} onChange={() => onSelect(template.id)} className="mt-0.5" />
               <span className="min-w-0">
-                <span className="block text-sm font-black text-slate-900">{template.name}</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">{template.description}</span>
+                <span className="block text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{template.name}</span>
+                <span className="mt-1 block text-[length:var(--adm-fs-md)] leading-[1.65] text-[var(--adm-text-soft)]">{template.description}</span>
               </span>
             </label>
           ))}
         </div>
-        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4">
-          <button type="button" onClick={onClose} className="border border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-600">取消</button>
-          <button type="button" onClick={onConfirm} disabled={busy || !targetTemplate} className="bg-[#ff4655] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{busy ? "调整中…" : "确认调整"}</button>
-        </div>
-      </div>
-    </div>
+      </>
+    </AdminModal>
   );
 }
 
@@ -793,37 +793,37 @@ function DrawActions({
   lastText: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 border-t border-slate-200 p-6">
+    <div className="flex flex-wrap items-center justify-center gap-4 border-t border-[var(--adm-line-soft)] p-6">
       {done ? (
         <>
-          <button onClick={onPublish} disabled={publishing} className="bg-[#ff4655] px-10 py-4 text-base font-black text-white hover:bg-[#d83b48] disabled:opacity-60">{publishing ? "发布中…" : publishLabel}</button>
-          <button onClick={onRedraw} className="border border-slate-300 px-8 py-4 text-sm font-bold text-slate-600 hover:border-slate-950">重新抽签</button>
+          <button onClick={onPublish} disabled={publishing} className="adm-btn adm-btn--primary adm-btn--lg hover:bg-[var(--adm-red-hover)]">{publishing ? "发布中…" : publishLabel}</button>
+          <button onClick={onRedraw} className="adm-btn adm-btn--secondary adm-btn--lg">重新抽签</button>
         </>
       ) : (
         <>
-          <button onClick={onOne} disabled={remaining === 0} className="bg-[#ff4655] px-10 py-4 text-base font-black text-white hover:bg-[#d83b48] disabled:opacity-60">抽下一队</button>
-          <button onClick={onAll} disabled={remaining === 0} className="border border-slate-300 px-8 py-4 text-sm font-bold text-slate-600 hover:border-slate-950">一键抽完</button>
-          <button onClick={onRedraw} className="text-xs font-bold text-slate-400 hover:text-[#c83242]">重新开始</button>
+          <button onClick={onOne} disabled={remaining === 0} className="adm-btn adm-btn--primary adm-btn--lg hover:bg-[var(--adm-red-hover)]">抽下一队</button>
+          <button onClick={onAll} disabled={remaining === 0} className="adm-btn adm-btn--secondary adm-btn--lg">一键抽完</button>
+          <button onClick={onRedraw} className="adm-btn adm-btn--ghost adm-btn--md hover:text-[var(--adm-red-text)]">重新开始</button>
         </>
       )}
-      {lastText && <p className="w-full text-center text-sm font-black text-[#c83242]">{lastText}</p>}
+      {lastText && <p className="w-full text-center text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-red-text)]">{lastText}</p>}
     </div>
   );
 }
 
 function StageProgress({ stages, activeIndex, complete }: { stages: StageConfig[]; activeIndex: number; complete: boolean }) {
   return (
-    <div className="mb-5 grid border border-slate-200 bg-white sm:grid-cols-3">
+    <div className="mb-5 grid border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] sm:grid-cols-3">
       {stages.map((stage, index) => {
         const finished = complete || index < activeIndex;
         const active = !complete && index === activeIndex;
         const label = finished ? "已完成" : active ? "当前阶段" : "未解锁";
         return (
-          <div key={`${stage.name}-${index}`} className={`flex items-center gap-3 px-4 py-4 ${index > 0 ? "border-t border-slate-200 sm:border-l sm:border-t-0" : ""}`}>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center font-mono text-xs font-black ${finished ? "bg-emerald-600 text-white" : active ? "bg-[#ff4655] text-white" : "bg-slate-100 text-slate-400"}`}>{String(index + 1).padStart(2, "0")}</span>
+          <div key={`${stage.name}-${index}`} className={`flex items-center gap-3 px-4 py-4 ${index > 0 ? "border-t border-[var(--adm-line-soft)] sm:border-l sm:border-t-0" : ""}`}>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center text-[length:var(--adm-fs-md)] font-medium ${finished ? "bg-[var(--adm-ok-text)] text-white" : active ? "bg-[var(--adm-red)] text-white" : "bg-[var(--adm-surface-3)] text-[var(--adm-text-mute)]"}`}>{String(index + 1).padStart(2, "0")}</span>
             <div className="min-w-0">
-              <p className={`truncate text-sm font-black ${active ? "text-[#c83242]" : "text-slate-900"}`}>{stage.name}</p>
-              <p className="mt-0.5 text-[0.625rem] font-bold text-slate-400">{label} · {stage.teamCount} 队 · {stage.boType}</p>
+              <p className={`truncate text-[length:var(--adm-fs-lg)] font-semibold ${active ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text)]"}`}>{stage.name}</p>
+              <p className="mt-0.5 text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text-mute)]">{label} · {stage.teamCount} 队 · {stage.boType}</p>
             </div>
           </div>
         );

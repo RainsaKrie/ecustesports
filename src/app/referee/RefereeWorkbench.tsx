@@ -423,7 +423,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               placeholder="粘贴凭证"
               autoComplete="off"
               className="h-12 border border-[#0f1923]/25 bg-white px-4 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
-              style={{ borderRadius: 0 }}
             />
           </label>
           <label className="flex flex-col gap-2">
@@ -434,7 +433,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               placeholder="例如 event-1"
               autoComplete="off"
               className="h-12 border border-[#0f1923]/25 bg-white px-4 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
-              style={{ borderRadius: 0 }}
             />
           </label>
           {error && <p className="text-sm text-[#ff4655]">{error}</p>}
@@ -502,7 +500,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                             onClick={() => void claimAction(m.matchId, "release")}
                             disabled={claimingId === m.matchId}
                             className="inline-flex min-h-11 items-center border border-[#0f1923]/25 bg-white px-3 text-sm text-[#667078] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
-                            style={{ borderRadius: 0 }}
                           >
                             {claimingId === m.matchId ? "处理中…" : "释放这场"}
                           </button>
@@ -511,7 +508,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                           type="button"
                           onClick={() => openMatch(m)}
                           className="min-h-11 bg-[#ff4655] px-4 text-sm font-bold text-white hover:bg-[#d83b48]"
-                          style={{ borderRadius: 0 }}
                         >
                           进入报分 →
                         </button>
@@ -561,7 +557,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                     onClick={() => void claimAction(m.matchId, "claim")}
                     disabled={claimingId === m.matchId}
                     className="mt-3 min-h-11 w-full border border-[#0f1923]/25 bg-white px-4 text-sm font-bold text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
-                    style={{ borderRadius: 0 }}
                   >
                     {claimingId === m.matchId ? "认领中…" : "我来裁这场"}
                   </button>
@@ -641,7 +636,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                 value={g.map}
                 onChange={(e) => updateGame(i, { map: e.target.value })}
                 className="mt-2 h-11 w-full border border-[#0f1923]/25 bg-white px-3 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
-                style={{ borderRadius: 0 }}
               >
                 <option value="">选择地图</option>
                 {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -666,7 +660,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                 onClick={() => onPickEvidence(i)}
                 disabled={g.busy}
                 className="min-h-11 flex-1 border border-[#0f1923]/25 bg-white px-4 text-sm text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
-                style={{ borderRadius: 0 }}
               >
                 {g.busy ? "识别中…" : g.previewUrl ? "重新上传" : "上传这一局截图"}
               </button>
@@ -687,7 +680,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                   value={g.teamAScore}
                   onChange={(e) => updateGame(i, { teamAScore: toScore(e.target.value) })}
                   className="score-input h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
-                  style={{ borderRadius: 0 }}
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -698,7 +690,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                   value={g.teamBScore}
                   onChange={(e) => updateGame(i, { teamBScore: toScore(e.target.value) })}
                   className="score-input h-12 border border-[#0f1923]/25 bg-white px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
-                  style={{ borderRadius: 0 }}
                 />
               </label>
             </div>
@@ -709,7 +700,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           <button
             onClick={addGame}
             className="mt-4 w-full border border-dashed border-[#0f1923]/30 bg-transparent px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655]"
-            style={{ borderRadius: 0 }}
           >
             + 添加一局（最多 {maxGames} 局）
           </button>
@@ -775,8 +765,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               <ul className="mt-3 flex flex-wrap gap-2">
                 {games.map((g, i) =>
                   g.previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <li key={i} className="border border-[#0f1923]/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={g.previewUrl} alt={"第 " + (i + 1) + " 局截图"} className="h-20 w-32 object-cover" />
                       <p className="mono-label px-2 py-1 text-[#667078]">局 {i + 1}</p>
                     </li>
@@ -805,7 +795,6 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           <button
             onClick={() => setStage("report")}
             className="h-12 w-full border border-[#0f1923]/25 text-base text-[#0f1923] hover:bg-[#0f1923]/5"
-            style={{ borderRadius: 0 }}
           >
             返回修改比分
           </button>

@@ -212,8 +212,15 @@ export function getStageGuidance(stage: EventStage, input: StageGuidanceInput): 
   };
 }
 
-export const stateStyles: Record<ModuleState, string> = {
-  ready: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  "in-progress": "border-[#ff4655]/25 bg-[#fff1f2] text-[#c83242]",
-  planned: "border-slate-200 bg-slate-50 text-slate-500",
+/**
+ * 模块状态 → 标签语义档（2026-10-08 重做）。
+ *
+ * 改造前返回「描边 + 浅底 + 彩字」三色，三个状态 9 个色值。
+ * 现在只给语义档，样子统一由 `.adm-chip` 决定：
+ * 已就绪 = 墨点，进行中 = 空心点，未开始 = 灰点。
+ */
+export const stateTones: Record<ModuleState, "done" | "active" | "neutral"> = {
+  ready: "done",
+  "in-progress": "active",
+  planned: "neutral",
 };

@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { adminInputClass, EmptyState, type AdminBadgeTone } from "@/components/admin/ui";
 import type { AcceptedResultItem, AdminReviewItem } from "@/lib/referee/reporting-data";
 
 type GameRow = { map?: string; teamAScore: number; teamBScore: number };
@@ -20,10 +21,14 @@ function fmtTime(value: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
 }
 
-function riskTone(tag: AdminReviewItem["riskTag"]) {
-  return tag === "结果冲突"
-    ? "border-[#ff4655]/40 bg-[#fff1f2] text-[#c83242]"
-    : "border-amber-300 bg-amber-50 text-amber-700";
+/** 异常标签 → 语义档：结果冲突是红点，其余是「待处理」的空心点。 */
+function riskTone(tag: AdminReviewItem["riskTag"]): AdminBadgeTone {
+  return tag === "结果冲突" ? "attention" : "active";
+}
+
+/** 异常标签 → 提示条语气，给右侧详情区的大块说明用。 */
+function riskNote(tag: AdminReviewItem["riskTag"]) {
+  return tag === "结果冲突" ? "adm-note--danger" : "adm-note--warn";
 }
 
 export default function ReviewWorkspace({ eventId }: { eventId: string }) {
@@ -160,52 +165,51 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
   return (
     <div>
       <AdminPageHeader
-        eyebrow="MODULE 02 / REVIEW"
+        eyebrow="模块 02"
         title="异常赛果"
         description="裁判报分产生的异常需要你裁决；已生效赛果可通过受控更正修正。"
         status={pendingCount > 0 ? `${pendingCount} 条待裁决` : "无待裁决"}
         actions={
-          <button type="button" onClick={() => void load()} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600">
+          <button type="button" onClick={() => void load()} className="adm-btn adm-btn--secondary adm-btn--md">
             刷新
           </button>
         }
       />
 
-      {error && <div className="mb-5 border border-[#ff4655] bg-[#fff1f2] px-5 py-3 text-sm font-bold text-[#9f2431]">{error}</div>}
+      {error && <div className="adm-note adm-note--danger mb-5 text-[length:var(--adm-fs-lg)] font-semibold">{error}</div>}
 
       {/* Tab 切换 */}
-      <div className="mb-5 flex gap-2 border-b border-slate-300">
+      <div className="mb-5 flex gap-2 border-b border-[var(--adm-line)]">
         <button
           onClick={() => setTab("review")}
-          className={`border-b-2 px-4 py-3 text-sm font-black transition ${tab === "review" ? "border-[#ff4655] text-[#c83242]" : "border-transparent text-slate-500 hover:text-slate-900"}`}
+          className={`border-b-2 px-4 py-3 text-[length:var(--adm-fs-lg)] font-semibold transition ${tab === "review" ? "border-[var(--adm-red)] text-[var(--adm-red-text)]" : "border-transparent text-[var(--adm-text-soft)] hover:text-[var(--adm-text)]"}`}
         >
-          异常裁决 {pendingCount > 0 && <span className="ml-1 bg-[#ff4655] px-1.5 py-0.5 text-[0.625rem] text-white">{pendingCount}</span>}
+          异常裁决 {pendingCount > 0 && <span className="ml-1 bg-[var(--adm-red)] px-1.5 py-0.5 text-[length:var(--adm-fs-sm)] text-white">{pendingCount}</span>}
         </button>
         <button
           onClick={() => setTab("correct")}
-          className={`border-b-2 px-4 py-3 text-sm font-black transition ${tab === "correct" ? "border-[#ff4655] text-[#c83242]" : "border-transparent text-slate-500 hover:text-slate-900"}`}
+          className={`border-b-2 px-4 py-3 text-[length:var(--adm-fs-lg)] font-semibold transition ${tab === "correct" ? "border-[var(--adm-red)] text-[var(--adm-red-text)]" : "border-transparent text-[var(--adm-text-soft)] hover:text-[var(--adm-text)]"}`}
         >
           受控更正
         </button>
       </div>
 
       {loading ? (
-        <p className="py-10 text-center text-xs font-bold text-slate-500">加载中…</p>
+        <p className="py-10 text-center text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">加载中…</p>
       ) : tab === "review" ? (
         pendingCount === 0 ? (
-          <section className="border border-slate-200 bg-white p-10 text-center">
-            <p className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-[#c83242]">NO PENDING REVIEW</p>
-            <h2 className="mt-3 text-base font-black text-slate-950">异常队列已清空</h2>
-            <p className="mt-2 text-xs font-medium leading-6 text-slate-500">
-              裁判报分中，半决赛/决赛的强制复核场次与结果冲突的比赛会自动进入此队列。
-            </p>
-          </section>
+          <EmptyState
+            title="异常队列已清空"
+            description="裁判报分时，半决赛/决赛的强制复核场次、以及结果有冲突的比赛会自动进入这里等你裁决。"
+          />
         ) : (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             {/* 左：异常列表 */}
-            <section className="border border-slate-200 bg-white">
-              <div className="border-b border-slate-200 px-5 py-4">
-                <h2 className="text-sm font-black text-slate-950">待裁决 · {pendingCount}</h2>
+            <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+              <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+                {/* 数字不在这里说第三遍：页头状态已经是「N 条待裁决」，
+                    标签页徽标也有。这一栏只说它是什么。 */}
+                <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">待裁决</h2>
               </div>
               <ul>
                 {queue.map((item) => (
@@ -213,17 +217,17 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
                     <button
                       onClick={() => openItem(item)}
                       className={`w-full border-l-4 px-5 py-4 text-left transition-colors ${
-                        selectedId === item.submissionId ? "border-[#ff4655] bg-[#fff7f7]" : "border-transparent hover:bg-slate-50"
+                        selectedId === item.submissionId ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)]" : "border-transparent hover:bg-[var(--adm-surface-2)]"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`border px-1.5 py-0.5 text-[0.5625rem] font-bold ${riskTone(item.riskTag)}`}>{item.riskTag}</span>
-                        <span className="font-mono text-[0.5625rem] text-slate-400">{item.boType}</span>
+                        <span className="adm-chip" data-tone={riskTone(item.riskTag)}>{item.riskTag}</span>
+                        <span className="text-[length:var(--adm-fs-xs)] tabular-nums text-[var(--adm-text-mute)]">{item.boType}</span>
                       </div>
-                      <p className="mt-2 text-sm font-black text-slate-950">{item.teamAName} <span className="font-normal text-slate-400">vs</span> {item.teamBName}</p>
-                      <p className="mt-1 text-xs text-slate-500">裁判 {item.refereeName} · {fmtTime(item.submittedAt)}</p>
+                      <p className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{item.teamAName} <span className="font-normal text-[var(--adm-text-mute)]">vs</span> {item.teamBName}</p>
+                      <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">裁判 {item.refereeName} · {fmtTime(item.submittedAt)}</p>
                     </button>
-                    <div className="ml-5 border-b border-slate-100" />
+                    <div className="ml-5 border-b border-[var(--adm-line-soft)]" />
                   </li>
                 ))}
               </ul>
@@ -231,96 +235,97 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
 
             {/* 右：详情 + 裁决 */}
             {selected ? (
-              <section className="border border-slate-200 bg-white">
-                <div className="border-b border-slate-200 px-5 py-4">
-                  <h2 className="text-sm font-black text-slate-950">{selected.teamAName} vs {selected.teamBName}</h2>
-                  <p className="mt-1 text-xs text-slate-500">
+              <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+                <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+                  <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{selected.teamAName} vs {selected.teamBName}</h2>
+                  <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">
                     {selected.boType} · {selected.round || "未标轮次"} · 赛程 v{selected.basedOnScheduleVersion} · 裁判 {selected.refereeName}
                   </p>
                 </div>
 
                 <div className="space-y-4 p-5">
-                  <div className={`border px-4 py-3 ${riskTone(selected.riskTag)}`}>
-                    <p className="text-xs font-bold">{selected.riskReason}</p>
+                  <div className={`adm-note ${riskNote(selected.riskTag)}`}>
+                    <p className="text-[length:var(--adm-fs-md)] font-semibold">{selected.riskReason}</p>
                   </div>
 
-                  <div className="border border-slate-200 p-4">
-                    <p className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-[#c83242]">拟生效结果</p>
-                    <p className="mt-2 text-base font-black text-slate-950">胜者：{selected.declaredWinnerTeamName}</p>
-                    <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+                  <div className="border border-[var(--adm-line-soft)] p-4">
+                    <p className="text-[length:var(--adm-fs-xs)] font-semibold tracking-[0.14em] text-[var(--adm-text-mute)]">拟生效结果</p>
+                    <p className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">胜者：{selected.declaredWinnerTeamName}</p>
+                    <div className="mt-3 space-y-2 border-t border-[var(--adm-line-soft)] pt-3">
                       {selected.games.map((g, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs text-slate-600">
-                          <span className="font-mono text-slate-400">{g.map || `局 ${i + 1}`}</span>
-                          <span className="font-bold text-slate-900">{g.teamAScore} : {g.teamBScore}</span>
+                        <div key={i} className="flex items-center justify-between text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">
+                          <span className="truncate text-[var(--adm-text-mute)]">{g.map || `局 ${i + 1}`}</span>
+                          <span className="shrink-0 pl-3 text-[length:var(--adm-fs-lg)] font-semibold tabular-nums tracking-[0.02em] text-[var(--adm-text)]">
+                            {g.teamAScore}
+                            <span className="mx-1.5 font-normal text-[var(--adm-text-mute)]">:</span>
+                            {g.teamBScore}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {selected.existingAcceptedWinnerTeamName && (
-                    <div className="border-l-4 border-[#ff4655] bg-[#fff7f7] p-4">
-                      <p className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-[#c83242]">与已生效赛果冲突</p>
-                      <p className="mt-2 text-sm font-bold text-slate-800">
+                    <div className="adm-note adm-note--danger">
+                      <p className="text-[length:var(--adm-fs-xs)] font-semibold tracking-[0.14em] text-[var(--adm-red-text)]">与已生效赛果冲突</p>
+                      <p className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">
                         当前生效胜者：{selected.existingAcceptedWinnerTeamName}，裁判提交胜者：{selected.declaredWinnerTeamName}
                       </p>
                     </div>
                   )}
 
-                  <div className="border border-slate-200 p-4">
-                    <p className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-slate-400">比赛凭证</p>
+                  <div className="border border-[var(--adm-line-soft)] p-4">
+                    <p className="text-[length:var(--adm-fs-xs)] font-semibold tracking-[0.14em] text-[var(--adm-text-mute)]">比赛凭证</p>
                     {selected.evidenceIds.length > 0 ? (
-                      <p className="mt-2 text-xs text-slate-500">已附 {selected.evidenceIds.length} 张凭证（本地阶段仅登记编号，接入私有存储后展示签名预览）</p>
+                      <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">已附 {selected.evidenceIds.length} 张凭证（本地阶段仅登记编号，接入私有存储后展示签名预览）</p>
                     ) : (
-                      <p className="mt-2 text-xs text-slate-400">未附凭证</p>
+                      <p className="mt-2 text-[length:var(--adm-fs-md)] text-[var(--adm-text-mute)]">未附凭证</p>
                     )}
                   </div>
 
                   {(selected.downstreamImpact.hasScheduledDownstream || selected.downstreamImpact.hasProgressedDownstream) && (
-                    <div className={`border px-4 py-3 ${selected.downstreamImpact.hasProgressedDownstream ? "border-[#ff4655]/40 bg-[#fff1f2]" : "border-amber-300 bg-amber-50"}`}>
-                      <p className="text-xs font-bold">
+                    <div className={`adm-note ${selected.downstreamImpact.hasProgressedDownstream ? "adm-note--danger" : "adm-note--warn"}`}>
+                      <p className="text-[length:var(--adm-fs-md)] font-semibold">
                         {selected.downstreamImpact.hasProgressedDownstream
                           ? "下游比赛已 BP 或已完赛"
                           : "存在已排期但尚未推进的下游比赛"}
                       </p>
                       {selected.downstreamImpact.affectedMatchIds.length > 0 && (
-                        <p className="mt-1 text-xs text-slate-600">受影响：{selected.downstreamImpact.affectedMatchIds.join("、")}</p>
+                        <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">受影响：{selected.downstreamImpact.affectedMatchIds.join("、")}</p>
                       )}
                     </div>
                   )}
 
                   {actionResult && (
-                    <div className={`border px-4 py-3 text-sm font-bold ${actionResult.ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#ff4655]/40 bg-[#fff1f2] text-[#9f2431]"}`}>
+                    <div className={`adm-note ${actionResult.ok ? "adm-note--ok" : "adm-note--danger"} text-[length:var(--adm-fs-lg)] font-semibold`}>
                       {actionResult.message}
                     </div>
                   )}
 
-                  <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <div className="space-y-3 border-t border-[var(--adm-line-soft)] pt-4">
                     <label className="block">
-                      <span className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-slate-500">裁决原因（必填）</span>
+                      <span className="text-[length:var(--adm-fs-xs)] font-semibold tracking-[0.14em] text-[var(--adm-text-soft)]">裁决原因（必填）</span>
                       <textarea
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="说明接受或驳回的依据"
                         rows={2}
-                        className="mt-2 w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15"
-                        style={{ borderRadius: 0 }}
+                        className="mt-2 w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
                       />
                     </label>
-                    {actionError && <p className="text-xs font-bold text-[#c83242]">{actionError}</p>}
+                    {actionError && <p className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">{actionError}</p>}
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => doResolve(false)}
                         disabled={busy}
-                        className="min-h-11 border border-slate-300 px-5 text-xs font-bold text-slate-600 disabled:opacity-50"
-                        style={{ borderRadius: 0 }}
+                        className="adm-btn adm-btn--secondary adm-btn--md"
                       >
                         驳回
                       </button>
                       <button
                         onClick={() => doResolve(true)}
                         disabled={busy}
-                        className="min-h-11 bg-[#ff4655] px-5 text-xs font-black text-white transition hover:bg-[#d83b48] disabled:opacity-50"
-                        style={{ borderRadius: 0 }}
+                        className="adm-btn adm-btn--primary adm-btn--md hover:bg-[var(--adm-red-hover)]"
                       >
                         {busy ? "处理中…" : "接受并生效"}
                       </button>
@@ -329,24 +334,24 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
                 </div>
               </section>
             ) : (
-              <section className="border border-dashed border-slate-200 bg-white p-10 text-center">
-                <p className="text-xs font-bold text-slate-400">选择左侧一条异常查看详情并裁决</p>
-              </section>
+              <EmptyState
+                title="选择左侧一条异常"
+                description="这里会显示它的逐局比分对比，以及裁决理由的输入框。"
+              />
             )}
           </div>
         )
       ) : accepted.length === 0 ? (
-        <section className="border border-slate-200 bg-white p-10 text-center">
-          <p className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-[#c83242]">NO ACCEPTED RESULTS</p>
-          <h2 className="mt-3 text-base font-black text-slate-950">暂无已生效赛果</h2>
-          <p className="mt-2 text-xs font-medium leading-6 text-slate-500">已生效的正式赛果会出现在这里，可进行受控更正。</p>
-        </section>
+        <EmptyState
+          title="暂无已生效赛果"
+          description="裁判提交并生效的正式赛果会出现在这里，需要修改时走受控更正。"
+        />
       ) : (
         /* 受控更正：已生效赛果列表 */
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">已生效赛果 · {accepted.length}</h2>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">已生效赛果 · {accepted.length}</h2>
             </div>
             <ul>
               {accepted.map((item) => (
@@ -354,74 +359,74 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
                   <button
                     onClick={() => openCorrect(item)}
                     className={`w-full border-l-4 px-5 py-4 text-left transition-colors ${
-                      correctMatchId === item.matchId ? "border-[#ff4655] bg-[#fff7f7]" : "border-transparent hover:bg-slate-50"
+                      correctMatchId === item.matchId ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)]" : "border-transparent hover:bg-[var(--adm-surface-2)]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[0.5625rem] text-slate-400">{item.boType} · {item.round}</span>
+                      <span className="text-[length:var(--adm-fs-xs)] tabular-nums text-[var(--adm-text-mute)]">{item.boType} · {item.round}</span>
                     </div>
-                    <p className="mt-2 text-sm font-black text-slate-950">{item.teamAName} <span className="font-normal text-slate-400">vs</span> {item.teamBName}</p>
-                    <p className="mt-1 text-xs text-slate-500">胜者：{item.winnerTeamName}</p>
+                    <p className="mt-2 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{item.teamAName} <span className="font-normal text-[var(--adm-text-mute)]">vs</span> {item.teamBName}</p>
+                    <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">胜者：{item.winnerTeamName}</p>
                   </button>
-                  <div className="ml-5 border-b border-slate-100" />
+                  <div className="ml-5 border-b border-[var(--adm-line-soft)]" />
                 </li>
               ))}
             </ul>
           </section>
 
           {correctTarget ? (
-            <section className="border border-slate-200 bg-white">
-              <div className="border-b border-slate-200 px-5 py-4">
-                <h2 className="text-sm font-black text-slate-950">{correctTarget.teamAName} vs {correctTarget.teamBName}</h2>
-                <p className="mt-1 text-xs text-slate-500">当前生效胜者：{correctTarget.winnerTeamName}</p>
+            <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+              <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+                <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{correctTarget.teamAName} vs {correctTarget.teamBName}</h2>
+                <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">当前生效胜者：{correctTarget.winnerTeamName}</p>
               </div>
               <div className="space-y-4 p-5">
                 {correctTarget.downstreamImpact.hasProgressedDownstream && (
-                  <div className="border border-[#ff4655]/40 bg-[#fff1f2] p-3 text-xs font-bold text-[#9f2431]">
+                  <div className="adm-note adm-note--danger font-semibold">
                     下游已 BP 或已完赛，系统会阻止这次更正。请走人工恢复流程。
                   </div>
                 )}
 
-                <div className="border-l-4 border-[#ff4655] bg-[#fff7f7] px-4 py-3">
-                  <p className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-[#c83242]">系统按比分判定胜者</p>
-                  <p className="mt-1 text-sm font-black text-slate-950">{correctedWinnerName}</p>
+                <div className="adm-note adm-note--danger">
+                  <p className="text-[length:var(--adm-fs-xs)] font-semibold tracking-[0.14em] text-[var(--adm-text-mute)]">系统按比分判定胜者</p>
+                  <p className="mt-1 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{correctedWinnerName}</p>
                 </div>
 
                 <div className="space-y-2">
                   {correctGames.map((g, i) => (
                     <div key={i} className="grid grid-cols-[1fr_1fr_1fr] gap-2">
-                      <input type="text" value={g.map ?? ""} onChange={(e) => setCorrectGames((prev) => prev.map((x, xi) => xi === i ? { ...x, map: e.target.value } : x))} placeholder="地图" className="border border-slate-300 px-2 py-1.5 text-xs" style={{ borderRadius: 0 }} />
-                      <input type="number" min={0} value={g.teamAScore} onChange={(e) => setCorrectGames((prev) => prev.map((x, xi) => xi === i ? { ...x, teamAScore: Number(e.target.value) || 0 } : x))} className="border border-slate-300 px-2 py-1.5 text-xs" style={{ borderRadius: 0 }} />
-                      <input type="number" min={0} value={g.teamBScore} onChange={(e) => setCorrectGames((prev) => prev.map((x, xi) => xi === i ? { ...x, teamBScore: Number(e.target.value) || 0 } : x))} className="border border-slate-300 px-2 py-1.5 text-xs" style={{ borderRadius: 0 }} />
+                      <input type="text" value={g.map ?? ""} onChange={(e) => setCorrectGames((prev) => prev.map((x, xi) => xi === i ? { ...x, map: e.target.value } : x))} placeholder="地图" className={adminInputClass} />
+                      <input type="number" min={0} value={g.teamAScore} onChange={(e) => setCorrectGames((prev) => prev.map((x, xi) => xi === i ? { ...x, teamAScore: Number(e.target.value) || 0 } : x))} aria-label={`第 ${i + 1} 局 ${correctTarget.teamAName} 比分`} className={`${adminInputClass} text-center text-[length:var(--adm-fs-lg)] font-semibold tabular-nums`} />
+                      <input type="number" min={0} value={g.teamBScore} onChange={(e) => setCorrectGames((prev) => prev.map((x, xi) => xi === i ? { ...x, teamBScore: Number(e.target.value) || 0 } : x))} aria-label={`第 ${i + 1} 局 ${correctTarget.teamBName} 比分`} className={`${adminInputClass} text-center text-[length:var(--adm-fs-lg)] font-semibold tabular-nums`} />
                     </div>
                   ))}
                 </div>
 
                 <label className="block">
-                  <span className="font-mono text-[0.5625rem] font-black tracking-[0.14em] text-slate-500">更正原因（必填）</span>
-                  <textarea value={correctReason} onChange={(e) => setCorrectReason(e.target.value)} rows={2} placeholder="说明更正依据" className="mt-2 w-full border border-slate-300 bg-white px-3 py-2.5 text-sm" style={{ borderRadius: 0 }} />
+                  <span className="text-[length:var(--adm-fs-xs)] font-semibold tracking-[0.14em] text-[var(--adm-text-soft)]">更正原因（必填）</span>
+                  <textarea value={correctReason} onChange={(e) => setCorrectReason(e.target.value)} rows={2} placeholder="说明更正依据" className={`mt-2 ${adminInputClass} resize-y`} />
                 </label>
-                {actionError && <p className="text-xs font-bold text-[#c83242]">{actionError}</p>}
+                {actionError && <p className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-red-text)]">{actionError}</p>}
                 {actionResult && (
-                  <div className={`border px-4 py-3 text-sm font-bold ${actionResult.ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#ff4655]/40 bg-[#fff1f2] text-[#9f2431]"}`}>
+                  <div className={`adm-note ${actionResult.ok ? "adm-note--ok" : "adm-note--danger"} text-[length:var(--adm-fs-lg)] font-semibold`}>
                     {actionResult.message}
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={() => { setCorrectMatchId(null); setActionError(""); setActionResult(null); }} disabled={busy} className="min-h-11 border border-slate-300 px-5 text-xs font-bold text-slate-600" style={{ borderRadius: 0 }}>取消</button>
-                  <button onClick={() => doCorrect()} disabled={busy} className="min-h-11 bg-[#ff4655] px-5 text-xs font-black text-white" style={{ borderRadius: 0 }}>{busy ? "处理中…" : "确认更正"}</button>
+                  <button onClick={() => { setCorrectMatchId(null); setActionError(""); setActionResult(null); }} disabled={busy} className="adm-btn adm-btn--secondary adm-btn--md">取消</button>
+                  <button onClick={() => doCorrect()} disabled={busy} className="adm-btn adm-btn--primary adm-btn--md">{busy ? "处理中…" : "确认更正"}</button>
                 </div>
               </div>
             </section>
           ) : (
-            <section className="border border-dashed border-slate-200 bg-white p-10 text-center">
-              <p className="text-xs font-bold text-slate-400">选择左侧一条已生效赛果进行受控更正</p>
+            <section className="border border-dashed border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-10 text-center">
+              <p className="text-[length:var(--adm-fs-md)] text-[var(--adm-text-mute)]">选择左侧一条已生效赛果进行受控更正</p>
             </section>
           )}
         </div>
       )}
 
-      <p className="mt-6 text-xs text-slate-400">
+      <p className="mt-6 text-[length:var(--adm-fs-md)] text-[var(--adm-text-mute)]">
         异常裁决只针对裁判报分；管理员在赛程页的手工报分直接生效，不进异常队列。
       </p>
     </div>

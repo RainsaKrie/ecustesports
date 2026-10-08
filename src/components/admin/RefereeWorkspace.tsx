@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { EmptyState, useAdminConfirm } from "@/components/admin/ui";
 
 type RefereeRow = {
   id: string;
@@ -37,6 +38,7 @@ function fmtTime(value: string) {
 }
 
 export default function RefereeWorkspace({ eventId }: { eventId: string }) {
+  const confirm = useAdminConfirm();
   const [referees, setReferees] = useState<RefereeRow[]>([]);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
@@ -131,13 +133,25 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
     setCreateName("");
   }
 
-  function doDisable(refereeId: string, displayName: string) {
-    if (!window.confirm(`停用《${displayName}》后，其凭证将立即无法用于报分，且不可恢复。确认停用？`)) return;
+  async function doDisable(refereeId: string, displayName: string) {
+    const confirmed = await confirm({
+      title: `停用裁判《${displayName}》？`,
+      body: "停用后其凭证将立即无法用于报分，且不可恢复。",
+      confirmLabel: "停用",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     void post("disable", { refereeId });
   }
 
-  function doReset(refereeId: string, displayName: string) {
-    if (!window.confirm(`重置《${displayName}》的凭证后，旧凭证立即失效。确认重置？`)) return;
+  async function doReset(refereeId: string, displayName: string) {
+    const confirmed = await confirm({
+      title: `重置《${displayName}》的凭证？`,
+      body: "重置后旧凭证立即失效。新凭证只会展示一次，请立即抄录并重新分发。",
+      confirmLabel: "重置凭证",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     void post("reset", { refereeId });
   }
 
@@ -147,106 +161,115 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
     setAssignMatchId("");
   }
 
-  function doRevoke(assignmentId: string) {
+  async function doRevoke(assignmentId: string) {
     const asg = assignments.find((a) => a.assignmentId === assignmentId);
     if (!asg) return;
-    if (!window.confirm(`撤销《${nameOf(asg.refereeId)}》对「${matchLabel(asg.matchId)}」的分配？`)) return;
+    const confirmed = await confirm({
+      title: "撤销这次裁判分配？",
+      body: `将撤销《${nameOf(asg.refereeId)}》对「${matchLabel(asg.matchId)}」的分配。`,
+      confirmLabel: "撤销分配",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     void post("revoke", { assignmentId });
   }
 
   return (
     <div>
       <AdminPageHeader
-        eyebrow="MODULE 02 / REFEREES"
+        eyebrow="模块 02"
         title="裁判管理"
         description="创建裁判、分配比赛、停用与重置凭证。创建与重置时凭证只展示一次，请立即抄录并分发给对应裁判。"
         status={referees.length > 0 ? `${referees.length} 名裁判` : "暂无裁判"}
         actions={
-          <button type="button" onClick={() => void load()} className="border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-600">
+          <button type="button" onClick={() => void load()} className="adm-btn adm-btn--secondary adm-btn--md">
             刷新
           </button>
         }
       />
 
-      {error && <div className="mb-5 border border-[#ff4655] bg-[#fff1f2] px-5 py-3 text-sm font-bold text-[#9f2431]">{error}</div>}
+      {error && <div className="adm-note adm-note--danger mb-5 text-[length:var(--adm-fs-lg)] font-semibold">{error}</div>}
 
       {revealed && (
-        <div className="mb-5 border-l-4 border-[#ff4655] bg-[#fff7f7] p-4">
-          <p className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-[#c83242]">{revealed.label}</p>
-          <p className="mt-2 break-all font-mono text-sm font-black text-[#171a1f]">{revealed.credential}</p>
-          <button onClick={() => setRevealed(null)} className="mt-3 border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-600" style={{ borderRadius: 0 }}>我已抄录，关闭</button>
+        <div className="adm-note adm-note--danger mb-5">
+          <p className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-mute)]">{revealed.label}</p>
+          <p className="mt-2 break-all text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{revealed.credential}</p>
+          <button onClick={() => setRevealed(null)} className="adm-btn adm-btn--secondary adm-btn--md mt-3">我已抄录，关闭</button>
         </div>
       )}
 
       {actionResult && (
-        <div className={`mb-5 border px-5 py-3 text-sm font-bold ${actionResult.ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#ff4655]/40 bg-[#fff1f2] text-[#9f2431]"}`}>
+        <div className={`adm-note mb-5 ${actionResult.ok ? "adm-note--ok" : "adm-note--danger"} text-[length:var(--adm-fs-lg)] font-semibold`}>
           {actionResult.message}
         </div>
       )}
 
       {loading ? (
-        <p className="py-10 text-center text-xs font-bold text-slate-500">加载中…</p>
+        <p className="py-10 text-center text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">加载中…</p>
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* 左：创建 + 裁判列表 */}
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">创建裁判</h2>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">创建裁判</h2>
             </div>
             <div className="space-y-3 p-5">
               <label className="block">
-                <span className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-slate-500">裁判姓名</span>
+                <span className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-soft)]">裁判姓名</span>
                 <input
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
                   placeholder="例如：张三"
-                  className="mt-2 h-11 w-full border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#ff4655]"
-                  style={{ borderRadius: 0 }}
+                  className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
                 />
               </label>
               <label className="block">
-                <span className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-slate-500">凭证有效期（可选，默认 90 天）</span>
+                <span className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-soft)]">凭证有效期（可选，默认 90 天）</span>
                 <input
                   type="datetime-local"
                   value={createExpiry}
                   onChange={(e) => setCreateExpiry(e.target.value)}
-                  className="mt-2 h-11 w-full border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#ff4655]"
-                  style={{ borderRadius: 0 }}
+                  className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
                 />
               </label>
-              {actionError && <p className="text-xs font-bold text-[#c83242]">{actionError}</p>}
-              <button onClick={doCreate} disabled={busy} className="min-h-12 w-full bg-[#ff4655] px-4 py-3 text-sm font-black text-white transition hover:bg-[#d83b48] disabled:opacity-50" style={{ borderRadius: 0 }}>
+              {actionError && <p className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">{actionError}</p>}
+              <button onClick={doCreate} disabled={busy} className="adm-btn adm-btn--primary adm-btn--lg w-full hover:bg-[var(--adm-red-hover)]">
                 {busy ? "处理中…" : "创建裁判"}
               </button>
             </div>
 
-            <div className="border-t border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">裁判列表 · {referees.length}</h2>
+            <div className="border-t border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">裁判列表 · {referees.length}</h2>
             </div>
             {referees.length === 0 ? (
-              <div className="border-t border-slate-100 p-6 text-center text-xs font-bold text-slate-400">暂无裁判，先创建一名。</div>
+              <div className="border-t border-[var(--adm-line-soft)] p-5">
+                <EmptyState
+                  title="还没有裁判"
+                  description="用上面的表单创建。凭证只在创建的那一次显示，请当场抄录并分发给本人，关掉就看不到了。"
+                />
+              </div>
             ) : (
               <ul>
                 {referees.map((r) => (
-                  <li key={r.id} className="border-t border-slate-100">
+                  <li key={r.id} className="border-t border-[var(--adm-line-soft)]">
                     <div className="flex items-center justify-between gap-3 px-5 py-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-black text-slate-950">{r.displayName}</span>
-                          <span className={`border px-1.5 py-0.5 text-[0.5625rem] font-bold ${r.status === "active" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-slate-50 text-slate-500"}`}>
+                          <span className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{r.displayName}</span>
+                          <span className="adm-chip" data-tone={r.status === "active" ? "done" : "neutral"}>
                             {r.status === "active" ? "可用" : "已停用"}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">已分配 {r.assignmentCount} 场 · 有效期至 {fmtTime(r.credentialExpiresAt)}</p>
+                        <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">已分配 {r.assignmentCount} 场 · 有效期至 {fmtTime(r.credentialExpiresAt)}</p>
                       </div>
                       <div className="flex shrink-0 gap-2">
                         {r.status === "active" && (
-                          <button onClick={() => doReset(r.id, r.displayName)} disabled={busy} className="border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-slate-950 disabled:opacity-50" style={{ borderRadius: 0 }}>
+                          <button onClick={() => doReset(r.id, r.displayName)} disabled={busy} className="adm-btn adm-btn--secondary adm-btn--md">
                             重置凭证
                           </button>
                         )}
                         {r.status === "active" && (
-                          <button onClick={() => doDisable(r.id, r.displayName)} disabled={busy} className="border border-[#ff4655]/40 bg-[#fff1f2] px-3 py-1.5 text-xs font-bold text-[#c83242] hover:bg-[#ff4655] hover:text-white disabled:opacity-50" style={{ borderRadius: 0 }}>
+                          <button onClick={() => doDisable(r.id, r.displayName)} disabled={busy} className="adm-btn adm-btn--danger adm-btn--md hover:border-[var(--adm-red)] hover:bg-[var(--adm-red-soft)]">
                             停用
                           </button>
                         )}
@@ -259,49 +282,56 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
           </section>
 
           {/* 右：分配比赛 */}
-          <section className="border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">分配比赛</h2>
+          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">分配比赛</h2>
             </div>
             <div className="space-y-3 p-5">
               <label className="block">
-                <span className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-slate-500">裁判</span>
-                <select value={assignRefereeId} onChange={(e) => setAssignRefereeId(e.target.value)} className="mt-2 h-11 w-full border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#ff4655]" style={{ borderRadius: 0 }}>
+                <span className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-soft)]">裁判</span>
+                <select value={assignRefereeId} onChange={(e) => setAssignRefereeId(e.target.value)} className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]">
                   <option value="">选择裁判</option>
                   {referees.filter((r) => r.status === "active").map((r) => <option key={r.id} value={r.id}>{r.displayName}</option>)}
                 </select>
               </label>
               <label className="block">
-                <span className="font-mono text-[0.625rem] font-black tracking-[0.14em] text-slate-500">比赛</span>
-                <select value={assignMatchId} onChange={(e) => setAssignMatchId(e.target.value)} className="mt-2 h-11 w-full border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#ff4655]" style={{ borderRadius: 0 }}>
+                <span className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-soft)]">比赛</span>
+                <select value={assignMatchId} onChange={(e) => setAssignMatchId(e.target.value)} className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]">
                   <option value="">选择比赛</option>
                   {matches.map((m) => <option key={m.matchId} value={m.matchId}>{m.teamAName} vs {m.teamBName} · {m.boType}</option>)}
                 </select>
               </label>
-              <button onClick={doAssign} disabled={busy || !assignRefereeId || !assignMatchId} className="min-h-12 w-full bg-[#0f1923] px-4 py-3 text-sm font-black text-white transition hover:bg-[#25313b] disabled:opacity-40" style={{ borderRadius: 0 }}>
+              {/* 原来用深墨 `--ink` 填充，是全站唯一一处「非标准色」的实心按钮。
+                  改成标准的主操作档：它是这张表单里唯一的提交动作。 */}
+              <button onClick={doAssign} disabled={busy || !assignRefereeId || !assignMatchId} className="adm-btn adm-btn--primary adm-btn--lg w-full">
                 分配
               </button>
             </div>
 
-            <div className="border-t border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-black text-slate-950">当前分配 · {assignments.length}</h2>
+            <div className="border-t border-[var(--adm-line-soft)] px-5 py-4">
+              <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">当前分配 · {assignments.length}</h2>
             </div>
             {assignments.length === 0 ? (
-              <div className="border-t border-slate-100 p-6 text-center text-xs font-bold text-slate-400">暂无分配。</div>
+              <div className="border-t border-[var(--adm-line-soft)] p-5">
+                <EmptyState
+                  title="还没有分配比赛"
+                  description="用上面的表单选一名裁判和一场比赛。分配后这场比赛会出现在该裁判的裁判端列表里，他才能认领并报分。"
+                />
+              </div>
             ) : (
               <ul>
                 {assignments.map((a) => (
-                  <li key={a.assignmentId} className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
+                  <li key={a.assignmentId} className="flex items-center justify-between gap-3 border-t border-[var(--adm-line-soft)] px-5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900">
+                      <p className="text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)]">
                         {nameOf(a.refereeId)}
-                        <span className={`ml-2 border px-1.5 py-0.5 text-[0.5625rem] font-bold ${a.selfClaimed ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-slate-50 text-slate-600"}`}>
+                        <span className="adm-chip ml-2" data-tone={a.selfClaimed ? "done" : "neutral"}>
                           {a.selfClaimed ? "裁判认领" : "负责人指派"}
                         </span>
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{matchLabel(a.matchId)}</p>
+                      <p className="mt-0.5 truncate text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">{matchLabel(a.matchId)}</p>
                     </div>
-                    <button onClick={() => doRevoke(a.assignmentId)} disabled={busy} className="shrink-0 border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-[#ff4655] hover:text-[#c83242] disabled:opacity-50" style={{ borderRadius: 0 }}>
+                    <button onClick={() => doRevoke(a.assignmentId)} disabled={busy} className="adm-btn adm-btn--secondary adm-btn--md shrink-0 hover:border-[var(--adm-red)] hover:text-[var(--adm-red-text)]">
                       撤销
                     </button>
                   </li>

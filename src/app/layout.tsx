@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import AppChrome from "@/components/layout/AppChrome";
 import { getPublicSiteConfig } from "@/lib/public-data-cache";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+/**
+ * 字体改为自托管（2026-10-08）。
+ *
+ * 原来用 `next/font/google` 的 Geist / Geist_Mono，构建时要去 fonts.googleapis.com
+ * 取字体 —— 本机网络到不了那里，`npm run build` 直接挂在
+ * `Failed to fetch Geist from Google Fonts.`，等于本地跑不了构建。
+ * 改成 `geist` 包（Vercel 官方，`next/font/local` 封装，字体文件随包走），
+ * CSS 变量名仍是 `--font-geist-sans` / `--font-geist-mono`，globals.css 不用改。
+ * 顺带好处：Vercel 构建也不再依赖 Google 的可用性。
+ */
 export const revalidate = 5;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,7 +49,7 @@ export default async function RootLayout({
     <html
       lang="zh-CN"
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AppChrome config={config}>{children}</AppChrome>

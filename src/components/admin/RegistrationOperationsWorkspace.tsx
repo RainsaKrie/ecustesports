@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AdminModal, AdminOverflowMenu, EmptyState, StatusDot, type AdminBadgeTone } from "@/components/admin/ui";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import {
   initialRegistration,
@@ -39,7 +40,7 @@ type Modal =
    */
   | { kind: "create-player"; team?: RegistrationTeam; role?: Role };
 
-const inputClass = "w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15";
+const inputClass = "w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]";
 
 /**
  * 队伍视图分档。报名截止后的真实状态是「一批满编 + 几支还缺人」，
@@ -130,22 +131,22 @@ function teamSortRank(roster: TeamRoster): number {
  * 触控区仍要够大：其中「删除选手」是破坏性操作，误触代价是丢数据。
  * min-h-10 = 40px，在移动端可用与桌面密度之间取折中。
  */
-const textActionClass = "inline-flex min-h-[32px] items-center whitespace-nowrap text-[13px] font-bold leading-tight hover:underline";
+const textActionClass = "inline-flex min-h-[32px] items-center whitespace-nowrap text-[length:var(--adm-fs-sm)] font-bold leading-tight hover:underline";
 
 /**
  * 卡片内的一键复制。与 `textActionClass` 同一密度档，但带框 ——
  * 它按下去会改自己的文案（复制 / 已复制 / 复制失败），
  * 没有边框的话这三个状态在同一行里看起来只是文字抖动。
  */
-const copyActionClass = "inline-flex h-[22px] shrink-0 items-center border border-slate-300 bg-white px-[6px] text-[11px] font-bold leading-none text-slate-600 hover:border-slate-900 hover:text-slate-900";
+const copyActionClass = "inline-flex h-[22px] shrink-0 items-center border border-[var(--adm-line)] bg-[var(--adm-surface)] px-[6px] text-[length:var(--adm-fs-xs)] font-bold leading-none text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] hover:text-[var(--adm-text)]";
 const subscribeStatic = () => () => {};
 
 /**
  * 这个工作台是**操作台**不是展示页：一屏要看几十行，一支队有 20 多个交互点。
  *
  * ⚠️ globals.css 里桌面根字号是 150%（24px），而 **Tailwind 的字号类与间距类都是 rem**
- * —— 也就是说 text-xs 在桌面等于 18px，`min-h-11` 等于 66px。
- * 所以这里**字号与间距一律写固定 px**（`text-[14px]`、`min-h-[40px]`、`gap-[10px]`），
+ * —— 也就是说 text-[length:var(--adm-fs-md)] 在桌面等于 18px，`min-h-11` 等于 66px。
+ * 所以这里**字号与间距一律写固定 px**（`text-[length:var(--adm-fs-md)]`、`min-h-[40px]`、`gap-[10px]`），
  * 不随根字号放大，密度才可控。改动本文件时请沿用这个约定，
  * 不要退回 `min-h-11` / `gap-3` 这类 rem 类，否则桌面又会撑开。
  *
@@ -154,12 +155,14 @@ const subscribeStatic = () => () => {};
  * 列数由 2 列提到 3 列。**再改这里时请守住「标签流 + 固定 px」这两条**，
  * 否则很快会退回一屏两支的状态。
  */
-const DENSE_TITLE = "text-[15px]";     // 队名
-const DENSE_BODY = "text-[14px]";      // 成员名、正文
-const DENSE_META = "text-[12px]";      // 摘要、次级信息
-const DENSE_MICRO = "text-[11px]";     // 徽章
-const DENSE_CHIP = "text-[13px]";      // 成员标签
-const ROSTER_SLOT_LABEL = "w-[44px] shrink-0 pt-[5px]"; // 角色名 + 计数列的固定宽度与对齐
+const DENSE_TITLE = "text-[length:var(--adm-fs-md)]";     // 队名
+const DENSE_BODY = "text-[length:var(--adm-fs-md)]";      // 成员名、正文
+const DENSE_META = "text-[length:var(--adm-fs-xs)]";      // 摘要、次级信息
+const DENSE_MICRO = "text-[length:var(--adm-fs-xs)]";     // 徽章
+const DENSE_CHIP = "text-[length:var(--adm-fs-sm)]";      // 成员标签
+// 角色名 + 计数列。原为 44px —— 而「首发 5/5」在 12px 字号下实测需要 48px，
+// 差 4px 就折行，于是「首发」「5/5」上下分两行、和旁边单行的 chip 完全对不齐。
+const ROSTER_SLOT_LABEL = "w-[56px] shrink-0 pt-[5px]";
 
 /** 标签流里每个成员/空缺槽位的高度 —— 卡片密度的主要旋钮。 */
 const CHIP_HEIGHT = "h-[22px]";
@@ -170,77 +173,25 @@ function isFlagged(status: ReviewStatus | undefined) {
 }
 
 /**
- * 行内「更多」菜单：把低频操作（改名 / 解散队伍 / 换人 / 移出）收起来。
- * 用受控 state 而不是 <details>，因为卡片列表里需要「点开一个自动关掉另一个」，
- * 且要支持点击外部关闭。
+ * 审核状态 → 标签语义档（2026-10-08 重做）。
+ *
+ * 改造前这里返回「描边 + 浅底 + 彩字」三个色值，四个状态就是 12 个色值。
+ * 现在只返回一个语义档，视觉交给 `.adm-chip` 的方点：
+ * 已通过 = 实心墨点（已定），需修改 = 空心方点（待办），已拒绝 = 红点（出事了）。
  */
-function InlineMenu({ label, items, compact = false }: {
-  label: string;
-  items: Array<{ text: string; onSelect: () => void; tone?: string }>;
-  /** 嵌在成员标签里时用无边框的小按钮，避免一个标签出现两层框。 */
-  compact?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDocumentDown = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", onDocumentDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocumentDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-  if (items.length === 0) return null;
-  return (
-    <div ref={ref} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-label={label}
-        aria-expanded={open}
-        title={label}
-        className={`inline-flex items-center justify-center leading-none ${compact
-          ? "h-[20px] w-[18px] text-[13px] font-black text-slate-400 hover:bg-slate-100 hover:text-slate-900"
-          : "h-[30px] w-[30px] border border-slate-300 bg-white text-[14px] font-black text-slate-500 hover:border-slate-900 hover:text-slate-900"}`}
-      >
-        ⋯
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-30 mt-[2px] w-[116px] border border-slate-300 bg-white py-[3px]">
-          {items.map((item) => (
-            <button
-              key={item.text}
-              type="button"
-              onClick={() => { setOpen(false); item.onSelect(); }}
-              className={`block w-full px-[10px] py-[6px] text-left text-[13px] font-bold leading-tight hover:bg-slate-100 ${item.tone ?? "text-slate-700"}`}
-            >
-              {item.text}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function reviewTone(status: ReviewStatus | undefined) {
+function reviewTone(status: ReviewStatus | undefined): AdminBadgeTone {
   switch (status) {
-    case "已通过": return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "需修改": return "border-amber-200 bg-amber-50 text-amber-700";
-    case "已拒绝": return "border-red-200 bg-red-50 text-red-700";
-    default: return "border-slate-200 bg-slate-50 text-slate-600";
+    case "已通过": return "done";
+    case "需修改": return "active";
+    case "已拒绝": return "attention";
+    default: return "neutral";
   }
 }
 
-function teamTone(status: RegistrationTeam["status"]) {
-  if (status === "已冻结") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (status === "已退赛") return "border-red-200 bg-red-50 text-red-700";
-  return "border-amber-200 bg-amber-50 text-amber-700";
+function teamTone(status: RegistrationTeam["status"]): AdminBadgeTone {
+  if (status === "已冻结") return "done";
+  if (status === "已退赛") return "attention";
+  return "active";
 }
 
 function formatTime(value: string) {
@@ -279,7 +230,7 @@ function CopyButton({ text, label = "复制", copiedLabel = "已复制", title, 
     if (timer.current !== null) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setStatus("idle"), 1600);
   };
-  const tone = status === "copied" ? "text-emerald-700" : status === "failed" ? "text-red-700" : "";
+  const tone = status === "copied" ? "text-[var(--adm-ok-text)]" : status === "failed" ? "text-[var(--adm-red-text)]" : "";
   return (
     <button
       type="button"
@@ -320,55 +271,43 @@ function RosterMemberChip({
   // 一支满编队 7 个槽位就是 21 个按钮 —— 这是列表显得挤压的主因。
   const actions: Array<{ text: string; onSelect: () => void; tone?: string }> = [];
   if (team.status === "报名中" && onChangeRole) actions.push({ text: "改角色", onSelect: onChangeRole });
-  if (team.status !== "已退赛") actions.push({ text: "换人", onSelect: onReplace, tone: "text-[#c83242]" });
-  if (team.status === "报名中") actions.push({ text: "移出", onSelect: onRemove, tone: "text-red-700" });
+  if (team.status !== "已退赛") actions.push({ text: "换人", onSelect: onReplace, tone: "text-[var(--adm-red-text)]" });
+  if (team.status === "报名中") actions.push({ text: "移出", onSelect: onRemove, tone: "text-[var(--adm-red-text)]" });
   const flagged = isFlagged(player.reviewStatus);
-  const tone = flagged
-    ? reviewTone(player.reviewStatus)
-    : isCaptain
-      ? "border-slate-400 bg-slate-50 text-slate-900"
-      : "border-slate-200 bg-white text-slate-800";
+  const tone: AdminBadgeTone = reviewTone(player.reviewStatus);
 
   return (
-    <span className={`inline-flex ${CHIP_HEIGHT} max-w-full items-center border ${tone}`} title={`${player.gameId}${isCaptain ? "（队长）" : ""}`}>
-      <span className={`max-w-[104px] truncate pl-[6px] ${DENSE_CHIP} font-bold leading-none`}>{player.gameId}</span>
-      {isCaptain && <span className={`ml-[4px] shrink-0 ${DENSE_MICRO} font-bold text-slate-400`}>队长</span>}
-      {flagged && <span className={`ml-[4px] shrink-0 ${DENSE_MICRO} font-bold`}>{player.reviewStatus}</span>}
-      {actions.length > 0 ? <InlineMenu compact label={`${player.gameId} 的操作`} items={actions} /> : <span className="w-[5px]" />}
+    <span className={`inline-flex ${CHIP_HEIGHT} max-w-full items-center border border-[var(--adm-line)] bg-[var(--adm-surface)]`} title={`${player.gameId}${isCaptain ? "（队长）" : ""}`}>
+      {/* 上限从 104px 放宽到 128px：实测 `ECUST004#1004` 这类 ID 内容宽 110px，
+          卡在 104px 上被截成 `ECUST002#1…` —— 5 个首发看起来一模一样，分不出谁是谁。
+          128px 给 18px 余量，同时仍能一行并排两个 chip（2×128+3 < 可用宽 380）。
+          原来靠 `title` 悬停兜底，但 tooltip 不是可用的信息呈现方式（负责人明确不要）。 */}
+      <span className={`max-w-[128px] truncate pl-[6px] ${DENSE_CHIP} font-semibold leading-none`}>{player.gameId}</span>
+      {isCaptain && <span className={`ml-[4px] shrink-0 ${DENSE_MICRO} font-medium text-[var(--adm-text-mute)]`}>队长</span>}
+      {flagged && (
+        <span className="ml-[5px] flex shrink-0 items-center gap-1">
+          <StatusDot tone={tone} />
+          <span className={`${DENSE_MICRO} font-medium text-[var(--adm-text-soft)]`}>{player.reviewStatus}</span>
+        </span>
+      )}
+      {actions.length > 0 ? <AdminOverflowMenu size="chip" label={`${player.gameId} 的操作`} items={actions} /> : <span className="w-[5px]" />}
     </span>
   );
 }
 
-function ModalShell({ title, subtitle, onClose, children, footer }: {
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  footer: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto border border-slate-300 bg-[#f8f6f1] shadow-2xl">
-        <div className="flex items-start justify-between gap-5 border-b border-slate-200 bg-white px-5 py-4">
-          <div>
-            <h2 className="text-base font-black text-slate-950">{title}</h2>
-            {subtitle && <p className="mt-1 text-xs leading-5 text-slate-500">{subtitle}</p>}
-          </div>
-          <button type="button" onClick={onClose} className="shrink-0 text-xs font-bold text-slate-400 hover:text-slate-900">关闭</button>
-        </div>
-        <div className="space-y-4 p-5">{children}</div>
-        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4">{footer}</div>
-      </div>
-    </div>
-  );
-}
+/* 这里原来有一个本地 `ModalShell`（约 20 行）。已删，原因有三个：
+   ① 它是 `AdminModal` 的复制品，属于「同一件事两种表达」；
+   ② 它**没有 Esc 关闭、也没有点遮罩关闭**（设计文档 6.7 明确要求 Esc 能关弹窗），
+      而这页的弹窗是最多的（12 个）；
+   ③ 它的 z-index 是 70，统一弹窗是 80，和确认框不在同一层。
+   本文件的弹窗现在一律用 `@/components/admin/ui` 的 `AdminModal`。 */
 
 function Field({ label, children, help }: { label: string; children: React.ReactNode; help?: string }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-bold text-slate-700">{label}</span>
+      <span className="mb-1.5 block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">{label}</span>
       {children}
-      {help && <span className="mt-1.5 block text-[0.625rem] leading-4 text-slate-400">{help}</span>}
+      {help && <span className="mt-1.5 block text-[length:var(--adm-fs-sm)] leading-[1.5] text-[var(--adm-text-mute)]">{help}</span>}
     </label>
   );
 }
@@ -388,6 +327,12 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("全部");
   const [teamSort, setTeamSort] = useState<TeamSort>("待办优先");
   const [playerPage, setPlayerPage] = useState(1);
+  /**
+   * 批量操作的选择集（设计文档 6.6「选中后顶部出现批量操作条」）。
+   * **只存 id、不存对象**：每次操作后服务端会整份替换 state，
+   * 存对象会拿到过期引用，判断「这个人还在不在」就错了。
+   */
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [modal, setModal] = useState<Modal | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [editPositions, setEditPositions] = useState<string[]>([]);
@@ -541,6 +486,54 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
     }
   }
 
+  /**
+   * 批量执行同一个 action（设计文档 6.6「选中后顶部出现批量操作条」）。
+   *
+   * **为什么串行、不用 `Promise.all`**：每次响应都带回**整份** state 并 `setState`，
+   * 并发写会互相覆盖（后到的响应可能是较早的 state），界面上就会出现
+   * 「有的已生效、有的没生效」。串行慢一点，但状态一路正确。
+   *
+   * **中途失败不吞**：报告已完成的条数，并把**失败的那些**留在选择集里，
+   * 负责人可以直接再点一次重试，不用重新勾选。
+   */
+  async function runBatch(
+    action: string,
+    ids: string[],
+    payloadOf: (id: string) => Record<string, unknown>,
+    doneText: (n: number) => string,
+  ) {
+    if (ids.length === 0 || busy) return;
+    setBusy(true);
+    setNotice(null);
+    let done = 0;
+    const failed: string[] = [];
+    try {
+      for (const id of ids) {
+        const response = await fetch("/api/admin/registration", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId, action, payload: payloadOf(id) }),
+        });
+        const data = await response.json().catch(() => ({})) as { message?: string; state?: RegistrationState };
+        if (data.state) setState(normalizeRegistrationState(data.state));
+        if (!response.ok) {
+          failed.push(id);
+          continue;
+        }
+        done += 1;
+      }
+      setSelectedPlayerIds(failed);
+      setNotice(failed.length > 0
+        ? { kind: "error", text: `已完成 ${done} 条，${failed.length} 条失败（失败的那些已留在选择集里，可直接重试）` }
+        : { kind: "success", text: doneText(done) });
+      router.refresh();
+    } catch (reason) {
+      setNotice({ kind: "error", text: reason instanceof Error ? reason.message : "批量操作失败，请重试" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function submitModal() {
     if (!modal) return;
     if (modal.kind === "edit-player") return runOperation("update-player", { playerId: modal.player.id, ...form, positions: editPositions });
@@ -565,78 +558,100 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   }
 
   if (!loaded) {
-    return <div className="border border-slate-200 bg-white px-6 py-20 text-center text-sm text-slate-500">正在读取报名与队伍数据…</div>;
+    return <div className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-6 py-20 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">正在读取报名与队伍数据…</div>;
   }
 
   return (
     <div>
+      {/* 页头状态徽标只在「有事要你做」时出现。原来没有待改资料时会显示
+          「N/M 队已确认」，但那和下面上下文条里的「正式队伍」是同一个数字，
+          同一屏不把同一个数字说两遍。 */}
       <AdminPageHeader
-        eyebrow="MODULE 01 / REGISTER"
+        eyebrow="模块 01"
         title="报名与队伍"
-        status={flaggedPlayers.length > 0 ? `${flaggedPlayers.length} 人资料待修改` : `${confirmedTeams}/${activeTeams.length} 队已确认`}
+        status={flaggedPlayers.length > 0 ? `${flaggedPlayers.length} 人资料待修改` : undefined}
         actions={(
           <>
-            <a href={`/api/admin/registration/export?eventId=${encodeURIComponent(eventId)}`} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950">导出报名</a>
-            <button type="button" onClick={() => openModal({ kind: "create-team" })} disabled={busy || state.teamRegistrationClosed} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300">代建队伍</button>
-            <button type="button" onClick={() => openModal({ kind: "create-player" })} disabled={busy} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300">代录选手</button>
-            <button type="button" onClick={() => runOperation("toggle-player-registration")} disabled={busy} className="border border-slate-300 bg-white inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:opacity-50">{state.playerRegistrationClosed ? "开放选手报名" : "截止选手报名"}</button>
-            <button type="button" onClick={() => runOperation("toggle-team-registration")} disabled={busy} className={`inline-flex min-h-11 items-center px-4 text-xs font-bold disabled:opacity-50 ${state.teamRegistrationClosed ? "border border-slate-300 bg-white text-slate-700" : "bg-[#ff4655] text-white hover:bg-[#d83b48]"}`}>{state.teamRegistrationClosed ? "开放队伍申报" : "截止队伍申报"}</button>
+            <a href={`/api/admin/registration/export?eventId=${encodeURIComponent(eventId)}`} className="adm-btn adm-btn--secondary adm-btn--md">导出报名</a>
+            {/* 队伍申报开关留在外面：它的按钮文字本身就是「报名开没开」的状态指示，
+                收进「⋯」之后就看不出来了。 */}
+            <button
+              type="button"
+              onClick={() => runOperation("toggle-team-registration")}
+              disabled={busy}
+              className={`adm-btn adm-btn--md ${state.teamRegistrationClosed ? "adm-btn--secondary" : "adm-btn--primary"}`}
+            >
+              {state.teamRegistrationClosed ? "开放队伍申报" : "截止队伍申报"}
+            </button>
           </>
         )}
+        overflow={[
+          { text: "代建队伍", onSelect: () => openModal({ kind: "create-team" }), disabled: busy || state.teamRegistrationClosed },
+          { text: "代录选手", onSelect: () => openModal({ kind: "create-player" }), disabled: busy },
+          { text: state.playerRegistrationClosed ? "开放选手报名" : "截止选手报名", onSelect: () => runOperation("toggle-player-registration"), disabled: busy },
+        ]}
       />
 
       {notice && (
-        <div className={`mb-5 flex items-start justify-between gap-4 border px-4 py-3 text-xs font-bold ${notice.kind === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`} role="status">
+        <div className={`adm-note mb-5 flex items-start justify-between gap-4 ${notice.kind === "success" ? "adm-note--ok" : "adm-note--danger"}`} role="status">
           <span>{notice.text}</span>
-          <button type="button" onClick={() => setNotice(null)} className="shrink-0 font-black">×</button>
+          {/* 单个字符的图标钮不用 --md/--lg：那两档是按文字宽度定的，
+              字符本身很窄，用大档只会得到一个又高又空的方块。
+              这里固定 32×32，和溢出菜单的图标触发钮同尺寸。 */}
+          <button type="button" onClick={() => setNotice(null)} aria-label="关闭提示" className="adm-btn adm-btn--ghost adm-btn--sm w-[32px] shrink-0 px-0">×</button>
         </div>
       )}
 
-      <section className="mb-5 grid gap-px border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+      {/* 上下文条：一行数字，不做卡片（设计文档 4.2）。信息与原来的四张统计卡完全一致，
+          只是不再各占一块边框 —— 数字仍然是页面上第二重的东西，仅次于标题。
+          移动端隐藏（设计文档 4.4：不减字号，改为减少一屏信息）。 */}
+      <section className="mb-5 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-[var(--adm-line-soft)] px-5 py-3 max-[760px]:hidden">
         {[
           ["有效报名", `${activePlayers.length} 人`],
           ["资料待修改", `${flaggedPlayers.length} 人`],
           ["未组队", `${unteamedApproved.length} 人`],
           ["正式队伍", `${confirmedTeams}/${activeTeams.length} 支`],
         ].map(([label, value]) => (
-          <div key={label} className="bg-white p-[12px] leading-tight">
-            <p className={`${DENSE_MICRO} font-bold tracking-[0.12em] text-slate-400`}>{label}</p>
-            <p className="mt-[4px] font-mono text-[20px] font-black text-slate-950">{value}</p>
-          </div>
+          <p key={label} className="flex items-baseline gap-2">
+            <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">{label}</span>
+            <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{value}</span>
+          </p>
         ))}
       </section>
 
-      <section className="mb-5 border border-slate-200 bg-white">
+      <section className="mb-5 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
         <div className="grid gap-5 p-5 md:grid-cols-[auto_1fr] md:items-center">
-          <div className="w-fit border border-slate-200 bg-white p-2">
-            {registerUrl ? <QRCodeSVG value={registerUrl} size={92} /> : <div className="h-[92px] w-[92px] bg-slate-50" />}
+          <div className="w-fit border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-2">
+            {registerUrl ? <QRCodeSVG value={registerUrl} size={92} /> : <div className="h-[92px] w-[92px] bg-[var(--adm-surface-2)]" />}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-black text-slate-950">给选手的报名入口</p>
-            <p className="mt-1 break-all text-xs text-slate-500">{registerUrl || "正在生成链接…"}</p>
-            <p className="mt-2 text-[0.625rem] font-bold text-slate-500">选手报名截止 {event.registrationEnd || "待定"} · 队伍申报截止 {event.teamRegistrationEnd || "待定"}</p>
+            <p className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">给选手的报名入口</p>
+            <p className="mt-1 break-all text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">{registerUrl || "正在生成链接…"}</p>
+            <p className="mt-2 text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text-soft)]">选手报名截止 {event.registrationEnd || "待定"} · 队伍申报截止 {event.teamRegistrationEnd || "待定"}</p>
           </div>
         </div>
       </section>
 
-      <section className="border border-slate-200 bg-white">
-        <div className="flex flex-col justify-between gap-3 border-b border-slate-200 md:flex-row md:items-center">
+      <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+        <div className="flex flex-col justify-between gap-3 border-b border-[var(--adm-line-soft)] md:flex-row md:items-center">
           <div className="flex overflow-x-auto">
             {([
               ["players", "选手", state.players.length],
               ["teams", "队伍", state.teams.length],
               ["history", "操作记录", state.operationLogs?.length ?? 0],
             ] as const).map(([value, label, count]) => (
-              <button key={value} type="button" onClick={() => setTab(value)} className={`shrink-0 border-r border-slate-200 px-5 py-3.5 text-sm font-bold ${tab === value ? "border-b-2 border-b-[#ff4655] bg-[#fff1f2] text-slate-950" : "text-slate-500 hover:text-slate-950"}`}>
-                {label} <span className="ml-1 font-mono text-[0.625rem] text-slate-400">{count}</span>
+              <button key={value} type="button" onClick={() => setTab(value)} aria-current={tab === value} className={`shrink-0 border-r border-[var(--adm-line-soft)] px-5 py-3.5 text-[length:var(--adm-fs-lg)] ${tab === value ? "border-b-2 border-b-[var(--adm-red)] font-semibold text-[var(--adm-text)]" : "text-[var(--adm-text-soft)] hover:text-[var(--adm-text)]"}`}>
+                {label} <span className="ml-1 text-[length:var(--adm-fs-sm)] tabular-nums text-[var(--adm-text-mute)]">{count}</span>
               </button>
             ))}
           </div>
           {tab === "players" && (
             <div className="flex gap-[6px] px-[10px] pb-[10px] md:pb-0">
-              <button type="button" onClick={() => runOperation("approve-all-players")} disabled={busy || flaggedPlayers.length === 0} className="inline-flex min-h-[32px] shrink-0 items-center bg-emerald-600 px-[10px] text-[13px] font-bold leading-tight text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">全部通过{flaggedPlayers.length > 0 ? `（${flaggedPlayers.length} 人）` : ""}</button>
-              <input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名或学号" className="min-h-[32px] min-w-0 border border-slate-200 px-[10px] text-[13px] leading-tight outline-none focus:border-[#ff4655] md:w-56" />
-              <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] border border-slate-200 bg-white px-[8px] text-[13px] leading-tight outline-none">
+              <button type="button" onClick={() => runOperation("approve-all-players")} disabled={busy || flaggedPlayers.length === 0} className="inline-flex min-h-[32px] shrink-0 items-center bg-[var(--adm-ok-text)] px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-white hover:bg-[var(--adm-ok-text)] disabled:cursor-not-allowed disabled:opacity-40">全部通过{flaggedPlayers.length > 0 ? `（${flaggedPlayers.length} 人）` : ""}</button>
+              {/* data-search-input 是 Cmd/Ctrl+K 的约定（见 AdminUIProvider）：
+                  全站任何搜索框只要带上这个属性，那个快捷键就会聚焦到它。 */}
+              <input data-search-input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名或学号" className="min-h-[32px] min-w-0 border border-[var(--adm-line-soft)] px-[10px] text-[length:var(--adm-fs-sm)] leading-tight outline-none focus:border-[var(--adm-red)] md:w-56" />
+              <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] leading-tight outline-none">
                 {(["全部", "已通过", "需修改", "已拒绝"] as const).map((status) => <option key={status}>{status}</option>)}
               </select>
             </div>
@@ -648,7 +663,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 onClick={() => runOperation("confirm-eligible-teams")}
                 disabled={busy || teamBuckets["满编待确认"] === 0}
                 title="把首发满 5 人且资料全部通过的队伍一次性确认为正式名单"
-                className="inline-flex min-h-[32px] shrink-0 items-center bg-[#ff4655] px-[10px] text-[13px] font-bold leading-tight text-white hover:bg-[#d83b48] disabled:cursor-not-allowed disabled:opacity-40"
+                className="adm-btn adm-btn--primary adm-btn--sm shrink-0 hover:bg-[var(--adm-red-hover)]"
               >
                 一键确认满编队伍{teamBuckets["满编待确认"] > 0 ? `（${teamBuckets["满编待确认"]}）` : ""}
               </button>
@@ -661,7 +676,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 onChange={(event) => setTeamFilter(event.target.value as TeamFilter)}
                 aria-label="按队伍状态筛选"
                 title="按队伍状态筛选；括号里是该状态下的队伍数"
-                className="min-h-[32px] shrink-0 border border-slate-200 bg-white px-[8px] text-[13px] font-bold leading-tight text-slate-700 outline-none"
+                className="min-h-[32px] shrink-0 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] outline-none"
               >
                 {TEAM_FILTERS.map((bucket) => (
                   <option key={bucket} value={bucket}>{bucket}（{teamBuckets[bucket]}）</option>
@@ -672,7 +687,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 onChange={(event) => setTeamSort(event.target.value as TeamSort)}
                 aria-label="队伍排序方式"
                 title="待办优先：缺人、待确认的队伍排在前面；平均段位：按首发 5 人的段位均值，强 → 弱（替补与教练不计）"
-                className="min-h-[32px] shrink-0 border border-slate-200 bg-white px-[8px] text-[13px] font-bold leading-tight text-slate-700 outline-none"
+                className="min-h-[32px] shrink-0 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] outline-none"
               >
                 {TEAM_SORTS.map((mode) => (
                   <option key={mode} value={mode}>排序：{mode}</option>
@@ -687,51 +702,91 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 label={`复制队长联系方式（${visibleTeams.length} 队）`}
                 copiedLabel={`已复制（${visibleTeams.length} 队）`}
                 title="按当前筛选与排序复制：队名 / 队长游戏 ID / 联系方式，制表符分隔，可直接粘进表格或聊天窗口"
-                className="inline-flex min-h-[32px] shrink-0 items-center border border-slate-300 bg-white px-[10px] text-[13px] font-bold leading-tight text-slate-700 hover:border-slate-950 disabled:cursor-not-allowed disabled:text-slate-300"
+                className="inline-flex min-h-[32px] shrink-0 items-center border border-[var(--adm-line)] bg-[var(--adm-surface)] px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] disabled:cursor-not-allowed disabled:text-[var(--adm-text-mute)]"
               />
             </div>
           )}
         </div>
 
+        {/* 批量操作条（设计文档 6.6「选中后顶部出现批量操作条」）。
+            只在有选中项时出现，不占常态空间；「清空选择」与选择集同生共死。 */}
+        {tab === "players" && selectedPlayerIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 border-y border-[var(--adm-red-line)] bg-[var(--adm-red-soft)] px-[10px] py-[8px]">
+            <span className="text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-red-text)]">已选 {selectedPlayerIds.length} 人</span>
+            <button
+              type="button"
+              onClick={() => runBatch("review-player", selectedPlayerIds, (id) => ({ playerId: id, reviewStatus: "已通过" }), (n) => `已标记通过 ${n} 人`)}
+              disabled={busy}
+              className="adm-btn adm-btn--primary adm-btn--sm hover:bg-[var(--adm-red-hover)]"
+            >
+              标记通过
+            </button>
+            <button type="button" onClick={() => setSelectedPlayerIds([])} disabled={busy} className="adm-btn adm-btn--secondary adm-btn--sm">
+              清空选择
+            </button>
+          </div>
+        )}
+
         {tab === "players" && (
-          visiblePlayers.length === 0 ? <p className="px-5 py-16 text-center text-xs text-slate-400">没有符合条件的选手</p> : (
-            <div className="divide-y divide-slate-100">
+          activePlayers.length === 0 ? (
+            <div className="p-5">
+              <EmptyState
+                title="还没有选手报名"
+                description="选手从玩家页面的报名入口提交资料后会出现在这里。也可以从页头「⋯」里的「代录选手」帮人补录。"
+              />
+            </div>
+          ) : visiblePlayers.length === 0 ? (
+            <div className="p-5">
+              <EmptyState title="没有符合条件的选手" description="换一个筛选条件或清空搜索再看看。" />
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--adm-line-soft)]">
               {pagedPlayers.map((player) => {
                 const team = state.teams.find((candidate) => candidate.id === player.teamId);
                 return (
-                  <article key={player.id} className={`p-[10px] leading-tight ${player.status === "已退赛" ? "bg-slate-50/70 text-slate-400" : "text-slate-700"}`}>
+                  <article key={player.id} className={`p-[10px] leading-tight ${player.status === "已退赛" ? "bg-[var(--adm-surface-2)] text-[var(--adm-text-mute)]" : "text-[var(--adm-text-soft)]"}`}>
                     <div className="flex items-center justify-between gap-[10px]">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlayerIds.includes(player.id)}
+                        onChange={(event) => setSelectedPlayerIds((ids) => event.target.checked ? [...ids, player.id] : ids.filter((id) => id !== player.id))}
+                        aria-label={`选择 ${player.gameId}`}
+                        className="h-[16px] w-[16px] shrink-0 accent-[var(--adm-red)]"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-baseline gap-[6px]">
-                          <p className={`truncate ${DENSE_BODY} font-bold text-slate-950`}>{player.gameId}</p>
+                          <p className={`truncate ${DENSE_BODY} font-bold text-[var(--adm-text)]`}>{player.gameId}</p>
                           {/* 默认通过不再显示徽章 —— 159 个人人都挂一个「已通过」只是噪音 */}
                           {isFlagged(player.reviewStatus) && (
-                            <span className={`shrink-0 border px-[6px] py-[1px] ${DENSE_MICRO} font-bold ${reviewTone(player.reviewStatus)}`}>{player.reviewStatus}</span>
+                            <span className="adm-chip shrink-0" data-tone={reviewTone(player.reviewStatus)}>{player.reviewStatus}</span>
                           )}
                         </div>
                         <p className={`mt-[1px] truncate ${DENSE_MICRO}`}>{player.name} · {player.studentId}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-[10px]">
-                        {player.status !== "已退赛" && isFlagged(player.reviewStatus) && <button type="button" onClick={() => runOperation("review-player", { playerId: player.id, reviewStatus: "已通过" })} disabled={busy} className={`${textActionClass} text-emerald-700 disabled:text-slate-400`}>标记通过</button>}
-                        <button type="button" onClick={() => openModal({ kind: "edit-player", player })} className={`${textActionClass} text-slate-700`}>编辑资料</button>
-                        <button type="button" onClick={() => openModal({ kind: "delete-player", player })} className={`${textActionClass} text-red-700`}>删除选手</button>
+                        {/* 行内动作 ≤2（设计文档 6.6）：留「待办」性质的「标记通过」和最常用的
+                            「编辑资料」，「删除选手」是低频 + 破坏性动作，收进行尾 ⋯ ——
+                            顺带降低误触丢数据的概率。 */}
+                        {player.status !== "已退赛" && isFlagged(player.reviewStatus) && <button type="button" onClick={() => runOperation("review-player", { playerId: player.id, reviewStatus: "已通过" })} disabled={busy} className={`${textActionClass} text-[var(--adm-ok-text)] disabled:text-[var(--adm-text-mute)]`}>标记通过</button>}
+                        <button type="button" onClick={() => openModal({ kind: "edit-player", player })} className={`${textActionClass} text-[var(--adm-text-soft)]`}>编辑资料</button>
+                        <AdminOverflowMenu size="compact" label={`${player.gameId} 的更多操作`} items={[{ text: "删除选手", onSelect: () => openModal({ kind: "delete-player", player }), tone: "text-[var(--adm-red-text)]" }]} />
                       </div>
                     </div>
-                    <div className={`mt-[6px] grid gap-[5px] border-t border-slate-100 pt-[6px] ${DENSE_META} sm:grid-cols-2 xl:grid-cols-4`}>
-                      <div><p className={`${DENSE_MICRO} font-bold text-slate-400`}>段位 / 位置</p><p className="mt-0.5 truncate">{player.rank} · {(player.positions ?? []).join("、") || "未填"}</p></div>
-                      <div><p className={`${DENSE_MICRO} font-bold text-slate-400`}>联系方式</p><p className="mt-0.5 truncate">{contactOf(player)}</p></div>
-                      <div className="sm:col-span-2"><p className={`${DENSE_MICRO} font-bold text-slate-400`}>队伍状态</p><p className="mt-0.5 truncate">{team ? <><span className="font-bold text-slate-800">{team.name}</span><span className="ml-1 text-slate-400">· {player.role}</span></> : player.status === "已退赛" ? "已退赛" : "未组队"}</p></div>
+                    <div className={`mt-[6px] grid gap-[5px] border-t border-[var(--adm-line-soft)] pt-[6px] ${DENSE_META} sm:grid-cols-2 xl:grid-cols-4`}>
+                      <div><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>段位 / 位置</p><p className="mt-0.5 truncate">{player.rank} · {(player.positions ?? []).join("、") || "未填"}</p></div>
+                      <div><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>联系方式</p><p className="mt-0.5 truncate">{contactOf(player)}</p></div>
+                      <div className="sm:col-span-2"><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>队伍状态</p><p className="mt-0.5 truncate">{team ? <><span className="font-bold text-[var(--adm-text)]">{team.name}</span><span className="ml-1 text-[var(--adm-text-mute)]">· {player.role}</span></> : player.status === "已退赛" ? "已退赛" : "未组队"}</p></div>
                     </div>
                   </article>
                 );
               })}
               {visiblePlayers.length > pageSize && (
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-[0.625rem] text-slate-500">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--adm-surface-2)] px-4 py-3 text-[length:var(--adm-fs-sm)] text-[var(--adm-text-soft)]">
                   <span>显示 {(safePlayerPage - 1) * pageSize + 1}–{Math.min(safePlayerPage * pageSize, visiblePlayers.length)}，共 {visiblePlayers.length} 人</span>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => setPlayerPage((page) => Math.max(1, page - 1))} disabled={safePlayerPage === 1} className="inline-flex min-h-11 items-center border border-slate-300 bg-white px-4 font-bold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300">上一页</button>
-                    <span className="font-mono">{safePlayerPage} / {playerPageCount}</span>
-                    <button type="button" onClick={() => setPlayerPage((page) => Math.min(playerPageCount, page + 1))} disabled={safePlayerPage === playerPageCount} className="inline-flex min-h-11 items-center border border-slate-300 bg-white px-4 font-bold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300">下一页</button>
+                    <button type="button" onClick={() => setPlayerPage((page) => Math.max(1, page - 1))} disabled={safePlayerPage === 1} className="adm-btn adm-btn--secondary adm-btn--md">上一页</button>
+                    <span className="tabular-nums text-[var(--adm-text-soft)]">{safePlayerPage} / {playerPageCount}</span>
+                    <button type="button" onClick={() => setPlayerPage((page) => Math.min(playerPageCount, page + 1))} disabled={safePlayerPage === playerPageCount} className="adm-btn adm-btn--secondary adm-btn--md">下一页</button>
                   </div>
                 </div>
               )}
@@ -741,11 +796,22 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
 
         {tab === "teams" && (
           state.teams.length === 0
-            ? <p className="px-5 py-16 text-center text-xs text-slate-400">暂无队伍</p>
+            ? (
+              <div className="p-5">
+                <EmptyState
+                  title="还没有队伍"
+                  description="队伍由队长在玩家页面创建后出现在这里。也可以从页头「⋯」里的「代建队伍」先建好，再把选手放进去。"
+                />
+              </div>
+            )
             : visibleTeams.length === 0
-              ? <p className="px-5 py-16 text-center text-xs text-slate-400">这个筛选下没有队伍</p>
+              ? (
+                <div className="p-5">
+                  <EmptyState title="这个筛选下没有队伍" description="换一个筛选条件再看看。" />
+                </div>
+              )
               : (
-                <div className="grid gap-px bg-slate-200 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-px bg-[var(--adm-surface-3)] md:grid-cols-2 xl:grid-cols-3">
               {visibleTeams.map(({ team, roster }) => {
                 const members = roster.members;
                 const captain = roster.captain;
@@ -757,47 +823,47 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                   teamActions.push({ text: "改名", onSelect: () => openModal({ kind: "rename-team", team }) });
                 }
                 if (team.status === "报名中" || (team.status === "已冻结" && !bracketTeamIds.includes(team.id))) {
-                  teamActions.push({ text: "解散队伍", onSelect: () => openModal({ kind: "dissolve-team", team }), tone: "text-amber-700" });
+                  teamActions.push({ text: "解散队伍", onSelect: () => openModal({ kind: "dissolve-team", team }), tone: "text-[var(--adm-warn-text)]" });
                 }
                 if (team.status !== "已退赛") {
-                  teamActions.push({ text: "整队退赛", onSelect: () => openModal({ kind: "withdraw-team", team }), tone: "text-red-700" });
+                  teamActions.push({ text: "整队退赛", onSelect: () => openModal({ kind: "withdraw-team", team }), tone: "text-[var(--adm-red-text)]" });
                 }
                 return (
-                  <article key={team.id} className={`bg-white px-[10px] py-[8px] leading-tight ${roster.withdrawn ? "bg-slate-50/70 text-slate-400" : ""}`}>
+                  <article key={team.id} className={`bg-[var(--adm-surface)] px-[10px] py-[8px] leading-tight ${roster.withdrawn ? "bg-[var(--adm-surface-2)] text-[var(--adm-text-mute)]" : ""}`}>
                     <div className="flex items-start justify-between gap-[8px]">
                       <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
-                        <h3 className={`truncate ${DENSE_TITLE} font-black text-slate-950`}>{team.name}</h3>
-                        <span className={`shrink-0 border px-[6px] py-[1px] ${DENSE_MICRO} font-bold ${teamTone(team.status)}`}>{team.status === "已冻结" ? "正式名单" : team.status}</span>
-                        <span className={`shrink-0 font-mono ${DENSE_MICRO} font-bold ${roster.complete ? "text-slate-400" : "text-amber-600"}`}>首发 {roster.starterCount}/{TEAM_SIZE}</span>
+                        <h3 className={`truncate ${DENSE_TITLE} font-semibold text-[var(--adm-text)]`}>{team.name}</h3>
+                        <span className="adm-chip shrink-0" data-tone={teamTone(team.status)}>{team.status === "已冻结" ? "正式名单" : team.status}</span>
+                        <span className={`shrink-0 ${DENSE_MICRO} font-medium tabular-nums ${roster.complete ? "text-[var(--adm-text-mute)]" : "text-[var(--adm-red-text)]"}`}>首发 {roster.starterCount}/{TEAM_SIZE}</span>
                         {/* 平均段位是资格赛选队的依据，必须看得见 —— 否则「按段位排序」也是黑箱。
                             一个人都没填段位时不显示 0.00，那会让人误以为是「最弱」。 */}
-                        <span className={`shrink-0 font-mono ${DENSE_MICRO} font-bold text-slate-500`} title="首发 5 人段位均值（铁 1 → 无畏战魂 9）">均 {roster.avgRank > 0 ? roster.avgRank.toFixed(2) : "—"}</span>
-                        {roster.unrankedStarters > 0 && <span className={`shrink-0 border border-amber-300 px-[5px] py-[1px] ${DENSE_MICRO} font-bold text-amber-700`}>{roster.unrankedStarters} 人未填段位</span>}
+                        <span className={`shrink-0 ${DENSE_MICRO} font-medium tabular-nums text-[var(--adm-text-soft)]`} title="首发 5 人段位均值（铁 1 → 无畏战魂 9）">均 {roster.avgRank > 0 ? roster.avgRank.toFixed(2) : "—"}</span>
+                        {roster.unrankedStarters > 0 && <span className="adm-chip shrink-0" data-tone="attention">{roster.unrankedStarters} 人未填段位</span>}
                       </div>
                       <div className="flex shrink-0 items-center gap-[4px]">
-                        {team.status === "已冻结" && <button type="button" onClick={() => openModal({ kind: "reopen-team", team })} className="border border-slate-300 inline-flex h-[24px] items-center px-[8px] text-[12px] font-bold leading-tight text-slate-700 hover:border-slate-950">开放调整</button>}
-                        <InlineMenu compact label={`${team.name} 的更多操作`} items={teamActions} />
+                        {team.status === "已冻结" && <button type="button" onClick={() => openModal({ kind: "reopen-team", team })} className="adm-btn adm-btn--secondary adm-btn--sm">开放调整</button>}
+                        <AdminOverflowMenu size="compact" label={`${team.name} 的更多操作`} items={teamActions} />
                       </div>
                     </div>
-                    {flaggedCount > 0 && <p className={`mt-[4px] ${DENSE_META} font-bold text-amber-700`}>{flaggedCount} 人资料待修改，需先标记通过才能确认名单</p>}
+                    {flaggedCount > 0 && <p className={`mt-[4px] ${DENSE_META} font-bold text-[var(--adm-warn-text)]`}>{flaggedCount} 人资料待修改，需先标记通过才能确认名单</p>}
                     {/* 队长联系方式直接摆在卡片上。负责人要把队长逐个拉进队长群，
                         原来的路径是「点开队伍 → 记住队长 ID → 去选手列表搜这个 ID → 再找联系方式」，
                         36 支队就是 36 遍。这里一次给全：ID、号码、是 QQ 还是手机、一键复制。
                         号码缺失时显式标黄，避免「看着有空位、实际没填」被漏掉。 */}
                     <div className={`mt-[5px] flex min-w-0 items-center gap-[6px] ${DENSE_META}`}>
-                      <span className={`${DENSE_MICRO} font-bold text-slate-400`}>队长</span>
+                      <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>队长</span>
                       {captain ? (
                         <>
-                          <span className="min-w-0 truncate font-bold text-slate-900">{captain.gameId}</span>
-                          <span className={`shrink-0 ${DENSE_MICRO} font-bold text-slate-400`}>{captain.qq ? "QQ" : captain.phone ? "手机" : "联系方式"}</span>
-                          <span className={`truncate font-mono ${roster.contact === "未填写" ? "font-bold text-amber-700" : "text-slate-700"}`}>{roster.contact}</span>
+                          <span className="min-w-0 truncate font-bold text-[var(--adm-text)]">{captain.gameId}</span>
+                          <span className={`shrink-0 ${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>{captain.qq ? "QQ" : captain.phone ? "手机" : "联系方式"}</span>
+                          <span className={`truncate tabular-nums ${roster.contact === "未填写" ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text-soft)]"}`}>{roster.contact}</span>
                           {roster.contact !== "未填写" && <CopyButton text={roster.contact} title={`复制队长 ${captain.gameId} 的联系方式`} className={copyActionClass} />}
                         </>
                       ) : (
-                        <span className="font-bold text-amber-700">队长不在名单中</span>
+                        <span className="font-bold text-[var(--adm-warn-text)]">队长不在名单中</span>
                       )}
                     </div>
-                    <div className="mt-[6px] grid gap-[3px] border-t border-slate-100 pt-[5px]">
+                    <div className="mt-[6px] grid gap-[3px] border-t border-[var(--adm-line-soft)] pt-[5px]">
                       {([
                         { role: "首发" as const, limit: TEAM_SIZE },
                         { role: "替补" as const, limit: 1 },
@@ -810,7 +876,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         const short = role === "首发" && roleMembers.length < limit;
                         return (
                           <div key={role} className="flex items-start gap-[6px]">
-                            <span className={`${ROSTER_SLOT_LABEL} ${DENSE_MICRO} font-black ${short ? "text-amber-600" : "text-slate-400"}`}>{role} {roleMembers.length}/{limit}</span>
+                            <span className={`${ROSTER_SLOT_LABEL} ${DENSE_MICRO} font-semibold ${short ? "text-[var(--adm-warn-text)]" : "text-[var(--adm-text-mute)]"}`}>{role} {roleMembers.length}/{limit}</span>
                             <div className="flex min-w-0 flex-1 flex-wrap gap-[3px]">
                               {Array.from({ length: slots }, (_, index) => {
                                 const player = roleMembers[index];
@@ -824,7 +890,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                                     onRemove={() => openModal({ kind: "remove-player", player })}
                                   />
                                 ) : (
-                                  <button key={`${role}-${index}`} type="button" onClick={() => openModal({ kind: "assign-player", team, role })} disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0} className={`inline-flex ${CHIP_HEIGHT} items-center border border-dashed border-slate-300 bg-slate-50 px-[6px] ${DENSE_META} font-bold leading-none text-slate-400 enabled:hover:border-[#ff4655] enabled:hover:text-[#c83242] disabled:cursor-default`}>
+                                  <button key={`${role}-${index}`} type="button" onClick={() => openModal({ kind: "assign-player", team, role })} disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0} className={`inline-flex ${CHIP_HEIGHT} items-center border border-dashed border-[var(--adm-line)] bg-[var(--adm-surface-2)] px-[6px] ${DENSE_META} font-bold leading-none text-[var(--adm-text-mute)] enabled:hover:border-[var(--adm-red)] enabled:hover:text-[var(--adm-red-text)] disabled:cursor-default`}>
                                     {role === "首发" ? `首发 ${index + 1} 空缺` : `${role}空缺`}
                                   </button>
                                 );
@@ -842,12 +908,19 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         )}
 
         {tab === "history" && (
-          (state.operationLogs?.length ?? 0) === 0 ? <p className="px-5 py-16 text-center text-xs text-slate-400">暂无操作记录</p> : (
-            <div className="divide-y divide-slate-100">
+          (state.operationLogs?.length ?? 0) === 0 ? (
+            <div className="p-5">
+              <EmptyState
+                title="还没有操作记录"
+                description="本页做的每一次通过、驳回、解散、开关报名都会记在这里，最近一次可以撤销。"
+              />
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--adm-line-soft)]">
               {(state.operationLogs ?? []).map((log: RegistrationAuditLog) => (
-                <div key={log.id} className={`flex flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center ${log.undoneAt ? "bg-slate-50 text-slate-400" : ""}`}>
-                  <div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-bold text-slate-900">{log.summary}</p>{log.undoneAt && <span className="border border-slate-200 px-2 py-0.5 text-[0.5625rem] font-bold">已撤销</span>}</div>{log.reason && <p className="mt-1 text-xs text-slate-500">原因：{log.reason}</p>}<p className="mt-1.5 font-mono text-[0.5625rem] text-slate-400">{formatTime(log.createdAt)} · {log.actor}</p></div>
-                  {!log.undoneAt && latestUndoable?.id === log.id && <button type="button" onClick={() => runOperation("undo", { logId: log.id })} disabled={busy} className="w-fit border border-slate-300 bg-white inline-flex min-h-11 items-center px-3 text-xs font-bold text-slate-700 hover:border-slate-950 disabled:opacity-50">撤销这次操作</button>}
+                <div key={log.id} className={`flex flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center ${log.undoneAt ? "bg-[var(--adm-surface-2)] text-[var(--adm-text-mute)]" : ""}`}>
+                  <div><div className="flex flex-wrap items-center gap-2"><p className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{log.summary}</p>{log.undoneAt && <span className="adm-chip" data-tone="neutral" data-dot="off">已撤销</span>}</div>{log.reason && <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">原因：{log.reason}</p>}<p className="mt-1.5 text-[length:var(--adm-fs-xs)] tabular-nums text-[var(--adm-text-mute)]">{formatTime(log.createdAt)} · {log.actor}</p></div>
+                  {!log.undoneAt && latestUndoable?.id === log.id && <button type="button" onClick={() => runOperation("undo", { logId: log.id })} disabled={busy} className="adm-btn adm-btn--secondary adm-btn--md w-fit">撤销这次操作</button>}
                 </div>
               ))}
             </div>
@@ -855,20 +928,20 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         )}
       </section>
 
-      {modal?.kind === "edit-player" && <ModalShell title={`编辑报名 · ${modal.player.gameId}`} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-50">保存更正</button></>}>
+      {modal?.kind === "edit-player" && <AdminModal title={`编辑报名 · ${modal.player.gameId}`} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy} className="adm-btn adm-btn--primary adm-btn--md">保存更正</button></>}>
         <div className="grid gap-4 sm:grid-cols-2"><Field label="姓名"><input className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field><Field label="学号"><input className={inputClass} value={form.studentId ?? ""} onChange={(event) => setForm({ ...form, studentId: event.target.value })} /></Field><Field label="游戏 ID"><input className={inputClass} value={form.gameId ?? ""} onChange={(event) => setForm({ ...form, gameId: event.target.value })} /></Field><Field label="段位"><input className={inputClass} value={form.rank ?? ""} onChange={(event) => setForm({ ...form, rank: event.target.value })} /></Field><Field label="QQ"><input className={inputClass} value={form.qq ?? ""} onChange={(event) => setForm({ ...form, qq: event.target.value })} /></Field><Field label="手机号"><input className={inputClass} value={form.phone ?? ""} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field></div>
-        <div className="mt-4"><p className="mb-1.5 block text-xs font-bold text-slate-700">擅长位置</p><div className="flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = editPositions.includes(pos); return <button key={pos} type="button" onClick={() => setEditPositions((current) => current.includes(pos) ? current.filter((item) => item !== pos) : [...current, pos])} className={`border px-3 py-1.5 text-xs transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-slate-300 bg-white text-slate-700 hover:border-[#ff4655]"}`}>{pos}</button>; })}</div></div>
+        <div className="mt-4"><p className="mb-1.5 block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">擅长位置</p><div className="flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = editPositions.includes(pos); return <button key={pos} type="button" onClick={() => setEditPositions((current) => current.includes(pos) ? current.filter((item) => item !== pos) : [...current, pos])} className={`border px-3 py-1.5 text-[length:var(--adm-fs-md)] transition ${active ? "border-[var(--adm-red)] bg-[var(--adm-red)] text-white" : "border-[var(--adm-line)] bg-[var(--adm-surface)] text-[var(--adm-text-soft)] hover:border-[var(--adm-red)]"}`}>{pos}</button>; })}</div></div>
         <Field label="自我介绍"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.intro ?? ""} onChange={(event) => setForm({ ...form, intro: event.target.value })} placeholder="选填" /></Field>
         <Field label="修改原因"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：选手联系负责人更正游戏 ID" /></Field>
-      </ModalShell>}
+      </AdminModal>}
 
       {modal?.kind === "delete-player" && (() => {
         const team = state.teams.find((candidate) => candidate.id === modal.player.teamId);
         const isCaptain = team?.captainId === modal.player.id;
         const remainingCount = team ? team.memberIds.filter((id) => id !== modal.player.id).length : 0;
-        return <ModalShell title={`删除选手 · ${modal.player.gameId}`} subtitle="报名数据会被移除，选手无法再登录参赛管理；删除后可在「操作记录」中撤销。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy} className="bg-red-600 inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认删除</button></>}>
-          <p className="text-sm leading-6 text-slate-700">确定要删除 <span className="font-black text-slate-900">{modal.player.gameId}</span>（{modal.player.name}）吗？</p>
-          <ul className="space-y-1.5 text-xs leading-5 text-slate-500">
+        return <AdminModal title={`删除选手 · ${modal.player.gameId}`} subtitle="报名数据会被移除，选手无法再登录参赛管理；删除后可在「操作记录」中撤销。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy} className="adm-btn adm-btn--primary adm-btn--md">确认删除</button></>}>
+          <p className="text-[length:var(--adm-fs-lg)] leading-[1.75] text-[var(--adm-text-soft)]">确定要删除 <span className="font-semibold text-[var(--adm-text)]">{modal.player.gameId}</span>（{modal.player.name}）吗？</p>
+          <ul className="space-y-1.5 text-[length:var(--adm-fs-md)] leading-[1.65] text-[var(--adm-text-soft)]">
             {team ? (
               <li>将移出队伍「{team.name}」：{isCaptain ? (remainingCount > 0 ? "队长自动移交给队内现有成员" : "该队已无成员，将标记为退赛") : "自动腾出其队内位置"}</li>
             ) : (
@@ -877,18 +950,18 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
             <li>与该选手相关的组队申请会一并清理。</li>
             <li>报名资料与参赛码一并移除，不可恢复（可在操作记录中撤销）。</li>
           </ul>
-        </ModalShell>;
+        </AdminModal>;
       })()}
 
-      {modal?.kind === "create-team" && <ModalShell title="负责人代建队伍" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.name?.trim() || !form.captainId} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">创建队伍</button></>}><Field label="队伍名称"><input autoFocus className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="输入参赛队名" /></Field><Field label="队长"><select className={inputClass} value={form.captainId ?? ""} onChange={(event) => setForm({ ...form, captainId: event.target.value })}><option value="">选择已审核且未组队选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="队长场上角色"><select className={inputClass} value={form.captainRole ?? "首发"} onChange={(event) => setForm({ ...form, captainRole: event.target.value })}><option>首发</option><option>替补</option><option>教练</option></select></Field></ModalShell>}
+      {modal?.kind === "create-team" && <AdminModal title="负责人代建队伍" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.name?.trim() || !form.captainId} className="adm-btn adm-btn--primary adm-btn--md">创建队伍</button></>}><Field label="队伍名称"><input autoFocus className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="输入参赛队名" /></Field><Field label="队长"><select className={inputClass} value={form.captainId ?? ""} onChange={(event) => setForm({ ...form, captainId: event.target.value })}><option value="">选择已审核且未组队选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="队长场上角色"><select className={inputClass} value={form.captainRole ?? "首发"} onChange={(event) => setForm({ ...form, captainRole: event.target.value })}><option>首发</option><option>替补</option><option>教练</option></select></Field></AdminModal>}
 
-      {modal?.kind === "rename-team" && <ModalShell title={`修改队名 · ${modal.team.name}`} subtitle="仅组队期可改；改名后生成赛程时会用新队名。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.name?.trim() || !form.reason?.trim()} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认改名</button></>}><Field label="新队名"><input autoFocus className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="输入新队名（≤40 字）" /></Field><Field label="改名原因"><textarea className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：队长申请更正队名" /></Field></ModalShell>}
+      {modal?.kind === "rename-team" && <AdminModal title={`修改队名 · ${modal.team.name}`} subtitle="仅组队期可改；改名后生成赛程时会用新队名。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.name?.trim() || !form.reason?.trim()} className="adm-btn adm-btn--primary adm-btn--md">确认改名</button></>}><Field label="新队名"><input autoFocus className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="输入新队名（≤40 字）" /></Field><Field label="改名原因"><textarea className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：队长申请更正队名" /></Field></AdminModal>}
 
-      {modal?.kind === "set-member-role" && <ModalShell title={`调整角色 · ${modal.player.gameId}`} subtitle="仅组队期可改；目标角色须有空位。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.role || !form.reason?.trim()} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认调整</button></>}><Field label="新角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field><Field label="调整原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：队长与队员协商后调整位置" /></Field></ModalShell>}
+      {modal?.kind === "set-member-role" && <AdminModal title={`调整角色 · ${modal.player.gameId}`} subtitle="仅组队期可改；目标角色须有空位。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.role || !form.reason?.trim()} className="adm-btn adm-btn--primary adm-btn--md">确认调整</button></>}><Field label="新角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field><Field label="调整原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：队长与队员协商后调整位置" /></Field></AdminModal>}
 
-      {modal?.kind === "assign-player" && <ModalShell title="添加队员" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.playerId || !form.teamId} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认加入</button><button type="button" onClick={() => openModal({ kind: "create-player", team: activeTeams.find((team) => team.id === form.teamId), role: (form.role as Role) ?? "替补" })} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-700 hover:border-slate-950">人不在列表里，代录</button></>}><Field label="选手"><select className={inputClass} value={form.playerId ?? ""} onChange={(event) => setForm({ ...form, playerId: event.target.value })}><option value="">选择已审核且未组队选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="队伍"><select className={inputClass} value={form.teamId ?? ""} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">选择报名中的队伍</option>{activeTeams.filter((team) => team.status === "报名中").map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></Field><Field label="队内角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field></ModalShell>}
+      {modal?.kind === "assign-player" && <AdminModal title="添加队员" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.playerId || !form.teamId} className="adm-btn adm-btn--primary adm-btn--md">确认加入</button><button type="button" onClick={() => openModal({ kind: "create-player", team: activeTeams.find((team) => team.id === form.teamId), role: (form.role as Role) ?? "替补" })} className="adm-btn adm-btn--secondary adm-btn--md">人不在列表里，代录</button></>}><Field label="选手"><select className={inputClass} value={form.playerId ?? ""} onChange={(event) => setForm({ ...form, playerId: event.target.value })}><option value="">选择已审核且未组队选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="队伍"><select className={inputClass} value={form.teamId ?? ""} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">选择报名中的队伍</option>{activeTeams.filter((team) => team.status === "报名中").map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></Field><Field label="队内角色"><select className={inputClass} value={form.role ?? "首发"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>首发</option><option>替补</option><option>教练</option></select></Field></AdminModal>}
 
-      {modal?.kind === "create-player" && <ModalShell title="代录选手" subtitle="给没有线上报名记录的选手补一条报名数据。代录即视为资料已通过，并会生成一个新的参赛码（只显示一次，请转交本人）。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.gameId?.trim() || !form.name?.trim() || !form.studentId?.trim() || !form.rank?.trim() || editPositions.length === 0} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认代录</button></>}>
+      {modal?.kind === "create-player" && <AdminModal title="代录选手" subtitle="给没有线上报名记录的选手补一条报名数据。代录即视为资料已通过，并会生成一个新的参赛码（只显示一次，请转交本人）。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.gameId?.trim() || !form.name?.trim() || !form.studentId?.trim() || !form.rank?.trim() || editPositions.length === 0} className="adm-btn adm-btn--primary adm-btn--md">确认代录</button></>}>
         <Field label="游戏 ID"><input autoFocus className={inputClass} value={form.gameId ?? ""} onChange={(event) => setForm({ ...form, gameId: event.target.value })} placeholder="如：炫炫子#8961" /></Field>
         <Field label="姓名"><input className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="真实姓名" /></Field>
         <Field label="学号"><input className={inputClass} value={form.studentId ?? ""} onChange={(event) => setForm({ ...form, studentId: event.target.value })} placeholder="如：Y40251577" /></Field>
@@ -900,7 +973,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
             {POSITIONS.map((position) => {
               const active = editPositions.includes(position);
               return (
-                <button key={position} type="button" onClick={() => setEditPositions(active ? editPositions.filter((item) => item !== position) : [...editPositions, position])} className={`border px-3 py-2 text-xs font-bold ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-950"}`}>{position}</button>
+                <button key={position} type="button" onClick={() => setEditPositions(active ? editPositions.filter((item) => item !== position) : [...editPositions, position])} className={`border px-3 py-2 text-[length:var(--adm-fs-md)] font-bold ${active ? "border-[var(--adm-red)] bg-[var(--adm-red)] text-white" : "border-[var(--adm-line)] bg-[var(--adm-surface)] text-[var(--adm-text-soft)] hover:border-[var(--adm-text)]"}`}>{position}</button>
               );
             })}
           </div>
@@ -913,19 +986,19 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         </Field>
         <Field label="队内角色"><select className={inputClass} value={form.role ?? "替补"} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}><option>替补</option><option>首发</option><option>教练</option></select></Field>
         <Field label="代录原因"><textarea className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：开赛后临时补位，本人未及报名" /></Field>
-      </ModalShell>}
+      </AdminModal>}
 
-      {modal?.kind === "remove-player" && (() => { const options = captainReplacementOptions(modal.player); return <ModalShell title={`移出名单 · ${modal.player.gameId}`} subtitle="选手会回到未组队状态，队伍名单重新进入待确认。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim() || (options.length > 0 && !form.replacementCaptainId)} className="bg-red-600 inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认执行</button></>}>
+      {modal?.kind === "remove-player" && (() => { const options = captainReplacementOptions(modal.player); return <AdminModal title={`移出名单 · ${modal.player.gameId}`} subtitle="选手会回到未组队状态，队伍名单重新进入待确认。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim() || (options.length > 0 && !form.replacementCaptainId)} className="adm-btn adm-btn--primary adm-btn--md">确认执行</button></>}>
         {options.length > 0 && <Field label="新队长" help="当前选手是队长，必须先移交队长身份。"><select className={inputClass} value={form.replacementCaptainId ?? ""} onChange={(event) => setForm({ ...form, replacementCaptainId: event.target.value })}><option value="">请选择新队长</option>{options.map((player) => <option key={player.id} value={player.id}>{player.gameId}</option>)}</select></Field>}<Field label="原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="请记录申请来源和原因" /></Field>
-      </ModalShell>; })()}
+      </AdminModal>; })()}
 
-      {modal?.kind === "reopen-team" && <ModalShell title={`开放名单调整 · ${modal.team.name}`} subtitle="已确认名单会退回报名中状态，调整完成后需要再次确认。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">开放调整</button></>}><Field label="开放原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="如：队长申请更换一名首发" /></Field></ModalShell>}
+      {modal?.kind === "reopen-team" && <AdminModal title={`开放名单调整 · ${modal.team.name}`} subtitle="已确认名单会退回报名中状态，调整完成后需要再次确认。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="adm-btn adm-btn--primary adm-btn--md">开放调整</button></>}><Field label="开放原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="如：队长申请更换一名首发" /></Field></AdminModal>}
 
-      {modal?.kind === "replace-player" && <ModalShell title={`换人 · ${modal.team.name}`} subtitle="新选手会继承原选手的角色；若替换队长，新选手同时接任队长。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.outgoingPlayerId || !form.incomingPlayerId || !form.reason?.trim()} className="bg-[#ff4655] inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认换人</button></>}><Field label="原选手"><select className={inputClass} value={form.outgoingPlayerId ?? ""} onChange={(event) => setForm({ ...form, outgoingPlayerId: event.target.value })}>{state.players.filter((player) => player.teamId === modal.team.id).map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.role}）</option>)}</select></Field><Field label="新选手"><select className={inputClass} value={form.incomingPlayerId ?? ""} onChange={(event) => setForm({ ...form, incomingPlayerId: event.target.value })}><option value="">选择已审核且未组队的选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="换人原因"><textarea className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="请记录申请来源和原因" /></Field></ModalShell>}
+      {modal?.kind === "replace-player" && <AdminModal title={`换人 · ${modal.team.name}`} subtitle="新选手会继承原选手的角色；若替换队长，新选手同时接任队长。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.outgoingPlayerId || !form.incomingPlayerId || !form.reason?.trim()} className="adm-btn adm-btn--primary adm-btn--md">确认换人</button></>}><Field label="原选手"><select className={inputClass} value={form.outgoingPlayerId ?? ""} onChange={(event) => setForm({ ...form, outgoingPlayerId: event.target.value })}>{state.players.filter((player) => player.teamId === modal.team.id).map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.role}）</option>)}</select></Field><Field label="新选手"><select className={inputClass} value={form.incomingPlayerId ?? ""} onChange={(event) => setForm({ ...form, incomingPlayerId: event.target.value })}><option value="">选择已审核且未组队的选手</option>{unteamedApproved.map((player) => <option key={player.id} value={player.id}>{player.gameId}（{player.rank}）</option>)}</select></Field><Field label="换人原因"><textarea className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="请记录申请来源和原因" /></Field></AdminModal>}
 
-      {modal?.kind === "withdraw-team" && <ModalShell title={`整队退赛 · ${modal.team.name}`} subtitle="队伍会保留为退赛记录，原成员回到未组队状态。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-red-600 inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认整队退赛</button></>}><Field label="退赛原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="请记录队长申请或主办方处理原因" /></Field></ModalShell>}
+      {modal?.kind === "withdraw-team" && <AdminModal title={`整队退赛 · ${modal.team.name}`} subtitle="队伍会保留为退赛记录，原成员回到未组队状态。" onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="adm-btn adm-btn--primary adm-btn--md">确认整队退赛</button></>}><Field label="退赛原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="请记录队长申请或主办方处理原因" /></Field></AdminModal>}
 
-      {modal?.kind === "dissolve-team" && <ModalShell title={`解散队伍 · ${modal.team.name}`} subtitle={modal.team.status === "已冻结" ? "该队伍名单已确认但尚未进入对阵图；解散会删除整支队伍，成员回到未组队，需重新补足参赛名额。此操作可撤销。" : "仅组队期适用；队伍会被删除（不留记录），所有成员回到未组队状态，可撤销。"} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="border border-slate-300 inline-flex min-h-11 items-center px-4 text-xs font-bold text-slate-600">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-amber-600 inline-flex min-h-11 items-center px-4 text-xs font-bold text-white disabled:opacity-40">确认解散</button></>}><Field label="解散原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="如：队伍组建无法凑齐，或重复报名需要清理" /></Field></ModalShell>}
+      {modal?.kind === "dissolve-team" && <AdminModal title={`解散队伍 · ${modal.team.name}`} subtitle={modal.team.status === "已冻结" ? "该队伍名单已确认但尚未进入对阵图；解散会删除整支队伍，成员回到未组队，需重新补足参赛名额。此操作可撤销。" : "仅组队期适用；队伍会被删除（不留记录），所有成员回到未组队状态，可撤销。"} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy || !form.reason?.trim()} className="bg-[var(--adm-warn-text)] inline-flex min-h-[44px] items-center px-4 text-[length:var(--adm-fs-md)] font-bold text-white disabled:opacity-40">确认解散</button></>}><Field label="解散原因"><textarea autoFocus className={`${inputClass} min-h-24 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ reason: event.target.value })} placeholder="如：队伍组建无法凑齐，或重复报名需要清理" /></Field></AdminModal>}
     </div>
   );
 }

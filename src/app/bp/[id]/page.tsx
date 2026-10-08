@@ -10,6 +10,7 @@ import { currentStep, type BPAction } from "@/lib/scheduling/bp";
 import type { BPSession, BPDiceRoll } from "@/lib/scheduling/bp-ops";
 import { mapImageOf } from "@/lib/maps";
 import Badge from "@/components/ui/Badge";
+import { useAdminConfirm } from "@/components/admin/ui";
 
 interface BPPageProps {
   params: Promise<{ id: string }>;
@@ -25,6 +26,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
   const eventId = requestedEventId || event.id;
   const { state: schedule } = useSchedule(eventId);
   const participant = useParticipant(eventId);
+  const confirm = useAdminConfirm();
   const match = schedule.matches.find((m) => m.id === matchId);
   const pool = event.mapPool.map((m) => m.name);
 
@@ -129,9 +131,16 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
   const handleUndo = () => void post({ action: "undo" });
   const handleReset = () => {
     // 重置会连先手一起清掉，先说清楚再执行 —— 这一步不可撤销
-    if (!window.confirm("重置会清空本局 BP 的全部操作，并取消已掷出的先手结果。\n\n确认重置？")) return;
-    setRolledNow(null);
-    void post({ action: "reset" });
+    void confirm({
+      title: "重置本局 BP？",
+      body: "会清空本局 BP 的全部操作，并取消已掷出的先手结果。这一步不可撤销。",
+      confirmLabel: "重置",
+      tone: "danger",
+    }).then((ok) => {
+      if (!ok) return;
+      setRolledNow(null);
+      void post({ action: "reset" });
+    });
   };
   const handleSwap = () => void post({ action: "swap" });
 
@@ -209,11 +218,11 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                 <span className="text-xs font-bold text-yellow-300">掷骰子定先手</span>
                 <span className="flex items-center gap-2 text-sm">
                   <span className="text-gray-300">A 侧 {match.teamAName}</span>
-                  <span className={`text-xl font-black ${aFirst && !tie ? "text-yellow-300" : "text-gray-400"}`}>{roll.teamA}</span>
+                  <span className={`text-xl font-semibold ${aFirst && !tie ? "text-yellow-300" : "text-gray-400"}`}>{roll.teamA}</span>
                 </span>
                 <span className="text-xs text-gray-500">比</span>
                 <span className="flex items-center gap-2 text-sm">
-                  <span className={`text-xl font-black ${!aFirst && !tie ? "text-yellow-300" : "text-gray-400"}`}>{roll.teamB}</span>
+                  <span className={`text-xl font-semibold ${!aFirst && !tie ? "text-yellow-300" : "text-gray-400"}`}>{roll.teamB}</span>
                   <span className="text-gray-300">B 侧 {match.teamBName}</span>
                 </span>
                 <span className="text-sm font-bold text-yellow-300">
@@ -274,7 +283,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
         {session && session.status === "已完成" && (
           <div className="bg-green-500/10 p-6 text-center">
             <p className="text-green-400 font-bold">BP 完成！</p>
-            <p className="mt-3 text-xl font-black">
+            <p className="mt-3 text-xl font-semibold">
               比赛地图：{session.finalMaps?.join("、") ?? "—"}
             </p>
           </div>

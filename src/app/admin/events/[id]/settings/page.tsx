@@ -12,7 +12,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   const event = config.events.find((candidate) => candidate.id === id);
   if (!event) notFound();
   return <div>
-    <AdminPageHeader eyebrow="MODULE 03 / SETTINGS" title="赛事设置" />
+    <AdminPageHeader eyebrow="模块 03" title="赛事设置" />
     <EventSettingsWorkspace initialEvent={event} initialCommonRules={commonRules} eventCount={config.events.length} />
   </div>;
 }

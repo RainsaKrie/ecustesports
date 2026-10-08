@@ -1,5 +1,7 @@
+import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import SiteContentWorkspace from "@/components/admin/SiteContentWorkspace";
+import { EmptyState } from "@/components/admin/ui";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import { getSiteConfig } from "@/lib/site-config";
@@ -36,7 +38,12 @@ export default async function SiteContentPage({ searchParams }: SiteContentPageP
   if (!event) {
     return (
       <div className="mx-auto max-w-[1100px] p-4 sm:p-6 lg:p-8">
-        <AdminPageHeader eyebrow="PUBLIC SITE / 官网内容" title="官网内容" description="暂无可编辑赛事" />
+        <AdminPageHeader eyebrow="公开内容" title="官网内容" />
+        <EmptyState
+          title="暂无可编辑的赛事"
+          description="官网的赛后内容挂在具体赛事下面，所以得先有一个赛事。建好之后回到这里，就能编辑简介、冠军文案和页脚状态了。"
+          action={<Link href="/admin/events/new" className="adm-btn adm-btn--primary adm-btn--md">新建赛事</Link>}
+        />
       </div>
     );
   }
@@ -50,7 +57,7 @@ export default async function SiteContentPage({ searchParams }: SiteContentPageP
 
   return (
     <div className="mx-auto max-w-[1100px] p-4 sm:p-6 lg:p-8">
-      <AdminPageHeader eyebrow="PUBLIC SITE / 官网内容" title="官网内容" status={event.name} />
+      <AdminPageHeader eyebrow="公开内容" title="官网内容" status={event.name} />
       <SiteContentWorkspace
         eventId={event.id}
         eventName={event.name}

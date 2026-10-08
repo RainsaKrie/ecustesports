@@ -10,14 +10,254 @@
   --red: #ff4655;
   --red-dark: #d83b48;
   --white: #f7f5ef;
+
+  /* ---- 管理端派生阶（全部来自上面 9 个令牌的同一色相，不新增色相）----
+     后台 24 个散落色值收敛到这套命名阶上；改主题只改这里。 */
+  --adm-surface: #fffdf8;      /* 白卡 */
+  --adm-surface-2: #f8f6f1;    /* 次一级底 */
+  --adm-surface-3: #f2eee6;    /* 三级底 */
+  --adm-line: #d8d1c6;         /* 结构线 */
+  --adm-line-soft: #e7e1d7;    /* 弱结构线 */
+  --adm-text: #171a1f;         /* 正文 */
+  --adm-text-soft: #575c62;    /* 次要文字 */
+  --adm-text-mute: #8a9199;    /* 更弱文字 */
+  --adm-red: #ff4655;          /* 品牌红（= --red） */
+  --adm-red-hover: #d83b48;    /* 红 hover（= --red-dark） */
+  --adm-red-text: #c83242;     /* 浅底上的红字 */
+  --adm-red-deep: #9f2431;     /* 更深一档红字 */
+  --adm-red-soft: #fff1f2;     /* 浅底红 */
+  --adm-red-line: #ffd9dd;     /* 红细边 */
+  --adm-ok-text: #047857;      /* 成功文字 */
+  --adm-ok-soft: #ecfdf5;      /* 成功浅底 */
+  --adm-ok-line: #a7f3d0;
+  --adm-warn-text: #b45309;    /* 警告文字 */
+  --adm-warn-soft: #fffbeb;
+  --adm-warn-line: #fde68a;
+  --adm-info-text: #1d4ed8;    /* 信息文字 */
+  --adm-info-soft: #eff6ff;
+  --adm-info-line: #bfdbfe;
+
+  /* ---- 管理端字号阶（px 定值，不受 html 150% 根字号影响）----
+     改造前后台混用 10.8 / 12 / 13.5 / 15 / 16.5 / 18 / 21 / 24 共 8 档，
+     且小字在移动端（根 16px）会再缩一半到不可读。
+     这里收到 5 档，下限 12px；工具界面用定值更稳。 */
+  --adm-fs-xs: 12px;
+  --adm-fs-sm: 13px;
+  --adm-fs-md: 15px;
+  --adm-fs-lg: 18px;
+  --adm-fs-xl: 24px;
+
+  /* ---- 中文字体栈（2026-10-08 新增）----
+     Geist / Geist Mono 只带 Latin 子集，中文一直是浏览器随机回退，
+     落成宋体还是黑体看机器，同一块界面里字体不统一 = 观感"简陋"的主因。
+     这里把中文明确指向黑体族：鸿蒙黑体 / 小米兰亭 / 苹方 / 微软雅黑 UI，
+     Windows 上至少落在「微软雅黑 UI」这个正经黑体上。
+     ⚠️ 改这里不会影响前台主视觉（前台走 --font-geist-sans + Arial Narrow）。 */
+  --adm-font-cjk: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Source Han Sans SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+  --adm-font-num: var(--font-geist-mono), ui-monospace, "SFMono-Regular", "JetBrains Mono",
+    Consolas, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
 }
 
 @theme inline {
   --color-background: var(--paper);
   --color-foreground: var(--ink);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 等宽字体补上中文字体回退：Geist Mono 没有汉字，
+     前面不改的话中文会掉到浏览器默认字体（可能是宋体），和旁边的数字不是一套。 */
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Consolas,
+    "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
 }
+
+/* 管理端字体作用域：后台内的中文统一走黑体族。
+   加在 admin / bp 的外壳 div 上（见 app/admin/layout.tsx、app/bp/layout.tsx）。 */
+.adm-scope {
+  font-family: var(--adm-font-cjk);
+}
+
+/* ============================================================
+   管理端组件类（2026-10-08）
+   两件事：① 标签只有一种形态，语义交给一个 6px 方点；
+          ② 提示条只有一种形态，语义交给左侧一条强调线。
+   改造前这两类各写了几十遍「描边 + 浅底 + 彩字」= 每组 3 个色值，
+   满屏彩色小块。现在色值从「每组 3 个 × N 组」降到「1 个点/线」。
+
+   ⚠️ 必须放在 @layer components 里：Tailwind v4 里未分层的 CSS 优先级高于
+   utilities，直接写会让调用点的 p-10 / text-[length:…] 全部失效。
+   ============================================================ */
+@layer components {
+
+/* —— 状态标签 —— */
+.adm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  border: 1px solid var(--adm-line);
+  background: var(--adm-surface);
+  padding: 2px 6px;
+  font-family: var(--adm-font-cjk);
+  font-size: var(--adm-fs-xs);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--adm-text-soft);
+}
+
+.adm-chip::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--adm-text-mute);
+}
+
+/* 进行中：空心方点（形状比颜色安静，全站无圆角所以是方块） */
+.adm-chip[data-tone="active"]::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--adm-text-soft);
+}
+
+/* 已完成：墨点 */
+.adm-chip[data-tone="done"]::before {
+  background: var(--adm-text);
+}
+
+/* 需处理：红点 —— 全站标签里唯一会被看见的彩色，所以它真的显眼 */
+.adm-chip[data-tone="attention"]::before {
+  background: var(--adm-red);
+}
+
+/* 只有文字、不要点（如「N 人未填段位」这类附注） */
+.adm-chip[data-dot="off"]::before {
+  display: none;
+}
+
+/* —— 提示条（报错 / 成功 / 警告 / 说明）—— */
+.adm-note {
+  border: 1px solid var(--adm-line);
+  border-left-width: 3px;
+  border-left-color: var(--adm-text-mute);
+  background: var(--adm-surface);
+  padding: 12px 16px;
+  font-family: var(--adm-font-cjk);
+  font-size: var(--adm-fs-md);
+  line-height: 1.6;
+  color: var(--adm-text);
+}
+
+.adm-note--ok {
+  border-left-color: var(--adm-ok-text);
+}
+
+.adm-note--warn {
+  border-left-color: var(--adm-warn-text);
+}
+
+.adm-note--danger {
+  border-left-color: var(--adm-red-text);
+}
+
+.adm-note--info {
+  border-left-color: var(--adm-info-text);
+}
+
+/* —— 按钮（唯一来源）——
+   五个层级 × 三个尺寸。调用点只写 `adm-btn adm-btn--primary adm-btn--md`，
+   需要的位置类（w-full / mt-4 / shrink-0 / border-dashed）照常附加，
+   utilities 会覆盖本层，所以不必为每种组合再开一个类。
+
+   与 components/admin/ui/AdminButton.tsx 同源：那个组件只是这里的语法糖 ——
+   颜色与几何只在这一处定义，改颜色只改这里。 */
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: none;
+  border: 1px solid transparent;
+  font-family: var(--adm-font-cjk);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.adm-btn:disabled,
+.adm-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 尺寸用 px 定值。改造前用 rem（min-h-11 / py-2.5），根字号桌面 24px、移动 16px，
+   同一个按钮在两种视口下差一倍高；而字号本来就是 px 定值，两边对不上。 */
+.adm-btn--sm { min-height: 32px; padding: 0 10px; font-size: var(--adm-fs-sm); }
+.adm-btn--md { min-height: 44px; padding: 0 16px; font-size: var(--adm-fs-md); }
+.adm-btn--lg { min-height: 52px; padding: 0 24px; font-size: var(--adm-fs-lg); }
+
+/* 主：本区唯一的主要动作 */
+.adm-btn--primary {
+  border-color: var(--adm-red);
+  background: var(--adm-red);
+  color: #fff;
+}
+.adm-btn--primary:hover:not(:disabled) {
+  border-color: var(--adm-red-hover);
+  background: var(--adm-red-hover);
+}
+
+/* 次：常规动作 */
+.adm-btn--secondary {
+  border-color: var(--adm-line);
+  background: var(--adm-surface);
+  color: var(--adm-text-soft);
+}
+.adm-btn--secondary:hover:not(:disabled) {
+  border-color: var(--adm-text);
+  color: var(--adm-text);
+}
+
+/* 行内：无底色，hover 才出现 */
+.adm-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--adm-text-soft);
+}
+.adm-btn--ghost:hover:not(:disabled) {
+  background: var(--adm-surface-2);
+  color: var(--adm-text);
+}
+
+/* 危险：破坏性动作。调用方必须配确认框（useAdminConfirm） */
+.adm-btn--danger {
+  border-color: var(--adm-red-line);
+  background: var(--adm-surface);
+  color: var(--adm-red-text);
+}
+.adm-btn--danger:hover:not(:disabled) {
+  border-color: var(--adm-red);
+  background: var(--adm-red-soft);
+}
+
+/* 跳转：文字下划线，无边框无底色。
+   刻意不给 min-height:0 —— 保留尺寸档给的可点高度，
+   否则纯文字链接只有 20px 上下，手机上点不中。 */
+.adm-btn--link {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--adm-red-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.adm-btn--link:hover:not(:disabled) {
+  color: var(--adm-red-deep);
+}
+
+} /* @layer components */
 
 * {
   box-sizing: border-box;
@@ -540,6 +780,15 @@ summary:focus-visible {
   font-size: 0.7083rem;
   font-weight: 700;
   letter-spacing: 0.12em;
+}
+
+/* 触控区：这几个链接原先只有文字行高 —— 实测桌面 26px、**手机 390 宽下 17px**
+   （字号是 rem，手机根字号降到 16px 后更小），手机上基本点不中。
+   外面这条 .signal-strip__inner 本身有 64px，让链接自己撑起来即可，视觉不变。 */
+.signal-strip__inner a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
 }
 
 .signal-strip i {

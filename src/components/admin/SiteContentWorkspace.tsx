@@ -54,10 +54,10 @@ export default function SiteContentWorkspace({
   return (
     <div className="space-y-5">
       {issues.length > 0 && (
-        <section className="border border-[#ff4655]/35 bg-[#fff1f2] p-5">
-          <p className="font-mono text-[0.625rem] font-black tracking-[0.15em] text-[#c83242]">POST-EVENT UPDATE</p>
+        <section className="adm-note adm-note--danger p-5">
+          <p className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.15em] text-[var(--adm-text-mute)]">赛后更新</p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-            <ul className="space-y-1 text-xs font-bold text-[#34383f]">
+            <ul className="space-y-1 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">
               {issues.map((issue) => <li key={issue}>— {issue}</li>)}
             </ul>
             <button
@@ -67,7 +67,7 @@ export default function SiteContentWorkspace({
                 setFooterStatus(suggestedFooterStatus);
                 setMessage("");
               }}
-              className="min-h-11 border border-[#ff4655] bg-white px-4 py-2 text-xs font-black text-[#c83242] transition hover:bg-[#ff4655] hover:text-white"
+              className="adm-btn adm-btn--danger adm-btn--md hover:bg-[var(--adm-red)]"
             >
               填入赛后文案
             </button>
@@ -75,10 +75,10 @@ export default function SiteContentWorkspace({
         </section>
       )}
 
-      <section className="border border-black/10 bg-[#fffdf8]">
-        <div className="border-b border-black/10 px-5 py-4 sm:px-6">
-          <p className="font-mono text-[0.625rem] font-black tracking-[0.15em] text-[#c83242]">HOME EVENT COPY</p>
-          <h2 className="mt-1 text-lg font-black text-[#171a1f]">首页赛事简介</h2>
+      <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+        <div className="border-b border-[var(--adm-line-soft)] px-5 py-4 sm:px-6">
+          <p className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.15em] text-[var(--adm-text-mute)]">首页文案</p>
+          <h2 className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold text-[var(--adm-text)]">首页赛事简介</h2>
         </div>
         <div className="p-5 sm:p-6">
           <textarea
@@ -90,15 +90,15 @@ export default function SiteContentWorkspace({
             rows={4}
             maxLength={280}
             aria-label="首页赛事简介"
-            className="w-full resize-y border border-black/15 bg-white px-4 py-3 text-sm font-medium leading-7 text-[#171a1f] outline-none transition focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15"
+            className="w-full resize-y border border-[var(--adm-line)] bg-[var(--adm-surface)] px-4 py-3 text-[length:var(--adm-fs-lg)] font-medium leading-[1.85] text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
           />
         </div>
       </section>
 
-      <section className="border border-black/10 bg-[#fffdf8]">
-        <div className="border-b border-black/10 px-5 py-4 sm:px-6">
-          <p className="font-mono text-[0.625rem] font-black tracking-[0.15em] text-[#c83242]">FOOTER STATUS</p>
-          <h2 className="mt-1 text-lg font-black text-[#171a1f]">页脚状态</h2>
+      <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+        <div className="border-b border-[var(--adm-line-soft)] px-5 py-4 sm:px-6">
+          <p className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.15em] text-[var(--adm-text-mute)]">站点页脚</p>
+          <h2 className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold text-[var(--adm-text)]">页脚状态</h2>
         </div>
         <div className="p-5 sm:p-6">
           <input
@@ -109,23 +109,23 @@ export default function SiteContentWorkspace({
             }}
             maxLength={100}
             aria-label="页脚状态"
-            className="h-12 w-full border border-black/15 bg-white px-4 text-sm font-bold text-[#171a1f] outline-none transition focus:border-[#ff4655] focus:ring-2 focus:ring-[#ff4655]/15"
+            className="h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-4 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
           />
         </div>
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-black/15 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--adm-line)] pt-5">
         <div className="flex gap-3">
-          <Link href="/" target="_blank" className="border border-black/15 bg-[#fffdf8] px-4 py-3 text-xs font-black text-[#34383f]">预览官网</Link>
-          <Link href={`/admin/events/${eventId}/schedule`} className="border border-black/15 bg-[#fffdf8] px-4 py-3 text-xs font-black text-[#34383f]">返回赛事</Link>
+          <Link href="/" target="_blank" className="adm-btn adm-btn--secondary adm-btn--md">预览官网</Link>
+          <Link href={`/admin/events/${eventId}/schedule`} className="adm-btn adm-btn--secondary adm-btn--md">返回赛事</Link>
         </div>
         <div className="flex items-center gap-3">
-          {message && <p className={`text-xs font-bold ${message === "已同步官网" ? "text-emerald-700" : "text-red-700"}`} role="status">{message}</p>}
+          {message && <p className={`text-[length:var(--adm-fs-md)] font-bold ${message === "已同步官网" ? "text-[var(--adm-ok-text)]" : "text-[var(--adm-red-text)]"}`} role="status">{message}</p>}
           <button
             type="button"
             onClick={save}
             disabled={saving || !dirty || description.trim().length < 10 || footerStatus.trim().length < 4}
-            className="min-h-12 bg-[#ff4655] px-6 py-3 text-xs font-black text-white transition hover:bg-[#d93746] disabled:cursor-not-allowed disabled:bg-[#d9a6aa]"
+            className="adm-btn adm-btn--primary adm-btn--md hover:bg-[var(--adm-red-hover)]"
           >
             {saving ? "正在保存…" : `保存并同步 ${eventName}`}
           </button>
