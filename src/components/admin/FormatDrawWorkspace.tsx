@@ -11,6 +11,8 @@ import {
   buildQualificationMatches,
   buildSingleEliminationMatches,
   buildTournamentMatches,
+  BYE,
+  PENDING,
 } from "@/lib/scheduling/bracket-engine";
 import { resolveSupportedFormat, type SupportedFormat } from "@/lib/scheduling/format-support";
 import { initialRegistration, type RegistrationState } from "@/lib/scheduling/registration-data";
@@ -22,6 +24,7 @@ import {
   nextMatchStartIndex,
   resolvePlayInGate,
   resolveStagedDrawGate,
+  withPendingSlots,
   type GroupQualifier,
   type PlayInGate,
   type StagedDrawGate,
@@ -79,6 +82,12 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   const [format, setFormat] = useState<SupportedFormat | null>(null);
   const [savedFormat, setSavedFormat] = useState<StagedFormatState>({});
   const [drawMode, setDrawMode] = useState<DrawMode>("locked");
+  /**
+   * 入围赛已经发布、赛程里还留着「待定」席位，而资格赛这下打完了 —— 可以补齐。
+   * null 表示没有要补的。`teamIds` 是「还没进过入围赛的资格赛胜者」。
+   */
+  const [pendingFill, setPendingFill] = useState<{ count: number; teamIds: string[] } | null>(null);
+  const [filling, setFilling] = useState(false);
   const [activeStage, setActiveStage] = useState<StageConfig | null>(null);
   const [activeStageIndex, setActiveStageIndex] = useState<number | null>(null);
   const [eligibleTeamIds, setEligibleTeamIds] = useState<string[]>([]);
@@ -101,7 +110,11 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
 
   const teamName = useMemo(() => {
     const names = new Map(reg.teams.map((team) => [team.id, team.name]));
-    return (teamId: string) => names.get(teamId) ?? "待定";
+    return (teamId: string) => {
+      // 预留席位：对手要等资格赛结果。与普通「待定」区分开，一眼能看出在等什么。
+      if (teamId === PENDING) return "待定（资格赛胜者）";
+      return names.get(teamId) ?? "待定";
+    };
   }, [reg.teams]);
 
   useEffect(() => {
@@ -147,12 +160,9 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           setLoaded(true);
           return;
         }
-        if (playInGate.status === "waiting") {
-          setIsPlayInStage(true);
-          setDrawMode("locked");
-          setLoaded(true);
-          return;
-        }
+        // 注意这里**没有** waiting 分支了：资格赛只打了一部分时（partial），
+        // 已决出的胜者可以先进入围赛签位，缺的席位在「发布」那一步按 pendingCount 留成待定。
+        // 原来这里直接锁死（必须等资格赛全部结束），会把整个入围赛的赛程一起拖住。
         if (playInGate.status === "ready") {
           // 资格赛按段位同档互打，顺序确定、不随机；「抽签」在这里是逐一揭示。
           setDrawMode("slot");
@@ -168,12 +178,32 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           setLoaded(true);
           return;
         }
-        // complete：其余队伍 + 资格赛胜者 = 入围赛的 32 支
+        // complete / partial：其余队伍 + 资格赛已决出的胜者 = 入围赛的参赛队。
+        // partial 时数量还差几个，由发布那一步补成待定席位。
         const playInSet = new Set(playInIds);
         stagedEntrantsOverride = [
           ...frozenIds.filter((id) => !playInSet.has(id)),
           ...playInGate.advancingTeamIds,
         ];
+
+        // 入围赛此前是带着待定席位发布的、现在资格赛打完了 → 给一个「补齐」入口。
+        // 必须在这里判：再往下走 gate 会是 waiting（入围赛还没打完），界面被锁死就补不了了。
+        const qualifierPhase = resolved.stages[0].name;
+        const qualifierMatchList = loadedSchedule.matches.filter((match) => match.phase === qualifierPhase);
+        const stuckSlots = qualifierMatchList.filter(
+          (match) => match.teamAId === PENDING || match.teamBId === PENDING,
+        );
+        if (stuckSlots.length > 0 && playInGate.status === "complete") {
+          const alreadyIn = new Set(
+            qualifierMatchList
+              .flatMap((match) => [match.teamAId, match.teamBId])
+              .filter((id) => id !== PENDING && id !== BYE),
+          );
+          setPendingFill({
+            count: stuckSlots.length,
+            teamIds: playInGate.advancingTeamIds.filter((id) => !alreadyIn.has(id)),
+          });
+        }
       }
 
       if (resolved.kind === "staged-32-gsl-double-elim" || resolved.kind === "staged-playin") {
@@ -414,16 +444,24 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         const frozenTeamsNow = reg.teams.filter((team) => team.status === "已冻结");
         const frozenIds = frozenTeamsNow.map((team) => team.id);
         let entrants = frozenIds;
+        /**
+         * 资格赛还没全部打完时，缺的席位留成「待定」而不是把抽签卡住。
+         * 缺几个由 `resolvePlayInGate` 给出，这里只负责接住 —— 不在调用方重新算一遍，
+         * 算错会退化成轮空（语义完全不同：轮空是不打，待定是该打、只是对手没定）。
+         */
+        let pendingSlots = 0;
         if (format.kind === "staged-playin") {
           const playInIds = rankTeamsByAvgRank(frozenTeamsNow, reg.players)
             .slice(-format.playInTeams)
             .map((item) => item.id);
           const playInSet = new Set(playInIds);
           const playInResult = resolvePlayInGate(format.playInStage, playInIds, currentSchedule.matches);
-          if (playInResult.status !== "complete") {
-            throw new Error("资格赛尚未全部完成，无法进行入围赛抽签。");
+          if (playInResult.status === "complete" || playInResult.status === "partial") {
+            entrants = [...frozenIds.filter((id) => !playInSet.has(id)), ...playInResult.advancingTeamIds];
+            if (playInResult.status === "partial") pendingSlots = playInResult.pendingCount;
+          } else {
+            throw new Error("资格赛还没有抽签，请先完成资格赛抽签。");
           }
-          entrants = [...frozenIds.filter((id) => !playInSet.has(id)), ...playInResult.advancingTeamIds];
         }
         const currentGate = resolveStagedDrawGate(format.stages, entrants, currentSchedule.matches, savedFormat.qualifierByes ?? []);
         if (currentGate.status !== "ready" || currentGate.stageIndex !== activeStageIndex) {
@@ -433,8 +471,11 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         const startIndex = nextMatchStartIndex(currentSchedule.matches);
         let stageMatches: ScheduleMatch[];
         let qualifierByes: string[] = [];
+        /** 真正落进签位的抽签顺序：有待定席位时 = 原顺序 + 随机插入的占位符。 */
+        let qualifierLineup = drawOrder;
         if (activeStageIndex === 0) {
-          const slots = buildQualifierSlots(drawOrder, format.stages[0].teamCount, format.stages[1].teamCount);
+          qualifierLineup = withPendingSlots(drawOrder, pendingSlots);
+          const slots = buildQualifierSlots(qualifierLineup, format.stages[0].teamCount, format.stages[1].teamCount);
           const built = buildQualificationMatches(slots, teamName, {
             startIndex,
             phase: activeStage.name,
@@ -461,7 +502,9 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         const nextRecord = {
           stageIndex: activeStageIndex,
           kind,
-          ...(drawMode === "slot" ? { drawOrder } : { seedPots: pots, groups }),
+          // 存「实际落位」的顺序（入围赛含待定占位符），而不是抽出来的那 31 个队 ——
+          // 否则回看抽签记录时，待定席位会凭空消失、和已发布的赛程对不上。
+          ...(drawMode === "slot" ? { drawOrder: qualifierLineup } : { seedPots: pots, groups }),
           publishedAt: new Date().toISOString(),
         } as const;
         const nextFormat: StagedFormatState = {
@@ -515,6 +558,50 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "发布失败，请重试。");
       setPublishing(false);
+    }
+  }
+
+  /**
+   * 把资格赛新决出的胜者填进入围赛的待定席位。
+   *
+   * 只在「入围赛已带着待定席位发布 + 资格赛这下打完了」时可用（检测见初始化）。
+   * **就地替换那几场里的一侧，其余对阵一个都不动** —— 已排期或已打完的比赛完全不碰，
+   * 所以不会影响正在进行中的赛程。
+   */
+  async function fillPendingSlots() {
+    if (!pendingFill || filling) return;
+    setFilling(true);
+    setError("");
+    try {
+      const current = await readJson<ScheduleState>(`/api/data/schedule?eventId=${encodeURIComponent(eventId)}`);
+      const replacements = [...pendingFill.teamIds];
+      let filled = 0;
+      const matches = current.matches.map((match) => {
+        if (match.teamAId !== PENDING && match.teamBId !== PENDING) return match;
+        const incoming = replacements.shift();
+        if (!incoming) return match;
+        filled += 1;
+        const aIsPending = match.teamAId === PENDING;
+        return {
+          ...match,
+          teamAId: aIsPending ? incoming : match.teamAId,
+          teamBId: aIsPending ? match.teamBId : incoming,
+          teamAName: aIsPending ? teamName(incoming) : match.teamAName,
+          teamBName: aIsPending ? match.teamBName : teamName(incoming),
+        };
+      });
+      if (filled === 0) throw new Error("没有找到可补齐的待定席位，请刷新后重试。");
+      await writeJson(
+        `/api/data/schedule?eventId=${encodeURIComponent(eventId)}`,
+        { ...current, matches },
+        current.version,
+      );
+      setPendingFill(null);
+      router.refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "补齐失败，请重试。");
+    } finally {
+      setFilling(false);
     }
   }
 
@@ -634,6 +721,24 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
       {isStaged && activeStageIndex !== null && <StageProgress stages={stageList} activeIndex={progressIndex(activeStageIndex)} complete={false} />}
 
       {error && <div className="adm-note adm-note--danger mb-5 text-[length:var(--adm-fs-lg)] font-semibold">{error}</div>}
+
+      {/* 补齐待定席位：故意放在 drawMode 分支之前 —— 这个场景下页面是 locked 的
+          （入围赛已发布、还没打完），放分支里就永远看不到这个按钮。 */}
+      {pendingFill && (
+        <div className="adm-note adm-note--info mb-5 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-[length:var(--adm-fs-lg)] font-semibold">
+            入围赛有 {pendingFill.count} 个待定席位，资格赛已全部结束，可以补齐了。
+          </span>
+          <button
+            type="button"
+            onClick={fillPendingSlots}
+            disabled={filling}
+            className="adm-btn adm-btn--primary adm-btn--md hover:bg-[var(--adm-red-hover)]"
+          >
+            {filling ? "正在补齐…" : `填入这 ${pendingFill.count} 支队伍`}
+          </button>
+        </div>
+      )}
 
       {drawMode === "slot" ? (
         <div className="grid gap-5 xl:grid-cols-[280px_1fr]">

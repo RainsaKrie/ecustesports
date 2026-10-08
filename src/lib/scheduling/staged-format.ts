@@ -2,7 +2,7 @@ import type { Group, SeedPot } from "./format-data";
 import type { StageConfig } from "./format-templates";
 import type { ScheduleMatch } from "./schedule-data";
 import { QUALIFIER_MIN_TEAMS } from "./format-support";
-import { BYE } from "./bracket-engine";
+import { BYE, PENDING } from "./bracket-engine";
 
 export interface StageDrawRecord {
   stageIndex: number;
@@ -62,7 +62,16 @@ function completedWinners(matches: ScheduleMatch[]): string[] {
  */
 export type PlayInGate =
   | { status: "ready"; stageIndex: 0; stage: StageConfig; entrantIds: string[] }
-  | { status: "waiting"; stageIndex: 0; stage: StageConfig; completedMatches: number; totalMatches: number; message: string }
+  /**
+   * 资格赛已开打、但还没全部结束。
+   *
+   * 允许**先把入围赛抽了**：已决出的胜者先进签位，剩余席位留成待定（PENDING），
+   * 等资格赛补齐再填人。这样不必为了等某一场的结果，把整个入围赛的赛程拖住。
+   *
+   * 用 `pendingCount` 明确告诉调用方要留几个待定席位 —— 不要让它自己去减，
+   * 减错了会变成轮空（语义完全不同：轮空是不打，待定是要打）。
+   */
+  | { status: "partial"; stageIndex: 0; stage: StageConfig; advancingTeamIds: string[]; pendingCount: number; completedMatches: number; totalMatches: number; message: string }
   | { status: "blocked"; stageIndex: 0; stage: StageConfig; message: string }
   | { status: "complete"; stageIndex: 0; stage: StageConfig; message: string; advancingTeamIds: string[] };
 
@@ -72,9 +81,10 @@ export type PlayInGate =
  * 用于队伍数超过入围赛席位的情况：先让最弱的一批打一轮资格赛，
  * 胜者并入入围赛，把队伍数收敛到入围赛容量（如 36 → 32）。
  *
- * **为什么资格赛必须独立成阶段**：入围赛的席位里有一部分来自资格赛结果，
- * 抽签时还不知道是哪几支——必须先打完资格赛、赛果全部确认，才能抽入围赛。
- * 这与既有原则一致（D-054：每个阶段只在前一阶段赛果全部确认后解锁）。
+ * **资格赛仍然独立成阶段**（D-054：每个阶段只在前一阶段赛果全部确认后解锁），
+ * 但**不再要求它全部打完才能抽入围赛**：未决出的席位返回 `partial`，
+ * 由调用方留成待定（PENDING）占位，等资格赛补齐再填人。
+ * 这样「还剩一场没打」不会把整个入围赛的赛程拖住。
  *
  * 资格赛队伍数恒为偶数，一半晋级。
  */
@@ -106,13 +116,17 @@ export function resolvePlayInGate(
   }
   const winners = completedWinners(playInMatches);
   if (winners.length < expected) {
+    // 已决出的先进入围赛，其余留成待定 —— 不因为「还剩一场」把整个赛程卡住。
+    const pendingCount = expected - winners.length;
     return {
-      status: "waiting",
+      status: "partial",
       stageIndex: 0,
       stage: playInStage,
+      advancingTeamIds: winners,
+      pendingCount,
       completedMatches: winners.length,
       totalMatches: expected,
-      message: `完成全部 ${expected} 场${playInStage.name}并提交赛果后，才会开放入围赛抽签。`,
+      message: `${playInStage.name}已决出 ${winners.length} / ${expected} 席。可以先抽入围赛：已决出的先进签位，其余 ${pendingCount} 席留作待定，等资格赛结果出来后补齐。`,
     };
   }
   return {
@@ -249,6 +263,22 @@ function permutations<T>(values: T[]): T[][] {
   return values.flatMap((value, index) =>
     permutations([...values.slice(0, index), ...values.slice(index + 1)]).map((rest) => [value, ...rest]),
   );
+}
+
+/**
+ * 把待定席位随机插进抽签顺序（只在入围赛抽签、且资格赛尚未全部结束时用）。
+ *
+ * **为什么必须随机**：位置若固定（比如永远放末尾），末尾那支队就必然对上
+ * 「资格赛胜者」，而胜者是从资格赛打上来的、平均实力高于普通队 —— 这支队吃亏；
+ * 而且这个位置不是抽出来的，等于少了一个随机维度。
+ *
+ * 插入后 `drawOrder.length` 正好等于总签位数，于是 `buildQualifierSlots` 算出轮空数 0、
+ * 16 场全部要打 —— 这正是「预留席位」与「轮空」的分水岭：
+ * 轮空是不打直接晋级，待定是该打、只是对手还没定。
+ */
+export function withPendingSlots(drawOrder: string[], pendingCount: number, random: () => number = Math.random): string[] {
+  if (pendingCount <= 0) return drawOrder;
+  return shuffled([...drawOrder, ...Array.from({ length: pendingCount }, () => PENDING)], random);
 }
 
 /**

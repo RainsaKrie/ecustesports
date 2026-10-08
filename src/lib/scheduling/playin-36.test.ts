@@ -110,8 +110,10 @@ check("资格赛生成 4 场", qualification.matches.length === 4, String(qualif
 check("资格赛没有轮空", qualification.byes.length === 0, String(qualification.byes.length));
 
 schedule = appendMatchesOp(schedule, qualification.matches, "资格赛抽签发布");
-const waiting = resolvePlayInGate(playInStage, ordered, schedule.matches);
-check("未提交赛果时资格赛为进行中", waiting.status === "waiting", waiting.status);
+const partial = resolvePlayInGate(playInStage, ordered, schedule.matches);
+check("未提交赛果时资格赛为 partial（可先抽入围赛）", partial.status === "partial", partial.status);
+check("未决出席位数 = 4", partial.status === "partial" && partial.pendingCount === 4,
+  partial.status === "partial" ? String(partial.pendingCount) : partial.status);
 
 for (const match of qualification.matches) {
   schedule = reportGameResultsOp(schedule, match.id, [{ teamAScore: 13, teamBScore: 5 }]).state;

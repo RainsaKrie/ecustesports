@@ -773,14 +773,16 @@ async function main() {
   });
   check(publishPlayIn, "过期版本号写入被拒（并发保护）", staleRejected.status === 409, `HTTP ${staleRejected.status}`);
 
-  const waitingGate = resolvePlayInGate(format.playInStage, playInIds, schedule.matches);
-  check(publishPlayIn, "未提交赛果时门控为 waiting", waitingGate.status === "waiting", waitingGate.status);
+  const partialGate = resolvePlayInGate(format.playInStage, playInIds, schedule.matches);
+  check(publishPlayIn, "未提交赛果时门控为 partial（不阻塞入围赛抽签）", partialGate.status === "partial", partialGate.status);
+  check(publishPlayIn, "partial 时明确给出待定席位数", partialGate.status === "partial" && partialGate.pendingCount === 4,
+    partialGate.status === "partial" ? String(partialGate.pendingCount) : partialGate.status);
 
   if (RUN_UI) {
     const probe = await probeDrawPage(rehearsalEventId);
     if (probe) {
-      check(publishPlayIn, "界面显示资格赛进行中（等待赛果）", probe.bodyText.includes("资格赛") && /完成全部 4 场/.test(probe.bodyText), probe.errorText || probe.bodyText.slice(0, 80));
-      check(publishPlayIn, "界面处于锁定态（不能重复发布）", /锁定|等待|完成全部/.test(probe.bodyText));
+      // 行为变了：资格赛没打完不再锁死等待，界面应当继续走到入围赛抽签（含待定席位）。
+      check(publishPlayIn, "界面未因资格赛未完成而锁死", !/锁定/.test(probe.bodyText), probe.errorText || probe.bodyText.slice(0, 80));
     }
   }
 

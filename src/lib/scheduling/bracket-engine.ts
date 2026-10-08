@@ -12,6 +12,20 @@ export const TBD = "TBD";
 /** 轮空占位：签位中该位置直接晋级，不生成比赛。 */
 export const BYE = "BYE";
 
+/**
+ * 预留席位占位符。
+ *
+ * 用于「资格赛还没全部打完，但想先把剩余席位抽掉」的场景：
+ * 入围赛有 `advancingTeams × 2` 个签位，其中几个要等资格赛胜者，
+ * 就把这几个位置填成 PENDING。
+ *
+ * **与 BYE 的区别**：BYE 表示「对手轮空、本队直接晋级」，**不产生比赛**；
+ * PENDING 表示「对手待定」，**比赛照常生成**，等资格赛补齐后再填队。
+ * 所以有 PENDING 时轮空数为 0，16 场全打。
+ */
+export const PENDING = "PENDING";
+
+
 interface Slot {
   id: string;
   side: "A" | "B";
