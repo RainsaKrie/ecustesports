@@ -392,17 +392,21 @@ export function approveRequestOp(
     return { state, result: null, value: null };
   }
 
-  // 提交时已有冲突的申请不能进入批准
-  if (req.conflicts.length > 0) {
-    const blocked: ValidationResult = {
-      approved: false,
-      conflicts: req.conflicts,
-      primaryConflict: req.conflicts[0].code,
-    };
-    return { state, result: blocked, value: blocked };
-  }
+  /**
+   * 这里原先有一段短路：`req.conflicts.length > 0` 就把**存下来的**冲突直接返回、不再校验。
+   *
+   * **2026-10-09 去掉。** 存下来的冲突是**上一次校验时的快照**，它会过期 ——
+   * 申请第一次批准失败是因为「版本号对不上」（那条规则当天已删），
+   * 这个 HC-01 就被写进申请的 `conflicts` 字段并存了下来；
+   * 之后不管规则怎么修，批准都拿这份旧快照直接拒绝，**永远过不去**
+   * （线上三条红字反复出现、改了规则也不消失，就是卡在这里）。
+   *
+   * 去掉是安全的：紧接着就是**基于当前赛程**的重新校验，真冲突一个都不会放过，
+   * 而且结论永远是最新的。校验失败时仍会把 conflicts 写回申请（见下面那个分支），
+   * 所以「界面上能看出为什么不能批」这个行为没变。
+   */
 
-  // 基于当前赛程重新校验（旧版本申请会命中 HC-01）
+  // 基于当前赛程重新校验（申请提交后赛程可能已经变过，以当下为准）
   const scheduled = state.matches.map(toScheduledMatch);
   const result = validateReschedule(
     {

@@ -559,13 +559,19 @@ console.log("== 8. 双队长约赛（发起 → 对手确认 → 负责人审批
   const again = approveRequestOp(forced.state, base.requestId, cfg, { ownerAttestsBothTeams: true });
   check("已批准的申请不能重复批准", again.value === null);
 
-  // 有冲突时即便负责人核对也要拦下
+  // 这里原先验证「申请里存着冲突记录时，连负责人核对也不能强行批准」。
+  // **2026-10-09 改为：不信任存下来的冲突快照，一律按当前赛程重新校验** ——
+  // 那份快照会过期：线上就是被一条**已被删除的规则**留下的旧 HC-01 卡死，
+  // 规则改了也过不去（批准时先读到旧快照就直接拒绝）。
+  // 这个场景里 M04 改到 10-07 18:00 本身不冲突，所以重新校验后应当放行。
+  // 「真冲突拦得住」由前面「有冲突的申请批准被拦截」那条覆盖。
   const conflictState = stateWithPendingCaptainRequest();
-  const blockedForced = approveRequestOp(
-    { ...conflictState.state, requests: conflictState.state.requests.map((r) => ({ ...r, conflicts: [{ code: "HC-07", message: "超出阶段范围" }] })) },
-    conflictState.requestId, cfg, { ownerAttestsBothTeams: true },
-  );
-  check("有冲突时负责人核对也不能强行批准", blockedForced.value !== null && !blockedForced.value!.approved);
+  const staleConflictState = {
+    ...conflictState.state,
+    requests: conflictState.state.requests.map((r) => ({ ...r, conflicts: [{ code: "HC-07", message: "超出阶段范围（旧快照，已过期）" }] })),
+  };
+  const revalidated = approveRequestOp(staleConflictState, conflictState.requestId, cfg, { ownerAttestsBothTeams: true });
+  check("过期的冲突快照不再卡死批准（按当前赛程重新校验）", revalidated.value?.approved === true);
 
   // 负责人核对不影响「已排期」的正常路径
   const normal = stateWithPendingCaptainRequest();
