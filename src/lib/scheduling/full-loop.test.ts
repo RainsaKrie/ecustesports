@@ -425,7 +425,11 @@ console.log("== 6. 改期闭环（提交 → 校验 → 批准 → 版本 → �
   check("批准后生成通知", approved.state.notifications.length === 1 && approved.state.notifications[0].content.includes("赛程变更"));
   s = approved.state;
 
-  // 旧版本申请不能直接批准（AC-03）
+  // 申请提交之后赛程又变过（版本从 v2 走到 v3）。
+  // 这条原先按 AC-03「旧版本申请不能直接批准」拦截，**2026-10-09 改掉**：
+  // 版本号是全局的（任何一场报分、任何一次改期都 +1），按它拦截会**必然误报**。
+  // 现在改为按**当前赛程**判这个申请自己的时间有没有冲突 —— A 提的 10-07 14:00 本身没问题，
+  // 所以应当通过；真正的冲突（时间重叠 HC-05、越界 HC-07）另有断言覆盖。
   const reqA = submitRequestOp(s, {
     matchId: "M05",
     newStartTime: "2026-10-07T14:00:00",
@@ -446,8 +450,8 @@ console.log("== 6. 改期闭环（提交 → 校验 → 批准 → 版本 → �
   check("申请 B 批准（版本变为 v3）", approveB.value?.approved === true && approveB.state.version === 3);
   const staleId = reqA.state.requests[0].id;
   const staleApprove = approveRequestOp(approveB.state, staleId);
-  check("基于旧版本的申请 A 批准被拦截（HC-01）", staleApprove.value !== null && !staleApprove.value!.approved && staleApprove.value!.primaryConflict === "HC-01");
-  check("被拦截后申请冲突说明已刷新", staleApprove.state.requests.some((r) => r.id === staleId && r.conflicts.some((c) => c.code === "HC-01")));
+  check("提交后赛程变过的申请不再按版本号拦截（按当前赛程判定）",
+    staleApprove.value !== null && staleApprove.value!.approved === true);
 }
 
 console.log("== 7. 排期校验（validateMatchTime 经 setMatchTimeOp） ==");

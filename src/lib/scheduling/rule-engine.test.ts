@@ -74,7 +74,12 @@ const cases: TestCase[] = [
   { id: "C-3", matches: [M1, M2, M3, M4], request: { ...M4_OK, newStartTime: "2026-10-06T12:00:00" }, expectedApproved: false, expectedPrimary: "HC-06" },
   { id: "C-4", matches: [M1, M2, M3, M4], request: { ...M4_OK, newStartTime: "2026-10-09T14:00:00" }, expectedApproved: false, expectedPrimary: "HC-07" },
   { id: "C-5", matches: [M1, M2, M3, { ...M4, frozen: true }], request: M4_OK, expectedApproved: false, expectedPrimary: "HC-08" },
-  { id: "C-6", matches: [M1, M2, M3, M4], request: { ...M4_OK, basedOnVersion: 1 }, expectedApproved: false, expectedPrimary: "HC-01" },
+  // C-6 原为「申请基于旧版本 → 不能批准（HC-01）」。
+  // 2026-10-09 起不再按版本号拦截：版本号是全局的，申请从提交到负责人批复之间
+  // 赛程几乎一定变过，按它拦截会**必然误报**，还会把真正的冲突盖掉。
+  // 现在这个申请应当通过（它提的时间本身不与现有排程冲突）；
+  // 真实冲突仍由 HC-05（时间重叠）/ HC-07（越界）负责，见 C-2、C-9。
+  { id: "C-6", matches: [M1, M2, M3, M4], request: { ...M4_OK, basedOnVersion: 1 }, expectedApproved: true },
   { id: "C-7", matches: [M1, M2, M3, M4], request: { ...M4_OK, teamBConfirmed: false }, expectedApproved: false, expectedPrimary: "HC-02" },
   { id: "C-8", matches: [M1, M3, M2, M4, K_at_16], request: { matchId: "M2", newStartTime: "2026-10-06T16:00:00", teamAConfirmed: true, teamBConfirmed: true, basedOnVersion: 2 }, expectedApproved: false, expectedPrimary: "HC-06" },
   { id: "C-9", matches: [M1, M3, M4, H_at_14], request: { ...M4_OK, newStartTime: "2026-10-06T14:00:00" }, expectedApproved: false, expectedPrimary: "HC-04" },

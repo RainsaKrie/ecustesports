@@ -125,19 +125,28 @@ export function validateReschedule(
   const conflicts: Conflict[] = [];
   const target = matches.find((m) => m.id === request.matchId);
 
-  // HC-01：比赛存在 + 申请基于当前有效版本
+  // HC-01：比赛存在，且还能改
   if (!target) {
     return { approved: false, conflicts: [{ code: "HC-01", message: "比赛不存在" }], primaryConflict: "HC-01" };
   }
   if (target.status === "已完成") {
     return { approved: false, conflicts: [{ code: "HC-01", message: "比赛已完成，不能再改期" }], primaryConflict: "HC-01" };
   }
-  if (request.basedOnVersion !== currentVersion) {
-    conflicts.push({
-      code: "HC-01",
-      message: `申请基于旧版本 v${request.basedOnVersion}，当前为 v${currentVersion}，需刷新后重新提交`,
-    });
-  }
+
+  /**
+   * 这里原先还有一条 HC-01：`request.basedOnVersion` 必须等于 `currentVersion`，
+   * 不等就报「申请基于旧版本 vN，当前为 vM，需刷新后重新提交」。
+   *
+   * **2026-10-09 去掉，因为它在实战中必然误报**：版本号是**全局**的 ——
+   * 任何一场比赛报分、任何一次改期都会让它 +1，而约赛申请从提交到负责人批复
+   * 隔几个小时很常见，这期间赛程几乎一定变过。结果就是负责人手里的每条申请
+   * 都挂着这行红字，真正该处理的冲突（时间重叠 HC-05、超出阶段 HC-07）反而被淹没。
+   *
+   * **去掉是安全的**：下面 HC-03～HC-08 的判定**全部基于传入的 `matches`** 计算，
+   * 而调用方传的就是当前赛程，所以不存在「拿旧时间表算冲突」的问题。
+   * 并发保护（防两个操作互相覆盖）走的是写入时的版本校验，是另一条通路，未受影响。
+   */
+  void currentVersion;
 
   // HC-02：两队队长确认同一个约赛时间
   if (!request.teamAConfirmed || !request.teamBConfirmed) {

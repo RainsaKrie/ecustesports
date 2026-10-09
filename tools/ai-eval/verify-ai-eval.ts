@@ -49,16 +49,23 @@ const cases: Case[] = [
   { id: "D01", category: "前置依赖", title: "后续比赛早于前置比赛计划结束", version: 2, matches: [target("BO3", { prerequisiteMatchId: "P01" }), M("P01", "T-C", "T-D", at("06", "12:00"))], request: req(at("06", "12:30")), expected: no("HC-05"), limitations: ["当前规则只比较计划时间，不检查前置比赛是否实际完赛。"] },
   { id: "D02", category: "前置依赖", title: "晋级队伍未确定但时间依赖满足", version: 2, matches: [M("M01", "WINNER-P01", "TBD", at("07", "16:00"), "BO3", { prerequisiteMatchId: "P01" }), M("P01", "T-C", "T-D", at("06", "12:00"))], request: req(at("06", "13:30")), expected: ok, limitations: ["晋级队伍尚未确定；只说明计划时间关系可行，不能生成实名队伍通知。"] },
 
-  { id: "V01", category: "赛程版本过期", title: "提交后赛程版本变化", version: 3, matches: [target()], request: req(at("07", "14:00")), expected: no("HC-01"), review: true },
+  // V01 原为「提交后赛程版本变化 → 报 HC-01」。2026-10-09 起不再按版本号拦截：
+  // 版本号是全局的，申请从提交到负责人批复之间赛程几乎一定变过，按它拦截会**必然误报**，
+  // 还会把真正该看的冲突盖掉。现在改为按当前赛程判这个申请自己的时间 —— 它不冲突，应当通过。
+  // 类别仍归「赛程版本过期」：这个测试维度本身还在，只是结论从「拦」变成「不拦」。
+  { id: "V01", category: "赛程版本过期", title: "提交后赛程版本变化不再拦截（改按当前赛程判定）", version: 3, matches: [target()], request: req(at("07", "14:00")), expected: ok, review: true },
   { id: "V02", category: "赛程版本过期", title: "已批准申请被重复审批", operation: "重复审批", version: 3, matches: [target()], request: req(at("07", "14:00"), { basedOnVersion: 3 }), expected: { decision: "无需重复处理", approved: null, codes: ["WF-01"] }, limitations: ["这是流程幂等校验，不属于时间规则冲突。"] },
 
-  { id: "X01", category: "复合冲突", title: "旧版本、未确认、冻结且越界", version: 3, matches: [target("BO1", { frozen: true })], request: req(at("06", "11:00"), { basedOnVersion: 2, teamBConfirmed: false }), expected: no("HC-01", "HC-02", "HC-08", "HC-07") },
+  // X01 的 HC-01 随 V01 一起去掉（版本变化不再计入冲突），其余三项不变：
+  // 未确认 HC-02、冻结 HC-08、越界 HC-07。
+  { id: "X01", category: "复合冲突", title: "未确认、冻结且越界", version: 3, matches: [target("BO1", { frozen: true })], request: req(at("06", "11:00"), { basedOnVersion: 2, teamBConfirmed: false }), expected: no("HC-02", "HC-08", "HC-07") },
   { id: "X02", category: "复合冲突", title: "队伍重叠且峰值并发超限", version: 2, matches: [target(), M("M02", "T-A", "T-C", at("06", "12:00")), M("M03", "T-D", "T-E", at("06", "12:00"))], request: req(at("06", "12:00")), expected: no("HC-06", "HC-04") },
   { id: "X03", category: "复合冲突", title: "依赖、队伍和容量同时冲突", version: 2, matches: [target("BO3", { prerequisiteMatchId: "P01" }), M("P01", "T-C", "T-D", at("06", "12:00")), M("M02", "T-B", "T-E", at("06", "12:00")), M("M03", "T-F", "T-G", at("06", "12:00"))], request: req(at("06", "12:30")), expected: no("HC-06", "HC-04", "HC-05"), limitations: ["只比较前置比赛计划结束时间，不代表前置比赛已经完赛。"], review: true },
 ];
 
 const steps: Record<string, string> = {
-  "HC-01": "刷新当前赛程版本后重新提交", "HC-02": "由另一方队长确认同一开始时间",
+  // HC-01 现在只剩「比赛不存在 / 已完成」两种含义，不再涉及赛程版本号。
+  "HC-01": "确认这场比赛存在且尚未完成", "HC-02": "由另一方队长确认同一开始时间",
   "HC-03": "补全该局制的占用时长", "HC-04": "避开相关队伍的其他比赛时段",
   "HC-05": "调整至前置比赛计划结束之后，并核对晋级状态", "HC-06": "调整时间，或修改并重新确认裁判并发容量",
   "HC-07": "在阶段范围内重新选择时间，并计入完整BO时长", "HC-08": "由负责人解除冻结后重新校验",
