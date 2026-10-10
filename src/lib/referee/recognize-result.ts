@@ -119,10 +119,22 @@ export function buildRecognizeSuggestion(
     }
   }
 
+  // ---- 定这一局两队各自的比分 ----
+  // v5：方向由「**这一局**是哪一组赢」推出来，不再要求模型判断「哪支是 A 队」。
+  // 用逐局的胜方而不是整个系列赛的胜方：系列赛里两组互有胜负，
+  // 拿系列赛胜方去套每一局会把整场读成一边倒，规则层会判定比分不合法。
+  const gameWinner = picked?.winnerGroup;
+  let aScore: number | null = null;
+  let bScore: number | null = null;
+  if (picked && (gameWinner === "a" || gameWinner === "b")) {
+    aScore = gameWinner === "a" ? picked.winnerScore : picked.loserScore;
+    bScore = gameWinner === "a" ? picked.loserScore : picked.winnerScore;
+  } else if (picked) {
+    issues.push("没读出这一局是哪一组赢的，比分左右无法确定，请手工核对");
+  }
+
   // ---- 用名单校正左右 ----
   let identity: RecognizeSuggestion["identity"] = null;
-  let aScore = picked?.teamAScore ?? null;
-  let bScore = picked?.teamBScore ?? null;
   let swapped = false;
 
   const groups = recognized.groups;
@@ -142,7 +154,7 @@ export function buildRecognizeSuggestion(
     });
 
     if (matched.status === "matched" && matched.first && matched.second) {
-      // matched.first 说的是「模型认定的第一组（groups.a）」实际属于哪支队
+      // matched.first 说的是「模型编号的第一组（groups.a）」实际属于哪支队
       swapped = matched.first.team === "b";
       identity = {
         status: "matched",
@@ -151,13 +163,11 @@ export function buildRecognizeSuggestion(
         reasons: matched.reasons,
       };
       if (swapped && aScore !== null && bScore !== null) {
-        // 模型把两组搞反了，比分要跟着换回来
+        // groups.a 实际是 B 队 → 比分跟着换回来
         const t = aScore;
         aScore = bScore;
         bScore = t;
-        issues.push(
-          `已按双方名单校正左右：模型把两支队伍认反了，比分已自动交换。请确认无误`,
-        );
+        issues.push("已按双方名单校正左右：模型给两组编的号与实际队伍相反，比分已自动交换。请确认无误");
       }
       if (matched.reasons.length > 0) issues.push(...matched.reasons);
     } else {

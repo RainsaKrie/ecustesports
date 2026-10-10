@@ -11,9 +11,22 @@
 // =====================
 
 /** 提示词版本号。改提示词必须同时改这个值，否则历史结果无法复现。 */
-export const PROMPT_VERSION = "result-vision-prompt-v4";
+export const PROMPT_VERSION = "result-vision-prompt-v5";
 
-/** 期望模型输出的结构。写进提示词，解析时也按它校验。 */
+/**
+ * 期望模型输出的结构。写进提示词，解析时也按它校验。
+ *
+ * ★ v5 的关键改动（2026-10-09）：**胜负不再绑在「A/B 位置」上，改绑到「哪一组」。**
+ *
+ * 起因：结算表在图上只有**一列**（10 行从上到下），既没有左右分栏、行底色也不直接对应
+ * 「A 队/B 队」。旧协议却要求模型给出 `winnerSide: "A" | "B"` 和 `games.teamAScore`，
+ * 并声明「A 指第一支队伍」—— 可**图上并不存在「第一支队伍」这个可判定的对象**，
+ * 模型只能自己挑一个方向。实测同一张图连跑 4 次，「A 侧是哪支队」在两次之间完全相反，
+ * 而比分数字稳定不换，于是**胜负被随机判反**（影子测试里真实发生过，把赢的队判成输）。
+ *
+ * v5 改成：模型只需回答「**groups 里的哪一组赢了**」和「赢了多少 / 输了多少」，
+ * 因此不再需要它判断「左右」。至于哪一组对应报名名单里的哪支队，由名单匹配负责。
+ */
 export const OUTPUT_CONTRACT = [
   "只输出一个 JSON 对象，不要任何解释文字或代码块标记。",
   "字段：",
@@ -23,11 +36,18 @@ export const OUTPUT_CONTRACT = [
   '  {"index": 1, "name": "昵称原文", "side": "a" 或 "b"}。',
   "  **必须先逐行判定 side，再汇总出 groups；groups 只能由 rows 汇总，不得另行判断。**",
   '- "groups": {"a": [昵称...], "b": [昵称...]}，把结算表上的 10 个昵称按队伍分成两组，',
-  "  每侧各 5 个。**必须与 rows 中同 side 的昵称完全一致。**",
-  '- "series": {"a": 整数, "b": 整数}，系列赛大比分；不确定填 null。',
-  '- "winnerSide": "A" 或 "B"，胜方；不确定填 null。',
-  '- "games": 数组，每局 {"map": 地图名或 null, "teamAScore": 整数, "teamBScore": 整数}。',
-  "A 指第一支队伍，B 指第二支。不允许编造图上没有的信息。",
+  "  每组各 5 个。**必须与 rows 中同 side 的昵称完全一致。**",
+  '  "a" / "b" 只是给这两组起的**编号**，与「左边 / 右边」无关：',
+  "  图上没有左右分栏，你按任意顺序把它们叫 a 和 b 即可，但后续字段必须沿用同一套编号。",
+  '- "winnerGroup": "a" 或 "b"，**赢得这个系列赛的是哪一组**；不确定填 null。',
+  '  **问的是上面 groups 里的哪一组赢了，不是「A 队还是 B 队」。**',
+  '- "games": 数组，每局一项，形如',
+  '  {"map": 地图名或 null, "winnerGroup": "a" 或 "b", "winnerScore": 整数, "loserScore": 整数}。',
+  "  **每一局都要单独给出 winnerGroup** —— 系列赛里两组会互有胜负，",
+  "  不能拿整个系列赛的胜方去套每一局（否则规则层会判定比分不合法）。",
+  "  winnerScore / loserScore 是**这一局**的比分（13 分制），赢的那组放前面。",
+  '- "series": {"a": 整数, "b": 整数}，系列赛大比分，与 groups 的 a/b 对应；不确定填 null。',
+  "不允许编造图上没有的信息。",
 ].join("\n");
 
 /**
@@ -57,24 +77,47 @@ export const READING_GUIDE = [
   "   自检：分完应该是 5 人对 5 人；若出现 4 / 5 / 1，说明把自己那行单算了。",
   "4. 图上没有写这是第几局。请用左上角的地图名，去比对下面给出的地图序列，",
   "   找到它的位置（第几个就是第几局）。",
-  "5. 图上没有队名，只有玩家昵称。若下面提供了双方队员昵称，用它判断哪一组对应 A 队、哪一组对应 B 队。",
-  "6. 系列赛大比分 = 各局胜负数一数，不要直接读图上那个大数字（那是单局比分）。",
+  "5. 图上没有队名，只有玩家昵称。若下面提供了双方队员昵称，用它判断哪一组对应哪一支队；",
+  "   没有提供名单时，两组的 a / b 编号随你定，只要后续字段沿用同一套编号。",
+  "6. **不要试图判断「哪一组在左边」** —— 结算表在图上只有一列，没有左右分栏。",
+  "   a / b 只是编号，与位置无关。",
+  "7. 胜负看顶部中央那个字（胜利 / 败北）以及两个数字的大小：",
+  "   **13 分制，先到 13 的那一组赢**；把赢的那一组的编号填进 winnerGroup。",
+  "8. 系列赛大比分 = 各局胜负数一数，不要直接读图上那个大数字（那是单局比分）。",
 ].join("\n");
 
 export type Side = "A" | "B";
 
+/** 模型给两组起的编号。**这是编号，不是位置** —— 图上没有左右分栏。 */
+export type GroupKey = "a" | "b";
+
 export interface RecognizedGame {
   map: string | null;
-  teamAScore: number;
-  teamBScore: number;
+  /**
+   * 这一局是哪一组赢的。
+   *
+   * **必须逐局给**：系列赛里两组互有胜负，若拿整个系列赛的胜方去套每一局，
+   * 规则层会把每局都读成同一方赢，于是 BO3 变成「3:0」而被判定比分不合法
+   * —— 实测因此拒掉了 3 个用例。
+   */
+  winnerGroup: GroupKey;
+  /**
+   * 这一局的比分。**赢的那组的分数在前** —— 不绑定 A/B 位置。
+   *
+   * v5 之前叫 `teamAScore` / `teamBScore`，要求模型判断「哪支是 A 队」；
+   * 而那正是图上无法判定的东西，实测同一张图两次跑会给出相反的归属，导致胜负判反。
+   */
+  winnerScore: number;
+  loserScore: number;
 }
 
 export interface RecognizedResult {
   series: { a: number; b: number } | null;
-  winnerSide: Side | null;
+  /** 赢得**这个系列赛**的是 groups 里的哪一组。**不是「A 队还是 B 队」。** */
+  winnerGroup: GroupKey | null;
   games: RecognizedGame[];
   /**
-   * 模型把每个昵称归到哪一侧。
+   * 模型把每个昵称归到哪一组。
    *
    * 为什么必须有：结算表用行底色区分队伍，但**底色有三种不是两种**——
    * 除了两队各自的颜色，截图者自己那一行是另一种高亮色。
@@ -231,11 +274,12 @@ export function normalizeModelJson(value: unknown): { parsed: RecognizedResult |
     }
   }
 
-  const winnerRaw = value.winnerSide;
-  let winnerSide: RecognizedResult["winnerSide"] = null;
+  // v5：胜方绑到「哪一组」，不再是「A 队 / B 队」—— 图上没有左右，那个问题模型答不稳。
+  const winnerRaw = value.winnerGroup;
+  let winnerGroup: RecognizedResult["winnerGroup"] = null;
   if (winnerRaw !== null && winnerRaw !== undefined) {
-    if (winnerRaw === "A" || winnerRaw === "B") winnerSide = winnerRaw;
-    else problems.push(`winnerSide 必须是 "A" / "B" / null，实际是 ${JSON.stringify(winnerRaw)}`);
+    if (winnerRaw === "a" || winnerRaw === "b") winnerGroup = winnerRaw;
+    else problems.push(`winnerGroup 必须是 "a" / "b" / null，实际是 ${JSON.stringify(winnerRaw)}`);
   }
 
   const gamesRaw = value.games;
@@ -247,13 +291,24 @@ export function normalizeModelJson(value: unknown): { parsed: RecognizedResult |
           problems.push("games 含非对象项");
           continue;
         }
-        const a = Number(g.teamAScore);
-        const b = Number(g.teamBScore);
-        if (!Number.isFinite(a) || !Number.isFinite(b)) {
+        const winnerScore = Number(g.winnerScore);
+        const loserScore = Number(g.loserScore);
+        if (!Number.isFinite(winnerScore) || !Number.isFinite(loserScore)) {
           problems.push("games 含非数字比分");
           continue;
         }
-        games.push({ map: typeof g.map === "string" && g.map.trim() ? g.map.trim() : null, teamAScore: a, teamBScore: b });
+        // 逐局的胜方必须给 —— 缺了就无法还原每局朝向，规则层会把整场读成一边倒
+        const gameWinner = g.winnerGroup;
+        if (gameWinner !== "a" && gameWinner !== "b") {
+          problems.push(`games 第 ${games.length + 1} 局的 winnerGroup 必须是 "a" / "b"`);
+          continue;
+        }
+        games.push({
+          map: typeof g.map === "string" && g.map.trim() ? g.map.trim() : null,
+          winnerGroup: gameWinner,
+          winnerScore,
+          loserScore,
+        });
       }
     } else {
       problems.push("games 必须是数组");
@@ -267,7 +322,7 @@ export function normalizeModelJson(value: unknown): { parsed: RecognizedResult |
     if (dup.length > 0) problems.push(`同一昵称出现在两侧：${dup.join("、")}`);
   }
 
-  return { parsed: { series, winnerSide, games, groups }, problems };
+  return { parsed: { series, winnerGroup, games, groups }, problems };
 }
 
 /** 人数自检的阈值：标准对局是 5 人对 5 人。 */

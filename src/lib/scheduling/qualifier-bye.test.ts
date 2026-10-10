@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 
 import { buildQualificationMatches, BYE, PENDING } from "./bracket-engine";
-import { buildQualifierSlots, resolveStagedDrawGate, withPendingSlots } from "./staged-format";
+import { autoFillPendingSlots, buildQualifierSlots, resolveStagedDrawGate, withPendingSlots } from "./staged-format";
 import type { StageConfig } from "./format-templates";
 import { appendMatchesOp, reportGameResultsOp } from "./schedule-ops";
 import { emptySchedule } from "./schedule-data";
@@ -79,5 +79,48 @@ const partialBuilt = buildQualificationMatches(partialSlots, (id) => (id === PEN
 check("生成 16 场（不是 15 场）", partialBuilt.matches.length === 16, String(partialBuilt.matches.length));
 check("没有队伍被判轮空晋级", partialBuilt.byes.length === 0, String(partialBuilt.byes.length));
 check("待定那场照常出现在赛程里", partialBuilt.matches.some((match) => match.teamAId === PENDING || match.teamBId === PENDING));
+
+// ---------- 自动补齐：资格赛打完后，入围赛的待定席位应自动填上 ----------
+//
+// 为什么要有这一组：负责人说过「本来就应该自动调整」。资格赛一结束，胜者就是确定的，
+// 不该再让他去点一次按钮。这里钉住三件事：该填的时候填、不该填的时候一个都不动。
+console.log("\n== 自动补齐待定席位 ==");
+
+function match(id: string, phase: string, a: string, b: string, extra: Record<string, unknown> = {}) {
+  return {
+    id, phase, round: phase, boType: "BO1", frozen: false, status: "已排期",
+    teamAId: a, teamBId: b, teamAName: a, teamBName: b,
+    ...extra,
+  } as never;
+}
+
+const pendingRow = match("P2", "入围赛", "T-3", PENDING, { status: "待排期" });
+const qualDone = [
+  match("Q1", "资格赛", "T-7", "T-8", { status: "已完成", winnerTeamId: "T-7" }),
+  match("Q2", "资格赛", "T-9", "T-10", { status: "已完成", winnerTeamId: "T-9" }),
+];
+const qualHalfDone = [
+  match("Q1", "资格赛", "T-7", "T-8", { status: "已完成", winnerTeamId: "T-7" }),
+  match("Q2", "资格赛", "T-9", "T-10", { status: "已排期" }),
+];
+const fillOptions = { qualifierPhase: "资格赛", qualifierTeamCount: 4, teamName: (id: string) => `队${id}` };
+
+const done = autoFillPendingSlots([match("P1", "入围赛", "T-1", "T-2"), pendingRow, ...qualDone], fillOptions);
+check("资格赛全完成 → 待定席位被填上", done.filled === 1);
+check("填入的是资格赛胜者", done.matches.find((m) => m.id === "P2")!.teamBId === "T-7"
+  || done.matches.find((m) => m.id === "P2")!.teamBId === "T-9");
+check("队名同步写上（不是留着「待定」）", !String(done.matches.find((m) => m.id === "P2")!.teamBName).includes("待定"));
+check("没有待定席位时不动手", autoFillPendingSlots([match("P1", "入围赛", "T-1", "T-2"), ...qualDone], fillOptions).filled === 0);
+
+// ★ 资格赛没打完就填 = 填错，必须一个字都不改
+const half = autoFillPendingSlots([pendingRow, ...qualHalfDone], fillOptions);
+check("资格赛未全部完成 → 一个都不填", half.filled === 0 && half.matches[0].teamBId === PENDING);
+
+// ★ 不能把已经在入围赛里的队再填一遍（否则同一支队出现两次）
+const already = autoFillPendingSlots(
+  [match("P1", "入围赛", "T-7", "T-2"), pendingRow, ...qualDone],
+  { ...fillOptions, qualifierTeamCount: 2 },
+);
+check("胜者已在入围赛里 → 不重复填", already.filled === 0 || already.matches.every((m) => m.teamAId !== m.teamBId));
 
 console.log(`\n${passed} qualifier-bye tests passed`);

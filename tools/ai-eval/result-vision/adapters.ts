@@ -142,7 +142,7 @@ export function createFormBaselineAdapter(): VisionAdapter {
     async run(input) {
       return {
         refused: false,
-        parsed: { series: null, winnerSide: null, games: [] },
+        parsed: { series: null, winnerGroup: null, games: [] },
         usage: { images: input.images.length },
         raw: null,
       };

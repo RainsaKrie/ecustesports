@@ -282,6 +282,81 @@ export function withPendingSlots(drawOrder: string[], pendingCount: number, rand
 }
 
 /**
+ * 自动把资格赛胜者填进入围赛的待定席位。
+ *
+ * **为什么要有它**：资格赛最后一场报分之后，入围赛里那个「待定（资格赛胜者）」
+ * 本该立刻变成真实队名 —— 胜者是确定的，没有歧义。原来的做法是让负责人再去抽签页
+ * 点一次「补齐」，纯属多余的等待。
+ *
+ * **触发条件（三个都满足才动手）**：
+ *   ① 入围赛里存在待定席位（PENDING）；
+ *   ② 资格赛的场次已全部完成；
+ *   ③ 还有没被填进去的胜者。
+ *
+ * 不满足时**原样返回、不抛错**：它会在每次报分后被调用，绝大多数时候无事可做。
+ *
+ * 与「轮空」的区别仍然是关键：待定席位对应的比赛**是要打的**，所以这里只填队名，
+ * 不跳过任何比赛。
+ */
+export function autoFillPendingSlots(
+  matches: ScheduleMatch[],
+  options: {
+    /** 资格赛阶段名（提供胜者的那一段）。 */
+    qualifierPhase: string;
+    /** 资格赛队伍数；晋级数 = 它的一半。 */
+    qualifierTeamCount: number;
+    /** 队名查询，用于同步填上 teamAName / teamBName。 */
+    teamName: (teamId: string) => string;
+  },
+): { matches: ScheduleMatch[]; filled: number } {
+  const stuck = matches.filter(
+    (match) => match.teamAId === PENDING || match.teamBId === PENDING,
+  );
+  if (stuck.length === 0) return { matches, filled: 0 };
+
+  // 资格赛必须全部打完，否则「胜者」还不完整，填了就是填错
+  const qualifierMatches = matches.filter((match) => match.phase === options.qualifierPhase);
+  const expectedQualifierMatches = options.qualifierTeamCount / 2;
+  if (qualifierMatches.length !== expectedQualifierMatches) return { matches, filled: 0 };
+  if (qualifierMatches.some((match) => match.status !== "已完成")) return { matches, filled: 0 };
+
+  const winners = qualifierMatches
+    .map((match) => match.winnerTeamId)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  // 「已经进入围赛」只统计**待定席位所在那一阶段**的比赛。
+  // ★ 一开始这里扫了全部 matches，把资格赛自己的参赛队也算成了「已经在入围赛里」，
+  //   于是胜者永远被判为「无需填」——线上会表现成「点了补齐没反应」。测试逮住了它。
+  const playInPhase = stuck[0].phase;
+  const alreadyIn = new Set(
+    matches
+      .filter((match) => match.phase === playInPhase)
+      .flatMap((match) => [match.teamAId, match.teamBId])
+      .filter((id) => id !== PENDING && id !== BYE),
+  );
+  const incoming = winners.filter((id) => !alreadyIn.has(id));
+  if (incoming.length === 0) return { matches, filled: 0 };
+
+  let filled = 0;
+  const next = matches.map((match) => {
+    if (match.teamAId !== PENDING && match.teamBId !== PENDING) return match;
+    const replacement = incoming[filled];
+    if (!replacement) return match;
+    filled += 1;
+    const aIsPending = match.teamAId === PENDING;
+    return {
+      ...match,
+      teamAId: aIsPending ? replacement : match.teamAId,
+      teamBId: aIsPending ? match.teamBId : replacement,
+      teamAName: aIsPending ? options.teamName(replacement) : match.teamAName,
+      teamBName: aIsPending ? match.teamBName : options.teamName(replacement),
+    };
+  });
+
+  return { matches: next, filled };
+}
+
+/**
  * 构造入围赛签位：真实队伍按抽签顺序排列，轮空（BYE）补到末尾场次的客队位。
  * 例如 28 队 → 前 12 场真实对阵 + 后 4 场「真实 vs BYE」，正好 16 队晋级。
  */

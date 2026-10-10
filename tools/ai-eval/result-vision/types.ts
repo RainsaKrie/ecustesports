@@ -95,6 +95,19 @@ export interface TruthGame {
   teamBScore: number;
 }
 
+/**
+ * 模型输出的一局比分。**赢的那组的分数在前**，不绑定 A/B 朝向 —— 与 v5 协议一致。
+ *
+ * `winnerGroup` 必须是**逐局**的：系列赛里两组互有胜负，缺了它就无法还原每局朝向，
+ * 规则校验会把整场读成「同一方赢下所有局」而判定比分不合法。
+ */
+export interface ParsedGame {
+  map: string | null;
+  winnerGroup: "a" | "b";
+  winnerScore: number;
+  loserScore: number;
+}
+
 /** 人工标注答案。**模型执行者不得读取。** */
 export interface CaseTruth {
   caseId: string;
@@ -120,10 +133,21 @@ export interface CaseTruth {
 
 export interface ParsedOutput {
   series: { a: number; b: number } | null;
-  winnerSide: Side | null;
-  games: TruthGame[];
   /**
-   * 模型把每个昵称归到哪一侧。
+   * 赢得这一局的是 groups 里的哪一组。
+   *
+   * v5 起模型输出 `winnerGroup`（"a"/"b"），不再是 `winnerSide`（"A"/"B"）——
+   * 因为图上没有左右分栏，「哪支是 A 队」是模型答不稳的问题：
+   * 实测同一张图连跑 4 次，给出的「A 侧是哪支队」两次相反，而比分数字稳定不换，
+   * 于是胜负被判反。改成「哪一组赢了」后，方向不再依赖位置。
+   *
+   * 与 `CaseTruth.winnerSide` 比较时需要一次大小写归一
+   * （按约定，`truth.groups.a` 就是 A 队）。
+   */
+  winnerGroup: "a" | "b" | null;
+  games: ParsedGame[];
+  /**
+   * 模型把每个昵称归到哪一组。
    *
    * 为什么必须有这个字段：结算表用行底色区分队伍，但**底色有三种不是两种**——
    * 除了两队各自的颜色，截图者自己那一行是另一种高亮色。

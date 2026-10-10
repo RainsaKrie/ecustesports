@@ -26,7 +26,7 @@ import {
 } from "./metrics";
 import { checkDatasetCoverage, validateManifest, validateParsedOutput, validateTruthFile } from "./schema";
 import { EXAMPLE_DATASET, executeRun, scoreRun } from "./run-eval";
-import type { CaseInput, CasePrediction, CaseTruth } from "./types";
+import type { CaseInput, CasePrediction, CaseTruth, ParsedOutput } from "./types";
 
 let pass = 0;
 let fail = 0;
@@ -68,6 +68,7 @@ function truth(overrides: Partial<CaseTruth> = {}): CaseTruth {
     shouldRefuse: false,
     undeterminable: [],
     series: { a: 2, b: 0 },
+    // 人工标注用 A/B（人知道哪支是 A 队）；只有「模型输出」才是 a/b 组号。
     winnerSide: "A",
     games: [
       { map: "亚海悬城", teamAScore: 13, teamBScore: 7 },
@@ -79,7 +80,50 @@ function truth(overrides: Partial<CaseTruth> = {}): CaseTruth {
   };
 }
 
-function prediction(parsed: CasePrediction["parsed"], overrides: Partial<CasePrediction> = {}): CasePrediction {
+/**
+ * 测试里写「模型输出」时允许沿用旧记法（`winnerSide` + `teamAScore/teamBScore`），
+ * 在这里统一归一成 v5 的 `ParsedOutput`（`winnerGroup` + `winnerScore/loserScore`）。
+ *
+ * 为什么不把 40 多处调用点全部改写：那些调用点关心的是**评分逻辑**，不是字段拼写；
+ * 在这里做一次归一，测试意图更清楚，也免得漏改一处就静默失真。
+ */
+type LegacyParsedInput = {
+  series?: { a: number; b: number } | null;
+  winnerSide?: "A" | "B" | null;
+  winnerGroup?: "a" | "b" | null;
+  games?: Array<{
+    map?: string | null;
+    teamAScore?: number;
+    teamBScore?: number;
+    winnerGroup?: "a" | "b";
+    winnerScore?: number;
+    loserScore?: number;
+  }>;
+  groups?: { a: string[]; b: string[] } | null;
+};
+
+function toParsedOutput(input: LegacyParsedInput): ParsedOutput {
+  return {
+    series: input.series ?? null,
+    winnerGroup: input.winnerGroup
+      ?? (input.winnerSide ? (input.winnerSide.toLowerCase() as "a" | "b") : null),
+    games: (input.games ?? []).map((g) => {
+      const a = g.teamAScore ?? 0;
+      const b = g.teamBScore ?? 0;
+      // 逐局胜方：显式给了就用，否则按「A 侧分高即 a 组赢」推（测试场景都是 A 赢）
+      const group: "a" | "b" = g.winnerGroup === "b" ? "b" : "a";
+      return {
+        map: g.map ?? null,
+        winnerGroup: group,
+        winnerScore: g.winnerScore ?? Math.max(a, b),
+        loserScore: g.loserScore ?? Math.min(a, b),
+      };
+    }),
+    groups: input.groups ?? null,
+  };
+}
+
+function prediction(parsed: LegacyParsedInput | null, overrides: Partial<CasePrediction> = {}): CasePrediction {
   return {
     caseId: "c1",
     armId: "test",
@@ -92,7 +136,7 @@ function prediction(parsed: CasePrediction["parsed"], overrides: Partial<CasePre
     usage: {},
     refused: false,
     refusedReason: null,
-    parsed,
+    parsed: parsed ? toParsedOutput(parsed) : null,
     parseError: null,
     validatorErrors: [],
     ...overrides,
@@ -101,10 +145,10 @@ function prediction(parsed: CasePrediction["parsed"], overrides: Partial<CasePre
 
 const GOOD_PARSED = {
   series: { a: 2, b: 0 },
-  winnerSide: "A" as const,
+  winnerGroup: "a" as const,
   games: [
-    { map: "亚海悬城", teamAScore: 13, teamBScore: 7 },
-    { map: "源工重镇", teamAScore: 13, teamBScore: 9 },
+    { map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 7 },
+    { map: "源工重镇", winnerGroup: "a" as const, winnerScore: 13, loserScore: 9 },
   ],
 };
 
@@ -221,18 +265,18 @@ console.log("\n== 组3 · 案例评估九种状态 ==");
 
   const wrongScore = evaluate({
     ...GOOD_PARSED,
-    games: [{ map: "亚海悬城", teamAScore: 13, teamBScore: 11 }, GOOD_PARSED.games[1]],
+    games: [{ map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 11 }, GOOD_PARSED.games[1]],
   });
   check("比分错 → incorrect", wrongScore.status === "incorrect", wrongScore.status);
   check("比分错被计入未被规则发现的事实错误", wrongScore.usable && wrongScore.gameScoreCorrect[0] === false);
 
   const wrongMap = evaluate({
     ...GOOD_PARSED,
-    games: [{ map: "幽邃地窟", teamAScore: 13, teamBScore: 7 }, GOOD_PARSED.games[1]],
+    games: [{ map: "幽邃地窟", winnerGroup: "a" as const, winnerScore: 13, loserScore: 7 }, GOOD_PARSED.games[1]],
   });
   check("地图错 → incorrect", wrongMap.status === "incorrect");
 
-  const wrongWinner = evaluate({ ...GOOD_PARSED, winnerSide: "B" });
+  const wrongWinner = evaluate({ ...GOOD_PARSED, winnerGroup: "b" as const });
   check("胜方错 → incorrect", wrongWinner.status === "incorrect" && wrongWinner.winnerCorrect === false);
 
   const refusedOk = evaluate(null, { shouldRefuse: true, series: null, winnerSide: null, games: [] }, {
@@ -258,11 +302,11 @@ console.log("\n== 组3 · 案例评估九种状态 ==");
 
   const illegal = evaluate({
     series: { a: 2, b: 0 },
-    winnerSide: "A",
+    winnerGroup: "a" as const,
     games: [
-      { map: "亚海悬城", teamAScore: 13, teamBScore: 7 },
-      { map: "源工重镇", teamAScore: 13, teamBScore: 13 },
-      { map: "隐士修所", teamAScore: 13, teamBScore: 9 },
+      { map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 7 },
+      { map: "源工重镇", winnerGroup: "a" as const, winnerScore: 13, loserScore: 13 },
+      { map: "隐士修所", winnerGroup: "a" as const, winnerScore: 13, loserScore: 9 },
     ],
   });
   check("含平局的非法比分被确定性规则拦下 → ruleRejected", illegal.status === "ruleRejected", illegal.reason);
@@ -270,11 +314,11 @@ console.log("\n== 组3 · 案例评估九种状态 ==");
 
   const earlyWin = evaluate({
     series: { a: 3, b: 0 },
-    winnerSide: "A",
+    winnerGroup: "a" as const,
     games: [
-      { map: "亚海悬城", teamAScore: 13, teamBScore: 5 },
-      { map: "源工重镇", teamAScore: 13, teamBScore: 5 },
-      { map: "隐士修所", teamAScore: 13, teamBScore: 5 },
+      { map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 5 },
+      { map: "源工重镇", winnerGroup: "a" as const, winnerScore: 13, loserScore: 5 },
+      { map: "隐士修所", winnerGroup: "a" as const, winnerScore: 13, loserScore: 5 },
     ],
   });
   check("提前决出胜负后继续录局被拦（复用生产规则）", earlyWin.status === "ruleRejected", earlyWin.reason);
@@ -287,13 +331,13 @@ console.log("\n== 组3 · 案例评估九种状态 ==");
 console.log("\n== 组4 · 不可确定字段与「不依赖自报置信度」==");
 {
   const asserted = evaluate(
-    { ...GOOD_PARSED, winnerSide: "A" },
+    { ...GOOD_PARSED, winnerGroup: "a" as const },
     { undeterminable: ["winnerSide"], winnerSide: null },
   );
   check("断言了标注为不可确定的字段被计数", asserted.undeterminableAssertions === 1);
 
   const notAsserted = evaluate(
-    { series: null, winnerSide: null, games: GOOD_PARSED.games },
+    { series: null, winnerGroup: null, games: GOOD_PARSED.games },
     { undeterminable: ["winnerSide", "series"], winnerSide: null, series: null },
   );
   check("对不可确定字段留空不计数", notAsserted.undeterminableAssertions === 0);
@@ -302,9 +346,9 @@ console.log("\n== 组4 · 不可确定字段与「不依赖自报置信度」=="
   const withConfidence = evaluateCase(
     input(),
     truth(),
-    { ...prediction({ series: null, winnerSide: "B", games: [] }), confidence: 0.999 } as CasePrediction,
+    { ...prediction({ series: null, winnerGroup: "b" as const, games: [] }), confidence: 0.999 } as CasePrediction,
   );
-  const withoutConfidence = evaluateCase(input(), truth(), prediction({ series: null, winnerSide: "B", games: [] }));
+  const withoutConfidence = evaluateCase(input(), truth(), prediction({ series: null, winnerGroup: "b" as const, games: [] }));
   check(
     "自称置信度不影响评分（同样的错误结论）",
     withConfidence.status === withoutConfidence.status && withConfidence.status !== "correct",
@@ -321,7 +365,7 @@ console.log("\n== 组5 · 门槛与决策 ==");
   check("全对时 Gate 通过", evaluateGate(allGood).passed);
   check("全对时决策为 Go", decide(evaluateGate(allGood), allGood).decision === "Go");
 
-  const wrongWinner = evaluate({ ...GOOD_PARSED, winnerSide: "B" });
+  const wrongWinner = evaluate({ ...GOOD_PARSED, winnerGroup: "b" as const });
   const mixed = aggregate([evaluate(GOOD_PARSED), wrongWinner, evaluate(GOOD_PARSED)]);
   const mixedGate = evaluateGate(mixed);
   check("胜方未达 98% 时 Gate 不过", !mixedGate.passed);
@@ -368,7 +412,7 @@ console.log("\n== 组6 · 评分口径 ==");
   const bo1 = evaluateCase(
     input({ boType: "BO1" }),
     truth({ series: { a: 1, b: 0 }, games: [{ map: "亚海悬城", teamAScore: 13, teamBScore: 7 }] }),
-    prediction({ series: { a: 1, b: 0 }, winnerSide: "A", games: [{ map: "亚海悬城", teamAScore: 13, teamBScore: 7 }] }),
+    prediction({ series: { a: 1, b: 0 }, winnerGroup: "a" as const, games: [{ map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 7 }] }),
   );
   const bo1Metrics = aggregate([bo1]);
   check(
@@ -398,10 +442,10 @@ console.log("\n== 组6 · 评分口径 ==");
     "非法拦截计数来自规则拒绝",
     aggregate([evaluate({
       series: { a: 2, b: 0 },
-      winnerSide: "A",
+      winnerGroup: "a" as const,
       games: [
-        { map: "亚海悬城", teamAScore: 13, teamBScore: 7 },
-        { map: "源工重镇", teamAScore: 13, teamBScore: 13 },
+        { map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 7 },
+        { map: "源工重镇", winnerGroup: "a" as const, winnerScore: 13, loserScore: 13 },
       ],
     })]).illegalProduced === 1,
   );
@@ -409,8 +453,8 @@ console.log("\n== 组6 · 评分口径 ==");
     "规则拒绝的案例不会同时被算作可用（结构不变式）",
     aggregate([evaluate({
       series: { a: 2, b: 0 },
-      winnerSide: "A",
-      games: [{ map: "亚海悬城", teamAScore: 13, teamBScore: 13 }],
+      winnerGroup: "a" as const,
+      games: [{ map: "亚海悬城", winnerGroup: "a" as const, winnerScore: 13, loserScore: 13 }],
     })]).illegalWronglyAccepted === 0,
   );
 }
@@ -486,8 +530,8 @@ console.log("\n== 组6b · 昵称分组（三种底色的坑）==");
   check("有答案但模型没输出分组时记 0", missingOutput.groupingCorrect === 0 && missingOutput.groupingTotal === 5);
 
   // 校验器接受合法分组、拒绝结构错误
-  check("合法分组通过校验", validateParsedOutput({ series: null, winnerSide: null, games: [], groups: { a: ["x"], b: ["y"] } }).length === 0);
-  check("分组结构错误被拒", validateParsedOutput({ series: null, winnerSide: null, games: [], groups: { a: "不是数组", b: [] } }).length > 0);
+  check("合法分组通过校验", validateParsedOutput({ series: null, winnerGroup: null, games: [], groups: { a: ["x"], b: ["y"] } }).length === 0);
+  check("分组结构错误被拒", validateParsedOutput({ series: null, winnerGroup: null, games: [], groups: { a: "不是数组", b: [] } }).length > 0);
 }
 
 console.log("\n== 组7 · 覆盖度检查 ==");
@@ -559,7 +603,7 @@ console.log("\n== 组9 · 视觉适配器网络路径（注入 fetch，不联网
     ok: true,
     status: 200,
     json: async () => ({
-      choices: [{ message: { content: '```json\n{"refuse":false,"series":{"a":2,"b":0},"winnerSide":"A","games":[{"map":"亚海悬城","teamAScore":13,"teamBScore":7},{"map":"源工重镇","teamAScore":13,"teamBScore":9}]}\n```' } }],
+      choices: [{ message: { content: '```json\n{"refuse":false,"series":{"a":2,"b":0},"winnerGroup":"a","games":[{"map":"亚海悬城","winnerGroup":"a","winnerScore":13,"loserScore":7},{"map":"源工重镇","winnerGroup":"a","winnerScore":13,"loserScore":9}]}\n```' } }],
       usage: { prompt_tokens: 1500, completion_tokens: 120 },
     }),
     text: async () => "",

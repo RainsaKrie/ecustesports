@@ -6,12 +6,12 @@
         "a": 1,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "亚海悬城",
-          "teamAScore": 13,
-          "teamBScore": 7
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 7
         }
       ],
       "groups": {
@@ -29,7 +29,8 @@
           "空山新雨",
           "晓风残月"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "ex-02-clear-bo3": {
@@ -39,22 +40,24 @@
         "a": 2,
         "b": 1
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "亚海悬城",
-          "teamAScore": 13,
-          "teamBScore": 7
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 7
         },
         {
           "map": "源工重镇",
-          "teamAScore": 10,
-          "teamBScore": 13
+          "winnerGroup": "b",
+          "winnerScore": 13,
+          "loserScore": 10
         },
         {
           "map": "隐士修所",
-          "teamAScore": 13,
-          "teamBScore": 9
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 9
         }
       ],
       "groups": {
@@ -72,7 +75,8 @@
           "青山见我",
           "素履之往"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "ex-03-compressed-bo3-sweep": {
@@ -82,17 +86,18 @@
         "a": 2,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "霓虹町",
-          "teamAScore": 13,
-          "teamBScore": 5
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 5
         },
         {
           "map": "森寒冬港",
-          "teamAScore": 13,
-          "teamBScore": 11
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 11
         }
       ],
       "groups": {
@@ -110,7 +115,8 @@
           "白驹",
           "长安"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "ex-04-multigame-bo5": {
@@ -120,32 +126,36 @@
         "a": 3,
         "b": 2
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "微风岛屿",
-          "teamAScore": 13,
-          "teamBScore": 9
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 9
         },
         {
           "map": "莲华古城",
-          "teamAScore": 8,
-          "teamBScore": 13
+          "winnerGroup": "b",
+          "winnerScore": 13,
+          "loserScore": 8
         },
         {
           "map": "裂变峡谷",
-          "teamAScore": 13,
-          "teamBScore": 10
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 10
         },
         {
           "map": "深海明珠",
-          "teamAScore": 11,
-          "teamBScore": 13
+          "winnerGroup": "b",
+          "winnerScore": 13,
+          "loserScore": 11
         },
         {
           "map": "日落之城",
-          "teamAScore": 13,
-          "teamBScore": 6
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 6
         }
       ],
       "groups": {
@@ -163,7 +173,8 @@
           "踏雪寻梅",
           "初见"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "ex-05-interleaved-bo3": {
@@ -173,22 +184,24 @@
         "a": 1,
         "b": 2
       },
-      "winnerSide": "B",
       "games": [
         {
           "map": "幽邃地窟",
-          "teamAScore": 13,
-          "teamBScore": 4
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 4
         },
         {
           "map": "天枢云阙",
-          "teamAScore": 9,
-          "teamBScore": 13
+          "winnerGroup": "b",
+          "winnerScore": 13,
+          "loserScore": 9
         },
         {
           "map": "盐海矿镇",
-          "teamAScore": 10,
-          "teamBScore": 13
+          "winnerGroup": "b",
+          "winnerScore": 13,
+          "loserScore": 10
         }
       ],
       "groups": {
@@ -206,7 +219,8 @@
           "寒鸦",
           "白露为霜"
         ]
-      }
+      },
+      "winnerGroup": "b"
     }
   },
   "ex-06-blurry-refuse": {
@@ -224,17 +238,18 @@
         "a": 2,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "亚海悬城",
-          "teamAScore": 13,
-          "teamBScore": 11
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 11
         },
         {
           "map": "源工重镇",
-          "teamAScore": 13,
-          "teamBScore": 8
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 8
         }
       ],
       "groups": {
@@ -252,7 +267,8 @@
           "晓看红湿",
           "花重锦官"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   }
 }

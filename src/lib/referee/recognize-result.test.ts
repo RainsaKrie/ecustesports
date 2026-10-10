@@ -30,8 +30,8 @@ function context(overrides: Partial<RecognizeContext> = {}): RecognizeContext {
 function alignedResult(): RecognizedResult {
   return {
     series: { a: 1, b: 0 },
-    winnerSide: "A",
-    games: [{ map: "森寒冬港", teamAScore: 13, teamBScore: 9 }],
+    winnerGroup: "a",
+    games: [{ map: "森寒冬港", winnerGroup: "a", winnerScore: 13, loserScore: 9 }],
     groups: { a: OUR, b: THEIR },
   };
 }
@@ -40,8 +40,8 @@ function alignedResult(): RecognizedResult {
 function flippedResult(): RecognizedResult {
   return {
     series: { a: 1, b: 0 },
-    winnerSide: "A",
-    games: [{ map: "森寒冬港", teamAScore: 13, teamBScore: 9 }],
+    winnerGroup: "a",
+    games: [{ map: "森寒冬港", winnerGroup: "a", winnerScore: 13, loserScore: 9 }],
     groups: { a: THEIR, b: OUR },
   };
 }
@@ -107,7 +107,7 @@ console.log("\n== 组5 · 撞名时转人工 ==");
 console.log("\n== 组6 · 地图核对 ==");
 {
   const wrongMap = alignedResult();
-  wrongMap.games = [{ map: "莲华古城", teamAScore: 13, teamBScore: 9 }];
+  wrongMap.games = [{ map: "莲华古城", winnerGroup: "a", winnerScore: 13, loserScore: 9 }];
   const s = buildRecognizeSuggestion(wrongMap, context({ gameIndex: 1 }));
   check("判为不一致", s.mapMatchesBp === false);
   check("提示可能传错图", s.issues.some((x) => x.includes("传错")), s.issues.join("；"));
@@ -115,7 +115,7 @@ console.log("\n== 组6 · 地图核对 ==");
 
   // BP 未完成（序列为空）时无法核对
   const noBp = alignedResult();
-  noBp.games = [{ map: null, teamAScore: 13, teamBScore: 9 }];
+  noBp.games = [{ map: null, winnerGroup: "a", winnerScore: 13, loserScore: 9 }];
   const s2 = buildRecognizeSuggestion(noBp, context({ mapSequence: [] }));
   check("无 BP 序列时核对结果为 null", s2.mapMatchesBp === null);
   check("建议地图退化为图上读到的", s2.suggestedMap === null || s2.suggestedMap === undefined);
@@ -132,12 +132,12 @@ console.log("\n== 组7 · 局次与上传位对应 ==");
   // 模型返回多局：取第 2 局
   const multi = alignedResult();
   multi.games = [
-    { map: "森寒冬港", teamAScore: 13, teamBScore: 9 },
-    { map: "微风岛屿", teamAScore: 7, teamBScore: 13 },
-    { map: "莲华古城", teamAScore: 13, teamBScore: 11 },
+    { map: "森寒冬港", winnerGroup: "a", winnerScore: 13, loserScore: 9 },
+    { map: "微风岛屿", winnerGroup: "a", winnerScore: 13, loserScore: 7 },
+    { map: "莲华古城", winnerGroup: "a", winnerScore: 13, loserScore: 11 },
   ];
   const s2 = buildRecognizeSuggestion(multi, context({ gameIndex: 2 }));
-  check("取第 2 局比分", s2.game?.teamAScore === 7 && s2.game?.teamBScore === 13, JSON.stringify(s2.game));
+  check("取第 2 局比分", s2.game?.teamAScore === 13 && s2.game?.teamBScore === 7, JSON.stringify(s2.game));
   check("第 2 局地图核对通过", s2.mapMatchesBp === true);
 
   const s3 = buildRecognizeSuggestion(multi, context({ gameIndex: 3 }));
@@ -178,7 +178,7 @@ console.log("\n== 组11 · 地图名读错要校正（实测「蔚海悬城」�
 {
   // 没有 BP 记录时，模型读到的地图名会直接成为预填值——正是错名字流进赛果的路径
   const misread = alignedResult();
-  misread.games = [{ map: "蔚海悬城", teamAScore: 13, teamBScore: 10 }];
+  misread.games = [{ map: "蔚海悬城", winnerGroup: "a", winnerScore: 13, loserScore: 10 }];
   const s = buildRecognizeSuggestion(misread, context({ mapSequence: [] }));
   check("错名字被校正为官方名", s.suggestedMap === "亚海悬城", String(s.suggestedMap));
   check("预填比分也带正确的图名", s.game?.map === "亚海悬城", String(s.game?.map));
@@ -188,7 +188,7 @@ console.log("\n== 组11 · 地图名读错要校正（实测「蔚海悬城」�
 console.log("\n== 组12 · 地图名对不上官方表时不猜 ==");
 {
   const unknown = alignedResult();
-  unknown.games = [{ map: "完全不存在的图", teamAScore: 13, teamBScore: 10 }];
+  unknown.games = [{ map: "完全不存在的图", winnerGroup: "a", winnerScore: 13, loserScore: 10 }];
   const s = buildRecognizeSuggestion(unknown, context({ mapSequence: [] }));
   check("不认识的名字原样保留", s.suggestedMap === "完全不存在的图", String(s.suggestedMap));
   check("提示手工核对", s.issues.some((x) => x.includes("不在官方地图表里")), s.issues.join("；"));
@@ -205,7 +205,7 @@ console.log("\n== 组14 · BP 存在时仍以 BP 记录为准 ==");
 {
   // 即使图上读错名字，只要 BP 有记录，预填应该用 BP 的那张图
   const misread = alignedResult();
-  misread.games = [{ map: "蔚海悬城", teamAScore: 13, teamBScore: 9 }];
+  misread.games = [{ map: "蔚海悬城", winnerGroup: "a", winnerScore: 13, loserScore: 9 }];
   const s = buildRecognizeSuggestion(misread, context());
   check("预填取 BP 序列", s.suggestedMap === "森寒冬港", String(s.suggestedMap));
   // 校正后是「亚海悬城」，与 BP 的「森寒冬港」仍不一致 —— 这是真信号：

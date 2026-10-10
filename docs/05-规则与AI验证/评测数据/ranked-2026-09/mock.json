@@ -7,12 +7,12 @@
         "a": 1,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "莲华古城",
-          "teamAScore": 13,
-          "teamBScore": 9
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 9
         }
       ],
       "groups": {
@@ -30,7 +30,8 @@
           "iCc",
           "Zora"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "rv-02-ascent-13-11": {
@@ -40,12 +41,12 @@
         "a": 1,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "亚海悬城",
-          "teamAScore": 13,
-          "teamBScore": 11
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 11
         }
       ],
       "groups": {
@@ -63,7 +64,8 @@
           "Fone1",
           "God"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "rv-03-sunset-11-13": {
@@ -73,12 +75,12 @@
         "a": 0,
         "b": 1
       },
-      "winnerSide": "B",
       "games": [
         {
           "map": "日落之城",
-          "teamAScore": 11,
-          "teamBScore": 13
+          "winnerGroup": "b",
+          "winnerScore": 13,
+          "loserScore": 11
         }
       ],
       "groups": {
@@ -96,7 +98,8 @@
           "睡觉打呼噜",
           "穿吊带"
         ]
-      }
+      },
+      "winnerGroup": "b"
     }
   },
   "rv-04-sky-13-6": {
@@ -106,12 +109,12 @@
         "a": 1,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "天枢云阙",
-          "teamAScore": 13,
-          "teamBScore": 6
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 6
         }
       ],
       "groups": {
@@ -129,7 +132,8 @@
           "idaku",
           "AGYJ"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   },
   "rv-05-neon-13-6": {
@@ -139,12 +143,12 @@
         "a": 1,
         "b": 0
       },
-      "winnerSide": "A",
       "games": [
         {
           "map": "霓虹町",
-          "teamAScore": 13,
-          "teamBScore": 6
+          "winnerGroup": "a",
+          "winnerScore": 13,
+          "loserScore": 6
         }
       ],
       "groups": {
@@ -162,7 +166,8 @@
           "小报告",
           "不做不错"
         ]
-      }
+      },
+      "winnerGroup": "a"
     }
   }
 }

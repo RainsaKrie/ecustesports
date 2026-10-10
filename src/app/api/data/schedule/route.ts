@@ -2,10 +2,38 @@ import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { emptySchedule, normalizeScheduleState } from "@/lib/scheduling/schedule-data";
+import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
+import { autoFillPendingSlots, type StagedFormatState } from "@/lib/scheduling/staged-format";
+import { initialRegistration, type RegistrationState } from "@/lib/scheduling/registration-data";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * 报分之后自动把资格赛胜者填进入围赛的「待定」席位。
+ *
+ * 为什么放在保存这一层：**不管从哪条路报的分**（管理端赛程页、裁判端），
+ * 最终都会经过这里写一次赛程 —— 在这里补一次，就不会有哪条路漏掉。
+ *
+ * 条件不满足时原样返回（见 `autoFillPendingSlots`），绝大多数保存动作无事可做。
+ */
+async function withAutoFilledSlots(eventId: string, state: ReturnType<typeof normalizeScheduleState>) {
+  const format = await readEventData<StagedFormatState>(eventId, "format", {});
+  const configs = format.stageConfigs ?? [];
+  const resolved = resolveSupportedFormat(configs);
+  if (resolved.kind !== "staged-playin") return state;
+
+  const registration = await readEventData<RegistrationState>(eventId, "registration", initialRegistration());
+  const names = new Map(registration.teams.map((team) => [team.id, team.name]));
+  const outcome = autoFillPendingSlots(state.matches, {
+    qualifierPhase: resolved.playInStage.name,
+    qualifierTeamCount: resolved.playInStage.teamCount,
+    teamName: (teamId) => names.get(teamId) ?? "待定",
+  });
+  if (outcome.filled === 0) return state;
+  return { ...state, matches: outcome.matches };
+}
 
 async function resolveEventId(request: NextRequest): Promise<string | null> {
   if (!verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value)) return null;
@@ -34,14 +62,16 @@ export async function POST(request: NextRequest) {
       return Response.json({ message: "保存请求缺少赛程版本，请刷新后重试" }, { status: 428 });
     }
     const incoming = normalizeScheduleState(await request.json());
+    // 报分落库前先补一次入围赛的待定席位（资格赛已全部完成时才会真的动）
+    const filled = await withAutoFilledSlots(eventId, incoming);
     const saved = await updateEventData(eventId, "schedule", emptySchedule(), (raw) => {
       const current = normalizeScheduleState(raw);
       if (current.version !== expectedVersion) {
         throw new ScheduleVersionConflict();
       }
       return {
-        ...incoming,
-        version: incoming.version > current.version ? incoming.version : current.version + 1,
+        ...filled,
+        version: filled.version > current.version ? filled.version : current.version + 1,
       };
     });
     return Response.json({ message: "saved", schedule: saved });

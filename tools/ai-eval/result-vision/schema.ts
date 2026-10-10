@@ -42,7 +42,19 @@ function isSafeScore(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
-function checkGamesShape(games: unknown, label: string, problems: string[], allowNullMap: boolean): void {
+/**
+ * 校验逐局比分的形状。
+ *
+ * `source` 决定字段名，**不能靠 allowNullMap 推断**（truth 也允许 map 为 null）：
+ *   parsed（模型输出，v5）→ winnerScore / loserScore，赢的在前
+ *   truth（人工标注）     → teamAScore / teamBScore，按 A/B 朝向
+ */
+function checkGamesShape(
+  games: unknown,
+  label: string,
+  problems: string[],
+  source: "truth" | "parsed",
+): void {
   if (!Array.isArray(games)) {
     problems.push(`${label} 不是数组`);
     return;
@@ -52,10 +64,17 @@ function checkGamesShape(games: unknown, label: string, problems: string[], allo
       problems.push(`${label}[${index}] 不是对象`);
       return;
     }
-    if (!isSafeScore(game.teamAScore)) problems.push(`${label}[${index}].teamAScore 不是非负整数`);
-    if (!isSafeScore(game.teamBScore)) problems.push(`${label}[${index}].teamBScore 不是非负整数`);
+    const [first, second] = source === "parsed"
+      ? (["winnerScore", "loserScore"] as const)
+      : (["teamAScore", "teamBScore"] as const);
+    if (!isSafeScore(game[first])) problems.push(`${label}[${index}].${first} 不是非负整数`);
+    if (!isSafeScore(game[second])) problems.push(`${label}[${index}].${second} 不是非负整数`);
+    // parsed 还必须逐局给出胜方 —— 缺了它无法还原每局朝向
+    if (source === "parsed" && game.winnerGroup !== "a" && game.winnerGroup !== "b") {
+      problems.push(`${label}[${index}].winnerGroup 必须是 "a" / "b"`);
+    }
     const map = game.map;
-    if (allowNullMap) {
+    if (source === "parsed") {
       if (map !== null && !isNonEmptyString(map)) problems.push(`${label}[${index}].map 必须是字符串或 null`);
     } else if (!isNonEmptyString(map)) {
       problems.push(`${label}[${index}].map 不能为空`);
@@ -220,7 +239,7 @@ export function validateTruthFile(input: unknown, knownCaseIds?: Set<string>): s
     }
     if (!Array.isArray(item.annotatedBy)) problems.push(`${label}.annotatedBy 必须是数组`);
     else if (item.annotatedBy.some((x) => !isNonEmptyString(x))) problems.push(`${label}.annotatedBy 含非法项`);
-    checkGamesShape(item.games, `${label}.games`, problems, true);
+    checkGamesShape(item.games, `${label}.games`, problems, "truth");
     checkGroups(item.groups, `${label}.groups`, problems);
 
     if (item.shouldRefuse === true && item.games && Array.isArray(item.games) && item.games.length > 0) {
@@ -251,10 +270,11 @@ export function validateParsedOutput(input: unknown): string[] {
   const problems: string[] = [];
   if (!isRecord(input)) return ["parsed 不是对象"];
   checkPair(input.series, "parsed.series", problems);
-  if (input.winnerSide !== null && input.winnerSide !== "A" && input.winnerSide !== "B") {
-    problems.push(`parsed.winnerSide 必须是 "A" / "B" / null`);
+  // v5：模型输出「哪一组赢」（a/b），不再是「A 队/B 队」—— 图上没有左右分栏，后者答不稳。
+  if (input.winnerGroup !== null && input.winnerGroup !== "a" && input.winnerGroup !== "b") {
+    problems.push(`parsed.winnerGroup 必须是 "a" / "b" / null`);
   }
-  checkGamesShape(input.games, "parsed.games", problems, true);
+  checkGamesShape(input.games, "parsed.games", problems, "parsed");
   checkGroups(input.groups, "parsed.groups", problems);
   return problems;
 }

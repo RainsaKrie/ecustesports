@@ -10,7 +10,7 @@
 
 import { validateGames } from "../../../src/lib/scheduling/schedule-ops";
 import type { GameResult } from "../../../src/lib/scheduling/schedule-data";
-import type { CaseInput, CasePrediction, CaseTruth, ParsedOutput, TruthGame } from "./types";
+import type { CaseInput, CasePrediction, CaseTruth, ParsedGame, ParsedOutput, TruthGame } from "./types";
 
 export type CaseStatus =
   | "correct" // 可用预填，且关键字段全对
@@ -105,17 +105,33 @@ export function compareGroups(
   return { correct, partitionCorrect: Math.max(correct, swapped), total };
 }
 
-function ruleCheck(boType: string, games: TruthGame[]): { ok: boolean; message?: string } {
-  const payload: GameResult[] = games.map((g) => ({
-    ...(g.map ? { map: g.map } : {}),
-    teamAScore: g.teamAScore,
-    teamBScore: g.teamBScore,
-  }));
+function ruleCheck(boType: string, games: ParsedGame[]): { ok: boolean; message?: string } {
+  // 规则校验按 A/B 朝向判断「每局谁赢」——所以必须用**逐局的 winnerGroup** 把朝向还原回去。
+  // 若一律把 winnerScore 放在 A 侧，会读成「A 赢下所有局」，BO3 变成 3:0 而被拒（踩过）。
+  const payload: GameResult[] = games.map((g) => {
+    const aWon = g.winnerGroup === "a";
+    return {
+      ...(g.map ? { map: g.map } : {}),
+      teamAScore: aWon ? g.winnerScore : g.loserScore,
+      teamBScore: aWon ? g.loserScore : g.winnerScore,
+    };
+  });
   return validateGames(payload, boType);
 }
 
-function sameScore(a: TruthGame, b: TruthGame): boolean {
-  return a.teamAScore === b.teamAScore && a.teamBScore === b.teamBScore;
+/**
+ * 比分是否一致。
+ *
+ * 两侧朝向不同：truth 记的是 A/B（人知道哪支是 A 队），模型 v5 给的是「赢 / 输」。
+ * 所以**先都折算成「高分 : 低分」再比** —— 朝向本身由下面的 winnerCorrect 单独评，
+ * 这里只回答「两个数字读对没有」。
+ */
+function sameScore(truth: TruthGame, parsed: ParsedGame): boolean {
+  const truthHigh = Math.max(truth.teamAScore, truth.teamBScore);
+  const truthLow = Math.min(truth.teamAScore, truth.teamBScore);
+  const parsedHigh = Math.max(parsed.winnerScore, parsed.loserScore);
+  const parsedLow = Math.min(parsed.winnerScore, parsed.loserScore);
+  return truthHigh === parsedHigh && truthLow === parsedLow;
 }
 
 function isUndeterminable(truth: CaseTruth, field: string): boolean {
@@ -126,7 +142,9 @@ function countUndeterminableAssertions(truth: CaseTruth, prediction: CasePredict
   const parsed = prediction.parsed;
   if (!parsed) return 0;
   let count = 0;
-  if (isUndeterminable(truth, "winnerSide") && parsed.winnerSide !== null) count += 1;
+  // 注意：truth.undeterminable 里写的字段名仍是 "winnerSide"（标注数据沿用旧名），
+  // 但模型 v5 起输出的是 parsed.winnerGroup —— 语义相同（都是「胜方」），只是表示法不同。
+  if (isUndeterminable(truth, "winnerSide") && parsed.winnerGroup !== null) count += 1;
   if (isUndeterminable(truth, "series") && parsed.series !== null) count += 1;
   for (const field of truth.undeterminable) {
     const match = /^games\[(\d+)\]\.map$/.exec(field);
@@ -188,7 +206,7 @@ export function evaluateCase(
 
   // 应当拒答却给了答案 → 严重虚构
   if (truth.shouldRefuse) {
-    const asserted = (parsed.games.length > 0 ? 1 : 0) + (parsed.winnerSide ? 1 : 0) + (parsed.series ? 1 : 0);
+    const asserted = (parsed.games.length > 0 ? 1 : 0) + (parsed.winnerGroup ? 1 : 0) + (parsed.series ? 1 : 0);
     return {
       ...base,
       status: "guessed",
@@ -222,8 +240,9 @@ export function evaluateCase(
     }
   }
 
+  // truth 里标注的是 A/B（人知道哪支是 A 队），模型给的是 a/b 组号 —— 大小写归一后比较。
   const winnerCorrect = truth.winnerSide !== null && !isUndeterminable(truth, "winnerSide")
-    ? parsed.winnerSide === truth.winnerSide
+    ? parsed.winnerGroup === truth.winnerSide.toLowerCase()
     : null;
   const seriesCorrect = truth.series !== null && !isUndeterminable(truth, "series")
     ? parsed.series !== null && parsed.series.a === truth.series.a && parsed.series.b === truth.series.b
