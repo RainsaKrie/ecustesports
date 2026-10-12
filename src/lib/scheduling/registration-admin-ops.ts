@@ -32,7 +32,6 @@ function snapshot(state: RegistrationState): RegistrationSnapshot {
     teamRequests: state.teamRequests ?? [],
     playerRegistrationClosed: state.playerRegistrationClosed,
     teamRegistrationClosed: state.teamRegistrationClosed,
-    frozen: state.frozen,
   });
 }
 
@@ -517,7 +516,7 @@ export function toggleRegistrationAdminOp(rawState: RegistrationState, target: "
     return commit(state, { ...state, playerRegistrationClosed: closed }, "toggle-player-registration", closed ? "截止选手报名" : "重新开放选手报名");
   }
   const closed = !state.teamRegistrationClosed;
-  return commit(state, { ...state, teamRegistrationClosed: closed, frozen: closed }, "toggle-team-registration", closed ? "截止队伍申报" : "重新开放队伍申报");
+  return commit(state, { ...state, teamRegistrationClosed: closed }, "toggle-team-registration", closed ? "截止队伍申报" : "重新开放队伍申报");
 }
 
 export function undoRegistrationAdminOp(rawState: RegistrationState, logId: string): AdminRegistrationResult {

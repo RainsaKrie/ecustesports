@@ -82,7 +82,6 @@ const state: RegistrationState = {
   operationLogs: [],
   playerRegistrationClosed: false,
   teamRegistrationClosed: false,
-  frozen: false,
 };
 
 if (players.length !== 160 || teams.length !== 32) {

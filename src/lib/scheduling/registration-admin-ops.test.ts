@@ -63,7 +63,6 @@ function fixture(): RegistrationState {
     operationLogs: [],
     playerRegistrationClosed: false,
     teamRegistrationClosed: false,
-    frozen: false,
   };
 }
 

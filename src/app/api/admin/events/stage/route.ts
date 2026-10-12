@@ -68,7 +68,6 @@ export async function POST(request: NextRequest) {
         ...normalizeRegistrationState(stored),
         playerRegistrationClosed: true,
         teamRegistrationClosed: true,
-        frozen: true,
       }));
     }
 

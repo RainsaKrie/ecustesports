@@ -60,7 +60,6 @@ export interface RegistrationSnapshot {
   teamRequests: TeamRequest[];
   playerRegistrationClosed: boolean;
   teamRegistrationClosed: boolean;
-  frozen: boolean;
 }
 
 export interface RegistrationAuditLog {
@@ -86,8 +85,6 @@ export interface RegistrationState {
   playerRegistrationClosed: boolean;
   /** 是否停止建队、入队与名单调整 */
   teamRegistrationClosed: boolean;
-  /** 旧字段兼容：队伍申报截止后名单冻结 */
-  frozen: boolean;
 }
 
 export function initialRegistration(): RegistrationState {
@@ -98,14 +95,19 @@ export function initialRegistration(): RegistrationState {
     operationLogs: [],
     playerRegistrationClosed: false,
     teamRegistrationClosed: false,
-    frozen: false,
   };
 }
 
-/** 兼容 3.24 及更早只保存 frozen 的赛事报名数据。 */
+/**
+ * 兼容 3.24 及更早只保存 frozen 的赛事报名数据。
+ *
+ * `frozen` 字段本身已于 2026-10-12 从 `RegistrationState` 删除 ——
+ * 它只写不读，且每个写入点都与 `teamRegistrationClosed` 同步写同样的值。
+ * 但**老数据里可能只有 `frozen` 没有后面那两个布尔**，所以这里仍要能读到它。
+ */
 export function normalizeRegistrationState(value: unknown): RegistrationState {
   const source = typeof value === "object" && value !== null
-    ? (value as Partial<RegistrationState>)
+    ? (value as Partial<RegistrationState> & { frozen?: boolean })
     : {};
   const legacyFrozen = source.frozen === true;
   const hasPlayerClosedFlag = typeof source.playerRegistrationClosed === "boolean";
@@ -132,7 +134,6 @@ export function normalizeRegistrationState(value: unknown): RegistrationState {
     operationLogs: Array.isArray(source.operationLogs) ? source.operationLogs : [],
     playerRegistrationClosed: hasPlayerClosedFlag ? source.playerRegistrationClosed === true : legacyFrozen,
     teamRegistrationClosed: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,
-    frozen: hasTeamClosedFlag ? source.teamRegistrationClosed === true : legacyFrozen,
   };
 }
 

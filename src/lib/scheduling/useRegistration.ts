@@ -246,7 +246,6 @@ export function useRegistration(eventId?: string) {
       teams,
       playerRegistrationClosed: true,
       teamRegistrationClosed: true,
-      frozen: true,
     });
   }, []);
 

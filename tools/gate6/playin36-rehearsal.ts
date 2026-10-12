@@ -432,7 +432,6 @@ function buildRehearsalRegistration(): RegistrationState {
     operationLogs: [],
     playerRegistrationClosed: true,
     teamRegistrationClosed: true,
-    frozen: true,
   };
 }
 

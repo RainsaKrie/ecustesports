@@ -43,7 +43,7 @@ export default async function EventWorkspaceLayout({
   });
   const modules: ModuleWithState[] = getOperationsModules(stage, {
     teamCount: activeTeams.length,
-    frozen: registrationState.frozen,
+    frozen: registrationState.teamRegistrationClosed,
     matchCount: schedule.matches.length,
     hasFormat,
   });
