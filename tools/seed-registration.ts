@@ -2,11 +2,14 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
-  POSITIONS,
   type RegistrationPlayer,
   type RegistrationState,
   type RegistrationTeam,
 } from "../src/lib/scheduling/registration-data";
+import { getGameConfig } from "../src/lib/games";
+
+/** 擅长位置取自游戏配置层（原来从 registration-data 导入，那份已并入 config）。 */
+const GAME = getGameConfig();
 
 const TEAM_NAMES = [
   "星火战队", "破晓战队", "赤霄战队", "凌云战队", "极光战队", "深渊战队", "疾风战队", "霜刃战队",
@@ -15,7 +18,8 @@ const TEAM_NAMES = [
   "烈焰战队", "寒锋战队", "追光战队", "云帆战队", "狂澜战队", "北辰战队", "南风战队", "长虹战队",
 ] as const;
 
-const RANKS = ["无畏战魂", "神话", "超凡", "钻石"] as const;
+/** 演示用段位：取段位阶梯最高的 4 档（高 → 低），同样取自游戏配置层。 */
+const RANKS = [...GAME.ranks].reverse().slice(0, 4);
 
 async function main() {
 const eventId = process.argv[2]?.trim() ?? "";
@@ -56,7 +60,7 @@ TEAM_NAMES.forEach((teamName, teamIndex) => {
       rank: RANKS[Math.floor(teamIndex / 8)],
       qq: String(900000000 + playerNumber),
       phone: String(13800000000 + playerNumber),
-      positions: [POSITIONS[memberIndex % POSITIONS.length]],
+      positions: [GAME.positions[memberIndex % GAME.positions.length]],
       submittedAt: createdAt,
       status: "已入队",
       reviewStatus: "已通过",

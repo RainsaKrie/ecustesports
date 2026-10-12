@@ -7,9 +7,10 @@ import GroupNotice from "@/components/events/GroupNotice";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { participantTokenKey, usePublicRegistration } from "@/lib/scheduling/usePublicRegistration";
 import { useParticipant } from "@/lib/scheduling/useParticipant";
-import { POSITIONS } from "@/lib/scheduling/registration-data";
+import { getGameConfig } from "@/lib/games";
 
-const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
+/** 段位阶梯与擅长位置取自游戏配置层（原先本文件里各写了一遍段位表与位置表）。 */
+const GAME = getGameConfig();
 
 const inputClass =
   "min-h-11 w-full border border-gray-300 px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
@@ -200,7 +201,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <label className="mb-1 block text-sm font-medium text-gray-700">当前段位 <span className="text-red-500">*</span></label>
               <select value={rank} onChange={(e) => setRank(e.target.value)} className={inputClass}>
                 <option value="">请选择段位</option>
-                {RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
+                {GAME.ranks.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
 
@@ -222,7 +223,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <label className="mb-1 block text-sm font-medium text-gray-700">擅长位置 <span className="text-red-500">*</span></label>
               <p className="mb-2 text-xs text-gray-500">可多选，将用于分组与队伍位置协调</p>
               <div className="flex flex-wrap gap-2">
-                {POSITIONS.map((pos) => {
+                {GAME.positions.map((pos) => {
                   const active = positions.includes(pos);
                   return (
                     <button

@@ -3,19 +3,7 @@
 // =====================
 
 import type { RegistrationPlayer, RegistrationTeam } from "./registration-data";
-
-/** 段位数值映射（用于计算队伍平均段位） */
-export const RANK_VALUE: Record<string, number> = {
-  铁: 1,
-  青铜: 2,
-  白银: 3,
-  黄金: 4,
-  铂金: 5,
-  钻石: 6,
-  超凡: 7,
-  神话: 8,
-  无畏战魂: 9,
-};
+import { getGameConfig, rankValueOf, type GameConfig } from "@/lib/games";
 
 export interface SeedPot {
   name: string; // "一号种子池"
@@ -33,12 +21,22 @@ export interface Matchup {
   group?: string;
 }
 
-/** 计算队伍平均段位（首发成员段位均值，未填段位按 0 处理） */
-export function teamAvgRank(team: RegistrationTeam, players: RegistrationPlayer[]): number {
+/**
+ * 计算队伍平均段位（首发成员段位均值，未填段位按 0 处理）。
+ *
+ * 段位阶梯与「段位 → 数值」的映射已收进游戏配置层（`@/lib/games`）——
+ * 原先这里单独维护了一张对照表，而段位名在报名页、选手页又各写了一遍，
+ * 加一档要改三处。`game` 缺省取默认款，取值与收拢之前完全一致。
+ */
+export function teamAvgRank(
+  team: RegistrationTeam,
+  players: RegistrationPlayer[],
+  game: GameConfig = getGameConfig(),
+): number {
   const starters = team.memberIds
     .map((id) => players.find((p) => p.id === id))
     .filter((p): p is RegistrationPlayer => p !== undefined && p.role === "首发");
-  const values = starters.map((p) => RANK_VALUE[p.rank] ?? 0).filter((v) => v > 0);
+  const values = starters.map((p) => rankValueOf(p.rank, game)).filter((v) => v > 0);
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }

@@ -14,7 +14,10 @@
 // =====================
 
 import { useMemo, useRef, useState } from "react";
-import { VALORANT_MAPS } from "@/lib/maps";
+import { getGameConfig } from "@/lib/games";
+
+/** 当前游戏的地图目录（数据在 `@/lib/games`）。用于手工录入时的地图下拉。 */
+const MAP_CATALOG = getGameConfig().maps;
 
 type MatchSummary = {
   matchId: string;
@@ -264,7 +267,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
   function currentMapOptions(index: number): string[] {
     const used = new Set(games.filter((_, gameIndex) => gameIndex !== index).map((g) => g.map).filter(Boolean));
-    return VALORANT_MAPS.filter((m) => !used.has(m.name)).map((m) => m.name);
+    return MAP_CATALOG.filter((m) => !used.has(m.name)).map((m) => m.name);
   }
 
   function autoWinner(): { side: "A" | "B"; name: string } | null {
@@ -655,7 +658,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               >
                 <option value="">选择地图</option>
                 {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
-                {g.map && !VALORANT_MAPS.some((m) => m.name === g.map) && <option value={g.map}>{g.map}</option>}
+                {g.map && !MAP_CATALOG.some((m) => m.name === g.map) && <option value={g.map}>{g.map}</option>}
               </select>
             )}
 

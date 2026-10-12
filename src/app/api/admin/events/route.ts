@@ -12,6 +12,7 @@ import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig }
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";
 import { initialRegistration } from "@/lib/scheduling/registration-data";
+import { getGameConfig } from "@/lib/games";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import { eventDescriptionIssue } from "@/lib/site-content-limits";
 import { canPublish, publicationChecklist } from "@/lib/publication-check";
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     const newEvent = buildEventFromTemplate({
       id: eventId,
       name,
-      game: typeof input.game === "string" ? input.game : "无畏契约",
+      game: typeof input.game === "string" ? input.game : getGameConfig().displayName,
       organizer,
       templateId: resolveTemplateIdFromStages(stageConfigs),
       stageConfigs,

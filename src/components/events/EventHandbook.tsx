@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { type ReactNode } from "react";
-import { mapImageOf } from "@/lib/maps";
+import { mapImageOf } from "@/lib/games";
 import type { EsportEvent } from "@/types";
 
 export type HandbookEvent = Pick<

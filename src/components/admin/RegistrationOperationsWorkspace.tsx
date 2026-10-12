@@ -10,14 +10,16 @@ import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import {
   initialRegistration,
   normalizeRegistrationState,
-  POSITIONS,
-  TEAM_SIZE,
   type RegistrationAuditLog,
   type RegistrationPlayer,
   type RegistrationState,
   type RegistrationTeam,
 } from "@/lib/scheduling/registration-data";
-import { RANK_VALUE, teamAvgRank } from "@/lib/scheduling/format-data";
+import { teamAvgRank } from "@/lib/scheduling/format-data";
+import { getGameConfig, rankValueOf } from "@/lib/games";
+
+/** 首发/替补/教练上限与段位阶梯都取自游戏配置层（原先是写死在本文件里的 5/1/1 与一张段位表）。 */
+const GAME = getGameConfig();
 
 type Tab = "players" | "teams" | "history";
 type ReviewStatus = NonNullable<RegistrationPlayer["reviewStatus"]>;
@@ -84,11 +86,11 @@ function teamRoster(state: RegistrationState, team: RegistrationTeam): TeamRoste
     captain,
     contact: captain ? contactOf(captain) : "未填写",
     starterCount: starters.length,
-    complete: starters.length >= TEAM_SIZE,
+    complete: starters.length >= GAME.roster.starters,
     frozen: team.status === "已冻结",
     withdrawn: team.status === "已退赛",
     avgRank: teamAvgRank(team, state.players),
-    unrankedStarters: starters.filter((player) => !(RANK_VALUE[player.rank] > 0)).length,
+    unrankedStarters: starters.filter((player) => rankValueOf(player.rank, GAME) === 0).length,
   };
 }
 
@@ -834,7 +836,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                       <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
                         <h3 className={`truncate ${DENSE_TITLE} font-semibold text-[var(--adm-text)]`}>{team.name}</h3>
                         <span className="adm-chip shrink-0" data-tone={teamTone(team.status)}>{team.status === "已冻结" ? "正式名单" : team.status}</span>
-                        <span className={`shrink-0 ${DENSE_MICRO} font-medium tabular-nums ${roster.complete ? "text-[var(--adm-text-mute)]" : "text-[var(--adm-red-text)]"}`}>首发 {roster.starterCount}/{TEAM_SIZE}</span>
+                        <span className={`shrink-0 ${DENSE_MICRO} font-medium tabular-nums ${roster.complete ? "text-[var(--adm-text-mute)]" : "text-[var(--adm-red-text)]"}`}>首发 {roster.starterCount}/{GAME.roster.starters}</span>
                         {/* 平均段位是资格赛选队的依据，必须看得见 —— 否则「按段位排序」也是黑箱。
                             一个人都没填段位时不显示 0.00，那会让人误以为是「最弱」。 */}
                         <span className={`shrink-0 ${DENSE_MICRO} font-medium tabular-nums text-[var(--adm-text-soft)]`} title="首发 5 人段位均值（铁 1 → 无畏战魂 9）">均 {roster.avgRank > 0 ? roster.avgRank.toFixed(2) : "—"}</span>
@@ -865,9 +867,9 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                     </div>
                     <div className="mt-[6px] grid gap-[3px] border-t border-[var(--adm-line-soft)] pt-[5px]">
                       {([
-                        { role: "首发" as const, limit: TEAM_SIZE },
-                        { role: "替补" as const, limit: 1 },
-                        { role: "教练" as const, limit: 1 },
+                        { role: "首发" as const, limit: GAME.roster.starters },
+                        { role: "替补" as const, limit: GAME.roster.maxSubstitutes },
+                        { role: "教练" as const, limit: GAME.roster.maxCoaches },
                       ]).map(({ role, limit }) => {
                         const roleMembers = members.filter((player) => player.role === role);
                         // 数据异常（超出上限）时也要把多出来的人渲染出来，
@@ -930,7 +932,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
 
       {modal?.kind === "edit-player" && <AdminModal title={`编辑报名 · ${modal.player.gameId}`} onClose={() => setModal(null)} footer={<><button type="button" onClick={() => setModal(null)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button><button type="button" onClick={submitModal} disabled={busy} className="adm-btn adm-btn--primary adm-btn--md">保存更正</button></>}>
         <div className="grid gap-4 sm:grid-cols-2"><Field label="姓名"><input className={inputClass} value={form.name ?? ""} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field><Field label="学号"><input className={inputClass} value={form.studentId ?? ""} onChange={(event) => setForm({ ...form, studentId: event.target.value })} /></Field><Field label="游戏 ID"><input className={inputClass} value={form.gameId ?? ""} onChange={(event) => setForm({ ...form, gameId: event.target.value })} /></Field><Field label="段位"><input className={inputClass} value={form.rank ?? ""} onChange={(event) => setForm({ ...form, rank: event.target.value })} /></Field><Field label="QQ"><input className={inputClass} value={form.qq ?? ""} onChange={(event) => setForm({ ...form, qq: event.target.value })} /></Field><Field label="手机号"><input className={inputClass} value={form.phone ?? ""} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field></div>
-        <div className="mt-4"><p className="mb-1.5 block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">擅长位置</p><div className="flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = editPositions.includes(pos); return <button key={pos} type="button" onClick={() => setEditPositions((current) => current.includes(pos) ? current.filter((item) => item !== pos) : [...current, pos])} className={`border px-3 py-1.5 text-[length:var(--adm-fs-md)] transition ${active ? "border-[var(--adm-red)] bg-[var(--adm-red)] text-white" : "border-[var(--adm-line)] bg-[var(--adm-surface)] text-[var(--adm-text-soft)] hover:border-[var(--adm-red)]"}`}>{pos}</button>; })}</div></div>
+        <div className="mt-4"><p className="mb-1.5 block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">擅长位置</p><div className="flex flex-wrap gap-2">{GAME.positions.map((pos) => { const active = editPositions.includes(pos); return <button key={pos} type="button" onClick={() => setEditPositions((current) => current.includes(pos) ? current.filter((item) => item !== pos) : [...current, pos])} className={`border px-3 py-1.5 text-[length:var(--adm-fs-md)] transition ${active ? "border-[var(--adm-red)] bg-[var(--adm-red)] text-white" : "border-[var(--adm-line)] bg-[var(--adm-surface)] text-[var(--adm-text-soft)] hover:border-[var(--adm-red)]"}`}>{pos}</button>; })}</div></div>
         <Field label="自我介绍"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.intro ?? ""} onChange={(event) => setForm({ ...form, intro: event.target.value })} placeholder="选填" /></Field>
         <Field label="修改原因"><textarea className={`${inputClass} min-h-20 resize-y`} value={form.reason ?? ""} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder="如：选手联系负责人更正游戏 ID" /></Field>
       </AdminModal>}
@@ -970,7 +972,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         <Field label="手机号"><input className={inputClass} value={form.phone ?? ""} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="选填" /></Field>
         <Field label="擅长位置" help="至少选一个。">
           <div className="flex flex-wrap gap-2">
-            {POSITIONS.map((position) => {
+            {GAME.positions.map((position) => {
               const active = editPositions.includes(position);
               return (
                 <button key={position} type="button" onClick={() => setEditPositions(active ? editPositions.filter((item) => item !== position) : [...editPositions, position])} className={`border px-3 py-2 text-[length:var(--adm-fs-md)] font-bold ${active ? "border-[var(--adm-red)] bg-[var(--adm-red)] text-white" : "border-[var(--adm-line)] bg-[var(--adm-surface)] text-[var(--adm-text-soft)] hover:border-[var(--adm-text)]"}`}>{position}</button>

@@ -1,9 +1,4 @@
 import {
-  MAX_COACH,
-  MAX_SUBSTITUTE,
-  POSITIONS,
-  TEAM_SIZE,
-  type Position,
   type RegistrationAuditLog,
   type RegistrationPlayer,
   type RegistrationSnapshot,
@@ -11,6 +6,7 @@ import {
   type RegistrationTeam,
 } from "./registration-data";
 import { normalizeRegistrationState } from "./registration-data";
+import { normalizePositions, rosterLimitOf } from "@/lib/games";
 import { addMemberOp, createTeamOp, renameTeamOp, setMemberRoleOp, type PlayerRole } from "./registration-ops";
 import { dissolveTeamOp } from "./registration-ops";
 
@@ -174,9 +170,7 @@ export function updatePlayerAdminOp(
   const qq = input.qq?.trim().slice(0, 60);
   const phone = input.phone?.trim().slice(0, 60);
   if (!qq || !phone) return fail(state, "QQ 号和手机号不能为空。");
-  const positions = (input.positions ?? [])
-    .filter((item): item is Position => POSITIONS.includes(item as Position))
-    .slice(0, POSITIONS.length);
+  const positions = normalizePositions(input.positions ?? []);
   if (positions.length === 0) return fail(state, "请至少选择一个擅长位置。");
   if (state.players.some((candidate) => candidate.id !== player.id && candidate.gameId.toLowerCase() === gameId.toLowerCase())) {
     return fail(state, "该游戏 ID 已被其他选手使用。");
@@ -281,9 +275,7 @@ export function createPlayerAdminOp(
   if (state.players.some((candidate) => candidate.gameId.toLowerCase() === gameId.toLowerCase())) {
     return fail(state, `游戏 ID「${gameId}」已被占用，请核对是否重复代录。`);
   }
-  const positions = (input.positions ?? [])
-    .filter((item): item is Position => POSITIONS.includes(item as Position))
-    .slice(0, POSITIONS.length);
+  const positions = normalizePositions(input.positions ?? []);
   if (positions.length === 0) return fail(state, "请至少选择一个擅长位置。");
 
   const player: RegistrationPlayer = {
@@ -361,7 +353,8 @@ function confirmTeamBlocker(state: RegistrationState, team: RegistrationTeam): s
   if (team.status === "已退赛") return "退赛队伍不能确认名单。";
   const members = state.players.filter((player) => player.teamId === team.id && player.status === "已入队");
   const starters = members.filter((player) => player.role === "首发");
-  if (starters.length !== TEAM_SIZE) return `名单需要恰好 ${TEAM_SIZE} 名首发，当前为 ${starters.length} 名。`;
+  const startersLimit = rosterLimitOf("首发");
+  if (starters.length !== startersLimit) return `名单需要恰好 ${startersLimit} 名首发，当前为 ${starters.length} 名。`;
   const notApproved = members.filter((player) => player.reviewStatus !== "已通过");
   if (notApproved.length > 0) return `仍有 ${notApproved.length} 名成员未审核通过。`;
   return null;
@@ -390,7 +383,7 @@ export function confirmEligibleTeamsAdminOp(rawState: RegistrationState): AdminR
   if (openTeams.length === 0) return fail(state, "没有处于报名中的队伍。");
   const eligible = openTeams.filter((team) => confirmTeamBlocker(state, team) === null);
   if (eligible.length === 0) {
-    return fail(state, `${openTeams.length} 支报名中队伍都不满足确认条件（需要恰好 ${TEAM_SIZE} 名首发且全员资料通过）。`);
+    return fail(state, `${openTeams.length} 支报名中队伍都不满足确认条件（需要恰好 ${rosterLimitOf("首发")} 名首发且全员资料通过）。`);
   }
   const eligibleIds = new Set(eligible.map((team) => team.id));
   const next = {
@@ -533,6 +526,6 @@ export function undoRegistrationAdminOp(rawState: RegistrationState, logId: stri
 
 export function rosterCapacity(state: RegistrationState, teamId: string, role: RosterRole): number {
   const count = state.players.filter((player) => player.teamId === teamId && player.role === role).length;
-  const limit = role === "首发" ? TEAM_SIZE : role === "替补" ? MAX_SUBSTITUTE : MAX_COACH;
+  const limit = rosterLimitOf(role);
   return limit - count;
 }

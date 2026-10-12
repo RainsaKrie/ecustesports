@@ -3,9 +3,8 @@
 // 对齐 docs/03-需求定义/05-报名与队伍.md
 // =====================
 
-/** 无畏契约擅长位置（多选） */
-export const POSITIONS = ["一突", "二突", "烟位", "先锋", "哨位"] as const;
-export type Position = (typeof POSITIONS)[number];
+// 擅长位置已收进游戏配置层：见 `@/lib/games` 的 `GameConfig.positions`
+// （不同游戏的位置体系不同，不再是全局常量）。
 
 /** 选手（报名最小单元） */
 export interface RegistrationPlayer {
@@ -137,7 +136,6 @@ export function normalizeRegistrationState(value: unknown): RegistrationState {
   };
 }
 
-/** 队伍规格：5 首发 + 1 替补（可选）+ 1 教练（可选） */
-export const TEAM_SIZE = 5;
-export const MAX_SUBSTITUTE = 1;
-export const MAX_COACH = 1;
+// 队伍规格（首发 / 替补 / 教练人数）与擅长位置已收进游戏配置层：
+//   见 `@/lib/games` 的 `GameConfig.roster` 与 `GameConfig.positions`。
+// 它们是**游戏属性**（不同游戏人数与位置不同），所以不再留在这里当全局常量。

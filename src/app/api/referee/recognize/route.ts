@@ -26,6 +26,7 @@ import {
 import { buildRecognizeSuggestion } from "@/lib/referee/recognize-result";
 import { hashEvidenceBytes } from "@/lib/scheduling/evidence-ops";
 import { MAX_EVIDENCE_BYTES } from "@/lib/scheduling/evidence-domain";
+import { getGameConfig } from "@/lib/games";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       caseId: `${matchId}#${gameIndex}`,
       teams: { a: match.teamAName, b: match.teamBName },
       boType: match.boType,
-      game: "valorant",
+      game: getGameConfig().visionGameId,
       pageType: "对局结果页（计分板）",
       knownMaps: match.mapSequence,
       squads: match.squads,

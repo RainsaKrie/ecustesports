@@ -84,6 +84,7 @@ import {
   type StagedFormatState,
 } from "../../src/lib/scheduling/staged-format";
 import type { StageConfig } from "../../src/lib/scheduling/format-templates";
+import { getGameConfig } from "../../src/lib/games";
 import type {
   RegistrationPlayer,
   RegistrationState,
@@ -361,10 +362,10 @@ async function saveSchedule(next: ScheduleState): Promise<ApiResult> {
 //   第 i 支（i 从 0 起）首发段位值之和 = 45 − i  → 平均 (45−i)/5，从 9.0 一路降到 2.0。
 // 这样「最弱的 8 支」是唯一确定的（无并列），资格赛的同档互打结果也可预测。
 
-const VALUE_TO_RANK: Record<number, string> = {
-  1: "铁", 2: "青铜", 3: "白银", 4: "黄金", 5: "铂金",
-  6: "钻石", 7: "超凡", 8: "神话", 9: "无畏战魂",
-};
+/** 段位值（1..9）→ 段位名。阶梯取自游戏配置层，不再在本文件里写一张反查表。 */
+function rankNameOf(value: number): string {
+  return getGameConfig().ranks[value - 1] ?? String(value);
+}
 
 const TEAM_NAMES = [
   "星火战队", "破晓战队", "赤霄战队", "凌云战队", "极光战队", "深渊战队", "疾风战队", "霜刃战队",
@@ -403,7 +404,7 @@ function buildRehearsalRegistration(): RegistrationState {
         name: `${teamName.slice(0, 2)}选手${memberIndex + 1}`,
         studentId: `RH2026${String(teamIndex * 5 + memberIndex + 1).padStart(4, "0")}`,
         gameId: `RH${String(teamIndex + 1).padStart(2, "0")}#${1000 + teamIndex * 5 + memberIndex}`,
-        rank: VALUE_TO_RANK[value],
+        rank: rankNameOf(value),
         qq: String(900010000 + teamIndex * 5 + memberIndex),
         phone: String(13900000000 + teamIndex * 5 + memberIndex),
         positions: ["决斗", "先锋", "控场", "哨卫", "自由人"].slice(memberIndex % 5, (memberIndex % 5) + 1),

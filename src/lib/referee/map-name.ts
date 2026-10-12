@@ -12,7 +12,10 @@
 // 宁可显示一个可疑的名字让人核对，也不要静默替换成一个错的地图。
 // =====================
 
-import { VALORANT_MAPS } from "@/lib/maps";
+import { getGameConfig } from "@/lib/games";
+
+/** 当前游戏的地图目录。地图数据在 `@/lib/games`（原 `@/lib/maps` 已并入）。 */
+const MAP_CATALOG = getGameConfig().maps;
 
 /**
  * 别名表：模型常见读法 → 官方中文名。
@@ -93,7 +96,7 @@ export function resolveMapName(raw: string | null | undefined): MapNameResolutio
   const key = normalize(original);
 
   // 第一层：官方中文名精确匹配（归一化后）
-  const exact = VALORANT_MAPS.find((m) => normalize(m.name) === key);
+  const exact = MAP_CATALOG.find((m) => normalize(m.name) === key);
   if (exact) {
     const changed = exact.name !== original;
     return { resolved: exact.name, original, changed };

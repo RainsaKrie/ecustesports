@@ -4,7 +4,7 @@
 // =====================
 
 import type { RegistrationState, RegistrationTeam } from "./registration-data";
-import { TEAM_SIZE, MAX_SUBSTITUTE, MAX_COACH } from "./registration-data";
+import { rosterLimitOf } from "@/lib/games";
 
 export type PlayerRole = "首发" | "替补" | "教练";
 
@@ -97,14 +97,18 @@ export function addMemberOp(
   }
 
   const counts = memberCounts(state, team.id);
-  if (input.role === "首发" && counts.starters >= TEAM_SIZE) {
-    return { ok: false, message: `首发已满 ${TEAM_SIZE} 人` };
+  // 人数上限取自游戏配置层（首发 / 替补 / 教练是游戏属性，不同游戏不同）
+  const startersLimit = rosterLimitOf("首发");
+  const subsLimit = rosterLimitOf("替补");
+  const coachesLimit = rosterLimitOf("教练");
+  if (input.role === "首发" && counts.starters >= startersLimit) {
+    return { ok: false, message: `首发已满 ${startersLimit} 人` };
   }
-  if (input.role === "替补" && counts.subs >= MAX_SUBSTITUTE) {
-    return { ok: false, message: `替补最多 ${MAX_SUBSTITUTE} 人` };
+  if (input.role === "替补" && counts.subs >= subsLimit) {
+    return { ok: false, message: `替补最多 ${subsLimit} 人` };
   }
-  if (input.role === "教练" && counts.coaches >= MAX_COACH) {
-    return { ok: false, message: `教练最多 ${MAX_COACH} 人` };
+  if (input.role === "教练" && counts.coaches >= coachesLimit) {
+    return { ok: false, message: `教练最多 ${coachesLimit} 人` };
   }
 
   const next: RegistrationState = {
@@ -225,7 +229,7 @@ export function setMemberRoleOp(
   const targetCount = counts[
     input.role === "首发" ? "starters" : input.role === "替补" ? "subs" : "coaches"
   ];
-  const limit = input.role === "首发" ? TEAM_SIZE : input.role === "替补" ? MAX_SUBSTITUTE : MAX_COACH;
+  const limit = rosterLimitOf(input.role);
   if (targetCount >= limit) {
     return { ok: false, message: `${input.role}已满，不能再调整` };
   }

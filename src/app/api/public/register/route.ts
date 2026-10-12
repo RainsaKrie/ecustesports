@@ -6,12 +6,10 @@
 import { updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { issueParticipantToken, withoutParticipantSecret } from "@/lib/participant-auth";
-import { RANK_VALUE } from "@/lib/scheduling/format-data";
+import { isKnownRank, normalizePositions } from "@/lib/games";
 import {
   initialRegistration,
   normalizeRegistrationState,
-  POSITIONS,
-  type Position,
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
@@ -35,23 +33,6 @@ function text(value: unknown, max: number): string | undefined {
   return trimmed ? trimmed.slice(0, max) : undefined;
 }
 
-/** 规范化擅长位置：去重、只保留合法位置、保持给定顺序。 */
-function normalizePositions(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of value) {
-    if (typeof item !== "string") continue;
-    const trimmed = item.trim();
-    if (!trimmed || !POSITIONS.includes(trimmed as Position)) continue;
-    if (!seen.has(trimmed)) {
-      seen.add(trimmed);
-      result.push(trimmed);
-    }
-  }
-  return result;
-}
-
 export async function POST(request: Request) {
   try {
     const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -67,7 +48,7 @@ export async function POST(request: Request) {
     if (!name || !studentId || !gameId || !rank) {
       return Response.json({ message: "姓名、学号、游戏 ID 和段位为必填项。" }, { status: 400 });
     }
-    if (!(rank in RANK_VALUE)) {
+    if (!isKnownRank(rank)) {
       return Response.json({ message: "段位不在有效范围内。" }, { status: 400 });
     }
     const qq = text(body.qq, LIMITS.contact);

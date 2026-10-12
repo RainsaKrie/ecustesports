@@ -2,13 +2,11 @@ import type { NextRequest } from "next/server";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { findParticipant, readParticipantToken, withoutParticipantSecret } from "@/lib/participant-auth";
-import { RANK_VALUE } from "@/lib/scheduling/format-data";
+import { isKnownRank, normalizePositions } from "@/lib/games";
 import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import {
   initialRegistration,
   normalizeRegistrationState,
-  POSITIONS,
-  type Position,
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/scheduling/registration-data";
@@ -21,23 +19,6 @@ function text(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, max) : undefined;
-}
-
-/** 规范化擅长位置：去重、只保留合法位置、保持给定顺序。 */
-function normalizePositions(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of value) {
-    if (typeof item !== "string") continue;
-    const trimmed = item.trim();
-    if (!trimmed || !POSITIONS.includes(trimmed as Position)) continue;
-    if (!seen.has(trimmed)) {
-      seen.add(trimmed);
-      result.push(trimmed);
-    }
-  }
-  return result;
 }
 
 async function resolveEvent(eventId: string) {
@@ -160,7 +141,7 @@ export async function PATCH(request: NextRequest) {
       const phone = text(body.phone, 60);
       const positions = normalizePositions(body.positions);
       const intro = text(body.intro, 500);
-      if (!gameId || !rank || !(rank in RANK_VALUE)) {
+      if (!gameId || !rank || !isKnownRank(rank)) {
         message = "游戏 ID 和有效段位为必填项。";
         return state;
       }

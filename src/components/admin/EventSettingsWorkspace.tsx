@@ -4,7 +4,10 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { VALORANT_MAPS, mapImageOf } from "@/lib/maps";
+import { getGameConfig, mapImageOf } from "@/lib/games";
+
+/** 当前游戏的地图目录（数据在 `@/lib/games`）。 */
+const MAP_CATALOG = getGameConfig().maps;
 import { buildDefaultEventRules } from "@/lib/scheduling/format-templates";
 import type { EditableEvent, EditableRule, EditableStep } from "@/lib/site-config-schema";
 import { publicationChecklist } from "@/lib/publication-check";
@@ -561,7 +564,7 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
         <Panel eyebrow="地图池" title="地图与 BP">
           <div className="mb-4 flex items-center justify-between gap-3"><p className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">当前启用 {event.mapPool.length} 张地图</p>{event.mapPool.length < 5 && <span className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">BO5 至少需要5张地图</span>}</div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {VALORANT_MAPS.map((map) => { const active = event.mapPool.some((item) => item.id === map.id); return <button key={map.id} type="button" onClick={() => toggleMap(map)} aria-pressed={active} className={`overflow-hidden border text-left transition ${active ? "border-[var(--adm-red)] bg-[var(--adm-surface)]" : "border-[var(--adm-line-soft)] bg-[var(--adm-surface)] hover:border-[var(--adm-line)]"}`}>{mapImageOf(map) && <Image src={mapImageOf(map)!} alt={map.name} width={320} height={80} className={`h-20 w-full object-cover ${active ? "opacity-100" : "opacity-40"}`} />}<span className="flex items-center justify-between px-3 py-2 text-[length:var(--adm-fs-md)]"><span className={active ? "font-semibold text-[var(--adm-text)]" : "text-[var(--adm-text-soft)]"}>{map.name}</span><span className={`text-[length:var(--adm-fs-xs)] ${active ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text-mute)]"}`}>{active ? "已启用" : "未启用"}</span></span></button>; })}
+            {MAP_CATALOG.map((map) => { const active = event.mapPool.some((item) => item.id === map.id); return <button key={map.id} type="button" onClick={() => toggleMap(map)} aria-pressed={active} className={`overflow-hidden border text-left transition ${active ? "border-[var(--adm-red)] bg-[var(--adm-surface)]" : "border-[var(--adm-line-soft)] bg-[var(--adm-surface)] hover:border-[var(--adm-line)]"}`}>{mapImageOf(map) && <Image src={mapImageOf(map)!} alt={map.name} width={320} height={80} className={`h-20 w-full object-cover ${active ? "opacity-100" : "opacity-40"}`} />}<span className="flex items-center justify-between px-3 py-2 text-[length:var(--adm-fs-md)]"><span className={active ? "font-semibold text-[var(--adm-text)]" : "text-[var(--adm-text-soft)]"}>{map.name}</span><span className={`text-[length:var(--adm-fs-xs)] ${active ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text-mute)]"}`}>{active ? "已启用" : "未启用"}</span></span></button>; })}
           </div>
         </Panel>
       )}

@@ -6,7 +6,10 @@
 
 import type { EditableRule } from "@/lib/site-config-schema";
 import type { EditableEvent } from "@/lib/site-config-schema";
-import { DEFAULT_MAP_POOL } from "@/lib/maps";
+import { getGameConfig } from "@/lib/games";
+
+/** 默认图池（取自游戏配置层）。 */
+const DEFAULT_MAP_POOL = getGameConfig().defaultMapPool;
 
 export type StageType = "single-elim" | "gsl-groups" | "double-elim" | "round-robin";
 
@@ -530,7 +533,7 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
   return {
     id: input.id,
     name: input.name.trim() || "未命名赛事",
-    game: input.game.trim() || "无畏契约",
+    game: input.game.trim() || getGameConfig().displayName,
     status: "draft",
     visibility: "private",
     teamCount: totalTeamsFromStages(stageConfigs) || template.teamCount,

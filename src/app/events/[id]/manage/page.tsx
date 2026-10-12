@@ -5,16 +5,17 @@ import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { useParticipant } from "@/lib/scheduling/useParticipant";
-import { POSITIONS } from "@/lib/scheduling/registration-data";
+import { getGameConfig } from "@/lib/games";
 
-const RANKS = ["铁", "青铜", "白银", "黄金", "铂金", "钻石", "超凡", "神话", "无畏战魂"];
+/** 段位阶梯、擅长位置与队伍人数上限取自游戏配置层（原先本文件里各写了一遍）。 */
+const GAME = getGameConfig();
 const inputClass = "h-11 w-full border border-black/15 bg-white px-3 text-sm font-semibold text-[#171a1f] outline-none focus:border-[#ff4655]";
 type Section = "team" | "matches" | "profile";
 type RosterRole = "首发" | "替补" | "教练";
 const APPLICATION_ROLES: Array<{ role: RosterRole; limit: number }> = [
-  { role: "首发", limit: 5 },
-  { role: "替补", limit: 1 },
-  { role: "教练", limit: 1 },
+  { role: "首发", limit: GAME.roster.starters },
+  { role: "替补", limit: GAME.roster.maxSubstitutes },
+  { role: "教练", limit: GAME.roster.maxCoaches },
 ];
 
 function formatMatchTime(value: string): string {
@@ -368,11 +369,11 @@ export default function ParticipantManagePage({
             <div className="flex items-center justify-between"><h2 className="text-lg font-black text-slate-950">报名信息</h2><span className="bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{data.player.status}</span></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-bold text-slate-600">游戏 ID<input value={profile.gameId} onChange={(e) => setProfileDraft({ ...profileDraft, gameId: e.target.value })} className={inputClass} /></label>
-              <label className="text-xs font-bold text-slate-600">当前段位<select value={profile.rank} onChange={(e) => setProfileDraft({ ...profileDraft, rank: e.target.value })} className={inputClass}>{RANKS.map((item) => <option key={item}>{item}</option>)}</select></label>
+              <label className="text-xs font-bold text-slate-600">当前段位<select value={profile.rank} onChange={(e) => setProfileDraft({ ...profileDraft, rank: e.target.value })} className={inputClass}>{GAME.ranks.map((item) => <option key={item}>{item}</option>)}</select></label>
               <label className="text-xs font-bold text-slate-600">QQ<input value={profile.qq} onChange={(e) => setProfileDraft({ ...profileDraft, qq: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-slate-600">手机号<input value={profile.phone} onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })} className={inputClass} /></label>
             </div>
-            <div className="mt-4"><p className="text-xs font-bold text-slate-600">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{POSITIONS.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`inline-flex min-h-11 items-center border px-3 text-xs ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-white text-[#34383f]"}`}>{pos}</button>; })}</div></div>
+            <div className="mt-4"><p className="text-xs font-bold text-slate-600">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{GAME.positions.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`inline-flex min-h-11 items-center border px-3 text-xs ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-white text-[#34383f]"}`}>{pos}</button>; })}</div></div>
             <label className="mt-4 block text-xs font-bold text-slate-600">自我介绍<textarea value={profile.intro} onChange={(e) => setProfileDraft({ ...profileDraft, intro: e.target.value })} rows={3} className="mt-1 w-full border border-black/15 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-[#ff4655]" /></label>
             <button onClick={() => run(() => participant.saveProfile(profile), "报名信息已更新。") } disabled={busy} className="mt-5 h-11 w-full bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50 sm:w-auto">保存修改</button>
           </section>

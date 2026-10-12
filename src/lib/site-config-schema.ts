@@ -1,6 +1,9 @@
 import type { EventStatus } from "@/types";
 import type { StageConfig } from "@/lib/scheduling/format-templates";
-import { DEFAULT_MAP_POOL } from "@/lib/maps";
+import { getGameConfig } from "@/lib/games";
+
+/** 默认图池（取自游戏配置层）。新建赛事时预勾选这些地图。 */
+const DEFAULT_MAP_POOL = getGameConfig().defaultMapPool;
 
 export interface EditableContentCard {
   index: string;
@@ -204,7 +207,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     {
       id: "event-1",
       name: "第三届华理瓦理杯",
-      game: "无畏契约",
+      game: getGameConfig().displayName,
       status: "draft",
       visibility: "private",
       teamCount: 32,
