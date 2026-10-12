@@ -147,25 +147,56 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 2. 赛后归档数据导出一次（命令见下）；
 3. 开放报名前做一次小规模真实预演（例如社团 10 人同时提交）。
 
-### 赛后数据导出
+### 数据导出与备份校验
 
-Supabase 免费版没有自动备份，库里那份就是唯一一份，因此赛后必须导出一次留档。
-这是只读操作，不写入任何数据。
+Supabase 免费版没有自动备份，库里那份就是唯一一份。**所以导出不该等到「赛后」—— 比赛期间就该做**：
+赛果是当场逐场录进去的，丢了没有第二份可对。
 
 在 **PowerShell** 里执行（把尖括号内容换成真实值）：
 
 ```powershell
 $env:SUPABASE_URL="https://<生产项目>.supabase.co"
 $env:SUPABASE_SECRET_KEY="<生产 service key>"
-npx tsx tools/gate6/backup-restore.ts --backup-only --event=<赛事ID> D:\ecust-backups\<日期>.json
+npm run ops:backup -- --event=event-1 D:\ecust-backups\2026-10-12.json
 Remove-Item Env:\SUPABASE_URL
 Remove-Item Env:\SUPABASE_SECRET_KEY
 ```
 
-- `--backup-only` 表示只导出、不做恢复演练，因此可以对着生产执行。
+- `ops:backup` 是**只读导出**（脚本里钉死了 `--backup-only`），不写入任何数据，可以对着生产执行。
+  要写库的恢复演练另有一条命令名，见下。
+- **文件名带上日期，不要复用一个名字**：目标文件已存在时脚本会拒绝执行。要顶掉旧的必须显式加 `--overwrite`
+  —— 上一次的备份可能就是唯一一份好副本，覆盖是不可逆的。
+- 输出里看两个字段：`selfVerifiedAfterWrite: true`（刚落盘的内容通过了自校验）、
+  `absentDocuments`（导出时就不存在的文档，空数组才表示五份齐活）。`passed` 表示「这份备份可信」。
 - 备份文件必须放在仓库之外，否则脚本会拒绝执行。
-- 输出里的 `passed: true` 表示五份文档（站点配置、报名、赛制、赛程、BP）全部导出成功。
-- 不加 `--backup-only` 会往库里写临时赛事做恢复演练，**只能对隔离库执行，不要对生产执行**。
+
+导出完**就地校验一遍**。这条只读一个本地文件：不连库、不要凭据，**比赛进行中也能随时跑**：
+
+```powershell
+npm run ops:verify-backup -- D:\ecust-backups\2026-10-12.json
+```
+
+它逐份重算校验和，对不上时**点名是哪一份**并打印两个校验和的前缀供逐位比对。
+退出码 0 = 这份备份可用；1 = 不可用；2 = 用法/路径问题（没读内容）。
+
+**恢复演练**是另一条命令，会往库里写临时赛事再删除，**只能对隔离库执行，不要对生产执行**：
+
+```powershell
+npm run ops:backup-drill -- --event=<赛事ID> D:\ecust-backups\drill.json
+```
+
+### 数据一致性巡检（只读）
+
+另有一条**只读巡检**，同样不连库、不要凭据，只打两个公开接口，用来看数据有没有自相矛盾：
+赛果与逐局比分不符、胜者不在两队里、单败阶段同一队出现两次、资格赛胜者没进下一阶段、
+同队时间撞车、赛程引用了报名名单里没有的队伍。
+
+```powershell
+npm run ops:audit-production
+```
+
+输出分两段：「发现的问题」（有则退出码 1）与「顺带的事实」（数量口径，供你对照）。
+它查的是**数据内部矛盾**，不判断比赛安排得合不合理 —— 干净也不等于赛程排得好。
 
 ## 阶段 9｜赛后收尾与下一届（2026-09-17 补）
 
@@ -214,7 +245,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### 9.3 赛事归档
 
-本届数据导出见「阶段 8 → 赛后数据导出」（`--backup-only`，只读，可对生产执行）。
+本届数据导出见「阶段 8 → 数据导出与备份校验」（`npm run ops:backup`，只读，可对生产执行）。
 
 补充三点：
 - **导出要趁早**：Supabase 免费版没有自动备份，库里那份是唯一一份。
