@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useSchedule } from "@/lib/scheduling/useSchedule";
+import { formatSyncedAgo, formatSyncedClock } from "@/lib/scheduling/schedule-freshness";
 import { validateGames, maxGames, winTarget } from "@/lib/scheduling/schedule-ops";
 import type { ScheduleMatch, GameResult } from "@/lib/scheduling/schedule-data";
 import type { ValidationResult } from "@/lib/scheduling/rule-engine";
@@ -28,6 +29,14 @@ function winCount(gameResults: GameResult[] | undefined, side: "A" | "B"): numbe
 }
 
 type DialogMode = "overview" | "schedule" | "reschedule" | "report";
+
+/**
+ * 「N 分钟前」的自走频率。
+ *
+ * 取 15 秒：比后台轮询（30 秒）略快，让「刚刚」及时翻页，又不至于为了
+ * 一个相对时间把整个对阵图频繁重渲染。
+ */
+const CLOCK_TICK_MS = 15_000;
 
 /** 对阵图卡片：点击弹出比赛操作面板 */
 function BracketCard({ m, bp, onClick }: { m: ScheduleMatch; bp?: BPSession; onClick: () => void }) {
@@ -115,8 +124,18 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
   const confirm = useAdminConfirm();
   const toast = useAdminToast();
-  const { state, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError } = useSchedule(id, "admin");
+  const { state, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
   const [eventConfig, setEventConfig] = useState<EditableEvent | null>(null);
+
+  /**
+   * 「N 分钟前」要自己会走，否则页面上那句相对时间会停在打开时的那一刻。
+   * 首屏两端口径一致：服务端渲染时 `syncedAt` 还是 0，相对时间不渲染，不会水合不匹配。
+   */
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), CLOCK_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const [selected, setSelected] = useState<ScheduleMatch | null>(null);
   const [mode, setMode] = useState<DialogMode>("overview");
@@ -309,6 +328,8 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const showingBlueprint = state.matches.length === 0 && blueprintMatches.length > 0;
   const activeRequests = state.requests.filter((request) => ["待对手确认", "待审批"].includes(request.status));
   const eventLocked = eventConfig?.status === "completed" || eventConfig?.status === "archived";
+  // 「数据时间」的相对部分（「刚刚 / N 分钟前」）。还没与服务端对齐过时为空串。
+  const syncedAgo = formatSyncedAgo(syncedAt, now);
 
   return (
     <div>
@@ -325,7 +346,15 @@ export default function SchedulePage({ params }: SchedulePageProps) {
         status={`赛程 v${state.version}`}
         actions={eventLocked ? undefined : (
           <>
-            <button type="button" onClick={() => void refresh()} className="adm-btn adm-btn--secondary adm-btn--md">刷新数据</button>
+            {/* 手动刷新：拿到最新赛程。失败必须说出来 —— 原先 `void refresh()` 会让
+                拒绝悄悄进控制台，负责人看到的只是「点了没反应」。 */}
+            <button
+              type="button"
+              onClick={() => { void refresh().catch(() => toast.error("刷新失败，请检查网络后重试。")); }}
+              className="adm-btn adm-btn--secondary adm-btn--md"
+            >
+              刷新数据
+            </button>
             <Link href={`/admin/events/${id}/schedule/draw`} className="adm-btn adm-btn--primary adm-btn--md">开始抽签</Link>
             <Link href={`/admin/events/${id}/referees`} className="adm-btn adm-btn--secondary adm-btn--md">裁判管理</Link>
             <Link href={`/admin/events/${id}/review`} className="adm-btn adm-btn--danger adm-btn--md">
@@ -354,22 +383,35 @@ export default function SchedulePage({ params }: SchedulePageProps) {
 
       {/* 上下文条：一行数字，不做卡片（设计文档 4.2）。这组数字原来挤在页头 description 里
           （「对阵图 · N 场 · 已完成 M 场」），现在单独成行，页头只留一句话说明。
-          移动端隐藏（设计文档 4.4：不减字号，改为减少一屏信息）。 */}
-      {state.matches.length > 0 && (
-        <section className="mb-5 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-[var(--adm-line-soft)] px-5 py-3 max-[760px]:hidden">
-          {[
-            ["总场次", `${state.matches.length} 场`],
-            ["待排期", `${pendingScheduleCount} 场`],
-            ["待报分", `${pendingReportCount} 场`],
-            ["已完成", `${doneCount} 场`],
-          ].map(([label, value]) => (
-            <p key={label} className="flex items-baseline gap-2">
-              <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">{label}</span>
-              <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{value}</span>
-            </p>
-          ))}
-        </section>
-      )}
+
+          末尾常驻一项「数据时间」（代码审计 A6）：赛事进行期里，「手里这份是不是最新的」
+          这件事必须一直看得见 —— 否则负责人会对着过期赛程反复提交，或者更糟：
+          把裁判刚报的赛果覆盖回去。所以它不跟着对阵图的有无走，抽签前骨架状态也在。
+          移动端只隐藏前四个计数（设计文档 4.4：不减字号，改为减少一屏信息），
+          「数据时间」保留 —— 它是信任信号，不是数字堆。 */}
+      <section className="mb-5 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-[var(--adm-line-soft)] px-5 py-3">
+        {state.matches.length > 0 && (
+          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 max-[760px]:hidden">
+            {[
+              ["总场次", `${state.matches.length} 场`],
+              ["待排期", `${pendingScheduleCount} 场`],
+              ["待报分", `${pendingReportCount} 场`],
+              ["已完成", `${doneCount} 场`],
+            ].map(([label, value]) => (
+              <p key={label} className="flex items-baseline gap-2">
+                <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">{label}</span>
+                <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{value}</span>
+              </p>
+            ))}
+          </div>
+        )}
+        <p className="flex flex-wrap items-baseline gap-2">
+          <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">数据时间</span>
+          <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{formatSyncedClock(syncedAt)}</span>
+          {syncedAgo && <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">· {syncedAgo}</span>}
+          {autoSynced && <span className="adm-chip" data-tone="done">已自动同步到 v{autoSynced.version}</span>}
+        </p>
+      </section>
 
       {saveError && (
         <div className="adm-note adm-note--danger mb-5 text-[length:var(--adm-fs-lg)] font-semibold">

@@ -20,16 +20,44 @@ import {
   setMatchTimeOp,
   saveBPMapsOp,
 } from "./schedule-ops";
+import { SCHEDULE_SYNC_POLL_MS, decideScheduleSync } from "./schedule-freshness";
+
+/** 「已自动同步」提示的停留时长：够看完一句话，又不至于常驻。 */
+const AUTO_SYNC_NOTE_MS = 10_000;
 
 export function useSchedule(eventId?: string, access: "public" | "admin" | "preview" = "public") {
   const [state, setState] = useState<ScheduleState>(emptySchedule());
   const [loadedEventId, setLoadedEventId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState("");
+  /**
+   * 「数据时间」这一行用的时刻：**最后一次与服务端对齐**是什么时候。
+   *
+   * 单独拿一个状态而不是直接用 `state.version`：本地操作会让 `state` 先行变化，
+   * 而「我手里这份是不是最新的」问的是取数时刻，不是本地改没改过。
+   */
+  const [syncedAt, setSyncedAt] = useState(0);
+  /** 刚刚自动同步落地的版本；用于短暂提示一句「已自动同步」。 */
+  const [autoSynced, setAutoSynced] = useState<{ version: number } | null>(null);
   const dirtyRef = useRef(false);
   const persistedVersionRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  /** 在途保存数。后台同步必须等它归零，否则会用旧快照盖掉刚存好的结果。 */
+  const inFlightRef = useRef(0);
+  /**
+   * `state.version` 的镜像，供后台探测对照。
+   *
+   * ★ 为什么对照的是 `state.version` 而不是 `persistedVersionRef`：
+   *   探测要回答的是「**页面上显示的这份**是不是旧的」。
+   *   若拿「服务端最后确认过的版本」去比，本地刚改完还没存完时
+   *   （state 已到 12、persisted 还是 11），远端回 11 会被判成「更新」→ 重取 →
+   *   把负责人刚做的改动静默丢掉。用 `state.version` 只会判成「更旧」，不动。
+   */
+  const stateVersionRef = useRef(0);
+  useEffect(() => {
+    stateVersionRef.current = state.version;
+  }, [state.version]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (mode: "manual" | "auto" = "manual") => {
     if (!eventId) return;
     const endpoint = access === "public" ? "/api/public/schedule" : "/api/data/schedule";
     const response = await fetch(`${endpoint}?eventId=${encodeURIComponent(eventId)}`, { cache: "no-store" });
@@ -40,6 +68,8 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     setState(next);
     setSaveError("");
     setLoadedEventId(eventId);
+    setSyncedAt(Date.now());
+    if (mode === "auto") setAutoSynced({ version: next.version });
   }, [eventId, access]);
 
   useEffect(() => {
@@ -56,6 +86,7 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
         setState(next);
         setSaveError("");
         setLoadedEventId(eventId);
+        setSyncedAt(Date.now());
       })
       .catch(() => {
         // 用默认值
@@ -68,6 +99,7 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     dirtyRef.current = false;
     const snapshot = state;
     const endpoint = `/api/data/schedule?eventId=${encodeURIComponent(eventId)}`;
+    inFlightRef.current += 1;
     saveQueueRef.current = saveQueueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -97,12 +129,63 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
         const saved = normalizeScheduleState(result.schedule);
         persistedVersionRef.current = saved.version;
         setSaveError("");
+        // 本地就是服务端了，「数据时间」跟着走 —— 否则刚存完仍显示「10 分钟前」，看起来像没存上
+        setSyncedAt(Date.now());
         setState((current) => current === snapshot ? saved : current);
       })
       .catch((error) => {
         setSaveError(error instanceof Error ? error.message : "赛程保存失败");
+      })
+      .finally(() => {
+        inFlightRef.current = Math.max(0, inFlightRef.current - 1);
       });
   }, [state, loadedEventId, eventId, access, refresh]);
+
+  /**
+   * 后台探测：别条路径（裁判报分 / BP / 队长约赛 / 另一台管理端）有没有改过赛程。
+   *
+   * 只在管理端跑（公开页没有编辑权，不需要），且失败一律静默 ——
+   * 这是「顺带看一眼」，不是主链路，不该弹错打扰负责人。
+   *
+   * 判定与「为什么不看更旧的版本」在 `schedule-freshness.ts`。
+   * 省掉「待同步」这条中间态的取舍：它会在保存失败时卡在屏幕上、并显示一句
+   * 已经不成立的话；探测到就直接跟进，只用一句短暂的「已自动同步」确认。
+   */
+  useEffect(() => {
+    if (access !== "admin" || !eventId) return;
+    let cancelled = false;
+    const endpoint = `/api/data/schedule?eventId=${encodeURIComponent(eventId)}`;
+    const probe = async () => {
+      // 有保存在途就先跳过：等保存落地，下一轮（或 focus）再判，避免同时改写同一份状态
+      if (cancelled || inFlightRef.current > 0) return;
+      // 页面不在前台就不打扰（切回来时 `focus` 会补一次）
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      try {
+        const response = await fetch(endpoint, { cache: "no-store" });
+        if (!response.ok) return;
+        const remote = normalizeScheduleState(await response.json()).version;
+        if (cancelled) return;
+        if (decideScheduleSync(stateVersionRef.current, remote) !== "reload") return;
+        await refresh("auto");
+      } catch {
+        // 静默
+      }
+    };
+    const timer = window.setInterval(() => { void probe(); }, SCHEDULE_SYNC_POLL_MS);
+    window.addEventListener("focus", probe);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", probe);
+    };
+  }, [access, eventId, refresh]);
+
+  /** 「已自动同步」提示自动退场。 */
+  useEffect(() => {
+    if (!autoSynced) return;
+    const timer = window.setTimeout(() => setAutoSynced(null), AUTO_SYNC_NOTE_MS);
+    return () => window.clearTimeout(timer);
+  }, [autoSynced]);
 
   /** 提交改期申请并校验，返回校验结果 */
   const submitRequest = useCallback(
@@ -237,5 +320,9 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     confirmConfig,
     refresh,
     saveError,
+    /** 最后一次与服务端对齐的时刻（毫秒）。0 表示还没读到过。 */
+    syncedAt,
+    /** 刚刚自动同步到的新版本，用于短暂提示；10 秒后自行清空。 */
+    autoSynced,
   };
 }
