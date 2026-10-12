@@ -320,13 +320,22 @@ export async function seedDemoReporting(): Promise<{
 export interface RefereeLoginResult {
   ok: boolean;
   error?: string;
+  code?: string;
 }
 
+/**
+ * 失败形状与 `refereeMatchContext` 保持一致：`error` 是给人看的兜底文案，
+ * `code` 交给路由判状态码（见 `failure-response.ts`）。
+ *
+ * ★ 原先这里只把**内部码**塞进 `error`（`login.code ?? login.error`），
+ *   靠调用方硬编码一句中文兜住 —— 调用方一改成透传，裁判屏幕上就会出现
+ *   `INVALID_CREDENTIAL` 这种内部码。
+ */
 export async function refereeLogin(eventId: string, credential: string): Promise<RefereeLoginResult> {
   if (eventId === DEMO_EVENT_ID) await seedDemoReporting();
   const state = await loadReportingState(eventId);
   const login = loginRefereeOp(credential, eventId, state);
-  if (!login.ok) return { ok: false, error: login.code ?? login.error };
+  if (!login.ok) return { ok: false, error: "裁判凭证无效", code: login.code ?? "INVALID_CREDENTIAL" };
   return { ok: true };
 }
 
@@ -334,7 +343,7 @@ export async function refereeMyMatches(eventId: string, credential: string) {
   if (eventId === DEMO_EVENT_ID) await seedDemoReporting();
   const state = await loadReportingState(eventId);
   const login = loginRefereeOp(credential, eventId, state);
-  if (!login.ok) return { ok: false, error: login.code ?? login.error };
+  if (!login.ok) return { ok: false, error: "裁判凭证无效", code: login.code ?? "INVALID_CREDENTIAL" };
 
   // 报名名单用于把截图里的行底色对上队伍——截图只有玩家昵称、没有队名。
   // 读不到就退化为 null：此时裁判仍可手工报分，只是无法自动定向哪组是哪队。
@@ -387,12 +396,14 @@ export async function refereeOpenMatches(
   credential: string,
 ): Promise<
   | { ok: true; matches: OpenMatchSummary[]; scheduleVersion: number }
-  | { ok: false; error: string }
+  | { ok: false; error: string; code?: string }
 > {
   if (eventId === DEMO_EVENT_ID) await seedDemoReporting();
   const state = await loadReportingState(eventId);
   const auth = authenticateReferee(credential, eventId, state.referee);
-  if (!auth.ok) return { ok: false, error: "裁判凭证无效" };
+  // 带上 code，路由才能判「这是未授权（401）还是校验失败（400）」，
+  // 不然只能靠硬编码 401 兜住，形状一改就错。
+  if (!auth.ok) return { ok: false, error: "裁判凭证无效", code: auth.reason };
   return {
     ok: true,
     matches: projectOpenMatches(state, auth.refereeId),

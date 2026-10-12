@@ -16,6 +16,7 @@
 import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/referee/referee-auth";
 import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
+import { refereeFailureResponse } from "@/lib/referee/failure-response";
 import { refereeMatchContext, refereeUploadEvidence } from "@/lib/referee/reporting-data";
 import {
   callVisionModel,
@@ -64,10 +65,7 @@ export async function POST(request: NextRequest) {
   // 先鉴权、先取上下文：未分配的场次直接拒绝，不浪费模型额度、也不泄露名单
   const context = await refereeMatchContext(eventId, credential, matchId);
   if (!context.ok) {
-    const status = ["INVALID_CREDENTIAL", "DISABLED", "EXPIRED", "NOT_ASSIGNED", "WRONG_EVENT"].includes(context.code ?? "")
-      ? 401
-      : 400;
-    return Response.json({ message: context.error }, { status });
+    return refereeFailureResponse(context);
   }
   const match = context.value.match;
 
@@ -83,10 +81,7 @@ export async function POST(request: NextRequest) {
     bytes,
   });
   if (!stored.ok) {
-    const status = ["INVALID_CREDENTIAL", "DISABLED", "EXPIRED", "NOT_ASSIGNED", "WRONG_EVENT"].includes(stored.code ?? "")
-      ? 401
-      : 400;
-    return Response.json({ message: stored.error }, { status });
+    return refereeFailureResponse(stored);
   }
 
   const base = { evidenceId: stored.value.evidenceId, expiresAt: stored.value.expiresAt, gameIndex };

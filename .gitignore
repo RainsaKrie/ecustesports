@@ -54,3 +54,9 @@ next-env.d.ts
 
 # 评测数据集的原始截图：含真实玩家昵称，不进仓库
 /docs/05-规则与AI验证/评测数据/*/images/
+
+# 本地运行期产物，不进仓库：
+#   · 裁判上传的赛果截图 —— 同样是含真实玩家昵称的原始截图（与上面同一条理由）
+#   · 演示赛事夹具 —— 由 seedDemoReporting 按需重新生成，提交了会变成会漂移的假数据
+/data/evidence/
+/data/events/demo-referee/

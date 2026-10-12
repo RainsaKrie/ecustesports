@@ -24,8 +24,9 @@
  *     · 入围赛 32 → 16、小组赛 16 → 8、淘汰赛 8 → 冠军
  *     · 抽签工作台在四个关键状态下的真实渲染（无头浏览器实测）
  *   未覆盖：
- *     · 裁判端提交赛果的 HTTP 链路（需要裁判账号）。这里用 reportGameResultsOp
- *       生成赛果后写回赛程 —— 与裁判端调用的是**同一个函数**，但不经过裁判登录与鉴权。
+ *     · 裁判端 HTTP 链路在**生产 Supabase 后端**上的表现 —— 本脚本只跑本地 file 后端。
+ *       链路本身（真实 HTTP、真实凭证头、真实路由与鉴权）已由 tools/gate6/e2e-referee-http.ts
+ *       在本地覆盖，见 `npm run test:referee-http`；那个脚本**不在** `npm run gate` 里，理由同本脚本。
  *     · 生产 Supabase 后端（本脚本只跑本地 file 后端）
  *
  * ── 用法 ────────────────────────────────────────────────────
@@ -957,10 +958,16 @@ async function main() {
 
     // 与 site-config 对账：data/events 下的目录必须都能在配置里找到，
     // 否则就是某次中断留下的游离目录（这一条正是「上一轮被 Ctrl-C 打断」时能抓到的）。
+    //
+    // 一处刻意的排除：`demo-referee` 是 `seedDemoReporting` 按需播种的**本地裁判演示赛事**，
+    // 它天生不在 site-config 里（本地只要打开过裁判端就会出现）。不排除它，
+    // 这条断言会在任何一个用过裁判端页面的开发机上恒红 —— 那是假阳性，不是残留。
     const configuredIds = new Set(
       (JSON.parse(readFileSync(SITE_CONFIG, "utf8")) as { events?: Array<{ id: string }> }).events?.map((event) => event.id) ?? [],
     );
-    const orphans = readdirSync(ADMIN_DIR).filter((dir) => !configuredIds.has(dir));
+    const KNOWN_SEEDED_DIRS = ["demo-referee"];
+    const orphans = readdirSync(ADMIN_DIR)
+      .filter((dir) => !configuredIds.has(dir) && !KNOWN_SEEDED_DIRS.includes(dir));
     check(cleanup, "data/events 下没有游离目录（与 site-config 对账）",
       orphans.length === 0,
       orphans.length > 0 ? `游离：${orphans.join(", ")}（多为中断的上一轮遗留，需手动清理）` : "");
@@ -1010,7 +1017,8 @@ function printCoverageNote() {
     console.log("  要连界面一起验，跑 npm run test:rehearsal36（不带 --no-ui）。");
   }
   console.log("本轮始终未覆盖（与是否带 --no-ui 无关）：");
-  console.log("  · 裁判端提交赛果的 HTTP 链路 —— 需要裁判账号。赛果是用裁判端同一个函数生成的，但没走登录与鉴权。");
+  console.log("  · 裁判端 HTTP 链路在生产 Supabase 后端上的表现 —— 本脚本与 e2e-referee-http 都只跑本地 file 后端。");
+  console.log("    （链路本身已由 npm run test:referee-http 覆盖：真实 HTTP、真实凭证头、真实路由。）");
   console.log("  · 生产 Supabase 后端 —— 本脚本只跑本地 file 后端。");
 }
 

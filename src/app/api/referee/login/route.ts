@@ -4,6 +4,7 @@
 
 import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/referee/referee-auth";
+import { refereeFailureResponse } from "@/lib/referee/failure-response";
 import { refereeLogin } from "@/lib/referee/reporting-data";
 
 export const runtime = "nodejs";
@@ -16,6 +17,6 @@ export async function POST(request: NextRequest) {
   const eventId = (typeof body.eventId === "string" ? body.eventId.trim() : "").slice(0, 60);
   if (!eventId) return Response.json({ message: "缺少赛事 ID" }, { status: 400 });
   const result = await refereeLogin(eventId, credential);
-  if (!result.ok) return Response.json({ message: "裁判凭证无效" }, { status: 401 });
+  if (!result.ok) return refereeFailureResponse(result);
   return Response.json({ ok: true });
 }

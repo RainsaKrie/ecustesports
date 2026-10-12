@@ -14,6 +14,7 @@
 import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/referee/referee-auth";
 import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
+import { refereeFailureResponse } from "@/lib/referee/failure-response";
 import { refereeClaimMatch, refereeOpenMatches, refereeReleaseMatch } from "@/lib/referee/reporting-data";
 
 export const runtime = "nodejs";
@@ -23,13 +24,6 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-function statusFor(code?: string): number {
-  if (["INVALID_CREDENTIAL", "DISABLED", "EXPIRED", "WRONG_EVENT"].includes(code ?? "")) return 401;
-  // 已被他人占走属于正常竞争结果，不是错误请求
-  if (code === "MATCH_TAKEN") return 409;
-  return 400;
-}
-
 export async function GET(request: NextRequest) {
   // 读取不检查功能开关——开关只拦写操作（见 feature-flag 的语义说明），
   // 「我的比赛」等读取接口同理。否则关闭开关会让裁判连自己有什么活都看不到。
@@ -37,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (!eventId) return Response.json({ message: "缺少赛事 ID" }, { status: 400 });
 
   const result = await refereeOpenMatches(eventId, readRefereeCredential(request));
-  if (!result.ok) return Response.json({ message: result.error }, { status: 401 });
+  if (!result.ok) return refereeFailureResponse(result);
   return Response.json({ matches: result.matches, scheduleVersion: result.scheduleVersion });
 }
 
@@ -68,7 +62,8 @@ export async function POST(request: NextRequest) {
     : await refereeReleaseMatch(eventId, credential, matchId);
 
   if (!result.ok) {
-    return Response.json({ message: result.error }, { status: statusFor(result.code) });
+    // 已被他人占走属于正常竞争结果，不是错误请求 → 409
+    return refereeFailureResponse(result, { MATCH_TAKEN: 409 });
   }
   return Response.json({
     ok: true,

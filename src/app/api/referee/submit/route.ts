@@ -5,6 +5,7 @@
 import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/referee/referee-auth";
 import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
+import { refereeFailureResponse } from "@/lib/referee/failure-response";
 import { refereeSubmit } from "@/lib/referee/reporting-data";
 
 export const runtime = "nodejs";
@@ -44,9 +45,10 @@ export async function POST(request: NextRequest) {
     expectedTeamBName,
   });
   if (!result.ok) {
-    // 对阵已变更是「先看后写」冲突，客户端需要刷新后重看，用 409 与校验失败区分开
-    const status = result.code === "MATCH_CHANGED" ? 409 : 400;
-    return Response.json({ message: result.error }, { status });
+    // 状态码与文案走统一的映射（原先这里把所有失败都报 400，于是「凭证失效」
+    // 在界面上显示的是一串内部码 `INVALID_CREDENTIAL`）。
+    // 对阵已变更是「先看后写」冲突，客户端需要刷新后重看，用 409 与校验失败区分开。
+    return refereeFailureResponse(result, { MATCH_CHANGED: 409 });
   }
   return Response.json(result.value);
 }

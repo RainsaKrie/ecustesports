@@ -15,6 +15,7 @@
 import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/referee/referee-auth";
 import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
+import { refereeFailureResponse } from "@/lib/referee/failure-response";
 import { refereeUploadEvidence } from "@/lib/referee/reporting-data";
 import { hashEvidenceBytes } from "@/lib/scheduling/evidence-ops";
 import { MAX_EVIDENCE_BYTES } from "@/lib/scheduling/evidence-domain";
@@ -61,10 +62,7 @@ export async function POST(request: NextRequest) {
     bytes,
   });
   if (!registered.ok) {
-    const status = ["INVALID_CREDENTIAL", "DISABLED", "EXPIRED", "NOT_ASSIGNED", "WRONG_EVENT"].includes(registered.code ?? "")
-      ? 401
-      : 400;
-    return Response.json({ message: registered.error }, { status });
+    return refereeFailureResponse(registered);
   }
 
   return Response.json({
