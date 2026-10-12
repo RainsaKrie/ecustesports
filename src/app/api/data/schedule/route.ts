@@ -4,6 +4,7 @@ import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { emptySchedule, normalizeScheduleState } from "@/lib/scheduling/schedule-data";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { autoFillPendingSlots, type StagedFormatState } from "@/lib/scheduling/staged-format";
+import { applyScheduleSave, type ScheduleLoss } from "@/lib/scheduling/schedule-ops";
 import { initialRegistration, type RegistrationState } from "@/lib/scheduling/registration-data";
 import type { NextRequest } from "next/server";
 
@@ -65,22 +66,39 @@ export async function POST(request: NextRequest) {
     // 报分落库前先补一次入围赛的待定席位（资格赛已全部完成时才会真的动）
     const filled = await withAutoFilledSlots(eventId, incoming);
     const saved = await updateEventData(eventId, "schedule", emptySchedule(), (raw) => {
-      const current = normalizeScheduleState(raw);
-      if (current.version !== expectedVersion) {
-        throw new ScheduleVersionConflict();
-      }
-      return {
-        ...filled,
-        version: filled.version > current.version ? filled.version : current.version + 1,
-      };
+      const outcome = applyScheduleSave(normalizeScheduleState(raw), filled, expectedVersion);
+      if (outcome.kind === "version-conflict") throw new ScheduleVersionConflict();
+      if (outcome.kind === "loss") throw new ScheduleLossConflict(outcome.losses);
+      return outcome.state;
     });
     return Response.json({ message: "saved", schedule: saved });
   } catch (error) {
     if (error instanceof ScheduleVersionConflict) {
       return Response.json({ message: "赛程已被其他操作更新，请刷新后再提交" }, { status: 409 });
     }
+    if (error instanceof ScheduleLossConflict) {
+      return Response.json(
+        {
+          code: "SCHEDULE_LOSS",
+          message: `保存被拒绝：这次提交会把别处已经写好的成果覆盖回旧状态（${describeLosses(error.losses)}）。`
+            + "赛程已被裁判报分或其他操作更新，请刷新页面后再提交。",
+          losses: error.losses,
+        },
+        { status: 409 },
+      );
+    }
     return Response.json({ message: "保存失败" }, { status: 400 });
   }
 }
 
 class ScheduleVersionConflict extends Error {}
+
+class ScheduleLossConflict extends Error {
+  constructor(readonly losses: ScheduleLoss[]) {
+    super("保存会覆盖其他路径写入的比赛成果");
+  }
+}
+
+function describeLosses(losses: ScheduleLoss[]): string {
+  return losses.map((loss) => `${loss.matchId} 的${loss.lost.join("、")}`).join("；");
+}

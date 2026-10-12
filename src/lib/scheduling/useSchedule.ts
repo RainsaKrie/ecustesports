@@ -67,10 +67,11 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     if (access !== "admin" || !eventId || loadedEventId !== eventId || !dirtyRef.current) return;
     dirtyRef.current = false;
     const snapshot = state;
+    const endpoint = `/api/data/schedule?eventId=${encodeURIComponent(eventId)}`;
     saveQueueRef.current = saveQueueRef.current
       .catch(() => undefined)
       .then(async () => {
-        const response = await fetch(`/api/data/schedule?eventId=${encodeURIComponent(eventId)}`, {
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -79,6 +80,17 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
           body: JSON.stringify(snapshot),
         });
         const result = await response.json().catch(() => ({})) as { message?: string; schedule?: ScheduleState };
+        if (response.status === 409) {
+          /**
+           * 冲突：说明别条路径（裁判报分 / BP 完成 / 队长约赛）已经改过赛程，
+           * 而本页面手里的还是旧快照。这里必须**主动重取**——
+           * 否则负责人会对着过期赛程反复提交，或（更糟）把别人的成果覆盖回去。
+           * 服务端已加了内容级护栏，这里补上「重载」把页面救回一致状态。
+           */
+          await refresh().catch(() => undefined);
+          setSaveError(result.message ?? "赛程已被其他操作更新，已重新载入最新赛程");
+          return;
+        }
         if (!response.ok || !result.schedule) {
           throw new Error(result.message ?? "赛程保存失败");
         }
@@ -90,7 +102,7 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
       .catch((error) => {
         setSaveError(error instanceof Error ? error.message : "赛程保存失败");
       });
-  }, [state, loadedEventId, eventId, access]);
+  }, [state, loadedEventId, eventId, access, refresh]);
 
   /** 提交改期申请并校验，返回校验结果 */
   const submitRequest = useCallback(

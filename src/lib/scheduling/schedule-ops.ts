@@ -33,6 +33,87 @@ export interface CaptainRequestResult {
   validation?: ValidationResult;
 }
 
+/** 整份保存赛程时，某场比赛会丢掉的成果。 */
+export interface ScheduleLoss {
+  matchId: string;
+  /** 人类可读的丢失项，直接用于提示负责人。 */
+  lost: string[];
+}
+
+/**
+ * 检测「整份覆盖保存」会丢掉哪些**别的路径已经写进去的成果**。
+ *
+ * 为什么需要这道护栏（2026-10-12 复现确认）：管理端赛程页只在挂载时读一次，
+ * 之后把整份快照留着；而裁判报分、BP 完成、队长约赛这三条路径都会写 `schedule`，
+ * 却**都不递增 `schedule.version`**（报分路径不递增是刻意的：`submitResultOp` 用的是
+ * 「提交版本必须等于当前版本」的严格比对，一递增就会把裁判页面上还没提交的人全部拒掉）。
+ * 于是 `version` 这道乐观锁护栏对它们形同虚设 —— 负责人随后做任意一次赛程操作保存，
+ * 就会把裁判已报的赛果**静默覆盖**，两条路径都不报错。
+ *
+ * 护栏的口径刻意**只覆盖「同一场比赛在前后两份里都存在」的情况**：
+ *   - 整场比赛消失不在范围内 —— 「归档并清空」「从抽签重新导入」会正当地让比赛消失，
+ *     而它们本身有自己的版本与归档记录，这里不去拦。
+ *   - 判据是「变少」而不是「不相等」，所以正常补写比分、补选地图不会被误伤。
+ */
+export function detectScheduleLosses(
+  current: ScheduleMatch[],
+  incoming: ScheduleMatch[],
+): ScheduleLoss[] {
+  const incomingById = new Map(incoming.map((match) => [match.id, match]));
+  const losses: ScheduleLoss[] = [];
+
+  for (const before of current) {
+    const after = incomingById.get(before.id);
+    if (!after) continue;
+
+    const lost: string[] = [];
+    if (before.status === "已完成" && after.status !== "已完成") {
+      lost.push("已完成赛果");
+    }
+    const beforeGames = before.gameResults?.length ?? 0;
+    const afterGames = after.gameResults?.length ?? 0;
+    if (beforeGames > afterGames) lost.push("逐局比分");
+    const beforeMaps = before.bpMaps?.length ?? 0;
+    const afterMaps = after.bpMaps?.length ?? 0;
+    if (beforeMaps > afterMaps) lost.push("BP 选图");
+
+    if (lost.length > 0) losses.push({ matchId: before.id, lost });
+  }
+
+  return losses;
+}
+
+/** 整份保存赛程的裁决结果。 */
+export type ScheduleSaveOutcome =
+  | { kind: "saved"; state: ScheduleState }
+  | { kind: "version-conflict" }
+  | { kind: "loss"; losses: ScheduleLoss[] };
+
+/**
+ * 整份保存赛程时的裁决：先比版本号，再比内容，最后才合并写入。
+ *
+ * 抽成纯函数是为了让「版本号一致但内容过期」这个场景**可以被直接测试** ——
+ * 它是本次复现出的数据丢失路径，靠端到端脚本很难稳定重放。
+ */
+export function applyScheduleSave(
+  current: ScheduleState,
+  incoming: ScheduleState,
+  expectedVersion: number,
+): ScheduleSaveOutcome {
+  if (current.version !== expectedVersion) return { kind: "version-conflict" };
+
+  const losses = detectScheduleLosses(current.matches, incoming.matches);
+  if (losses.length > 0) return { kind: "loss", losses };
+
+  return {
+    kind: "saved",
+    state: {
+      ...incoming,
+      version: incoming.version > current.version ? incoming.version : current.version + 1,
+    },
+  };
+}
+
 export function toScheduledMatch(m: ScheduleMatch): ScheduledMatch {
   return {
     id: m.id,

@@ -43,7 +43,6 @@ async function main() {
 
   const runId = randomUUID();
   const eventId = `rpt08probe-${runId.slice(0, 8)}`;
-  const docs = { a: DOC_A, b: DOC_B, c: DOC_C };
   const writeDoc = (name: string, value: Doc) => supabaseDataStore.write("event", eventId, name, value);
 
   console.log(`探针赛事：${eventId}`);

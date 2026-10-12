@@ -352,7 +352,6 @@ export function projectMyMatches(
 export function projectOpenMatches(
   state: ReportingState,
   refereeId: string,
-  squadsByTeamId?: Map<string, string[]>,
 ): OpenMatchSummary[] {
   const taken = new Set(
     state.referee.assignments.filter((a) => a.status === "assigned").map((a) => a.matchId),

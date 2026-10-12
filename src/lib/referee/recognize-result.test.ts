@@ -6,8 +6,6 @@
 // 重点覆盖「用名单校正左右」——这是把识别结果变成可用预填的关键一步。
 // =====================
 
-import assert from "node:assert/strict";
-
 import { buildRecognizeSuggestion, type RecognizeContext } from "./recognize-result";
 import type { RecognizedResult } from "./result-vision";
 
