@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { assertSafeEventId } from "@/lib/data-store-types";
-import { isHostedRuntime } from "@/lib/deployment";
+import { resolveDataBackend } from "@/lib/data-backend";
 import { normalizeSupabaseProjectUrl } from "@/lib/supabase-config";
 
 const BUCKET = "event-assets";
@@ -52,13 +52,6 @@ function hasImageSignature(bytes: Uint8Array, mimeType: string): boolean {
   return false;
 }
 
-function selectedBackend(): "file" | "supabase" {
-  const configured = process.env.DATA_BACKEND?.trim().toLowerCase();
-  if (configured === "file" || configured === "supabase") return configured;
-  if (isHostedRuntime()) throw new Error("托管环境必须显式设置 DATA_BACKEND=supabase");
-  return "file";
-}
-
 function supabaseConfig(): { url: string; secret: string } {
   const url = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL);
   const secret = process.env.SUPABASE_SECRET_KEY;
@@ -87,7 +80,7 @@ export async function uploadEventImage(input: {
   }
 
   const fileName = `hero-${randomUUID()}.${extension}`;
-  if (selectedBackend() === "file") {
+  if (resolveDataBackend() === "file") {
     const uploadDirectory = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadDirectory, { recursive: true });
     await writeFile(path.join(uploadDirectory, fileName), input.bytes);

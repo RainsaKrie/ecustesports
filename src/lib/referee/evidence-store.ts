@@ -14,17 +14,10 @@ import "server-only";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { assertSafeEventId } from "@/lib/data-store-types";
-import { isHostedRuntime } from "@/lib/deployment";
+import { resolveDataBackend } from "@/lib/data-backend";
 import { normalizeSupabaseProjectUrl } from "@/lib/supabase-config";
 
 const EVIDENCE_BUCKET = "match-evidence";
-
-function selectedBackend(): "file" | "supabase" {
-  const configured = process.env.DATA_BACKEND?.trim().toLowerCase();
-  if (configured === "file" || configured === "supabase") return configured;
-  if (isHostedRuntime()) throw new Error("托管环境必须显式设置 DATA_BACKEND=supabase");
-  return "file";
-}
 
 function supabaseConfig(): { url: string; secret: string } {
   const url = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL);
@@ -47,7 +40,7 @@ export async function storeEvidenceObject(input: {
 }): Promise<{ stored: boolean }> {
   const eventId = assertSafeEventId(input.eventId);
 
-  if (selectedBackend() === "file") {
+  if (resolveDataBackend() === "file") {
     const fileName = input.objectName.split("/").pop() ?? input.objectName;
     const directory = path.join(process.cwd(), "data", "evidence", eventId);
     await mkdir(directory, { recursive: true });
@@ -84,7 +77,7 @@ export async function deleteEvidenceObject(input: { eventId: string; objectName:
   const eventId = assertSafeEventId(input.eventId);
   const fileName = input.objectName.split("/").pop() ?? input.objectName;
 
-  if (selectedBackend() === "file") {
+  if (resolveDataBackend() === "file") {
     const filePath = path.join(process.cwd(), "data", "evidence", eventId, fileName);
     await rm(filePath, { force: true });
     return;

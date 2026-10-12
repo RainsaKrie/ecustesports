@@ -9,24 +9,10 @@ import type {
   DataStoreDriver,
   DataUpdater,
 } from "@/lib/data-store-types";
-import { isHostedRuntime } from "@/lib/deployment";
-
-type DataBackend = "file" | "supabase";
-
-function selectedBackend(): DataBackend {
-  const configured = process.env.DATA_BACKEND?.trim().toLowerCase();
-  if (configured === "file" || configured === "supabase") return configured;
-  if (configured) throw new Error(`不支持的数据后端：${configured}`);
-
-  // 本地开发保持兼容；任何 Vercel 环境必须显式选择，防止误写临时文件系统。
-  if (isHostedRuntime()) {
-    throw new Error("Vercel 环境必须显式设置 DATA_BACKEND=supabase");
-  }
-  return "file";
-}
+import { resolveDataBackend } from "@/lib/data-backend";
 
 function driver(): DataStoreDriver {
-  return selectedBackend() === "supabase" ? supabaseDataStore : fileDataStore;
+  return resolveDataBackend() === "supabase" ? supabaseDataStore : fileDataStore;
 }
 
 export async function readData<T>(name: string, fallback: T): Promise<T> {

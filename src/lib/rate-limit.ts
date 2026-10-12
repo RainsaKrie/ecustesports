@@ -1,4 +1,5 @@
 import { isHostedRuntime } from "@/lib/deployment";
+import { resolveDataBackend } from "@/lib/data-backend";
 import { normalizeSupabaseProjectUrl } from "@/lib/supabase-config";
 
 interface RateLimitInput {
@@ -20,13 +21,6 @@ interface LocalBucket {
 }
 
 const localBuckets = new Map<string, LocalBucket>();
-
-function backend(): "file" | "supabase" {
-  const configured = process.env.DATA_BACKEND?.trim().toLowerCase();
-  if (configured === "file" || configured === "supabase") return configured;
-  if (isHostedRuntime()) throw new Error("托管环境必须显式设置 DATA_BACKEND=supabase");
-  return "file";
-}
 
 function rateLimitSecret(): string {
   const value = process.env.RATE_LIMIT_SECRET?.trim();
@@ -105,5 +99,5 @@ async function supabaseConsume(keyHash: string, input: RateLimitInput): Promise<
 
 export async function consumeRateLimit(input: RateLimitInput): Promise<RateLimitResult> {
   const keyHash = await hashKey(input.clientKey);
-  return backend() === "supabase" ? supabaseConsume(keyHash, input) : localConsume(keyHash, input);
+  return resolveDataBackend() === "supabase" ? supabaseConsume(keyHash, input) : localConsume(keyHash, input);
 }
