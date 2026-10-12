@@ -5,8 +5,15 @@
 // 所以除了「完好备份判通过」，重点全在「坏在哪、能不能指到具体那一份」——
 // 只报一句「校验失败」对拿它救命的人没有帮助。
 //
+// 组 1–5 都是纯函数断言。**组 6 不同：它会去读源码**，用来钉住两件光靠单测看不出来的事 ——
+//   ① 「键序无关的字符串化」在全仓库只有一份实现（多一份就会悄悄走偏）；
+//   ② 算法本身没被改过（改了会让**已经导出**的历史备份全部校验失败 —— 这正是本文件存在的理由）。
+//
 // 用法：npm run test:backup-format
 // =====================
+
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 
 import {
   BACKUP_SCHEMA_VERSION,
@@ -194,6 +201,88 @@ group("组5 · 校验和必须与键顺序无关（否则同一份数据会算�
 
   check("站点级文档的键用 __site__ 占位", documentKey({ scope: "site", eventId: "", name: "site-config" }) === "site/__site__/site-config", documentKey({ scope: "site", eventId: "", name: "site-config" }));
   check("赛事级文档的键带赛事 ID", documentKey({ scope: "event", eventId: "event-1", name: "schedule" }) === "event/event-1/schedule");
+}
+
+// ── 组 6 · 算法只有一份，且没被改过（源码扫描） ────────────
+
+group("组6 · 「键序无关的字符串化」只能有一份实现，且算法本身不许悄悄改");
+
+{
+  const ROOT = process.cwd();
+  /** 两个源码根都要查：`tools/` 那次复制就是发生在 `src/` 之外的。 */
+  const ROOTS = [join(ROOT, "src"), join(ROOT, "tools")];
+
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry === "node_modules" || entry === ".next") continue;
+        walk(full);
+      } else if (/\.(ts|tsx|mjs|js)$/.test(entry) && !/\.test\.tsx?$/.test(entry)) {
+        // 测试文件不扫：里面出现 `stable` 多是 import 或断言，不是实现；
+        // 而真正会喂给生产哈希的只有非测试代码。
+        files.push(full);
+      }
+    }
+  };
+  ROOTS.forEach(walk);
+
+  const rel = (full: string) => relative(ROOT, full).split(sep).join("/");
+  const cache = new Map<string, string>();
+  const sourceOf = (file: string) => {
+    const hit = cache.get(file);
+    if (hit !== undefined) return hit;
+    const text = readFileSync(file, "utf8");
+    cache.set(file, text);
+    return text;
+  };
+
+  // ★ 先证明扫描不是空转：一个「扫了 0 个文件」的源码断言会永远通过。
+  //   这条断言就是本组的对照组，变异验证时把它去掉，整组会退化成恒真。
+  const srcCount = files.filter((f) => rel(f).startsWith("src/")).length;
+  const toolsCount = files.filter((f) => rel(f).startsWith("tools/")).length;
+  check(
+    "扫描确实覆盖到两个源码根（否则本组恒真）",
+    srcCount >= 20 && toolsCount >= 20,
+    `src ${srcCount} 个 / tools ${toolsCount} 个`,
+  );
+
+  const CANONICAL = "tools/gate6/backup-format.ts";
+
+  const definitions = files.filter((f) => /\b(?:function|const|let|var)\s+stable\b/.test(sourceOf(f))).map(rel).sort();
+  check(
+    "`stable` 全仓库只有一份定义",
+    JSON.stringify(definitions) === JSON.stringify([CANONICAL]),
+    definitions.length === 0
+      ? "一份都没找到 —— 扫描可能失效了"
+      : `实际定义在 ${JSON.stringify(definitions)}；唯一实现应当只在 ${CANONICAL}，别处要用请 import`,
+  );
+
+  const hashers = files
+    .filter((f) => /createHash\s*\(\s*["']sha256["']\s*\)\s*\.\s*update\s*\(\s*stable\s*\(/.test(sourceOf(f)))
+    .map(rel)
+    .sort();
+  check(
+    "拿 sha256 去哈希 `stable(...)` 的也只有规范文件",
+    JSON.stringify(hashers) === JSON.stringify([CANONICAL]),
+    `实际在 ${JSON.stringify(hashers)}；第二份校验和会让同一条数据算出两个值`,
+  );
+
+  // 黄金值：算法一旦改动，这里会红 —— 而它变红意味着**历史上已经导出的备份全部失效**。
+  // 若确实需要改算法，必须同时升 BACKUP_SCHEMA_VERSION 并保留旧算法的校验分支，
+  // 不能只把这里的期望值改掉就完事。
+  //
+  // 为什么只留这一条（曾写过「换个键序也算出同一个值」那条，变异验证后删了）：
+  // 那条与组 5 完全重叠 —— 去掉排序时组 5 先红了 3 条，它才跟着红。
+  // 而这一条是组 5 抓不到的：把分隔符从 `,` 改成 `;`，键序无关性仍然成立（组 5 全绿），
+  // 但校验和变了、所有旧备份失效。这正是本文件存在的理由，所以它必须留。
+  check(
+    "校验和与既有备份口径一致（改算法会让已导出的备份全部校验失败）",
+    checksum({ a: 1, b: [2, { c: 3, d: null }] }) === "d58708f064977b8036f302c8e6200dbf94132130cae0fbd7f86f2b2218e2e6f3",
+    checksum({ a: 1, b: [2, { c: 3, d: null }] }),
+  );
 }
 
 console.log("");

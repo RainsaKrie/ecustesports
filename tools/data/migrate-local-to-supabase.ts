@@ -2,6 +2,9 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { supabaseDataStore } from "../../src/lib/supabase-data-store";
+// 键序无关的字符串化只应有一份实现，在 backup-format 里（它同时是备份校验和的定义处）。
+// 这里不要再抄一份：抄出来的那份会悄悄走偏，而两边都不会报错。守卫见 backup-format.test.ts 组 6。
+import { stable } from "../gate6/backup-format";
 
 interface Candidate {
   scope: "site" | "event";
@@ -82,15 +85,6 @@ async function collect(): Promise<Candidate[]> {
     }
   }
   return candidates;
-}
-
-function stable(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }
 
 async function main() {
