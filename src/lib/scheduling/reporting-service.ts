@@ -113,6 +113,12 @@ export interface RefereeSubmitInput {
   games: SubmitResultInput["games"];
   evidenceIds?: string[];
   source?: SubmitResultInput["source"];
+  /**
+   * 裁判端回传的「我看到的两队队名」，供 `submitResultOp` 做逐场前置条件校验。
+   * 不传则不校验（管理端内部路径没有这个上下文）。
+   */
+  expectedTeamAName?: string;
+  expectedTeamBName?: string;
 }
 
 /**
@@ -136,7 +142,7 @@ export function submitRefereeResultOp(
     if (ev.matchId !== input.matchId) return { ok: false, error: "凭证与提交不属于同一场比赛", code: "EVIDENCE_MATCH_MISMATCH" };
   }
 
-  // 3. 组合赛果上下文并提交（版本冲突 / 比分非法 / 强力复核由 submitResultOp 判定）
+  // 3. 组合赛果上下文并提交（逐场前置条件 / 比分非法 / 强力复核由 submitResultOp 判定）
   const ctx = buildResultContext(state);
   const submitted = submitResultOp(
     {
@@ -146,6 +152,8 @@ export function submitRefereeResultOp(
       games: input.games,
       evidenceIds,
       source: input.source ?? "manual",
+      expectedTeamAName: input.expectedTeamAName,
+      expectedTeamBName: input.expectedTeamBName,
     },
     ctx,
   );

@@ -17,6 +17,7 @@
     "test:participant-recovery": "tsx src/lib/scheduling/participant-recovery.test.ts",
     "test:qualifier-bye": "tsx src/lib/scheduling/qualifier-bye.test.ts",
     "test:schedule-loss": "tsx src/lib/scheduling/schedule-loss.test.ts",
+    "test:schedule-write-contract": "tsx src/lib/scheduling/schedule-write-contract.test.ts",
     "test:playin-36": "tsx src/lib/scheduling/playin-36.test.ts",
     "test:result": "tsx src/lib/scheduling/result-ops.test.ts",
     "test:referee": "tsx src/lib/scheduling/referee-ops.test.ts",
@@ -33,7 +34,7 @@
     "ai:result-score": "tsx tools/ai-eval/result-vision/run-eval.ts score",
     "ai:result-selftest": "tsx tools/ai-eval/result-vision/run-eval.ts selftest",
     "ai:result-coverage": "tsx tools/ai-eval/result-vision/run-eval.ts coverage",
-    "test:all": "npm run test:scheduling && npm run test:loop && npm run test:bp && npm run test:registration-admin && npm run test:registration-ops && npm run test:public-roster && npm run test:participant-recovery && npm run test:qualifier-bye && npm run test:schedule-loss && npm run test:playin-36 && npm run test:result && npm run test:referee && npm run test:evidence && npm run test:reporting && npm run test:identity-match && npm run test:recognize && npm run test:publication && npm run test:operations && npm run test:data-transaction && npm run test:data-store && npm run test:ai-eval && npm run test:ai-result-eval && npm run test:route-guards",
+    "test:all": "npm run test:scheduling && npm run test:loop && npm run test:bp && npm run test:registration-admin && npm run test:registration-ops && npm run test:public-roster && npm run test:participant-recovery && npm run test:qualifier-bye && npm run test:schedule-loss && npm run test:schedule-write-contract && npm run test:playin-36 && npm run test:result && npm run test:referee && npm run test:evidence && npm run test:reporting && npm run test:identity-match && npm run test:recognize && npm run test:publication && npm run test:operations && npm run test:data-transaction && npm run test:data-store && npm run test:ai-eval && npm run test:ai-result-eval && npm run test:route-guards",
     "gate": "npm run lint && npm run typecheck && npm run test:all && npm run build",
     "gate:full": "npm run gate && npm run test:rehearsal36",
     "test:rehearsal36": "tsx tools/gate6/playin36-rehearsal.ts",
@@ -41,7 +42,7 @@
     "data:migrate:plan": "tsx tools/data/migrate-local-to-supabase.ts",
     "data:migrate:apply": "tsx tools/data/migrate-local-to-supabase.ts --apply",
     "test:data-store": "tsx src/lib/supabase-data-store.test.ts",
-    "test:route-guards": "tsx src/lib/admin-route-guards.test.ts"
+    "test:route-guards": "tsx src/lib/api-route-guards.test.ts"
   },
   "dependencies": {
     "geist": "^1.7.2",

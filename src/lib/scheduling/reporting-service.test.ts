@@ -124,10 +124,27 @@ console.log("\n== 组2 · 提交赛果（越权与原子） ==");
     return again.ok && acceptedCount === 1;
   })());
 
-  // 版本冲突 → 409 不静默覆盖
-  check("版本冲突被拒", (() => {
-    const r = submitRefereeResultOp({ credential, eventId: EVENT, matchId: "M1", basedOnScheduleVersion: 99, games: BO3_GAMES }, state);
-    return !r.ok && r.code === "VERSION_CONFLICT";
+  // 2026-10-12：放行条件由「整份文档版本号必须相等」改为**逐场前置条件**。
+  // 旧条件在这里用的是 basedOnScheduleVersion=99，但真实世界里更常见的是
+  // 「别人的场次让版本号 +1」—— 那不该拒掉本场。
+  check("对阵已变更被拒（回传队名与当前不符）", (() => {
+    const r = submitRefereeResultOp(
+      { credential, eventId: EVENT, matchId: "M1", basedOnScheduleVersion: 1, games: BO3_GAMES, expectedTeamAName: "甲队", expectedTeamBName: "换过的队" },
+      state,
+    );
+    return !r.ok && r.code === "MATCH_CHANGED";
+  })());
+  check("对阵一致时通过（队名被透传到领域层）", (() => {
+    const r = submitRefereeResultOp(
+      { credential, eventId: EVENT, matchId: "M1", basedOnScheduleVersion: 1, games: BO3_GAMES, expectedTeamAName: "甲队", expectedTeamBName: "乙队" },
+      state,
+    );
+    return r.ok;
+  })());
+  check("别的场次让版本号 +1 后，本场仍可提交（旧实现会在这里误拒）", (() => {
+    const bumped = initState([match("M1"), match("M2")], referee, 7);
+    const r = submitRefereeResultOp({ credential, eventId: EVENT, matchId: "M1", basedOnScheduleVersion: 1, games: BO3_GAMES }, bumped);
+    return r.ok;
   })());
 }
 

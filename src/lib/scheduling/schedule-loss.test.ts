@@ -2,14 +2,23 @@
 // 整份保存赛程时的「成果丢失」护栏
 //
 // 背景（2026-10-12 复现确认）：管理端赛程页只在挂载时读一次，之后整份快照留着；
-// 而裁判报分 / BP 完成 / 队长约赛三条路径都写 `schedule` 却不递增 `schedule.version`
+// 而当时裁判报分 / BP 完成 / 队长约赛三条路径都写 `schedule` 却不递增 `schedule.version`
 // （报分路径不递增是刻意的：submitResultOp 用严格相等比对版本）。
 // 结果：负责人随后做任意一次赛程操作保存，就会把裁判已报的赛果静默覆盖，两边都不报错。
 //
-// 本文件锁住三件事：
+// 修复分两层（两层都保留）：
+//   1. **统一写入契约** —— 所有写入路径都递增 `version`（`schedule-ops.stampScheduleVersion`）。
+//      于是「别的路径写过」一定表现为版本不一致，在版本比对那一步就被拦下。
+//      本文件组3 复现的是这一层：现在拦住旧快照的是 **版本冲突**，不再是内容护栏。
+//   2. **内容护栏**（`detectScheduleLosses`）—— 纵深防御。正常路径不再走到它，
+//      但将来若有新写入路径忘了递增版本，它仍能拦下并点名「哪一场的哪几项成果会被覆盖」。
+//      组1/组2/组4 直接覆盖它。
+//
+// 本文件锁住四件事：
 //   1. 判据正确（报丢失 / 不误报）。
-//   2. 存储层真的会拦住那次覆盖。
-//   3. 夹具**有区分度** —— 去掉护栏这条断言必须变红（否则测试恒真）。
+//   2. 裁决优先级：版本优先，其次内容。
+//   3. 存储层真的会拦住那次覆盖，且递增口径单调。
+//   4. 夹具**有区分度** —— 去掉护栏这条断言必须变红（否则测试恒真）。
 // =====================
 
 import { updateEventData, readEventData, deleteEventData } from "../data-store";
@@ -19,7 +28,7 @@ import {
   type ScheduleState,
   type ScheduleMatch,
 } from "./schedule-data";
-import { applyScheduleSave, detectScheduleLosses } from "./schedule-ops";
+import { applyScheduleSave, detectScheduleLosses, stampScheduleVersion } from "./schedule-ops";
 
 let passed = 0;
 let failed = 0;
@@ -145,6 +154,23 @@ async function run(): Promise<void> {
     check("保存后版本号递增", outcome.kind === "saved" && outcome.state.version === 6);
   }
 
+  {
+    // 统一递增入口：内容变了才 +1，且严格单调
+    const before = withMatches(5, [completedMatch("M1")]);
+    check(
+      "内容没变：原样返回不递增（避免无意义地让别人的编辑器失效）",
+      stampScheduleVersion(before, before) === before,
+    );
+    check(
+      "内容变了：version 单调 +1",
+      stampScheduleVersion(before, withMatches(5, [completedMatch("M2")])).version === 6,
+    );
+    check(
+      "不采信调用方传来的版本值（防止它抬价绕过版本护栏）",
+      stampScheduleVersion(before, withMatches(99, [completedMatch("M2")])).version === 6,
+    );
+  }
+
   // ---------------------------------------------------------------
   console.log("\n== 组3 · 存储层回归：复现原来那次静默覆盖 ==");
 
@@ -160,13 +186,13 @@ async function run(): Promise<void> {
     );
     const adminVersion = adminSnapshot.version;
 
-    // 写入者 B：裁判报分落盘（不递增 version，与 reporting-data.ts 一致）
+    // 写入者 B：裁判报分落盘 —— 与 reporting-data.ts 一致，**递增 version**（统一写入契约）
     await updateEventData<ScheduleState>(eventId, "schedule", emptySchedule(), (raw) => {
       const schedule = normalizeScheduleState(raw);
-      return {
+      return stampScheduleVersion(schedule, {
         ...schedule,
         matches: schedule.matches.map((match) => (match.id === "M1" ? completedMatch("M1") : match)),
-      };
+      });
     });
 
     // 写入者 A：管理端保存旧快照 —— 走的就是路由现在用的那个裁决函数
@@ -179,10 +205,15 @@ async function run(): Promise<void> {
     }).catch(() => undefined);
 
     const final = normalizeScheduleState(await readEventData<ScheduleState>(eventId, "schedule", emptySchedule()));
-    check("旧快照保存被拦下（修复前这里是 saved）", verdict === "loss");
+    check("旧快照保存被拦下（修复前这里是 saved）", verdict === "version-conflict");
     check(
       "裁判已报的赛果仍在库里",
       final.matches[0].status === "已完成" && (final.matches[0].gameResults?.length ?? 0) === 2,
+    );
+    check("拦截依据是版本递增，而不是内容比对", verdict === "version-conflict");
+    check(
+      "纵深防御：版本恰好一致时，内容护栏对同一份夹具也拦得住",
+      applyScheduleSave(final, adminSnapshot, final.version).kind === "loss",
     );
   } finally {
     await deleteEventData(eventId).catch(() => undefined);
@@ -192,8 +223,9 @@ async function run(): Promise<void> {
   console.log("\n== 组4 · 变异验证：拿掉护栏后，同一步骤必须真的丢数据 ==");
 
   /**
-   * 用**同一份夹具**再跑一遍存储层流程，但这次把 incoming 直接写下去（模拟「护栏被删掉」）。
-   * 结论必须与组3 相反 —— 否则说明组3 不是被护栏救下的，而是夹具本身就没有区分度（测试恒真）。
+   * 用**同一份夹具**再跑一遍存储层流程，但这次把 incoming 直接写下去
+   * （模拟「护栏与版本递增都拿掉」）。结论必须与组3 相反 ——
+   * 否则说明组3 不是被拦住的，而是夹具本身就没有区分度（测试恒真）。
    */
   const bypassEventId = `test-schedule-bypass-${process.pid}`;
   try {

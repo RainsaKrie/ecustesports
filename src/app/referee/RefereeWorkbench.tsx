@@ -57,6 +57,15 @@ type ConfirmPayload = {
   games: Array<{ map?: string; teamAScore: number; teamBScore: number }>;
   declaredWinnerTeamName: string;
   declaredWinnerSide: "A" | "B";
+  /**
+   * 我看到的对阵两队名，随提交回传。
+   *
+   * 用途：服务端用它做**逐场前置条件**校验 —— 万一抽签重排把 `M01` 换了对手，
+   * 我这一屏还是旧对阵，回传的队名就对不上，服务端会拒掉并让我刷新重看，
+   * 而不是把这份比分记到另一场上去。
+   */
+  teamAName: string;
+  teamBName: string;
 };
 
 /** 一局的填报状态。图片与识别建议都挂在局上，而不是整场共用。 */
@@ -294,6 +303,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
       games: final,
       declaredWinnerTeamName: winner.name,
       declaredWinnerSide: winner.side,
+      teamAName: activeMatch.teamAName,
+      teamBName: activeMatch.teamBName,
     });
     setStage("confirm");
     setError("");
@@ -383,14 +394,19 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           credential: credential.trim(),
           eventId,
           matchId: confirmPayload.matchId,
+          // 仅供参考与记录：放行与否由服务端按「这场比赛还是不是你看到的那一场」判断，
+          // 不再比对版本号（版本号是全局的，别人报别的场次也会让它变）。
           basedOnScheduleVersion: lastScheduleVersion,
+          expectedTeamAName: confirmPayload.teamAName,
+          expectedTeamBName: confirmPayload.teamBName,
           games: confirmPayload.games,
           evidenceIds,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { message?: string; status?: string };
       if (!res.ok) {
-        if (res.status === 409) setError("赛程版本已更新，请刷新后重试");
+        // 409 = 对阵已变更（我这一屏仍是旧对阵）。服务端给的说明更具体，优先用它。
+        if (res.status === 409) setError(data.message ?? "这场比赛的对阵已变更，请刷新页面后重试");
         else setError(data.message ?? "提交失败");
         setSubmitting(false);
         return;

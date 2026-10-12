@@ -1,7 +1,7 @@
 // =====================
 // RPT-01 赛果状态机纯函数测试
 // 运行：npx tsx src/lib/scheduling/result-ops.test.ts
-// 覆盖：合法性 / 身份版本 / 幂等重复 / 生效路径 / 下游恢复 / 晋级正确性与撤销原子性
+// 覆盖：合法性 / 身份与逐场前置条件 / 幂等重复 / 生效路径 / 下游恢复 / 晋级正确性与撤销原子性
 // =====================
 
 import type { ScheduleMatch, GameResult } from "./schedule-data";
@@ -72,14 +72,36 @@ console.log("== 组1 · 合法性校验 ==");
   check("局数超限被拦", !submitResultOp({ matchId: "M1", refereeId: REF, basedOnScheduleVersion: 1, games: [g(13, 5), g(13, 7), g(13, 6)] }, c).ok);
 }
 
-console.log("\n== 组2 · 身份与版本 ==");
+console.log("\n== 组2 · 身份与逐场前置条件 ==");
 {
   const m = match("M2");
   check("比赛不存在被拦", !submitResultOp({ matchId: "NOPE", refereeId: REF, basedOnScheduleVersion: 1, games: A_WINS }, ctx([m], [assign("M2")])).ok);
-  check("版本过期被拦(409)", (() => {
-    const r = submitResultOp({ matchId: "M2", refereeId: REF, basedOnScheduleVersion: 99, games: A_WINS }, ctx([m], [assign("M2")]));
-    return !r.ok && r.code === "VERSION_CONFLICT";
+
+  // 2026-10-12：放行条件由「整份文档的版本号必须相等」改为**逐场前置条件**。
+  check("对阵已变更被拦(409)", (() => {
+    // 裁判那一屏还是「M2-A名 vs M2-B名」，库里这场已换成别的对手 —— 必须拒，
+    // 否则这份比分会被记到一场完全不同的比赛上。
+    const r = submitResultOp(
+      { matchId: "M2", refereeId: REF, basedOnScheduleVersion: 1, games: A_WINS, expectedTeamAName: "M2-A名", expectedTeamBName: "换过的对手" },
+      ctx([m], [assign("M2")]),
+    );
+    return !r.ok && r.code === "MATCH_CHANGED";
   })());
+  check("对阵一致时放行", submitResultOp(
+    { matchId: "M2", refereeId: REF, basedOnScheduleVersion: 1, games: A_WINS, expectedTeamAName: "M2-A名", expectedTeamBName: "M2-B名" },
+    ctx([m], [assign("M2")]),
+  ).ok);
+  check("两端都不回传对阵时不校验（管理端复核 / 更正走内部路径）", submitResultOp(
+    { matchId: "M2", refereeId: REF, basedOnScheduleVersion: 1, games: A_WINS },
+    ctx([m], [assign("M2")]),
+  ).ok);
+  // 换成逐场条件的核心理由：版本号是**全局**的，别的场次报分会让它 +1，
+  // 不能因为与自己无关的场次变了就把这一场拒掉（旧实现正是在这里误拒）。
+  check("别的场次让版本号 +1 后，本场仍可提交", submitResultOp(
+    { matchId: "M2", refereeId: REF, basedOnScheduleVersion: 1, games: A_WINS },
+    ctx([m], [assign("M2")], 2),
+  ).ok);
+
   check("未分配裁判被拦", !submitResultOp({ matchId: "M2", refereeId: "ref-else", basedOnScheduleVersion: 1, games: A_WINS }, ctx([m], [assign("M2")])).ok);
   check("已撤销分配被拦", (() => {
     const c = ctx([m], [{ matchId: "M2", refereeId: REF, status: "revoked" }]);

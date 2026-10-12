@@ -44,11 +44,15 @@ export interface ScheduleLoss {
  * 检测「整份覆盖保存」会丢掉哪些**别的路径已经写进去的成果**。
  *
  * 为什么需要这道护栏（2026-10-12 复现确认）：管理端赛程页只在挂载时读一次，
- * 之后把整份快照留着；而裁判报分、BP 完成、队长约赛这三条路径都会写 `schedule`，
- * 却**都不递增 `schedule.version`**（报分路径不递增是刻意的：`submitResultOp` 用的是
- * 「提交版本必须等于当前版本」的严格比对，一递增就会把裁判页面上还没提交的人全部拒掉）。
- * 于是 `version` 这道乐观锁护栏对它们形同虚设 —— 负责人随后做任意一次赛程操作保存，
- * 就会把裁判已报的赛果**静默覆盖**，两条路径都不报错。
+ * 之后把整份快照留着；当时裁判报分、BP 完成、队长约赛这三条路径都会写 `schedule`
+ * 却**不递增 `schedule.version`**，于是 `version` 这道乐观锁护栏对它们形同虚设 ——
+ * 负责人随后做任意一次赛程操作保存，就会把裁判已报的赛果**静默覆盖**，两条路径都不报错。
+ *
+ * **现状（2026-10-12 统一写入契约之后）**：上面那三条路径已改为同样递增 `version`
+ * （见 `stampScheduleVersion`），所以「别的路径写过」一定表现为版本不一致，
+ * 在 `applyScheduleSave` 的版本比对那一步就被拦下了，**这道内容护栏通常不会再被走到**。
+ * 保留它是**纵深防御**：将来若有新写入路径忘了递增版本，仍然会被它拦下并明确点名
+ * 「哪一场的哪几项成果会被覆盖回去」，而不是静默丢失。**不要因为「看起来没人调用」删掉它。**
  *
  * 护栏的口径刻意**只覆盖「同一场比赛在前后两份里都存在」的情况**：
  *   - 整场比赛消失不在范围内 —— 「归档并清空」「从抽签重新导入」会正当地让比赛消失，
@@ -90,10 +94,43 @@ export type ScheduleSaveOutcome =
   | { kind: "loss"; losses: ScheduleLoss[] };
 
 /**
+ * 赛程文档的**唯一版本递增点** —— 写入契约（2026-10-12 统一）。
+ *
+ * 契约：`version` 是「赛程文档的修订号」。**任何改动文档内容的写入路径都必须经过这里**，
+ * 让 `version` 单调 +1。当前有五条路径，覆盖面如下：
+ *
+ *   | 写入路径 | 位置 | 改变的内容 |
+ *   |---|---|---|
+ *   | 管理端整份保存 | `api/data/schedule` → `applyScheduleSave` | 全部 |
+ *   | 裁判报分 / 管理员裁决与更正 | `reporting-data.updateReportingState` | matches |
+ *   | BP 完成写入选图 | `api/data/bp` → `commitBPMaps` | bpMaps / notifications |
+ *   | 队长提交约赛申请 | `api/public/schedule/request` POST | requests |
+ *   | 对手队长确认 / 拒绝 | `api/public/schedule/request` PATCH | requests |
+ *
+ * 为什么必须统一：管理端编辑器只在挂载时读一次，之后靠 `If-Match` 上的版本号判断
+ * 「我这份快照还新不新」。只要有一条写入路径不递增，**这条路径写的成果就对
+ * 版本护栏不可见**，会被管理端随后的整份保存静默覆盖回去 —— 这正是 2026-10-12
+ * 复现出的那次裁判赛果丢失。
+ *
+ * 两个刻意的细节：
+ *   - 内容**没变**时原样返回（判引用相等，与各调用点原有的判断口径一致）。
+ *     不递增是为了避免「点一下但没改任何东西」也让别人手里的编辑器失效。
+ *   - 只在**成功后**递增：失败路径由调用方抛错回滚，不会走到这里。
+ */
+export function stampScheduleVersion(before: ScheduleState, next: ScheduleState): ScheduleState {
+  if (next === before) return before;
+  return { ...next, version: before.version + 1 };
+}
+
+/**
  * 整份保存赛程时的裁决：先比版本号，再比内容，最后才合并写入。
  *
  * 抽成纯函数是为了让「版本号一致但内容过期」这个场景**可以被直接测试** ——
  * 它是本次复现出的数据丢失路径，靠端到端脚本很难稳定重放。
+ *
+ * 版本号的写入口径与其余四条路径完全一致：成功后一律 `current.version + 1`，
+ * 不再信任客户端传来的版本值（客户端那份本来就是基于 `expectedVersion` 改的，
+ * 让它「抬价」只会给版本护栏开一个后门）。
  */
 export function applyScheduleSave(
   current: ScheduleState,
@@ -105,13 +142,7 @@ export function applyScheduleSave(
   const losses = detectScheduleLosses(current.matches, incoming.matches);
   if (losses.length > 0) return { kind: "loss", losses };
 
-  return {
-    kind: "saved",
-    state: {
-      ...incoming,
-      version: incoming.version > current.version ? incoming.version : current.version + 1,
-    },
-  };
+  return { kind: "saved", state: stampScheduleVersion(current, incoming) };
 }
 
 export function toScheduledMatch(m: ScheduleMatch): ScheduledMatch {

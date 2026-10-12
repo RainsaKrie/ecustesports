@@ -45,7 +45,7 @@ import {
   type ReportingState,
 } from "@/lib/scheduling/reporting-service";
 import { resolveReviewOp, correctResultOp } from "@/lib/scheduling/result-ops";
-import { expirePendingRequests } from "@/lib/scheduling/schedule-ops";
+import { expirePendingRequests, stampScheduleVersion } from "@/lib/scheduling/schedule-ops";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -152,11 +152,19 @@ async function updateReportingState<T>(
             )
           : schedule.requests;
         const requestsChanged = affected.size > 0 && requests !== schedule.requests;
-        patch.schedule = {
+        /**
+         * ★ 递增 `version`（赛程写入契约，2026-10-12 统一）。
+         *
+         * 这里一度是刻意的例外：`submitResultOp` 用「提交版本必须等于当前版本」严格比对，
+         * 递增会把裁判页面上还没提交的人全部拒掉。现在那条比对已换成**逐场前置条件**
+         * （见 result-ops.ts 的 `submitResultOp`），所以本路径不再需要例外 ——
+         * 而例外正是那次「赛果被管理端旧快照静默覆盖」的成因。
+         */
+        patch.schedule = stampScheduleVersion(schedule, {
           ...schedule,
           matches: outcome.state.matches,
           ...(requestsChanged ? { requests } : {}),
-        };
+        });
       }
       if (outcome.state.result !== current.result) patch.result = outcome.state.result;
       if (outcome.state.evidence !== current.evidence) patch.evidence = outcome.state.evidence;
@@ -499,11 +507,28 @@ export async function refereeReleaseMatch(
 export async function refereeSubmit(
   eventId: string,
   credential: string,
-  input: { matchId: string; basedOnScheduleVersion: number; games: Parameters<typeof submitRefereeResultOp>[0]["games"]; evidenceIds?: string[] },
+  input: {
+    matchId: string;
+    basedOnScheduleVersion: number;
+    games: Parameters<typeof submitRefereeResultOp>[0]["games"];
+    evidenceIds?: string[];
+    /** 裁判端回传的「我看到的两队队名」，用于逐场前置条件校验（见 submitResultOp） */
+    expectedTeamAName?: string;
+    expectedTeamBName?: string;
+  },
 ) {
   return updateReportingState(eventId, (state) =>
     submitRefereeResultOp(
-      { credential, eventId, matchId: input.matchId, basedOnScheduleVersion: input.basedOnScheduleVersion, games: input.games, evidenceIds: input.evidenceIds },
+      {
+        credential,
+        eventId,
+        matchId: input.matchId,
+        basedOnScheduleVersion: input.basedOnScheduleVersion,
+        games: input.games,
+        evidenceIds: input.evidenceIds,
+        expectedTeamAName: input.expectedTeamAName,
+        expectedTeamBName: input.expectedTeamBName,
+      },
       state,
     ),
   );

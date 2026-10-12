@@ -15,6 +15,7 @@ import {
 } from "@/lib/scheduling/schedule-data";
 import {
   resolveCaptainRequestOp,
+  stampScheduleVersion,
   submitCaptainRequestOp,
   type CaptainRequestResult,
 } from "@/lib/scheduling/schedule-ops";
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
         proposedByTeamId: context.team.id,
       }, state.config);
       result = output.value ?? result;
-      return output.state;
+      return stampScheduleVersion(state, output.state);
     });
     return Response.json(result, { status: result.ok ? 200 : result.validation ? 409 : 400 });
   } catch {
@@ -94,7 +95,7 @@ export async function PATCH(request: NextRequest) {
         decision,
       }, state.config);
       result = output.value ?? result;
-      return output.state;
+      return stampScheduleVersion(state, output.state);
     });
     return Response.json(result, { status: result.ok ? 200 : result.validation ? 409 : 400 });
   } catch {

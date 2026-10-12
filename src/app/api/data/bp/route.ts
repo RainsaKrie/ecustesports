@@ -15,6 +15,7 @@ import {
   normalizeScheduleState,
   type ScheduleState,
 } from "@/lib/scheduling/schedule-data";
+import { stampScheduleVersion } from "@/lib/scheduling/schedule-ops";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -72,17 +73,19 @@ async function commitBPMaps(session: BPSession, eventId: string) {
     if (alreadyCommitted) return schedule;
     const notification = {
       id: `NT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      version: schedule.version,
+      // 通知描述的是**这一笔写入产生的新版本**，口径与 approveRequestOp / setMatchTimeOp 一致
+      version: schedule.version + 1,
       content: `【BP 完成】${match.id} ${match.teamAName} vs ${match.teamBName} 比赛地图：${session.finalMaps!.join("、")}。请裁判与双方确认后开赛。`,
       createdAt: new Date().toISOString(),
     };
-    return {
+    // 递增 version：见 schedule-ops.stampScheduleVersion 的写入契约
+    return stampScheduleVersion(schedule, {
       ...schedule,
       matches: schedule.matches.map((candidate) => candidate.id === session.matchId
         ? { ...candidate, bpMaps: session.finalMaps }
         : candidate),
       notifications: [notification, ...schedule.notifications],
-    };
+    });
   });
 }
 

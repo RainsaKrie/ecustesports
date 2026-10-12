@@ -83,12 +83,27 @@ export interface RPTMatch {
 export interface SubmitResultInput {
   matchId: string;
   refereeId: string;
+  /**
+   * 提交所基于的赛程版本号。
+   *
+   * **不再作为放行依据**（2026-10-12 起）：版本号是全局的，任何一场报分、BP 完成或改期
+   * 都会让它 +1，用它当门槛会让两名裁判同时报不同场次时互相拒掉。放行依据改为
+   * `submitResultOp` 里的**逐场前置条件**。这里保留它，只为了让提交记录留下
+   * 「这一份是基于哪一版赛程报的」，供管理端复核队列展示。
+   */
   basedOnScheduleVersion: number;
   games: ResultGame[];
   evidenceIds?: string[];
   source?: ResultSource;
   /** 稳定提交 ID；不传则由实现生成（幂等要求调用方重试时传同一 ID） */
   submissionId?: string;
+  /**
+   * 裁判端回传的「我看到的两队队名」，供 `submitResultOp` 做逐场前置条件校验。
+   *
+   * 两个都不传则不校验 —— 管理端复核裁决、受控更正走的是内部路径，没有这个上下文。
+   */
+  expectedTeamAName?: string;
+  expectedTeamBName?: string;
 }
 
 /** 是否强制复核的一场比赛 */

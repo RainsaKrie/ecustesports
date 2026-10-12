@@ -36,7 +36,12 @@ export interface ResultContext {
   matches: ScheduleMatch[];
   /** 赛果台账（提交记录 + 决策 + 版本计数器） */
   ledger: ResultLedger;
-  /** 当前有效赛程版本号（用于版本冲突判定） */
+  /**
+   * 当前赛程的版本号。
+   *
+   * **只用于记录**：写进提交与更正的审计字段 `ResultSubmission.basedOnScheduleVersion`。
+   * 不再参与冲突判定 —— 判定已改为逐场前置条件，理由见 `submitResultOp`。
+   */
   scheduleVersion: number;
   /** 裁判比赛分配关系 */
   assignments: MatchAssignment[];
@@ -120,10 +125,21 @@ export function computeDownstreamImpact(match: ScheduleMatch, matches: ScheduleM
 
 /**
  * 提交赛果。
- * - 不存在 / 版本过期 / 未分配 / 比分不合法 → 拒绝提交。
+ * - 不存在 / 对阵已变更 / 未分配 / 比分不合法 → 拒绝提交。
  * - 强制复核 → needs-review，不碰正式赛果。
  * - 非强制复核且规则一致 → accepted，当场更新正式赛果 + 晋级。
  * - 幂等：同提交 ID 重复提交返回原状态，不重复推进。
+ *
+ * ★ 放行条件自 2026-10-12 起是**逐场**的，不再比「整份文档的版本号必须完全相等」。
+ *   原条件与裁判真正关心的事不对应：版本号是**全局**的，别的场次报分、任何一场 BP 完成
+ *   或改期都会让它 +1，于是两名裁判同时报**不同**的场次会互相把对方拒掉 —— 而这两场
+ *   之间毫无关系。现行条件是：
+ *     · 比赛仍存在 —— 拦住「归档清空 / 重新导入」把这场换掉；
+ *     · 提交依据的对阵与当前一致（由裁判端回传 `expectedTeam*Name`）—— 拦住抽签重排后
+ *       `M01` 换了对手、而裁判页面上还是旧对阵的情况；两端都不传就不校验（管理端内部路径）。
+ *   `basedOnScheduleVersion` 仍然写进提交记录供复核队列展示，只是不再当门槛。
+ *   与之配套：`schedule.version` 现在由**所有**写入路径递增（见 `stampScheduleVersion`），
+ *   管理端的整份快照因此不再可能静默覆盖裁判已报的赛果。
  */
 export function submitResultOp(input: SubmitResultInput, ctx: ResultContext): ResultOpResult<SubmitValue> {
   const submissionId = input.submissionId ?? buildSubmissionId(input);
@@ -131,8 +147,16 @@ export function submitResultOp(input: SubmitResultInput, ctx: ResultContext): Re
   const match = ctx.matches.find((m) => m.id === input.matchId);
   if (!match) return { ok: false, error: "比赛不存在", code: "MATCH_NOT_FOUND" };
 
-  if (input.basedOnScheduleVersion !== ctx.scheduleVersion) {
-    return { ok: false, error: `赛程版本冲突：提交基于 v${input.basedOnScheduleVersion}，当前 v${ctx.scheduleVersion}`, code: "VERSION_CONFLICT" };
+  if (
+    input.expectedTeamAName !== undefined
+    && input.expectedTeamBName !== undefined
+    && (match.teamAName !== input.expectedTeamAName || match.teamBName !== input.expectedTeamBName)
+  ) {
+    return {
+      ok: false,
+      error: "这场比赛的对阵已经变更，请刷新后重新确认再报分",
+      code: "MATCH_CHANGED",
+    };
   }
 
   const assigned = ctx.assignments.some(

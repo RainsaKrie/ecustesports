@@ -1,5 +1,5 @@
 // =====================
-// POST /api/referee/submit —— 提交赛果（凭证推导身份；幂等；版本冲突 409）
+// POST /api/referee/submit —— 提交赛果（凭证推导身份；幂等；对阵变更 409）
 // =====================
 
 import type { NextRequest } from "next/server";
@@ -29,12 +29,23 @@ export async function POST(request: NextRequest) {
   const evidenceIds = Array.isArray(body.evidenceIds)
     ? body.evidenceIds.filter((x): x is string => typeof x === "string")
     : [];
+  // 裁判端所见对阵（逐场前置条件）：只做回传校验，不作为身份依据
+  const expectedTeamAName = text(body.expectedTeamAName, 80);
+  const expectedTeamBName = text(body.expectedTeamBName, 80);
 
   if (!eventId || !matchId) return Response.json({ message: "缺少赛事或比赛 ID" }, { status: 400 });
 
-  const result = await refereeSubmit(eventId, credential, { matchId, basedOnScheduleVersion, games, evidenceIds });
+  const result = await refereeSubmit(eventId, credential, {
+    matchId,
+    basedOnScheduleVersion,
+    games,
+    evidenceIds,
+    expectedTeamAName,
+    expectedTeamBName,
+  });
   if (!result.ok) {
-    const status = result.code === "VERSION_CONFLICT" ? 409 : 400;
+    // 对阵已变更是「先看后写」冲突，客户端需要刷新后重看，用 409 与校验失败区分开
+    const status = result.code === "MATCH_CHANGED" ? 409 : 400;
     return Response.json({ message: result.error }, { status });
   }
   return Response.json(result.value);
