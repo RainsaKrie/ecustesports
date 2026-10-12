@@ -1,22 +1,18 @@
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { getCommonRuleLibrary, saveCommonRuleLibrary } from "@/lib/rule-library";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   return Response.json({ rules: await getCommonRuleLibrary() });
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   try {
     const body = await request.json().catch(() => null);
     const raw = typeof body === "object" && body !== null ? body as Record<string, unknown> : {};

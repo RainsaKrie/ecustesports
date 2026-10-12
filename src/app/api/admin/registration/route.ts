@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import {
   approveAllPlayersAdminOp,
@@ -37,11 +37,6 @@ import { emptySchedule, normalizeScheduleState, bracketTeamIds, type ScheduleSta
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function isAdmin(request: NextRequest): boolean {
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  return verifySessionToken(token);
-}
 
 function text(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -195,7 +190,7 @@ function dispatch(
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
   const eventId = text(request.nextUrl.searchParams.get("eventId"), 60);
@@ -210,7 +205,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
   try {

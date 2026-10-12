@@ -1,17 +1,11 @@
 import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { getSiteConfig, saveSiteConfig } from "@/lib/site-config";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-// 路由级鉴权（仅写操作）。
-// 网关（src/proxy.ts）已拦未登录的写请求，这里是第二层纵深防御，见 SYS-04 审计报告第 3 节。
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
 
 /**
  * ⚠️ **GET 必须保持公开，不要给它加鉴权。**
@@ -28,7 +22,7 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   try {
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (contentLength > 200_000) {

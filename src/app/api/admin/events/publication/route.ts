@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { readEventData } from "@/lib/data-store";
 import { canPublish, publicationChecklist } from "@/lib/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
@@ -10,12 +10,8 @@ import { recordOperationAuditSafely } from "@/lib/operation-audit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isAdmin(request: NextRequest) {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   try {
     const body = await request.json() as Record<string, unknown>;
     const eventId = typeof body.eventId === "string" ? body.eventId.trim().slice(0, 60) : "";

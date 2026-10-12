@@ -7,7 +7,7 @@
 // =====================
 
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig } from "@/lib/scheduling/format-templates";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";
@@ -23,17 +23,12 @@ import type { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isAdmin(request: NextRequest): boolean {
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  return verifySessionToken(token);
-}
-
 function text(v: unknown, max = 500): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
   try {
@@ -122,7 +117,7 @@ function dateText(value: unknown): string | null {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
 
@@ -294,7 +289,7 @@ class EventDeleteError extends Error {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
 

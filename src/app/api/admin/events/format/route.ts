@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { getCommonRuleLibrary } from "@/lib/rule-library";
 import { readEventData } from "@/lib/data-store";
@@ -15,10 +15,6 @@ import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-dat
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 function toStageConfigs(templateStages: Array<{
   name: string; type: StageConfig["type"]; teamCount: number; groupCount?: number; boType: StageConfig["boType"];
 }>): StageConfig[] {
@@ -32,7 +28,7 @@ function toStageConfigs(templateStages: Array<{
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
   try {

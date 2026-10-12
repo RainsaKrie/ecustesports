@@ -2,11 +2,11 @@
 // 管理员异常赛果工作台（RPT-06）
 // GET  /api/admin/review?eventId=xx  —— 读异常队列（needs-review 提交投影）
 // POST /api/admin/review             —— 裁决（resolve）/ 受控更正（correct）
-// 鉴权复用管理员 session（verifySessionToken），不新造身份。
+// 鉴权复用管理员 session（isAdminRequest@/lib/auth），不新造身份。
 // =====================
 
 import type { NextRequest } from "next/server";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import {
   adminReviewData,
   adminResolveReview,
@@ -15,10 +15,6 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
 
 function text(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -29,14 +25,14 @@ function bodyObject(value: unknown): Record<string, unknown> {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   const eventId = text(request.nextUrl.searchParams.get("eventId"), 60);
   if (!eventId) return Response.json({ message: "缺少赛事 ID" }, { status: 400 });
   return Response.json(await adminReviewData(eventId));
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   try {
     const body = bodyObject(await request.json().catch(() => null));
     const eventId = text(body.eventId, 60);

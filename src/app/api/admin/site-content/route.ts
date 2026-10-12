@@ -2,19 +2,14 @@ import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { eventDescriptionIssue, footerStatusIssue } from "@/lib/site-content-limits";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// 路由级鉴权。网关已拦未登录写请求，这里是第二层纵深防御，见 SYS-04 审计报告第 3 节。
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 export async function PATCH(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   try {
     const body = await request.json() as { eventId?: string; description?: string; footerStatus?: string };
     const eventId = String(body.eventId ?? "").trim();

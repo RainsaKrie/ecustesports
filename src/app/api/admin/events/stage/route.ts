@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { publicationChecklist } from "@/lib/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
@@ -16,10 +16,6 @@ class StageTransitionError extends Error {
   }
 }
 
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 type StageAction = "open-registration" | "close-registration" | "complete-event";
 
 function isStageAction(value: unknown): value is StageAction {
@@ -27,7 +23,7 @@ function isStageAction(value: unknown): value is StageAction {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
 

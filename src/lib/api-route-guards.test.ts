@@ -14,6 +14,16 @@
 // 它证明不了「没有漏登记的」。现在改成**每个管理端写路由都必须登记留痕归属**
 // （operation_audit / 领域台账 / 显式豁免），只登记不实现同样会红。
 //
+// 2026-10-12 第三次收紧（组 1）：原来只断言「路由里出现了鉴权调用」，管不了**被调用的东西是否真在校验**
+// —— 实测把 `isAdmin` 的函数体改成 `return true`，整套守卫仍全绿。现在：
+//   ① 管理端写路由**不许自写鉴权函数**（原先 12 个文件各写了一份 `function isAdmin`）；
+//   ② 那份判断只有一份实现 —— `src/lib/auth.ts` 的 `isAdminRequest`；
+//   ③ 它的函数体必须把 `verifySessionToken` 的结论**返回**（不能恒真、不能带旁路）。
+// 边界：`src/proxy.ts` 与 `data/*` 等处的「管理员会话判断」仍直接调 `verifySessionToken` ——
+// 那是**同一个底层函数**的不同调用形态，不是第二份实现，故不在禁止之列。
+//
+// ★ 三次收紧是同一件事的三个层次：**先证明「用了」，再证明「真的在调用」，最后证明「被调用的算数」。**
+//
 // 这类测试断言的是**架构约束**（哪些文件必须包含什么调用），不是实现细节，
 // 所以用静态读源码的方式是合适的；代价是重构时可能需同步调整本文件。
 //
@@ -55,16 +65,24 @@ const methodsOf = (text: string): string[] =>
 /**
  * 判断路由是否**真的调用了**鉴权。
  *
- * ⚠️ 这里必须先剔除本地函数定义再找引用 —— 本文件第一版只检查"是否出现 isAdmin 这个名字"，
- * 结果**测不出"删掉鉴权调用但保留函数定义"这种回退**（变异验证时发现测试恒真）。
- * 教训：断言"用了某能力"时，不能只看名字存在，要看调用真的发生。
+ * ⚠️ 这里踩过两次坑，都是靠变异验证发现的：
+ *  ① 第一版只检查「是否出现 `isAdmin` 这个名字」——测不出「删掉调用但保留函数定义」；
+ *  ② 第二版会先剥掉本地函数定义再找调用，但**管不了函数体本身**。2026-10-12 实测：
+ *     把 `site-config` 的 `isAdmin` 改成 `return true`，整套守卫（28 项 + 9 组）**仍全绿**。
+ *
+ * → 所以 2026-10-12 起改成「**共享实现 + 单一调用形态**」：路由里不许再自己写鉴权函数
+ *   （组1 断言），只能调 `@/lib/auth` 的 `isAdminRequest(...)`（或既有的 `verifySessionToken(...)` 形态）；
+ *   「共享实现真的在验签」由组1 最后一条断言锁住。这样「改错一处」在结构上不可能再只改到一份。
+ *
+ * 教训：断言「用了某能力」时，不能只看名字存在，也不能只看调用发生 ——
+ * **还要能说出那个被调用的东西凭什么算数**。
  */
 function hasRouteAuth(text: string): boolean {
   const withoutLocalDefinition = text.replace(
-    /function\s+isAdmin\s*\([^)]*\)\s*:\s*boolean\s*\{[\s\S]*?\n\}/,
+    /function\s+isAdmin\s*\([^)]*\)\s*(?::\s*boolean)?\s*\{[\s\S]*?\n\}/,
     "",
   );
-  return /\bisAdmin\s*\(|\bverifySessionToken\s*\(/.test(withoutLocalDefinition);
+  return /\bisAdminRequest\s*\(|\bverifySessionToken\s*\(/.test(withoutLocalDefinition);
 }
 const hasAudit = (text: string) => /recordOperationAuditSafely\s*\(/.test(text);
 
@@ -227,9 +245,35 @@ for (const key of adminWriteRoutes) {
 assert.deepEqual(
   withoutAuth,
   [],
-  `以下管理员写路由缺少路由级鉴权（应加 isAdmin/verifySessionToken，或登记到 AUTH_EXEMPT 并说明理由）：\n  ${withoutAuth.join("\n  ")}`,
+  `以下管理员写路由缺少路由级鉴权（应调 isAdminRequest/verifySessionToken，或登记到 AUTH_EXEMPT 并说明理由）：\n  ${withoutAuth.join("\n  ")}`,
 );
 console.log(`  ✓ ${adminWriteRoutes.length} 个管理员写路由全部满足（其中 ${AUTH_EXEMPT.size} 个显式豁免）`);
+
+// —— 2026-10-12 新增（把「鉴权实现」本身也变成可断言的）——
+// 上面那条只保证「路由里出现了鉴权调用」，管不了**被调用的东西是否真的在校验**：
+// 实测把 `isAdmin` 的函数体改成 `return true`，整套守卫仍然全绿。所以补两条：
+//   ① 路由不许再自写鉴权函数（判断只有一份实现）；
+//   ② 那份共享实现必须真的验签（不能恒真、不能带旁路）。
+const selfWrittenAuth = adminWriteRoutes.filter((key) => {
+  const text = source.get(path.join(process.cwd(), "src", "app", ...key.split("/").filter(Boolean), "route.ts"));
+  return /function\s+isAdmin\s*\(/.test(text ?? "");
+});
+assert.deepEqual(
+  selfWrittenAuth,
+  [],
+  "管理端写路由不得再自写鉴权函数 —— 这份判断现在只有一份实现（`src/lib/auth.ts` 的 `isAdminRequest`），"
+    + `请改为 \`import { isAdminRequest } from "@/lib/auth"\`：\n  ${selfWrittenAuth.join("\n  ")}`,
+);
+
+const authSource = readFileSync(path.join(process.cwd(), "src", "lib", "auth.ts"), "utf8");
+const helperBody = /export\s+function\s+isAdminRequest[\s\S]*?\n\}/.exec(authSource)?.[0] ?? "";
+assert.ok(helperBody.length > 0, "应能取到 `src/lib/auth.ts` 里 `isAdminRequest` 的定义");
+assert.match(
+  helperBody,
+  /return\s+verifySessionToken\s*\(/,
+  `isAdminRequest 必须直接把 verifySessionToken 的结论返回，不能改成恒真或带旁路。实际定义：\n${helperBody}`,
+);
+console.log("  ✓ 管理端写路由均不自写鉴权函数；共享实现 isAdminRequest 确实在验签");
 
 // ---------------------------------------------------------------
 console.log("== 组2 · 公开写路由必须登记自鉴权方式，且真的实现了 ==");

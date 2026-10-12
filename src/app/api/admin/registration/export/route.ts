@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { readEventData } from "@/lib/data-store";
 import {
   initialRegistration,
@@ -11,10 +11,6 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 /** CSV 字段转义：含逗号、引号或换行时用双引号包裹，内部双引号翻倍。 */
 function csvEscape(value: string): string {
   if (/[",\r\n]/.test(value)) {
@@ -24,7 +20,7 @@ function csvEscape(value: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
   const eventId = request.nextUrl.searchParams.get("eventId")?.trim() ?? "";

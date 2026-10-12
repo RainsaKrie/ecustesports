@@ -5,6 +5,7 @@
 // =====================
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import type { NextRequest } from "next/server";
 import { isHostedRuntime } from "@/lib/deployment";
 
 export const SESSION_COOKIE_NAME = "admin_session";
@@ -59,4 +60,21 @@ export function verifySessionToken(token: string | undefined | null): boolean {
   if (!safeEqual(signature, sign(payload))) return false;
   const expiresAt = Number(payload);
   return Number.isFinite(expiresAt) && expiresAt > Date.now();
+}
+
+/**
+ * 路由级管理员校验：从请求 cookie 取会话 token 并验签。
+ *
+ * 网关（`src/proxy.ts`）已拦下未登录的写请求，这里每个写路由再查一次，是**第二层纵深防御**
+ * （见 `docs/10-后续开发规划/14-SYS-04高风险操作审计与安全补齐_v1.0.md` 第 3 节）。
+ *
+ * ★ 为什么收进这里（2026-10-12）：这段判断原本在 **12 个**管理端路由文件里各写了一份
+ * `function isAdmin(request)`。十二份拷贝不会互相走偏，却会被**分别修改**；更要紧的是，
+ * 守卫测试当时只认「路由里出现了 `isAdmin` 这个名字」，认不出某个文件把它改成了
+ * `return true`——该盲区已由变异实测证实（把函数体改成恒真，整套守卫仍全绿）。
+ * 收成一份之后，「改错一处」在结构上不可能再发生，守卫也变得可断言。
+ * 守卫见 `src/lib/api-route-guards.test.ts` 组 0。
+ */
+export function isAdminRequest(request: NextRequest): boolean {
+  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
 }

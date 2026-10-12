@@ -1,21 +1,13 @@
 import type { NextRequest } from "next/server";
 import { AssetValidationError, uploadEventImage } from "@/lib/asset-store";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// 路由级鉴权。
-// 网关（src/proxy.ts）已拦未登录的写请求，这里是**第二层**：纵深防御。
-// 理由见 SYS-04 审计报告第 3 节 —— 只靠网关时，一旦 matcher 或路径前缀被改动，
-// 保护会静默失效；两层则网关出问题时仍能自保。与本目录其余管理员路由保持一致。
-function isAdmin(request: NextRequest): boolean {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-}
-
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
+  if (!isAdminRequest(request)) return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   try {
     const formData = await request.formData();
     const file = formData.get("file");
