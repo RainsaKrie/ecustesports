@@ -307,7 +307,7 @@ const token=exp+"."+createHmac("sha256",S).update(exp).digest("hex");
 
 ## 立即开始
 
-**当前阶段（2026-09-17）：Gate 7 已完成，生产已上线运行，等待 10.7 开赛。**
+**当前阶段（2026-10-12）：Gate 7 已完成，生产已上线运行，赛事进行中（10.7–11.8）。**
 
 > **负责人已明确表态的三件事（不要再提、不要排进待办）**：
 > ① **催报名/催满编** —— 不需要 AI 介入，**不要主动提起**；
@@ -315,6 +315,15 @@ const token=exp+"."+createHmac("sha256",S).update(exp).digest("hex");
 > ③ **Vercel 部署状态** —— 已 Ready。
 
 ### 需要负责人做（AI 做不到）
+
+0. **跑一次生产数据导出（唯一「不做可能永久丢东西」的一项，比赛期间就该做）**：
+   Supabase 免费版没有自动备份，库里那份就是唯一一份，而赛果是当场逐场录进去的、丢了没有第二份可对。
+   命令与校验步骤见 `docs/08-MVP开发/Gate7-正式域名与生产环境上线清单.md` 阶段 8 ——
+   `npm run ops:backup -- --event=event-1 D:\ecust-backups\<日期>.json`，随后
+   `npm run ops:verify-backup -- <那个文件>`（后者不连库、不要凭据，比赛期间随时能跑）。
+   **AI 无法代为执行**：本机解析不了 `onummocuvkecvlpvcbly.supabase.co`（ENOTFOUND），
+   而同一批查询里 `supabase.co` / `api.github.com` / `ecustesports.top` 都正常 ——
+   是这台机器到不了那个库，不是缺凭据。
 
 1. **建裁判账号**（**这件事已经到期**：原写的是「开赛前做即可」，而 10.7 已开赛、今天 10.12）：
    裁判报分开关已启用、私有桶已就绪、RPT-07 验收已通过，**只差账号**。
