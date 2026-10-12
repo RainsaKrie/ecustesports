@@ -10,6 +10,10 @@
 // 不在检查范围内。现在枚举全部 API 路由，并新增一份**冻结的写路由清单** ——
 // 新增或删除任何写路由都会让组 0 变红，逼作者显式登记它的鉴权方式。
 //
+// 2026-10-12 再补（组 5）：原来「哪些路由必须有留痕」是一份手写的 9 个文件清单，
+// 它证明不了「没有漏登记的」。现在改成**每个管理端写路由都必须登记留痕归属**
+// （operation_audit / 领域台账 / 显式豁免），只登记不实现同样会红。
+//
 // 这类测试断言的是**架构约束**（哪些文件必须包含什么调用），不是实现细节，
 // 所以用静态读源码的方式是合适的；代价是重构时可能需同步调整本文件。
 //
@@ -290,33 +294,138 @@ for (const key of sessionGuarded) {
 console.log(`  ✓ ${sessionGuarded.length} 个路由靠代理层会话保护，且路由内均有二次校验`);
 
 // ---------------------------------------------------------------
-console.log("== 组5 · 高风险写路由必须有审计（缺口 B） ==");
+console.log("== 组5 · 管理端写路由必须登记「留痕在哪一层」（缺口 B） ==");
 
-/** 高风险清单：这些操作会改动跨赛事生效或影响官网公开内容，必须可归因 */
-const MUST_AUDIT = [
-  "src/app/api/admin/events/route.ts",
-  "src/app/api/admin/events/publication/route.ts",
-  "src/app/api/admin/events/stage/route.ts",
-  "src/app/api/admin/events/format/route.ts",
-  "src/app/api/admin/events/switch/route.ts",
-  "src/app/api/admin/rule-library/route.ts",
-  "src/app/api/admin/site-config/route.ts",
-  "src/app/api/admin/site-content/route.ts",
-  "src/app/api/admin/upload/route.ts",
+/**
+ * 缺口 B 的根因是「**新增路由时没人提醒要留痕**」。
+ *
+ * 这一组原来是一份手写的 9 个文件清单 —— 它能证明「登记过的这些确实有留痕」，
+ * 但**证明不了「没有漏登记的」**：新加一个高风险管理端写路由，这份清单不会有任何反应。
+ * （组0 的冻结清单只逼人登记**鉴权**归属，不管留痕。）
+ *
+ * 改为：**每个管理端写路由都必须恰好落在三张表之一**，并且每张表都用真实调用做断言 ——
+ * 只登记不实现同样会红。
+ *   ① `operation_audit` —— 粗粒度管理员动作
+ *   ② 领域台账 —— 细粒度、带 reason 与前后状态（两套台账分处不同位置，是刻意的：见 doc14 §4）
+ *   ③ 显式豁免 —— 必须写明为什么不需要留痕
+ *
+ * ★ 三层之外的管理端写路由会让本组变红：请先想清楚它的留痕归属，再补进对应的表。
+ */
+const OPERATION_AUDIT_ROUTES: string[] = [
+  "/api/admin/login", // 登录成功与失败都留痕
+  "/api/admin/events",
+  "/api/admin/events/format",
+  "/api/admin/events/publication",
+  "/api/admin/events/stage",
+  "/api/admin/events/switch",
+  "/api/admin/rule-library",
+  "/api/admin/site-config",
+  "/api/admin/site-content",
+  "/api/admin/upload",
 ];
 
+/**
+ * 第 ② 层：领域台账。
+ *
+ * `markers` **必须写成调用形态（以 `(` 结尾）** —— 这是硬要求，下面有断言。
+ * 原因：只写函数名的话，`import { adminResetCredential } from "..."` 这一行就足以让
+ * `includes` 通过 —— 于是「调用被删掉、import 还留着」的回归查不出来。
+ * 带上 `(` 之后，import 行匹配不上，只有真的调用才匹配得上。
+ */
+const DOMAIN_LEDGER_ROUTES: Array<{ route: string; ledger: string; markers: string[] }> = [
+  {
+    route: "/api/admin/registration",
+    ledger: "名单台账 operationLogs（服务端强制 reason，带前后状态）",
+    markers: ["AdminOp("],
+  },
+  {
+    route: "/api/admin/review",
+    ledger: "赛果台账（actorType / actorId / reason / 版本）",
+    markers: ["adminResolveReview(", "adminCorrectResult("],
+  },
+  {
+    route: "/api/admin/referees",
+    ledger: "裁判台账 referee-ledger.audit（create / disable / reset-credential / assign / revoke）",
+    markers: ["adminCreateReferee(", "adminResetCredential("],
+  },
+];
+
+/** 第 ③ 层：显式豁免。写在这里是为了让「不需要留痕」是一个可见的决定。 */
+const TRACE_EXEMPT = new Map<string, string>([
+  ["/api/admin/logout", "只清调用者自己的会话 cookie，无副作用；未登录调用也应正常返回"],
+]);
+
+const adminWriteRoutePaths = [...actualWriteRoutes.keys()].filter((p) => p.startsWith("/api/admin"));
+const routeFileOf = (key: string) =>
+  path.join(process.cwd(), "src", "app", ...key.split("/").filter(Boolean), "route.ts");
+
+const traceUnexplained = adminWriteRoutePaths.filter(
+  (p) =>
+    !OPERATION_AUDIT_ROUTES.includes(p)
+    && !DOMAIN_LEDGER_ROUTES.some((d) => d.route === p)
+    && !TRACE_EXEMPT.has(p),
+);
+assert.deepEqual(
+  traceUnexplained,
+  [],
+  "以下管理端写路由没有登记留痕归属。请判断它属于哪一层，再补进 OPERATION_AUDIT_ROUTES /"
+    + ` DOMAIN_LEDGER_ROUTES / TRACE_EXEMPT：\n  ${traceUnexplained.join("\n  ")}`,
+);
+
+// 同一路由登记两层 = 清单没说清，也会让人误判「两处都有」
+const duplicated = adminWriteRoutePaths.filter((p) => {
+  const inAudit = OPERATION_AUDIT_ROUTES.includes(p);
+  const inLedger = DOMAIN_LEDGER_ROUTES.some((d) => d.route === p);
+  const inExempt = TRACE_EXEMPT.has(p);
+  return (inAudit ? 1 : 0) + (inLedger ? 1 : 0) + (inExempt ? 1 : 0) > 1;
+});
+assert.deepEqual(duplicated, [], `以下路由被登记在多层，请只留一层：\n  ${duplicated.join("\n  ")}`);
+
 const missingAudit: string[] = [];
-for (const key of MUST_AUDIT) {
-  const text = source.get(path.join(process.cwd(), key));
-  if (text === undefined) { missingAudit.push(`${key}（文件不存在）`); continue; }
-  if (!hasAudit(text)) missingAudit.push(key);
+for (const key of OPERATION_AUDIT_ROUTES) {
+  assert.ok(actualWriteRoutes.has(key), `${key} 登记在 OPERATION_AUDIT_ROUTES 里，但它已不是写路由`);
+  const text = source.get(routeFileOf(key));
+  assert.ok(text, `应能取到 ${key} 的源码`);
+  if (!hasAudit(text!)) missingAudit.push(key);
 }
 assert.deepEqual(
   missingAudit,
   [],
-  `以下高风险写路由缺少审计调用 recordOperationAuditSafely：\n  ${missingAudit.join("\n  ")}`,
+  `以下路由登记为「走 operation_audit」，但源码里没有 recordOperationAuditSafely：\n  ${missingAudit.join("\n  ")}`,
 );
-console.log(`  ✓ ${MUST_AUDIT.length} 个高风险写路由均已接入审计`);
+
+const missingMarkers: string[] = [];
+for (const spec of DOMAIN_LEDGER_ROUTES) {
+  assert.ok(spec.ledger.trim().length > 10, `${spec.route} 必须写明台账位置`);
+  assert.ok(spec.markers.length > 0, `${spec.route} 必须给出至少一个调用标记`);
+  const text = source.get(routeFileOf(spec.route));
+  assert.ok(text, `应能取到 ${spec.route} 的源码`);
+  for (const marker of spec.markers) {
+    // 标记必须是调用形态 —— 否则 import 行就能蒙混过关（见 DOMAIN_LEDGER_ROUTES 的说明）
+    assert.ok(
+      marker.endsWith("("),
+      `${spec.route} 的标记 ${JSON.stringify(marker)} 必须是调用形态（以 ( 结尾），否则 import 行会让它恒真`,
+    );
+    if (!text!.includes(marker)) missingMarkers.push(`${spec.route} 应调用 ${marker}`);
+  }
+}
+assert.deepEqual(
+  missingMarkers,
+  [],
+  `以下路由登记为「走领域台账」，但源码里找不到对应调用（登记与实际不符）：\n  ${missingMarkers.join("\n  ")}`,
+);
+
+for (const [key, reason] of TRACE_EXEMPT) {
+  assert.ok(reason.trim().length > 10, `${key} 的豁免必须写明理由`);
+  assert.ok(actualWriteRoutes.has(key), `${key} 登记为豁免，但它已不是写路由`);
+}
+assert.ok(TRACE_EXEMPT.size <= 2, `豁免项过多（${TRACE_EXEMPT.size}）—— 豁免应当是例外，不是默认`);
+
+console.log(
+  `  ✓ ${adminWriteRoutePaths.length} 个管理端写路由全部登记了留痕归属`
+    + `（operation_audit ${OPERATION_AUDIT_ROUTES.length} · 领域台账 ${DOMAIN_LEDGER_ROUTES.length}`
+    + ` · 豁免 ${TRACE_EXEMPT.size}），且登记与源码一致`,
+);
 
 // ---------------------------------------------------------------
 console.log("== 组6 · 审计不得记录敏感原文 ==");
