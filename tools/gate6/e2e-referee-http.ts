@@ -23,11 +23,15 @@
 //     互相咬合（赛果写进赛程、凭证挂到提交、版本递增），凭证落私有目录而非 public/uploads
 //   · 边界：未分配 → 401、自助认领、BO3 局数不足 → 400、缺赛事 ID → 400、
 //     对阵已变更 → 409、重复提交幂等（不新增台账、不递增版本）
+//   · ★ 管理端建账号 → 那个一次性凭证立刻能用，且新账号看不到别人被分配的比赛。
+//     这是上线时负责人真正会点的那条路（文档里「RPT-07 只差账号」说的就是它），
+//     而它原先完全没被自动化覆盖过 —— 前面几节用的都是播种好的演示裁判。
 //
 // ── 不覆盖（别用「全部通过」含糊掉范围）──────────────────────
 //   · 生产 Supabase 后端（本脚本只跑本地 file 后端）
 //   · 视觉模型识图（/referee/recognize 只验鉴权那一层，不发模型请求）
 //   · 浏览器里的裁判工作台界面
+//   · 管理端「裁判管理」页面的界面本身（这里只打它的 API）
 //
 // ── 现场隔离 ────────────────────────────────────────────────
 //   用到本地演示赛事 `demo-referee`（由 seedDemoReporting 播种，代码里禁止在托管环境播种）。
@@ -288,6 +292,56 @@ function getJson(pathname: string, credential?: string): Promise<Res> {
     `${BASE}${pathname}`,
     credential ? { headers: { "x-referee-credential": credential } } : {},
   );
+}
+
+/**
+ * 本地回退的管理端口令：**从代码里读，不在脚本里存第二份**。
+ *
+ * 存第二份的后果是它会悄悄漂移 —— 代码里换了值，脚本还拿旧值去登，
+ * 报出来的却是「管理员登录失败」，看起来像登录坏了。这里直接读 `auth.ts` 里
+ * `requiredHostedSecret("ADMIN_PASSWORD", "<本地回退值>", 12)` 的第二个参数，
+ * 于是只有一处真源。
+ */
+function readLocalAdminPassword(): string {
+  const source = readFileSync(path.join(ROOT, "src", "lib", "auth.ts"), "utf8");
+  const match = source.match(/requiredHostedSecret\(\s*"ADMIN_PASSWORD"\s*,\s*"([^"]+)"/);
+  if (!match) {
+    throw new Error("没能从 src/lib/auth.ts 读到本地回退的管理端口令（那一段被改过？）");
+  }
+  return match[1];
+}
+
+/** 管理员登录，返回可以回放的会话 cookie。 */
+async function adminLogin(password: string): Promise<string> {
+  const response = await fetch(`${BASE}/api/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`管理员登录失败 HTTP ${response.status}`);
+  // getSetCookie 在 Node 的 undici 上有、但类型定义不一定声明，故显式标注
+  const headers = response.headers as Headers & { getSetCookie?: () => string[] };
+  const raw = typeof headers.getSetCookie === "function"
+    ? headers.getSetCookie()
+    : [response.headers.get("set-cookie") ?? ""];
+  const session = raw.map((entry) => entry.split(";")[0]).find((entry) => entry.startsWith("admin_session="));
+  if (!session) throw new Error("管理员登录返回成功，但没有下发会话 cookie");
+  return session;
+}
+
+/** 带管理员会话调管理接口。 */
+function postAdmin(pathname: string, payload: unknown, cookie: string): Promise<Res> {
+  return call(`${BASE}${pathname}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(payload),
+  });
+}
+
+function getAdmin(pathname: string, cookie: string): Promise<Res> {
+  return call(`${BASE}${pathname}`, { headers: { Cookie: cookie } });
 }
 
 /**
@@ -564,10 +618,72 @@ async function main() {
   check("重复提交没有多写一条台账", afterDup.length === 1, `共 ${afterDup.length} 条`);
   const versionAfterDup = (readLocalDoc("schedule").version ?? -1) as number;
   check("重复提交没有递增赛程版本（幂等命中不产生写入）", versionAfterDup === versionBeforeDup, `${versionBeforeDup} → ${versionAfterDup}`);
+
+  // ── 5. 管理端建账号 → 裁判端立刻能用 ─────────────────────
+  console.log("");
+  console.log("== 5. ★ 管理端建账号 → 那个凭证立刻能用（上线时真正要走的路径） ==");
+  console.log("   （前面几节用的是播种好的演示裁判。这一节走的是负责人真实会点的那条路：");
+  console.log("     后台建账号、当场抄下只显示一次的凭证、交给裁判。）");
+
+  const adminCookie = await adminLogin(readLocalAdminPassword());
+  check("管理员登录成功", adminCookie.startsWith("admin_session="), adminCookie.slice(0, 20));
+
+  const before = await getAdmin(`/api/admin/referees?eventId=${EVENT}`, adminCookie);
+  const beforeCount = ((before.body.referees ?? []) as unknown[]).length;
+  check("裁判列表可读", before.status === 200, `HTTP ${before.status} ${before.raw.slice(0, 100)}`);
+
+  const created = await postAdmin("/api/admin/referees", {
+    eventId: EVENT,
+    action: "create",
+    payload: { displayName: "端到端裁判" },
+  }, adminCookie);
+  const newRefereeId = typeof created.body.refereeId === "string" ? created.body.refereeId : "";
+  const newCredential = typeof created.body.credential === "string" ? created.body.credential : "";
+  check("建账号成功", created.status === 200 && newRefereeId.length > 0, `HTTP ${created.status} ${created.raw.slice(0, 120)}`);
+  check(
+    "返回了一次性凭证，且长度够（服务端要求 ≥20）",
+    newCredential.length >= 20,
+    `长度 ${newCredential.length}`,
+  );
+  check(
+    "★ 这条凭证从不出现在台账里（台账只存哈希）",
+    !readFileSync(path.join(EVENT_DIR, "referee-ledger.json"), "utf8").includes(newCredential),
+  );
+
+  const newLogin = await postJson("/api/referee/login", { eventId: EVENT, credential: newCredential });
+  check("★ 刚建的凭证可以立刻登录", newLogin.status === 200 && newLogin.body.ok === true, `HTTP ${newLogin.status} ${newLogin.raw.slice(0, 100)}`);
+
+  const newMine = await getJson(`/api/referee/matches?eventId=${EVENT}`, newCredential);
+  const newMatchIds = ((newMine.body.matches ?? []) as Array<{ matchId?: string }>).map((m) => m.matchId ?? "?");
+  check("新账号的「我的比赛」是空的", newMine.status === 200 && newMatchIds.length === 0, newMatchIds.join(", "));
+  check(
+    "★ 看不到别人被分配的比赛（M-R1 不属于它）",
+    !newMatchIds.includes("M-R1"),
+    newMatchIds.join(", "),
+  );
+
+  const assigned = await postAdmin("/api/admin/referees", {
+    eventId: EVENT,
+    action: "assign",
+    payload: { refereeId: newRefereeId, matchId: "M-R3" },
+  }, adminCookie);
+  check("管理端指派一场给新账号", assigned.status === 200, `HTTP ${assigned.status} ${assigned.raw.slice(0, 120)}`);
+
+  const afterAssign = await getJson(`/api/referee/matches?eventId=${EVENT}`, newCredential);
+  const afterIds = ((afterAssign.body.matches ?? []) as Array<{ matchId?: string }>).map((m) => m.matchId ?? "?");
+  check("指派的 M-R3 出现在它的列表里", afterIds.includes("M-R3"), afterIds.join(", "));
+  check("仍然看不到 M-R1", !afterIds.includes("M-R1"), afterIds.join(", "));
+
+  const listed = await getAdmin(`/api/admin/referees?eventId=${EVENT}`, adminCookie);
+  const afterCount = ((listed.body.referees ?? []) as unknown[]).length;
+  check("裁判列表里多了一个人", afterCount === beforeCount + 1, `${beforeCount} → ${afterCount}`);
+
+  const unauthed = await call(`${BASE}/api/admin/referees?eventId=${EVENT}`);
+  check("没带会话读裁判列表 → 401", unauthed.status === 401, `HTTP ${unauthed.status}`);
 }
 
 // ────────────────────────────────────────────────────────────
-// 7. 收尾与现场还原
+// 6. 收尾与现场还原
 // ────────────────────────────────────────────────────────────
 
 void main()
@@ -577,7 +693,7 @@ void main()
   })
   .finally(() => {
     console.log("");
-    console.log("== 5. 收尾与现场还原 ==");
+    console.log("== 6. 收尾与现场还原 ==");
     stopServer();
 
     // 先停 server 再还原 tsconfig：Next 启动时会往 include 里加构建目录的类型路径
