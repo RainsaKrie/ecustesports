@@ -1,19 +1,14 @@
-import { EsportEvent, Team, Match, Player, BPSession } from "@/types";
-import { VALORANT_MAPS, DEFAULT_BP_ORDER } from "./maps";
+import { EsportEvent, Team, Match } from "@/types";
 
 // =====================
-// 选手 Mock 数据
+// 站点配置缺失时的兜底赛事定义。
+//
+// 注意：这里只有 `mockEvent` 是对外契约（`configured-events.ts` 在站点配置为空时用它兜底），
+// 其余都只是它的构建材料，因此不再导出 —— 之前对外暴露的 mockTeams / mockPlayers /
+// mockMatches / mockBPSession 与两个查找函数全仓库无人引用。
+//
+// 文件名带 mock 但用途是真实兜底配置，读到这里请以本注释为准。
 // =====================
-const PLAYER_NAMES = [
-  "Shadow", "Riot", "Phoenix", "Sage", "Jett", "Reyna", "Omen", "Cypher",
-  "Sova", "Killjoy", "Breach", "Brimstone", "Viper", "Astra", "KAYO", "Chamber",
-  "Neon", "Fade", "Harbor", "Gekko", "Deadlock", "Iso", "Clove", "Vyse",
-  "Tejo", "Waylay", "Kamikaze", "Sniper", "Blaze", "Frost", "Storm", "Thunder",
-  "Lightning", "Tornado", "Earthquake", "Volcano", "Tsunami", "Avalanche",
-  "Mirage", "Specter", "Phantom", "Ghost", "Wraith", "Ninja", "Samurai",
-  "Ronin", "Shogun", "Dragon", "Tiger", "Crane", "Mantis", "Scorpion",
-  "Viper2", "Falcon", "Eagle", "Hawk", "Wolf", "Bear", "Lion", "Panther",
-];
 
 const TEAM_NAMES = [
   "星辰电竞", "暗影战队", "烈焰先锋", "寒冰之刃", "雷霆万钧", "风暴联盟", "极光战队", "深渊之怒",
@@ -54,23 +49,6 @@ function generateTeams(): Team[] {
     });
   }
   return teams;
-}
-
-// 生成选手
-function generatePlayers(): Player[] {
-  const players: Player[] = [];
-  for (let i = 0; i < 160; i++) {
-    const teamIndex = Math.floor(i / 5);
-    players.push({
-      id: `player-${i + 1}`,
-      nickname: PLAYER_NAMES[i % PLAYER_NAMES.length] + (i >= PLAYER_NAMES.length ? Math.floor(i / PLAYER_NAMES.length) : ""),
-      gameId: `gameId_${i + 1}`,
-      qq: `10000${i + 1}`,
-      teamId: `team-${teamIndex + 1}`,
-      registeredAt: `2026-07-0${(teamIndex % 9) + 1}T10:00:00Z`,
-    });
-  }
-  return players;
 }
 
 // 生成单败淘汰赛对阵
@@ -143,13 +121,8 @@ function generateBracket(teamCount: number): Match[] {
   return matches;
 }
 
-// =====================
-// 导出 Mock 数据
-// =====================
-
-export const mockTeams = generateTeams();
-export const mockPlayers = generatePlayers();
-export const mockMatches = generateBracket(32);
+const mockTeams = generateTeams();
+const mockMatches = generateBracket(32);
 
 export const mockEvent: EsportEvent = {
   id: "event-1",
@@ -181,32 +154,3 @@ export const mockEvent: EsportEvent = {
   matches: mockMatches,
   teams: mockTeams,
 };
-
-// BP Mock 会话
-export const mockBPSession: BPSession = {
-  id: "bp-session-1",
-  matchId: "match-r2-m5",
-  eventId: "event-1",
-  teamAId: "team-17",
-  teamBId: "team-19",
-  banPickOrder: DEFAULT_BP_ORDER,
-  actions: [
-    { id: "bp-1", action: "ban", teamId: "team-17", mapId: "bind", timestamp: "2026-08-06T14:00:00Z" },
-    { id: "bp-2", action: "ban", teamId: "team-19", mapId: "haven", timestamp: "2026-08-06T14:00:30Z" },
-    { id: "bp-3", action: "ban", teamId: "team-17", mapId: "split", timestamp: "2026-08-06T14:01:00Z" },
-  ],
-  currentStep: 3,
-  status: "in-progress",
-  mapPool: VALORANT_MAPS,
-};
-
-// 根据 ID 查找队伍
-export function getTeamById(teamId: string | undefined, teams: Team[] = mockTeams): Team | undefined {
-  if (!teamId) return undefined;
-  return teams.find((t) => t.id === teamId);
-}
-
-// 根据轮次获取比赛
-export function getMatchesByRound(matches: Match[], round: number): Match[] {
-  return matches.filter((m) => m.round === round).sort((a, b) => a.matchIndex - b.matchIndex);
-}

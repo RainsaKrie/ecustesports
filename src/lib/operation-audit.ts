@@ -34,7 +34,12 @@ async function hashActor(request: Request): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export async function recordOperationAudit(request: Request, input: OperationAuditInput): Promise<void> {
+/**
+ * 写一条操作日志。**只在本文件内使用**：调用方一律走 `recordOperationAuditSafely`，
+ * 因为日志故障不该把已经提交成功的业务操作伪装成失败。之前它是对外导出的，
+ * 但全仓库没有任何地方直接调用它。
+ */
+async function recordOperationAudit(request: Request, input: OperationAuditInput): Promise<void> {
   // 本地开发不建立另一套日志事实源；业务数据内部操作记录保持原样。
   if (!isHostedRuntime()) return;
 
