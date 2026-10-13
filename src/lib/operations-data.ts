@@ -83,6 +83,13 @@ export interface StageGuidanceInput {
   matchCount: number;
   unscheduledMatchCount: number;
   completedMatchCount: number;
+  /**
+   * 赛程里还一场都没有的阶段（按赛制顺序），来自 `scheduling/event-progress`。
+   * 用来回答「现有比赛全完成，是不是就等于赛事打完」——四阶段赛制录完入围赛时不是。
+   */
+  stagesNotStarted: string[];
+  /** **赛事真的打完了**（现有比赛全完成 且 赛制每个阶段都已开始），同上模块的 `finished` */
+  raceFinished: boolean;
   pendingRescheduleCount: number;
   publicContentIssues: string[];
 }
@@ -182,23 +189,38 @@ export function getStageGuidance(stage: EventStage, input: StageGuidanceInput): 
 
   if (stage === "比赛") {
     const allCompleted = input.matchCount > 0 && input.completedMatchCount === input.matchCount;
+    const hasUnstartedStage = input.stagesNotStarted.length > 0;
+    /**
+     * ★ 只比「场次数」是不够的（2026-10-13 修）：赛制后面还有阶段、对阵还没生成时，
+     * 「现有比赛全完成」**不等于**赛事打完 —— 四阶段赛制录完入围赛就是这种状态
+     * （赛程当时只有资格赛 4 + 入围赛 16 = 20 场，20/20 会让面板直接推出「结束赛事」，
+     * 而小组赛与淘汰赛一场都没打）。判据的单一来源是 `scheduling/event-progress` 的 `finished`。
+     */
+    const awaitNextStage = allCompleted && hasUnstartedStage;
     const blockers = [
       ...visibilityBlocker,
       ...(input.pendingRescheduleCount > 0 ? [`${input.pendingRescheduleCount} 条改期申请待处理`] : []),
       ...(input.unscheduledMatchCount > 0 ? [`${input.unscheduledMatchCount} 场比赛尚未排期`] : []),
-      ...(allCompleted ? ["全部比赛已完成，赛事阶段尚未切换为已结束"] : []),
+      ...(awaitNextStage
+        ? [`赛制还有 ${input.stagesNotStarted.length} 个阶段未开始：${input.stagesNotStarted.join("、")}`]
+        : []),
+      ...(input.raceFinished ? ["全部比赛已完成，赛事阶段尚未切换为已结束"] : []),
     ];
     return {
       label: "比赛中",
       objective: "执行有效赛程，完成改期审批、地图禁选、赛果登记及阶段晋级。",
       blockers,
-      actionLabel: allCompleted
+      actionLabel: input.raceFinished
         ? "结束赛事"
-        : input.pendingRescheduleCount > 0 ? "处理改期申请"
-          : input.unscheduledMatchCount > 0 ? `安排 ${input.unscheduledMatchCount} 场比赛`
-            : "继续比赛执行",
-      actionHref: allCompleted ? `${base}/settings` : `${base}/schedule`,
-      ...(allCompleted && input.visibility === "public" ? { actionKind: "complete-event" as const } : {}),
+        : awaitNextStage ? `开始${input.stagesNotStarted[0]}抽签`
+          : input.pendingRescheduleCount > 0 ? "处理改期申请"
+            : input.unscheduledMatchCount > 0 ? `安排 ${input.unscheduledMatchCount} 场比赛`
+              : "继续比赛执行",
+      actionHref: input.raceFinished
+        ? `${base}/settings`
+        : awaitNextStage ? `${base}/schedule/draw`
+          : `${base}/schedule`,
+      ...(input.raceFinished && input.visibility === "public" ? { actionKind: "complete-event" as const } : {}),
     };
   }
 

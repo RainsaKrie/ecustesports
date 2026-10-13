@@ -10,6 +10,7 @@ import { initialRegistration, normalizeRegistrationState, type RegistrationState
 import type { EventStage } from "@/lib/scheduling/stage";
 import { publicationChecklist } from "@/lib/publication-check";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
+import { resolveEventProgress } from "@/lib/scheduling/event-progress";
 import { postEventPublicContentIssues } from "@/lib/site-content-status";
 
 export default async function EventWorkspaceLayout({
@@ -47,6 +48,9 @@ export default async function EventWorkspaceLayout({
     matchCount: schedule.matches.length,
     hasFormat,
   });
+  // 「赛事是不是真的打完了」由这里统一算（与服务端结束赛事的校验共用同一份判断）：
+  // 现有比赛全完成 **且** 赛制每个阶段都已经有比赛。只看场次数会把「录完入围赛」误判成「赛事结束」。
+  const progress = resolveEventProgress(event.stageConfigs ?? [], schedule.matches);
   const guidance = getStageGuidance(stage, {
     eventId: event.id,
     visibility: event.visibility,
@@ -59,6 +63,8 @@ export default async function EventWorkspaceLayout({
     matchCount: schedule.matches.length,
     unscheduledMatchCount: schedule.matches.filter((match) => match.status === "待排期").length,
     completedMatchCount: schedule.matches.filter((match) => match.status === "已完成").length,
+    stagesNotStarted: progress.stagesNotStarted,
+    raceFinished: progress.finished,
     pendingRescheduleCount: schedule.requests.filter((request) => request.status === "待审批").length,
     publicContentIssues: postEventPublicContentIssues(event, config.brand.footerStatus),
   });

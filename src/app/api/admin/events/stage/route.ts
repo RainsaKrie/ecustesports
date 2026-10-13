@@ -5,6 +5,7 @@ import { publicationChecklist } from "@/lib/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
 import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { completeEventRefusal } from "@/lib/scheduling/event-progress";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";
@@ -74,12 +75,14 @@ export async function POST(request: NextRequest) {
       const schedule = normalizeScheduleState(
         await readEventData<ScheduleState>(eventId, "schedule", emptySchedule()),
       );
-      if (schedule.matches.length === 0 || schedule.matches.some((match) => match.status !== "已完成")) {
-        throw new StageTransitionError("仍有比赛未完成，不能结束赛事", 409);
-      }
-      if (schedule.requests.some((request) => request.status === "待对手确认" || request.status === "待审批")) {
-        throw new StageTransitionError("仍有改期申请待处理，不能结束赛事", 409);
-      }
+      /**
+       * ★ 这里原来只问「赛程里现有比赛是否都完成」，而四阶段赛制录完入围赛时
+       * 赛程里只有资格赛 + 入围赛（20 场）——20/20 会让它判定「赛事结束」，
+       * 把小组赛与淘汰赛整段跳过。判断已提到 `scheduling/event-progress` 的
+       * `completeEventRefusal`（纯函数，有单测），面板用的是同一份判断，避免两处口径再走偏。
+       */
+      const refusal = completeEventRefusal(currentEvent.stageConfigs ?? [], schedule);
+      if (refusal) throw new StageTransitionError(refusal, 409);
     }
 
     const saved = await updateSiteConfig((config) => {

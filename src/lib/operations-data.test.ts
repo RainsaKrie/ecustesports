@@ -14,6 +14,8 @@ const base: StageGuidanceInput = {
   matchCount: 0,
   unscheduledMatchCount: 0,
   completedMatchCount: 0,
+  stagesNotStarted: [],
+  raceFinished: false,
   pendingRescheduleCount: 0,
   publicContentIssues: [],
 };
@@ -58,10 +60,31 @@ const ongoing = getStageGuidance("比赛", {
 assert.equal(ongoing.actionLabel, "处理改期申请");
 assert.equal(ongoing.blockers[0], "2 条改期申请待处理");
 
-const finishing = getStageGuidance("比赛", { ...base, matchCount: 34, completedMatchCount: 34 });
+const finishing = getStageGuidance("比赛", { ...base, matchCount: 34, completedMatchCount: 34, raceFinished: true });
 assert.equal(finishing.actionLabel, "结束赛事");
 assert.equal(finishing.actionKind, "complete-event");
 assert.equal(finishing.actionHref, "/admin/events/event-test/settings");
+
+// ★ 2026-10-13 修的那个问题：四阶段赛制录完入围赛 —— 现有比赛全完成（20/20），
+// 但小组赛与淘汰赛还没开始。这时**绝不能**推出「结束赛事」，而应引导去抽下一阶段的签。
+const awaitGroupStage = getStageGuidance("比赛", {
+  ...base,
+  matchCount: 20,
+  completedMatchCount: 20,
+  stagesNotStarted: ["小组赛", "淘汰赛"],
+  raceFinished: false,
+});
+assert.equal(awaitGroupStage.actionLabel, "开始小组赛抽签");
+assert.equal(awaitGroupStage.actionHref, "/admin/events/event-test/schedule/draw");
+assert.equal(awaitGroupStage.actionKind, undefined, "还有后续阶段时不得给出 complete-event");
+assert.ok(
+  awaitGroupStage.blockers.some((item) => item.includes("2 个阶段未开始") && item.includes("小组赛、淘汰赛")),
+  `应说明是哪几个阶段未开始，实际：${JSON.stringify(awaitGroupStage.blockers)}`,
+);
+assert.ok(
+  !awaitGroupStage.blockers.some((item) => item.includes("全部比赛已完成")),
+  "现有比赛全完成但赛制未完时，不能说「全部比赛已完成」",
+);
 
 const postEventUpdate = getStageGuidance("赛后", {
   ...base,
