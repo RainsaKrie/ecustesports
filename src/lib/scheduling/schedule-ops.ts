@@ -119,7 +119,43 @@ export type ScheduleSaveOutcome =
  */
 export function stampScheduleVersion(before: ScheduleState, next: ScheduleState): ScheduleState {
   if (next === before) return before;
+  assertResultsPreserved(before, next);
   return { ...next, version: before.version + 1 };
+}
+
+/** 一次写入把「已经产生过成果的比赛」弄丢了。带上是哪几场，便于排查与告警。 */
+export class ScheduleResultsLossError extends Error {
+  constructor(readonly matchIds: string[]) {
+    super(`这次写入会丢失 ${matchIds.length} 场已有赛果或已排期的比赛：${matchIds.join("、")}`);
+  }
+}
+
+/**
+ * 硬护栏：**已经产生过成果的比赛不得因为一次写入凭空消失**（2026-10-14 加）。
+ *
+ * 落点在 `stampScheduleVersion` 是因为：写入契约要求所有直写赛程的路径都走这个入口，
+ * 拦在这里能一次覆盖全部写入点。**已核实 5 个生产调用点都传「库里的当前状态」作为 before**
+ * （调整赛制 / BP 完成 / 队长约赛申请 ×2 / 裁判报分），契约是统一的。
+ *
+ * 为什么要它：2026-10-14 线上出现过「40 场（含 20 场已录赛果）被写成 0 场」，
+ * 那次写入**绕过了**整份保存的内容丢失护栏（`detectScheduleLosses` 只在 `data/schedule` 那条路上），
+ * 20 场赛果凭空消失，事后只能靠公开缓存里的快照救回。
+ * **宁可这次写入失败并报错，也不能让赛果静默消失。**
+ *
+ * 只保护「有成果」的场次（已完成 / 有胜者 / 有比分 / 有开赛时间）；
+ * **纯待排期骨架允许被删** —— 换赛制清掉未开打骨架是合法路径，护栏不能把它也拦死。
+ */
+export function assertResultsPreserved(before: ScheduleState, next: ScheduleState): void {
+  const kept = new Set(next.matches.map((match) => match.id));
+  const lost = before.matches.filter((match) =>
+    !kept.has(match.id)
+    && (match.status === "已完成"
+      || Boolean(match.winnerTeamId)
+      || (match.gameResults?.length ?? 0) > 0
+      || Boolean(match.startTime)));
+  if (lost.length > 0) {
+    throw new ScheduleResultsLossError(lost.map((match) => match.id));
+  }
 }
 
 /**

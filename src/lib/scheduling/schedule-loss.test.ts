@@ -163,11 +163,11 @@ async function run(): Promise<void> {
     );
     check(
       "内容变了：version 单调 +1",
-      stampScheduleVersion(before, withMatches(5, [completedMatch("M2")])).version === 6,
+      stampScheduleVersion(before, withMatches(5, [{ ...completedMatch("M1"), endTime: "2026-10-10T21:00:00" }])).version === 6,
     );
     check(
       "不采信调用方传来的版本值（防止它抬价绕过版本护栏）",
-      stampScheduleVersion(before, withMatches(99, [completedMatch("M2")])).version === 6,
+      stampScheduleVersion(before, withMatches(99, [{ ...completedMatch("M1"), endTime: "2026-10-10T21:00:00" }])).version === 6,
     );
   }
 
@@ -260,6 +260,58 @@ async function run(): Promise<void> {
 
   console.log(`\n${passed} 通过 / ${failed} 未通过`);
   if (failed > 0) process.exitCode = 1;
+  // ── 组5 · 硬护栏：已有赛果的比赛不得因一次写入凭空消失（2026-10-14）──
+  console.log("");
+  console.log("== 组5 · 写入不得丢失已有赛果 ==");
+
+  const mkMatch = (id: string, over: Record<string, unknown> = {}): ScheduleMatch => ({
+    id, phase: "入围赛", round: "入围赛", boType: "BO1",
+    teamAId: "A", teamBId: "B", teamAName: "甲", teamBName: "乙",
+    startTime: "", endTime: "", status: "待排期", frozen: false, ...over,
+  }) as unknown as ScheduleMatch;
+
+  const playedState = normalizeScheduleState({
+    ...emptySchedule(),
+    version: 89,
+    matches: [
+      mkMatch("M01", { status: "已完成", winnerTeamId: "A", gameResults: [{ teamAScore: 13, teamBScore: 9 }] }),
+      mkMatch("M21"),
+      mkMatch("M22"),
+    ],
+  } as ScheduleState);
+
+  check("内容变化但成果都在 → 正常递增",
+    stampScheduleVersion(playedState, { ...playedState, requests: [] } as ScheduleState).version === 90);
+
+  let lostResult = "";
+  try {
+    stampScheduleVersion(playedState, { ...playedState, matches: playedState.matches.filter((m) => m.id !== "M01") } as ScheduleState);
+  } catch (error) { lostResult = error instanceof Error ? error.message : String(error); }
+  check("★ 删掉「已录赛果」的比赛 → 抛错拦住，并点名是哪一场", lostResult.includes("M01"));
+
+  const scheduledState = normalizeScheduleState({
+    ...playedState,
+    matches: [...playedState.matches, mkMatch("M23", { status: "已排期", startTime: "2026-10-20T12:00:00" })],
+  } as ScheduleState);
+  let lostScheduled = false;
+  try {
+    stampScheduleVersion(scheduledState, { ...scheduledState, matches: scheduledState.matches.filter((m) => m.id !== "M23") } as ScheduleState);
+  } catch { lostScheduled = true; }
+  check("「已排期」的比赛被删也拦住", lostScheduled);
+
+  // ★ 护栏的边界：换赛制清掉未开打骨架是合法路径，不能被一起拦死
+  const skeletonState = normalizeScheduleState({ ...playedState, matches: playedState.matches.filter((m) => m.id !== "M01") } as ScheduleState);
+  let skeletonAllowed = false;
+  try {
+    stampScheduleVersion(skeletonState, { ...skeletonState, matches: skeletonState.matches.filter((m) => m.id !== "M21") } as ScheduleState);
+    skeletonAllowed = true;
+  } catch { skeletonAllowed = false; }
+  check("★ 纯待排期骨架允许被删（换赛制清骨架不受影响）", skeletonAllowed);
+
+  let emptied = "";
+  try { stampScheduleVersion(playedState, { ...playedState, matches: [] } as ScheduleState); }
+  catch (error) { emptied = error instanceof Error ? error.message : String(error); }
+  check("★ 复现今天的事故形状：把 3 场清成 0 场 → 被拦住", emptied.includes("M01"));
 }
 
 run().catch((error) => {
