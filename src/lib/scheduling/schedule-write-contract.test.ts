@@ -125,6 +125,12 @@ const WRITERS: Array<{ file: string; sites: number; stamp: string; reason: strin
     reason: "裁判报分、管理员裁决与受控更正（走 updateEventDataBatch，文档名是间接引用）",
   },
   {
+    file: "app/api/admin/events/format/route.ts",
+    sites: 1,
+    stamp: "stampScheduleVersion",
+    reason: "换赛制时清掉「未开打骨架」（只清待排期且无开赛时间的场次），需递增 version",
+  },
+  {
     file: "app/api/admin/events/route.ts",
     sites: 1,
     stamp: "exempt",

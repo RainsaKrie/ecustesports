@@ -40,33 +40,44 @@ function isSupportedGroupStage(stage: StageConfig | undefined): boolean {
 }
 
 /**
- * 「现在能不能换赛制」的判定，返回拒绝理由；`null` 表示可以改（2026-10-14）。
+ * 「现在能不能换赛制」的判定，返回拒绝理由；`null` 表示可以改。
  *
- * 原先的守卫是「只要赛程里有比赛就不许改」，**比必要的严**：它把「已经打完的阶段」与
- * 「还没生成对阵的阶段」当成一回事。真正要守的是两件事：
- *   ① **已经生成过对阵的阶段**，它的配置（名称 / 类型 / 队数 / 分组数 / BO）不得改变 —— 改了那些比赛就成了孤儿；
- *   ② 已生成阶段的**晋级人数**不得改变（体现为下一阶段的参赛队数不变）——
- *      改了就会出现「16 强赛打完了却没有 16 支队伍」。
- * 没生成对阵的阶段允许自由调整；这正是「小组赛从 GSL 改成组内单败」能安全放行的依据
- * （两者都是 16 进 8，前面已打完的资格赛与入围赛完全不受影响）。
+ * 判据演进过两次，值得写下来：
+ *   · 第一版：「只要赛程里有比赛就不许改」—— 太粗，连「换还没抽签的小组赛打法」都挡；
+ *   · 第二版（2026-10-14 上午）：「已经生成过对阵的阶段不许改」—— 仍然太粗：
+ *     **生成了对阵 ≠ 用上了**。一届赛事里小组赛刚抽完签、20 场全是「待排期」（没排时间、
+ *     没有赛果），换个赛制把那批骨架换掉完全安全 —— 可第二版会拒绝，于是负责人点了
+ *     「调整赛制」什么也做不成（他就是这样碰到墙的）。
+ *   · 第三版（现在）：**只有出现过「已排期 / 已完成」的比赛，那个阶段才算不可动**；
+ *     纯「待排期」骨架可以改，改完由 `unplayedStagesToClear` 指出要把哪几个阶段的骨架清掉。
+ *
+ * 要守的两条不变：
+ *   ① 已被使用（排过期或有赛果）的阶段，配置与晋级人数不得改变；
+ *   ② 已经打完的阶段不能被删掉。
  */
 export function formatChangeRefusal(
   current: StageConfig[],
   next: StageConfig[],
-  matches: Array<{ phase: string }>,
+  matches: Array<{ phase: string; status?: string; startTime?: string }>,
 ): string | null {
-  const playedPhases = new Set(matches.map((match) => match.phase));
+  /** 已被「用起来」的阶段：排过期或有赛果。纯待排期骨架不算。 */
+  const usedPhases = new Set(
+    matches
+      // 缺 status 的老数据按「已使用」保守处理，宁可拒绝也不误删
+      .filter((match) => match.status === undefined || match.status !== "待排期" || Boolean(match.startTime))
+      .map((match) => match.phase),
+  );
 
-  // 先判「整个阶段被删掉」：这一条放在逐项比对之前，报错才能点出是哪个阶段没了。
+  // 先判「把已使用的阶段删掉」：这一条放在逐项比对之前，报错才能点出是哪个阶段没了。
   // （放在后面的话，会先撞上「上一阶段的晋级人数变了」这种二手症状，指错地方。）
   const nextNames = new Set(next.map((stage) => stage.name));
-  const orphan = [...playedPhases].filter((name) => !nextNames.has(name));
+  const orphan = [...usedPhases].filter((name) => !nextNames.has(name));
   if (orphan.length > 0) {
-    return `这些阶段已经有比赛，但新赛制里没有它们：${orphan.join("、")}。`;
+    return `这些阶段已经排过期或有赛果，但新赛制里没有它们：${orphan.join("、")}。`;
   }
 
   for (const [index, stage] of current.entries()) {
-    if (!playedPhases.has(stage.name)) continue;
+    if (!usedPhases.has(stage.name)) continue;
     const replacement = next[index];
     if (!replacement) return `「${stage.name}」已经打过比赛，新赛制里没有这一阶段，不能这样改。`;
     const unchanged = replacement.name === stage.name
@@ -75,7 +86,7 @@ export function formatChangeRefusal(
       && (replacement.groupCount ?? 0) === (stage.groupCount ?? 0)
       && replacement.boType === stage.boType;
     if (!unchanged) {
-      return `「${stage.name}」已经打过比赛，它的赛制不能改；请只调整尚未开打的阶段。`;
+      return `「${stage.name}」已经排过期或有赛果，它的赛制不能改；请只调整尚未开打的阶段。`;
     }
     const remainedNext = current[index + 1];
     const nextNext = next[index + 1];
@@ -85,6 +96,37 @@ export function formatChangeRefusal(
   }
 
   return null;
+}
+
+/**
+ * 换赛制之后需要清掉的「未开打骨架」：既出现在**旧**赛制里、又出现在**新**赛制里、
+ * 但配置变了（类型/队数/分组数/BO）且**一场都没排期也没打**的阶段。
+ *
+ * 用途：小组赛抽完签但一场没打时，把 GSL 换成组内单败 —— 那 20 场待排期骨架要先清掉，
+ * 否则抽签页会判「小组赛应有 12 场，当前赛程为 20 场」直接把新赛制堵死。
+ * 只清「待排期且没有开赛时间」的，任何排过期的比赛都不会被碰。
+ */
+export function unplayedStagesToClear(
+  current: StageConfig[],
+  next: StageConfig[],
+  matches: Array<{ phase: string; status?: string; startTime?: string }>,
+): string[] {
+  const nextByName = new Map(next.map((stage) => [stage.name, stage]));
+  const clearable = new Set<string>();
+  for (const stage of current) {
+    const replacement = nextByName.get(stage.name);
+    if (!replacement) continue;
+    const sameShape = replacement.type === stage.type
+      && replacement.teamCount === stage.teamCount
+      && (replacement.groupCount ?? 0) === (stage.groupCount ?? 0)
+      && replacement.boType === stage.boType;
+    if (sameShape) continue;
+    const own = matches.filter((match) => match.phase === stage.name);
+    if (own.length === 0) continue;
+    // 缺 status 的老数据按「已使用」处理：宁可不清，也不能误删
+    if (own.every((match) => match.status === "待排期" && !match.startTime)) clearable.add(stage.name);
+  }
+  return [...clearable];
 }
 
 export function resolveSupportedFormat(stages: StageConfig[]): SupportedFormat {

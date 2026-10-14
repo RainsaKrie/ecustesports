@@ -18,7 +18,7 @@ import {
   resolveStagedDrawGate,
   buildKnockoutDrawOrder,
 } from "./staged-format";
-import { resolveSupportedFormat, formatChangeRefusal } from "./format-support";
+import { resolveSupportedFormat, formatChangeRefusal, unplayedStagesToClear } from "./format-support";
 import type { StageConfig } from "./format-templates";
 import type { Group } from "./format-data";
 import type { ScheduleMatch } from "./schedule-data";
@@ -295,6 +295,61 @@ check(
 check(
   "改未开打的**淘汰赛**（8 队双败改成 8 队单败）→ 放行（它也确实没打过）",
   formatChangeRefusal(currentStages, currentStages.map((s, i) => (i === 3 ? { ...s, type: "single-elim" as const } : s)), played) === null,
+);
+
+// ── 组5 · 待排期骨架：能改，且能指出要清掉什么（2026-10-14 第三版判据）──
+
+group("组5 · 只抽了签、一场没打的阶段允许换赛制（生成了 ≠ 用上了）");
+
+const skeleton = [
+  ...played,
+  // 小组赛抽完签：20 场全是待排期、没有开赛时间
+  ...Array.from({ length: 20 }, () => ({ phase: "小组赛", status: "待排期", startTime: "" })),
+];
+check(
+  "★ 小组赛 20 场全是待排期骨架 → 换成组内单败：放行",
+  formatChangeRefusal(currentStages, FOUR_STAGE_SEG, skeleton) === null,
+  String(formatChangeRefusal(currentStages, FOUR_STAGE_SEG, skeleton)),
+);
+check(
+  "并指出要清掉的是「小组赛」",
+  JSON.stringify(unplayedStagesToClear(currentStages, FOUR_STAGE_SEG, skeleton)) === JSON.stringify(["小组赛"]),
+  JSON.stringify(unplayedStagesToClear(currentStages, FOUR_STAGE_SEG, skeleton)),
+);
+check(
+  "已打完的阶段不在清除清单里（资格赛/入围赛有赛果）",
+  !unplayedStagesToClear(currentStages, FOUR_STAGE_SEG, skeleton).includes("入围赛"),
+);
+check(
+  "★ 小组赛里只要有一场排过期 → 拒绝（排过期就是被用上了）",
+  formatChangeRefusal(currentStages, FOUR_STAGE_SEG, [
+    ...played,
+    ...Array.from({ length: 19 }, () => ({ phase: "小组赛", status: "待排期", startTime: "" })),
+    { phase: "小组赛", status: "已排期", startTime: "2026-10-20T12:00:00" },
+  ]) !== null,
+);
+check(
+  "有开赛时间但状态还是待排期 → 同样拒绝（保守）",
+  formatChangeRefusal(currentStages, FOUR_STAGE_SEG, [
+    ...played,
+    { phase: "小组赛", status: "待排期", startTime: "2026-10-20T12:00:00" },
+  ]) !== null,
+);
+check(
+  "缺 status 的老数据按「已使用」保守处理 → 拒绝",
+  formatChangeRefusal(currentStages, FOUR_STAGE_SEG, [...played, { phase: "小组赛" }]) !== null,
+);
+check(
+  "赛制没变时不该清任何东西",
+  unplayedStagesToClear(currentStages, currentStages, skeleton).length === 0,
+);
+check(
+  "还没生成对阵的阶段不在清除清单里（它本来就没东西可清）",
+  unplayedStagesToClear(
+    currentStages.map((st, i) => (i === 2 ? { ...st, type: "single-elim-groups" as const } : st)),
+    currentStages,
+    played,
+  ).length === 0,
 );
 
 console.log("");

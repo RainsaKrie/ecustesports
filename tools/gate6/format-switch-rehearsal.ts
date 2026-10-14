@@ -86,7 +86,22 @@ function fixtureMatches() {
       frozen: false,
       winnerTeamId: `${prefix}-${index}-a`,
     }));
-  return [...make("资格赛", 4, "Q"), ...make("入围赛", 16, "P")];
+  // 小组赛：已经抽完签、但一场没排期也没打（= 负责人碰到墙时的真实状态）
+  const groupStage = Array.from({ length: 20 }, (_, index) => ({
+    id: `M${String(index + 21).padStart(2, "0")}`,
+    phase: "小组赛",
+    round: `${["A", "B", "C", "D"][Math.floor(index / 5)]} 组`,
+    boType: "BO3",
+    teamAId: `G${index}-a`,
+    teamBId: `G${index}-b`,
+    teamAName: `甲${index}`,
+    teamBName: `乙${index}`,
+    startTime: "",
+    endTime: "",
+    status: "待排期",
+    frozen: false,
+  }));
+  return [...make("资格赛", 4, "Q"), ...make("入围赛", 16, "P"), ...groupStage];
 }
 
 function writeFixtures() {
@@ -199,6 +214,14 @@ async function main() {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     return { status: response.status, message: body.message ?? "" };
   };
+  const readSchedule = async () => {
+    const response = await fetch(`${BASE}/api/data/schedule?eventId=${encodeURIComponent(EVENT_ID)}`, {
+      headers: { cookie },
+      cache: "no-store",
+    });
+    const body = (await response.json()) as { version?: number; matches?: Array<{ phase: string; status: string }> };
+    return { version: body.version ?? 0, matches: body.matches ?? [] };
+  };
   const readStages = async () => {
     const response = await fetch(`${BASE}/api/admin/site-config`, { cache: "no-store" });
     const body = (await response.json()) as { events?: Array<{ id: string; stageConfigs?: Array<{ name: string; type: string }> }> };
@@ -207,6 +230,15 @@ async function main() {
 
   console.log("\n== 1. 放宽后的守卫：已打完的赛段不动、未开打的赛段可改 ==");
   check("登录拿到管理端会话", cookie.length > 0);
+
+  // ★ 必须在换赛制**之前**读：换赛制会顺手清掉未开打骨架，之后就读不到「换之前」了
+  const scheduleBefore = await readSchedule();
+  check(
+    "换之前：赛程 40 场，含小组赛 20 场待排期骨架",
+    scheduleBefore.matches.length === 40
+      && scheduleBefore.matches.filter((m) => m.phase === "小组赛").length === 20,
+    `总数=${scheduleBefore.matches.length} 小组赛=${scheduleBefore.matches.filter((m) => m.phase === "小组赛").length}`,
+  );
 
   const swapped = await switchFormat(NEXT_TEMPLATE);
   check(
@@ -228,11 +260,31 @@ async function main() {
     JSON.stringify(stagesAfter.map((stage) => stage.name)),
   );
 
+  console.log("\n== 1b. 换赛制会顺手清掉「未开打骨架」（真跑一次）==");
+  check(
+    "★ 接口回话里说明了清掉哪几个阶段、多少场",
+    swapped.message.includes("小组赛") && swapped.message.includes("20 场"),
+    swapped.message,
+  );
+  const scheduleAfter = await readSchedule();
+  check(
+    "★ 小组赛那 20 场未排期骨架已被清掉，资格赛/入围赛的赛果一场没动",
+    scheduleAfter.matches.length === 20
+      && scheduleAfter.matches.every((m) => m.phase !== "小组赛")
+      && scheduleAfter.matches.filter((m) => m.status === "已完成").length === 20,
+    JSON.stringify({ total: scheduleAfter.matches.length }),
+  );
+  check(
+    "赛程版本号被递增（写入契约要求）",
+    scheduleAfter.version > scheduleBefore.version,
+    `${scheduleBefore.version} → ${scheduleAfter.version}`,
+  );
+
   console.log("\n== 2. 该拒的仍然要拒 ==");
   const orphan = await switchFormat(ORPHAN_TEMPLATE);
   check(
     "换成只有「入围赛」的赛制 → 拒绝，并点出已有比赛的阶段成了孤儿",
-    orphan.status === 400 && orphan.message.includes("已经有比赛"),
+    orphan.status === 400 && orphan.message.includes("没有它们"),
     `status=${orphan.status} message=${orphan.message}`,
   );
   const stagesAfterReject = await readStages();

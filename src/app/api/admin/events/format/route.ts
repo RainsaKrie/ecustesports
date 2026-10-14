@@ -3,15 +3,16 @@ import type { NextRequest } from "next/server";
 import { isAdminRequest } from "@/lib/auth";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { getCommonRuleLibrary } from "@/lib/rule-library";
-import { readEventData } from "@/lib/data-store";
+import { readEventData, updateEventData } from "@/lib/data-store";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 import {
   buildEventFromTemplate,
   getFormatTemplate,
   type StageConfig,
 } from "@/lib/scheduling/format-templates";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
-import { formatChangeRefusal } from "@/lib/scheduling/format-support";
+import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { formatChangeRefusal, unplayedStagesToClear } from "@/lib/scheduling/format-support";
+import { stampScheduleVersion } from "@/lib/scheduling/schedule-ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,14 @@ export async function POST(request: NextRequest) {
       return Response.json({ message: refusal }, { status: 400 });
     }
 
+    /**
+     * 换赛制之后要清掉的「未开打骨架」（2026-10-14 补）：
+     * 已经抽完签、但一场没排期也没打的阶段，它的旧对阵是按旧赛制生成的 ——
+     * 不清掉，抽签页会判「小组赛应有 12 场，当前赛程为 20 场」把新赛制堵死。
+     * 只清「待排期且没有开赛时间」的，任何排过期的比赛都不会被碰。
+     */
+    const clearedPhases = unplayedStagesToClear(existing.stageConfigs ?? [], stageConfigs, schedule.matches ?? []);
+
     const commonRules = await getCommonRuleLibrary();
     const rebuilt = buildEventFromTemplate({
       id: existing.id,
@@ -87,16 +96,38 @@ export async function POST(request: NextRequest) {
       events: latest.events.map((event) => event.id === eventId ? nextEvent : event),
     }));
 
+    let clearedMatchCount = 0;
+    if (clearedPhases.length > 0) {
+      await updateEventData<ScheduleState>(eventId, "schedule", emptySchedule(), (raw) => {
+        const before = normalizeScheduleState(raw);
+        const kept = before.matches.filter((match) => !clearedPhases.includes(match.phase));
+        clearedMatchCount = before.matches.length - kept.length;
+        if (clearedMatchCount === 0) return before;
+        // 赛程写入契约：改动赛程必须走统一递增入口，否则版本护栏看不见这次改动
+        return stampScheduleVersion(before, { ...before, matches: kept });
+      });
+    }
+
     await recordOperationAuditSafely(request, {
       eventId,
       actorType: "admin",
       action: "event.format.updated",
       target: existing.name,
-      metadata: { from: existing.teamCount, to: nextEvent.teamCount },
+      metadata: {
+        from: existing.teamCount,
+        to: nextEvent.teamCount,
+        // 留痕：这次换赛制顺手清掉了哪几个阶段、多少场（都是没排期没打的骨架）
+        clearedPhases: clearedPhases.join("、") || "无",
+        clearedMatchCount,
+      },
     });
 
     return Response.json({
-      message: `赛制已调整为 ${template.name}`,
+      message: clearedMatchCount > 0
+        ? `赛制已调整为 ${template.name}；同时清除了 ${clearedPhases.join("、")} 的 ${clearedMatchCount} 场未排期对阵，请到抽签页重新生成`
+        : `赛制已调整为 ${template.name}`,
+      clearedPhases,
+      clearedMatchCount,
       event: saved.events.find((event) => event.id === eventId),
     });
   } catch {
