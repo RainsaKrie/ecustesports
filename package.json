@@ -52,6 +52,7 @@
     "test:event-progress": "tsx src/lib/scheduling/event-progress.test.ts",
     "test:group-single-elim": "tsx src/lib/scheduling/group-single-elim.test.ts",
     "test:format-switch": "tsx tools/gate6/format-switch-rehearsal.ts",
+    "ops:restore-schedule": "tsx tools/gate6/restore-schedule-snapshot.ts",
     "test:verify-backup": "tsx tools/gate6/verify-backup.ts --selftest",
     "test:production-audit": "tsx tools/gate6/production-audit.ts --selftest",
     "ops:verify-backup": "tsx tools/gate6/verify-backup.ts",
