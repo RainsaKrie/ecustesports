@@ -22,8 +22,13 @@ export type HandbookEvent = Pick<
 type Rule = NonNullable<HandbookEvent["rulesList"]>[number];
 type RuleCategory = NonNullable<Rule["category"]>;
 
+// ⚠️ 这是全仓库**第四处**「阶段类型 → 文案」映射（另三处：`scheduling/format-templates` 的
+// STAGE_TYPE_LABELS、`types/index.ts` 的类型联合、两处 validTypes 白名单）。
+// 这里写成 Record<string, string> 而不是 Record<StageType, string>，**漏一种不会报错**，
+// 只会让玩家侧手册显示空白 —— 2026-10-14 加 single-elim-groups 时就踩到了。
 const STAGE_TYPE_LABELS: Record<string, string> = {
   "single-elim": "单败淘汰",
+  "single-elim-groups": "组内单败",
   "gsl-groups": "GSL 双败小组",
   "double-elim": "双败淘汰",
   "round-robin": "循环赛",

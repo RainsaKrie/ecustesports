@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
 
     // 赛制阶段配置（新建赛事第二步的产物）
     const rawStages = Array.isArray(input.stageConfigs) ? input.stageConfigs : [];
-    const validTypes = ["single-elim", "gsl-groups", "double-elim", "round-robin"];
+    // 白名单漏一种，存进去的类型会被改写成兜底值 —— 新增阶段类型时这里必须同步（共三处同源清单）。
+    const validTypes = ["single-elim", "single-elim-groups", "gsl-groups", "double-elim", "round-robin"];
     const validBo = ["BO1", "BO3", "BO5"];
     const stageConfigs: StageConfig[] = rawStages
       .map((raw) => {

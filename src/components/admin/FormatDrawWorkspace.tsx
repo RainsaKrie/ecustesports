@@ -8,6 +8,7 @@ import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, 
 import {
   buildDoubleEliminationMatches,
   buildGslGroupMatches,
+  buildGroupSingleElimMatches,
   buildQualificationMatches,
   buildSingleEliminationMatches,
   buildTournamentMatches,
@@ -485,11 +486,19 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           stageMatches = built.matches;
           qualifierByes = built.byes;
         } else if (activeStageIndex === 1) {
-          stageMatches = buildGslGroupMatches(groups, generateMatchups(groups, pots), teamName, {
-            startIndex,
-            phase: activeStage.name,
-            boType: activeStage.boType,
-          });
+          // 小组赛两套打法在这里分流：**组内单败**只需要小组名单（组内对阵按种子位展开，
+          // 一号对四号、二号对三号），GSL 还需要 8 场揭幕战对阵。
+          stageMatches = activeStage.type === "single-elim-groups"
+            ? buildGroupSingleElimMatches(groups, teamName, {
+                startIndex,
+                phase: activeStage.name,
+                boType: activeStage.boType,
+              })
+            : buildGslGroupMatches(groups, generateMatchups(groups, pots), teamName, {
+                startIndex,
+                phase: activeStage.name,
+                boType: activeStage.boType,
+              });
         } else {
           stageMatches = buildDoubleEliminationMatches(drawOrder, teamName, {
             startIndex,

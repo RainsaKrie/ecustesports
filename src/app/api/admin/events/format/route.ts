@@ -11,6 +11,7 @@ import {
   type StageConfig,
 } from "@/lib/scheduling/format-templates";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { formatChangeRefusal } from "@/lib/scheduling/format-support";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,13 +47,17 @@ export async function POST(request: NextRequest) {
     const existing = config.events.find((event) => event.id === eventId);
     if (!existing) return Response.json({ message: "赛事不存在" }, { status: 404 });
 
-    // 只允许在尚未生成赛程、尚未发布任何阶段时调整赛制。
+    // 2026-10-14 放宽：原来只要赛程里有比赛就一律不许改，**比必要的严** ——
+    // 它把「已经打完的阶段」和「还没生成对阵的阶段」当成一回事，
+    // 于是「入围赛打完了、想把还没抽签的小组赛换个打法」这种安全改动也被挡住。
+    // 现在按真正要守的两条判：已生成阶段的配置不变、它的晋级人数不变（见 formatChangeRefusal）。
     const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
-    if ((schedule.matches?.length ?? 0) > 0) {
-      return Response.json({ message: "已生成赛程，不能再调整赛制。如需变更请先重置赛程。" }, { status: 400 });
+    const stageConfigs = toStageConfigs(template.stages);
+    const refusal = formatChangeRefusal(existing.stageConfigs ?? [], stageConfigs, schedule.matches ?? []);
+    if (refusal) {
+      return Response.json({ message: refusal }, { status: 400 });
     }
 
-    const stageConfigs = toStageConfigs(template.stages);
     const commonRules = await getCommonRuleLibrary();
     const rebuilt = buildEventFromTemplate({
       id: existing.id,

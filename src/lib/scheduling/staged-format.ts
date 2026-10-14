@@ -50,6 +50,27 @@ function stageMatches(matches: ScheduleMatch[], phase: string): ScheduleMatch[] 
   return matches.filter((match) => match.phase === phase);
 }
 
+/**
+ * 小组赛阶段应有的总场次数。
+ * GSL：每组 5 场（4 队组）；**组内单败**：每组 `组内队数 − 1` 场（4 队组 = 3 场）。
+ * 两个数字差 8 场，写死任一个都会让另一套赛制的门控永远判「场次不对」。
+ */
+function groupStageExpectedMatches(groupStage: StageConfig): number {
+  const groups = groupStage.groupCount ?? 4;
+  if (groupStage.type === "single-elim-groups") {
+    const perGroup = Math.max(2, Math.floor(groupStage.teamCount / groups));
+    return groups * (perGroup - 1);
+  }
+  return groups * 5;
+}
+
+/** 小组赛晋级名单：两套小组赛制的名次判据不同，按阶段类型分流。 */
+function extractGroupQualifiers(groupStage: StageConfig, matches: ScheduleMatch[]): GroupQualifier[] {
+  return groupStage.type === "single-elim-groups"
+    ? extractGroupSingleElimQualifiers(matches, groupStage.name)
+    : extractGslQualifiers(matches, groupStage.name);
+}
+
 function completedWinners(matches: ScheduleMatch[]): string[] {
   return matches
     .filter((match) => match.status === "已完成" && Boolean(match.winnerTeamId) && match.winnerTeamId !== "TBD")
@@ -155,6 +176,30 @@ export function extractGslQualifiers(matches: ScheduleMatch[], phase: string): G
 }
 
 /**
+ * 从「组内单败」小组赛结果里取出每组前两名（2026-10-14 新增）。
+ *
+ * 约定与 `extractGslQualifiers` 对齐：**名次从轮次名认**，只是判据不同 ——
+ * GSL 靠「胜者组出线战 / 最终出线战」，组内单败靠**组内决赛**：
+ * 决赛胜者 = 该组第 1，决赛负者 = 该组第 2。
+ *
+ * ⚠️ 判据必须先排掉「半决赛」—— 「半决赛」也以「决赛」结尾，只判 `endsWith("决赛")`
+ * 会把两场半决赛当成三个组的出线战（变异验证专门盯这一条）。
+ */
+export function extractGroupSingleElimQualifiers(matches: ScheduleMatch[], phase: string): GroupQualifier[] {
+  const qualifiers: GroupQualifier[] = [];
+  for (const match of stageMatches(matches, phase)) {
+    const round = match.round ?? "";
+    if (!round.endsWith("决赛") || round.endsWith("半决赛")) continue;
+    if (match.status !== "已完成" || !match.winnerTeamId || match.winnerTeamId === "TBD") continue;
+    const group = round.replace(/\s*决赛$/, "").trim();
+    const loser = match.winnerTeamId === match.teamAId ? match.teamBId : match.teamAId;
+    qualifiers.push({ teamId: match.winnerTeamId, group, placement: 1 });
+    if (loser && loser !== "TBD") qualifiers.push({ teamId: loser, group, placement: 2 });
+  }
+  return qualifiers.sort((a, b) => a.group.localeCompare(b.group, "zh-CN") || a.placement - b.placement);
+}
+
+/**
  * 32 → 16 → 8 的阶段门控。后续抽签只读取已完成比赛的真实晋级队伍，
  * 不会用 TBD 或报名名单提前生成未来阶段。
  */
@@ -204,7 +249,7 @@ export function resolveStagedDrawGate(
   if (groupMatches.length === 0) {
     return { status: "ready", stageIndex: 1, stage: groupStage, entrantIds: qualifiedIds };
   }
-  const groupExpected = (groupStage.groupCount ?? 4) * 5;
+  const groupExpected = groupStageExpectedMatches(groupStage);
   if (groupMatches.length !== groupExpected) {
     return { status: "blocked", stageIndex: 1, stage: groupStage, message: `小组赛应有 ${groupExpected} 场，当前赛程为 ${groupMatches.length} 场，请先核对赛程。` };
   }
@@ -220,7 +265,7 @@ export function resolveStagedDrawGate(
     };
   }
 
-  const qualifiers = extractGslQualifiers(matches, groupStage.name);
+  const qualifiers = extractGroupQualifiers(groupStage, matches);
   if (qualifiers.length !== knockoutStage.teamCount || new Set(qualifiers.map((item) => item.teamId)).size !== knockoutStage.teamCount) {
     return { status: "blocked", stageIndex: 2, stage: knockoutStage, message: "无法从小组赛结果中确认每组第一和第二，请核对胜者出线战与最终出线战赛果。" };
   }

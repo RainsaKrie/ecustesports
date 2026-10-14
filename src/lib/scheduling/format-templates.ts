@@ -11,7 +11,7 @@ import { getGameConfig } from "@/lib/games";
 /** 默认图池（取自游戏配置层）。 */
 const DEFAULT_MAP_POOL = getGameConfig().defaultMapPool;
 
-export type StageType = "single-elim" | "gsl-groups" | "double-elim" | "round-robin";
+export type StageType = "single-elim" | "single-elim-groups" | "gsl-groups" | "double-elim" | "round-robin";
 
 /** 一个比赛阶段的可配置项（新建比赛赛制配置器的产物） */
 export interface StageConfig {
@@ -19,12 +19,13 @@ export interface StageConfig {
   type: StageType;
   teamCount: number;
   boType: "BO1" | "BO3" | "BO5";
-  /** gsl-groups / round-robin 的分组数 */
+  /** gsl-groups / single-elim-groups / round-robin 的分组数 */
   groupCount?: number;
 }
 
 export const STAGE_TYPE_LABELS: Record<StageType, string> = {
   "single-elim": "单败淘汰",
+  "single-elim-groups": "组内单败",
   "double-elim": "双败淘汰",
   "gsl-groups": "GSL 小组双败",
   "round-robin": "单循环",
@@ -33,6 +34,7 @@ export const STAGE_TYPE_LABELS: Record<StageType, string> = {
 /** 赛制类型的默认 BO（新建阶段时预填） */
 export const STAGE_TYPE_DEFAULT_BO: Record<StageType, "BO1" | "BO3" | "BO5"> = {
   "single-elim": "BO1",
+  "single-elim-groups": "BO3",
   "double-elim": "BO3",
   "gsl-groups": "BO3",
   "round-robin": "BO1",
@@ -55,6 +57,13 @@ export function estimateStageConfig(stages: StageConfig[]): { matchCount: number
         // 双败：2n-2 场（含败者组，决赛不重置）
         matches = st.teamCount > 1 ? st.teamCount * 2 - 2 : 0;
         break;
+      case "single-elim-groups": {
+        // 组内单败：每组「组内队数 − 1」场（4 队组 = 3 场：2 半决赛 + 1 决赛）
+        const groups = st.groupCount ?? 1;
+        const per = Math.max(2, Math.floor(st.teamCount / groups));
+        matches = groups * (per - 1);
+        break;
+      }
       case "gsl-groups": {
         const groups = st.groupCount ?? 1;
         const per = st.teamCount / groups;
@@ -167,6 +176,41 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
       { title: "小组赛", detail: "16 支晋级队伍分入 4 个小组，每组采用 GSL 双败赛制，所有比赛为 BO3；各组前两名晋级淘汰赛。" },
       { title: "淘汰赛", detail: "8 支晋级队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。" },
       { title: "种子分档", detail: "小组赛参赛队伍依据首发 5 名选手报名截止时的段位平均分划入 4 个种子池；每组分别抽取各档 1 支队伍。" },
+      { title: "淘汰赛抽签", detail: "小组第一对阵其他小组第二；同组晋级队伍分入不同半区。" },
+      { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
+    ],
+    constraints: {
+      maxConcurrent: 2,
+      durations: { BO1: 45, BO3: 90, BO5: 150 },
+      sessionStart: "12:00",
+      sessionEnd: "18:00",
+      matchdays: [6, 7],
+    },
+    mapPoolIds: DEFAULT_MAP_POOL.map((m) => m.id),
+  },
+  {
+    id: "val-36playin-32qual-16seg-8de",
+    name: "36 队 · 资格赛 + 入围赛 + 组内单败小组赛 + 双败淘汰",
+    scale: "36 队",
+    description: "与上一套结构完全相同，只把小组赛从「GSL 双败」换成「组内单败」：4 个小组、每组 4 队打半决赛 + 决赛，前两名晋级。小组赛由 20 场降到 12 场，赛程更短。",
+    teamCount: 36,
+    teamSize: 5,
+    stages: [
+      { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1", advance: "4 支队伍并入入围赛" },
+      { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1", advance: "16 支队伍晋级" },
+      { name: "小组赛", type: "single-elim-groups", teamCount: 16, groupCount: 4, boType: "BO3", advance: "每组 2 支队伍晋级" },
+      { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3", advance: "冠军产生" },
+    ],
+    stageSummary: "36 队 → 最弱 8 队打资格赛（同档互打）→ 32 队单败入围（BO1）→ 16 队分 4 组组内单败 → 8 队双败",
+    matchCount: 46,
+    hourEstimate: 56,
+    defaultRules: [
+      { title: "参赛规模", detail: "赛事设置 36 个参赛席位，每支队伍注册 5 名首发选手。" },
+      { title: "资格赛", detail: "依首发 5 名选手报名截止时的段位平均分排序，最弱的 8 支队伍参加资格赛，按段位相近配对、单败 BO1；4 支胜者并入入围赛，负者淘汰。" },
+      { title: "入围赛", detail: "其余 28 支队伍与资格赛 4 支胜者共 32 支，经抽签确定首轮对阵，单败 BO1；16 支胜者晋级小组赛。" },
+      { title: "小组赛", detail: "16 支晋级队伍分入 4 个小组，每组 4 队采用组内单败（组内半决赛 + 组内决赛），比赛为 BO3；组内决赛的两支队伍（即该组前两名）晋级淘汰赛。" },
+      { title: "淘汰赛", detail: "8 支晋级队伍进入双败淘汰赛。败者组决赛与总决赛为 BO5，其余场次为 BO3。" },
+      { title: "种子分档", detail: "小组赛参赛队伍依据首发 5 名选手报名截止时的段位平均分划入 4 个种子池；每组分别抽取各档 1 支队伍，组内对阵按种子位展开（一号对四号、二号对三号）。" },
       { title: "淘汰赛抽签", detail: "小组第一对阵其他小组第二；同组晋级队伍分入不同半区。" },
       { title: "赛程与改期生效", detail: "比赛时间以赛事平台最新公布的赛程为准。队伍协商改期后，须由赛事负责人确认并更新赛程，改期方可生效。" },
     ],
@@ -413,6 +457,8 @@ export function resolveTemplateIdFromStages(stages: StageConfig[]): string {
   if (exact) return exact.id;
   if (stages.length === 1 && stages[0]?.type === "double-elim" && stages[0].teamCount === 8) return "val-8de";
   if (stages.length === 1 && stages[0]?.type === "single-elim" && stages[0].teamCount === 32) return "val-32ko";
+  // 兜底 id 只能尽力而为（多阶段组合没有一一对应的模板 id）。
+  if (stages.some((stage) => stage.type === "single-elim-groups")) return "val-36playin-32qual-16seg-8de";
   if (stages.some((stage) => stage.type === "gsl-groups")) return "val-16gsl-8de";
   return FORMAT_TEMPLATES[0].id;
 }
@@ -455,6 +501,10 @@ function formatRulesFromStages(stages: StageConfig[], teamSize: number): Editabl
       detail = next
         ? `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；${advancing} 支胜者${next.teamCount > stage.teamCount ? "并入" : "晋级"}${next.name}。`
         : `${stage.teamCount} 支队伍采用单败淘汰制，比赛为 ${stage.boType}；负者淘汰，直至决出冠军。`;
+    } else if (stage.type === "single-elim-groups") {
+      const groups = stage.groupCount ?? 1;
+      const advancingPerGroup = next ? Math.max(1, Math.round(next.teamCount / groups)) : 2;
+      detail = `${stage.teamCount} 支队伍分入 ${groups} 个小组，每组采用组内单败（组内半决赛 + 组内决赛），比赛为 ${stage.boType}；每组前 ${advancingPerGroup} 名晋级${next?.name ?? "下一阶段"}。`;
     } else if (stage.type === "gsl-groups") {
       const groups = stage.groupCount ?? 1;
       const advancingPerGroup = next ? Math.max(1, Math.round(next.teamCount / groups)) : 2;
@@ -470,7 +520,7 @@ function formatRulesFromStages(stages: StageConfig[], teamSize: number): Editabl
     rules.push({ title: stage.name, detail, category: "format", emphasis: "normal" });
   });
 
-  if (stages.some((stage) => stage.type === "gsl-groups")) {
+  if (stages.some((stage) => stage.type === "gsl-groups" || stage.type === "single-elim-groups")) {
     rules.push({
       title: "种子分档",
       detail: "小组赛队伍依据已确认的种子规则分档；同一种子池队伍分入不同小组，首轮按一号种子对四号种子、二号种子对三号种子生成对阵。",
@@ -478,7 +528,7 @@ function formatRulesFromStages(stages: StageConfig[], teamSize: number): Editabl
       emphasis: "important",
     });
   }
-  if (stages.some((stage) => stage.type === "gsl-groups") && stages.some((stage) => stage.type === "double-elim")) {
+  if (stages.some((stage) => stage.type === "gsl-groups" || stage.type === "single-elim-groups") && stages.some((stage) => stage.type === "double-elim")) {
     rules.push({
       title: "淘汰赛抽签",
       detail: "小组第一对阵其他小组第二；同组晋级队伍分入不同半区，避免在淘汰赛首轮再次相遇。",

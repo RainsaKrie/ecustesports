@@ -310,9 +310,75 @@ export function buildGslGroupMatches(
   return matches;
 }
 
-/** 兼容 16 队赛事：一次生成 GSL（20 场）+ 8 队双败（14 场）= 34 场。 */
-export function buildTournamentMatches(
+/**
+ * 把「按种子排好序」的队伍重排成**对阵顺序**：4 队 → 1v4、2v3；8 队 → 1v8、4v5、2v7、3v6。
+ *
+ * 为什么需要它：`buildSingleEliminationMatches` 按数组相邻两两配对，
+ * 直接把种子顺序喂进去会变成「1 对 2、3 对 4」—— 小组里的一号种子半决赛就撞二号种子，
+ * 种子分档的意义就没了。标准做法是先展开成对阵顺序再配对。
+ */
+export function bracketOrderFromSeeds(seedOrderedIds: string[]): string[] {
+  const count = seedOrderedIds.length;
+  if (count === 0) return [];
+  let order = [1];
+  let size = 1;
+  while (size < count) {
+    const next: number[] = [];
+    for (const seed of order) next.push(seed, size * 2 + 1 - seed);
+    order = next;
+    size *= 2;
+  }
+  return order.map((seed) => seedOrderedIds[seed - 1]).filter((id): id is string => Boolean(id));
+}
+
+/**
+ * 生成「组内单败」小组赛（2026-10-14 新增）：每组各排一张单败对阵，组内决赛的两队即该组前两名。
+ *
+ * 用途：16 队分 4 组、组内单败的赛制（每组 4 队 = 2 场半决赛 + 1 场决赛，合计 **12 场**），
+ * 与「GSL 小组赛」（每组 5 场、20 场）并列，由阶段类型区分。
+ *
+ * 约定：
+ * - `group.teamIds` 需**按种子排序**（种子池抽签的产物就是按池序排的），
+ *   内部会先转成对阵顺序，保证一号种子半决赛不撞二号种子；
+ * - 轮次名带小组前缀（`「A 组 半决赛」`/`「A 组 决赛」`）—— 一是界面能看出属于哪一组，
+ *   二是名次取数靠 `「<组名> 决赛」` 认组（与 GSL 的 `「<组名> 胜者组出线战」` 同一套约定）。
+ */
+export function buildGroupSingleElimMatches(
   groups: Group[],
+  teamName: (id: string) => string,
+  options: { startIndex?: number; phase?: string; boType?: ScheduleMatch["boType"] } = {},
+): ScheduleMatch[] {
+  if (groups.length === 0) throw new Error("组内单败至少需要一个小组。");
+  for (const group of groups) {
+    if (!isPowerOfTwo(group.teamIds.length)) {
+      throw new Error(`「${group.name}」的队伍数需为 2 的幂（如 4、8），当前为 ${group.teamIds.length}。`);
+    }
+  }
+
+  const start = options.startIndex ?? 1;
+  const phase = options.phase ?? "小组赛";
+  const boType = options.boType ?? "BO3";
+  const matches: ScheduleMatch[] = [];
+
+  let cursor = start;
+  for (const group of groups) {
+    // 复用完整单败构造器：晋级连线（半决赛胜者进组内决赛）由它接好
+    const bracket = buildSingleEliminationMatches(bracketOrderFromSeeds(group.teamIds), teamName, {
+      startIndex: cursor,
+      phase,
+      boType,
+    });
+    for (const match of bracket) {
+      matches.push({ ...match, round: `${group.name} ${match.round ?? ""}`.trim() });
+    }
+    cursor += bracket.length;
+  }
+
+  return matches;
+}
+
+/** 兼容 16 队赛事：一次生成 GSL（20 场）+ 8 队双败（14 场）= 34 场。 */
+export function buildTournamentMatches(  groups: Group[],
   matchups: Matchup[],
   teamName: (id: string) => string,
   options: { groupBoType?: ScheduleMatch["boType"]; knockoutBoType?: ScheduleMatch["boType"] } = {},

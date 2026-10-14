@@ -183,7 +183,7 @@ export default function NewEventPage() {
                       value={st.type}
                       onChange={(e) => {
                         const type = e.target.value as StageType;
-                        updateStage(index, { type, boType: STAGE_TYPE_DEFAULT_BO[type], ...(type === "gsl-groups" || type === "round-robin" ? { groupCount: 4 } : {}) });
+                        updateStage(index, { type, boType: STAGE_TYPE_DEFAULT_BO[type], ...(type === "gsl-groups" || type === "single-elim-groups" || type === "round-robin" ? { groupCount: 4 } : {}) });
                       }}
                       className={inputClass}
                     >
@@ -204,7 +204,7 @@ export default function NewEventPage() {
                       <option value="BO5">BO5</option>
                     </select>
                   </label>
-                  {(st.type === "gsl-groups" || st.type === "round-robin") && (
+                  {(st.type === "gsl-groups" || st.type === "single-elim-groups" || st.type === "round-robin") && (
                     <label className="block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">
                       分组数
                       <input type="number" min={1} max={16} value={st.groupCount ?? 4} onChange={(e) => updateStage(index, { groupCount: Number(e.target.value) })} className={inputClass} />

@@ -85,6 +85,11 @@ function expectedStageMatches(stages: StageConfig[], stageIndex: number): number
     return stage.teamCount - nextStage.teamCount;
   }
   if (stage.type === "gsl-groups") return (stage.groupCount ?? 0) * 5;
+  if (stage.type === "single-elim-groups") {
+    const groups = stage.groupCount ?? 1;
+    const perGroup = Math.max(2, Math.floor(stage.teamCount / groups));
+    return groups * (perGroup - 1);
+  }
   if (stage.type === "double-elim" && stage.teamCount === 8) return 14;
   return null;
 }
