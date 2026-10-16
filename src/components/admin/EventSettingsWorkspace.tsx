@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
+import { SCHEDULE_MODE_LABELS, type ScheduleMode } from "@/lib/scheduling/schedule-mode";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -389,6 +390,28 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
             </div>
             {dirty && <p className="mt-4 border-t border-[var(--adm-line-soft)] pt-3 text-[length:var(--adm-fs-md)] text-[var(--adm-warn-text)]">存在未保存修改，保存后方可更新公开状态。</p>}
           </section>
+
+          <Panel eyebrow="怎么定时间" title="排期方式">
+            <div className="px-5 py-5">
+              <div className="flex flex-wrap gap-2">
+                {(["open", "fixed"] as ScheduleMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => patchEvent({ scheduleMode: mode })}
+                    className={`adm-btn adm-btn--secondary adm-btn--md ${event.scheduleMode === mode ? "border-l-[2px] border-[var(--adm-red)] font-bold" : ""}`}
+                  >
+                    {event.scheduleMode === mode ? "✓ " : ""}{SCHEDULE_MODE_LABELS[mode]}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">
+                {event.scheduleMode === "fixed"
+                  ? "固定比赛时间：赛程由你统一排定，队伍侧没有协商入口。抽签发布后不要再改这个设置。"
+                  : "自由约赛：队伍在时段窗口内自行协商时间（默认）。待协商的场次数不是你的待办。"}
+              </p>
+            </div>
+          </Panel>
 
           <Panel eyebrow="发布检查" title="发布前待确认">
             <div className="grid border-l border-t border-[var(--adm-line-soft)] sm:grid-cols-2 lg:grid-cols-3">
