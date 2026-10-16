@@ -9,6 +9,7 @@
 import { planBulkSchedule, applyBulkAssignments } from "./bulk-schedule";
 import { DEFAULT_CONFIG, type SchedulingConfig } from "./rule-engine";
 import { scheduleModeOf, captainNegotiationRefusal, unscheduledAnomalyNotice } from "./schedule-mode";
+import { matchdayCandidates, schedulePlanInputFromEvent, partitionSchedulable } from "./schedule-policy";
 import type { ScheduleMatch } from "./schedule-data";
 
 let pass = 0;
@@ -208,6 +209,41 @@ check("★ 逐日不同时段：每场都落在自己那一天的窗口内（10 
     return Boolean(day) && a.startTime >= day!.start && a.endTime <= day!.end;
   }),
   JSON.stringify(uneven.assignments.map((a) => `${a.startTime}~${a.endTime}`)));
+
+group("组8 · 从赛事配置推导排期参数（界面与脚本共用）");
+
+// ★ 注入 now：不注入的话断言会随日期漂移（今天写的 10-17 明天就红了）
+const NOW = new Date("2026-10-16T20:00:00");
+const EVENT = { eventDateLabel: "比赛时间10.7-11.8", constraints: { maxConcurrent: 2, durations: { BO1: 45, BO3: 90, BO5: 150 }, sessionStart: "12:00", sessionEnd: "18:00" } };
+check(
+  "★ 比赛日候选 = 赛期内从明天起的周六周日（注入日期后结果稳定）",
+  JSON.stringify(matchdayCandidates(EVENT, NOW).slice(0, 4)) === JSON.stringify(["2026-10-17", "2026-10-18", "2026-10-24", "2026-10-25"]),
+  JSON.stringify(matchdayCandidates(EVENT, NOW)),
+);
+
+const derived = schedulePlanInputFromEvent(EVENT, { now: NOW });
+check("推导出的窗口数与比赛日一致", derived.windows.length === matchdayCandidates(EVENT, NOW).length);
+check("配置来自赛事约束（并发 2、BO3 90 分钟）", derived.config.maxConcurrentMatches === 2 && derived.config.boDurations.BO3 === 90);
+check(
+  "每个窗口都在当天 12:00–18:00",
+  derived.windows.every((w) => w.start.endsWith("T12:00:00") && w.end.endsWith("T18:00:00")),
+  JSON.stringify(derived.windows.slice(0, 2)),
+);
+
+const overridden = schedulePlanInputFromEvent(EVENT, { days: ["2026-11-07", "2026-11-08"] });
+check(
+  "显式指定比赛日时以它为准（覆盖自动生成）",
+  JSON.stringify(overridden.windows.map((w) => w.start.slice(0, 10))) === JSON.stringify(["2026-11-07", "2026-11-08"]),
+  JSON.stringify(overridden.windows),
+);
+
+const split = partitionSchedulable([
+  { status: "待排期", teamAId: "A", teamBId: "B" },
+  { status: "待排期", teamAId: "TBD", teamBId: "TBD" },
+  { status: "已排期", teamAId: "C", teamBId: "D" },
+]);
+check("★ 参赛队未定的场次被分出去（排了必然改期）", split.schedulable.length === 1 && split.awaitingTeams.length === 1);
+check("已排期的场次不参与本次排期", !split.schedulable.some((m) => m.status !== "待排期"));
 
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
