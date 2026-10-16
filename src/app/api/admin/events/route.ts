@@ -230,6 +230,11 @@ export async function PATCH(request: NextRequest) {
       scheduleMode: (raw.scheduleMode === "fixed"
         ? "fixed"
         : raw.scheduleMode === "open" ? "open" : existing.scheduleMode) as "open" | "fixed",
+      // 排期模式：只认这两个字面量；本次没提交这个字段时保留原值
+      // （否则表单里没带的字段会被静默重置 —— 这正是「存了又变回去」那类坑）
+      scheduleMode: (raw.scheduleMode === "fixed"
+        ? "fixed"
+        : raw.scheduleMode === "open" ? "open" : existing.scheduleMode) as "open" | "fixed",
       description,
       prizePool: text(raw.prizePool, 240),
       coverColor: typeof raw.coverColor === "string" && /^#[0-9a-fA-F]{6}$/.test(raw.coverColor)
