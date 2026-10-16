@@ -613,6 +613,8 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
     stageConfigs,
     proposal: { background: "", purpose: "", budget: "", prizes: "", leader: "", contact: "" },
     eventQqGroup: "",
+    // 新赛事默认「自由约赛」；排期模式由负责人在赛事设置里选定
+    scheduleMode: "open" as const,
     createdAt: now,
   };
 }

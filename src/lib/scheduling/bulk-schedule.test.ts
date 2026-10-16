@@ -8,6 +8,7 @@
 
 import { planBulkSchedule, applyBulkAssignments } from "./bulk-schedule";
 import { DEFAULT_CONFIG, type SchedulingConfig } from "./rule-engine";
+import { scheduleModeOf, captainNegotiationRefusal, unscheduledAnomalyNotice } from "./schedule-mode";
 import type { ScheduleMatch } from "./schedule-data";
 
 let pass = 0;
@@ -156,6 +157,18 @@ check(
   "跨天排练也是确定性的",
   JSON.stringify(overflowTwoDays) === JSON.stringify(planBulkSchedule(Array.from({ length: 20 }, (_, i) => match(`M${i + 1}`, "BO3")), [], CONFIG, TWO_DAYS)),
 );
+
+group("组6 · 排期模式（固定模式下队伍侧没有协商入口）");
+
+check("缺字段的老数据按「自由约赛」处理（行为不变）", scheduleModeOf({}) === "open" && scheduleModeOf(null) === "open");
+check("只认 fixed 字面量，其它值一律退回 open", scheduleModeOf({ scheduleMode: "FIXED" }) === "open" && scheduleModeOf({ scheduleMode: "whatever" }) === "open");
+check("fixed 被正确识别", scheduleModeOf({ scheduleMode: "fixed" }) === "fixed");
+check("★ 自由约赛模式下允许队伍协商", captainNegotiationRefusal("open") === null);
+const fixedRefusal = captainNegotiationRefusal("fixed");
+check("★ 固定模式下拒绝队伍协商，且给出能照着做的中文", fixedRefusal !== null && fixedRefusal.includes("固定比赛时间") && fixedRefusal.includes("联系赛事负责人"));
+check("★ 待排期的语义分流：固定模式下有未排定即为异常", (unscheduledAnomalyNotice("fixed", 3) ?? "").includes("3 场"));
+check("自由约赛模式不把待排期当异常", unscheduledAnomalyNotice("open", 11) === null);
+check("固定模式且无未排定则一切正常", unscheduledAnomalyNotice("fixed", 0) === null);
 
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);

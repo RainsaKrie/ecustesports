@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { isEventPublic } from "@/lib/configured-events";
+import { captainNegotiationRefusal, scheduleModeOf } from "@/lib/scheduling/schedule-mode";
 import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
 import {
   initialRegistration,
@@ -39,6 +40,13 @@ async function resolveContext(request: NextRequest, eventId: string) {
   const team = player.teamId ? registration.teams.find((item) => item.id === player.teamId) : undefined;
   if (!team || team.captainId !== player.id) {
     return { error: "只有本场参赛队伍的队长可以操作约赛时间。", status: 403 as const };
+  }
+  // 固定比赛时间模式：队伍侧没有任何协商入口。
+  // 这里**必须真的拒绝**，只藏界面入口挡不住直接调接口的人。
+  // 注：该模式在抽签发布前就定好，因此正常情况下不会有历史申请残留。
+  const negotiationRefusal = captainNegotiationRefusal(scheduleModeOf(event));
+  if (negotiationRefusal) {
+    return { error: negotiationRefusal, status: 403 as const };
   }
   return { event, player, team };
 }

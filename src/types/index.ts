@@ -84,6 +84,8 @@ export interface EsportEvent {
   dateLabel?: string;
   registrationLabel?: string;
   stageSummary?: string;
+  /** 排期模式：open 自由约赛（默认）/ fixed 固定比赛时间（由主办方统一排定） */
+  scheduleMode?: "open" | "fixed";
   /**
    * 赛事 QQ 群号（纯数字，空表示未设置）。
    *

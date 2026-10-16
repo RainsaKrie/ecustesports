@@ -64,6 +64,8 @@ export interface EditableEvent {
   eventDateLabel: string;
   registrationLabel: string;
   stageSummary: string;
+  /** 排期模式：open 自由约赛（默认）/ fixed 固定比赛时间 */
+  scheduleMode: "open" | "fixed";
   prizePool: string;
   coverColor: string;
   posterImage: string;
@@ -224,6 +226,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       eventDateLabel: "竞赛日期待公布",
       registrationLabel: "报名尚未开放",
       stageSummary: "入围赛（32 队）→ 小组赛（16 队）→ 双败淘汰赛（8 队）",
+      scheduleMode: "open",
       prizePool: "奖金及奖品方案待公布",
       coverColor: "#ff4655",
       posterImage: "",
@@ -430,6 +433,8 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
         eventDateLabel: text(item.eventDateLabel, fallback.eventDateLabel, 80),
         registrationLabel: text(item.registrationLabel, fallback.registrationLabel, 60),
         stageSummary: text(item.stageSummary, fallback.stageSummary, 160),
+        // 排期模式：只认 fixed 字面量，其余（含缺失）一律退回 open —— 存量赛事行为不变
+        scheduleMode: (item.scheduleMode === "fixed" ? "fixed" : "open") as "open" | "fixed",
         prizePool: text(item.prizePool, fallback.prizePool, 240),
         coverColor: color(item.coverColor, fallback.coverColor),
         posterImage: imagePath(item.posterImage),
