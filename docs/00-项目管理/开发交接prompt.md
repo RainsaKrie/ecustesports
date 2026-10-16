@@ -31,7 +31,7 @@
 - Node：使用系统命令 `node` / `npm`（当前环境 Node.js 22）
 - **项目根目录：`D:\Projects\esports-operations-assistant-production-fixes`**
   （文档里出现的 `D:\桌面\esports-operations-assistant` 是**旧路径**，已迁盘，不要再使用）
-- 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → 33 个测试套件 → 构建）
+- 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → 35 个测试套件 → 构建）
   · 环境变量 `CODEBUDDY_SAFE_DELETE_ENABLED=0` 是必须的：本机删除守卫会在 Next 清理构建缓存时拦截，报
   `SAFE_DELETE_BULK_CONFIRM_REQUIRED`，**不是代码问题**；CI 不需要该开关。
 - 端到端验收（不在上面的门禁里）：`npm run test:rehearsal36`
