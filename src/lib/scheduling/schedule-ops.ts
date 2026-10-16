@@ -10,6 +10,7 @@ import type {
   NotificationDraft,
   GameResult,
 } from "./schedule-data";
+import { teamSwapRefusal, swapTeamSlots, type TeamSlot } from "./team-swap";
 import {
   validateReschedule,
   validateMatchTime,
@@ -783,6 +784,36 @@ export function setMatchTimeOp(
     result: { approved: true, conflicts: [], primaryConflict: "" },
     value: { approved: true, conflicts: [], primaryConflict: "" },
   };
+}
+
+/**
+ * 调整对阵：交换两个签位的队伍，并把理由写进版本记录的说明里（2026-10-16）。
+ *
+ * 为什么走操作层而不是在界面里直接改 matches：**版本历史的说明是事后排查的第一人证**
+ * （改期、抽签那些操作的说明都写在这里，见《数据流转与写入点登记表》的排查手册）。
+ * 理由**在这一层强制**，所以绕不过去 —— 界面上忘记校验也不会留下"无理由的对阵改动"。
+ */
+export function swapTeamsOp(state: ScheduleState, from: TeamSlot, to: TeamSlot, reason: string): ScheduleState {
+  const trimmed = reason.trim();
+  if (!trimmed) throw new Error("必须填写调整对阵的理由（事后要能说明依据）。");
+  const refusal = teamSwapRefusal(state.matches, from, to);
+  if (refusal) throw new Error(refusal);
+
+  const newMatches = swapTeamSlots(state.matches, from, to);
+  const newVersion = state.version + 1;
+  const teamNameAt = (slot: TeamSlot) => {
+    const target = state.matches.find((m) => m.id === slot.matchId);
+    if (!target) return "?";
+    return slot.side === "A" ? target.teamAName : target.teamBName;
+  };
+  const versionRecord = {
+    version: newVersion,
+    matches: newMatches,
+    note: `调整对阵：${teamNameAt(to)} 换到 ${from.matchId} 的 ${from.side} 位、${teamNameAt(from)} 换到 ${to.matchId} 的 ${to.side} 位（理由：${trimmed}）`,
+    createdAt: new Date().toISOString(),
+  };
+
+  return { ...state, version: newVersion, matches: newMatches, versions: [...state.versions, versionRecord] };
 }
 
 /** 保存 BP 选出的地图 */

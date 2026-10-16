@@ -6,6 +6,8 @@
 // =====================
 
 import { teamSwapRefusal, swapTeamSlots, type TeamSlot } from "./team-swap";
+import { swapTeamsOp } from "./schedule-ops";
+import { emptySchedule, normalizeScheduleState } from "./schedule-data";
 import type { ScheduleMatch } from "./schedule-data";
 
 let pass = 0;
@@ -90,6 +92,34 @@ check(
   "同输入同输出",
   JSON.stringify(swapTeamSlots(base, slot("M1", "A"), slot("M2", "A"))) === JSON.stringify(swapTeamSlots(base, slot("M1", "A"), slot("M2", "A"))),
 );
+
+group("组5 · 操作层留痕（版本记录里必须写清理由）");
+
+const state = normalizeScheduleState({ ...emptySchedule(), version: 7, matches: base });
+const after = swapTeamsOp(state, slot("M1", "A"), slot("M2", "B"), "两队协商一致，调整到同组半决赛");
+
+check("版本号 +1", after.version === 8, String(after.version));
+check("版本记录追加了一条", after.versions.length === state.versions.length + 1);
+const note = after.versions[after.versions.length - 1]?.note ?? "";
+check("★ 说明里写明是谁换到哪", note.includes("M2 乙") && note.includes("M1 甲"), note);
+check("★ 说明里带上理由（事后可追溯）", note.includes("两队协商一致"), note);
+check("对阵确实换了", after.matches.find((m) => m.id === "M1")!.teamAId === "M2-B");
+
+let emptyReason = "";
+try {
+  swapTeamsOp(state, slot("M1", "A"), slot("M2", "B"), "   ");
+} catch (error) {
+  emptyReason = error instanceof Error ? error.message : String(error);
+}
+check("★ 空理由直接抛错（理由在这一层强制，界面忘了校验也绕不过）", emptyReason.includes("必须填写"));
+
+let crossPhase = "";
+try {
+  swapTeamsOp(state, slot("M1", "A"), slot("M3", "A"), "试试跨阶段");
+} catch (error) {
+  crossPhase = error instanceof Error ? error.message : String(error);
+}
+check("跨阶段在操作层同样被拒", crossPhase.includes("同一个阶段"));
 
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
