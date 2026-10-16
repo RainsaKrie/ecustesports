@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScheduleState, ScheduleMatch, GameResult } from "./schedule-data";
 import { applyBulkAssignments, type BulkAssignment } from "@/lib/scheduling/bulk-schedule";
+import { teamSwapRefusal, type TeamSlot } from "@/lib/scheduling/team-swap";
+import { swapTeamsOp } from "@/lib/scheduling/schedule-ops";
 import { emptySchedule, normalizeScheduleState } from "./schedule-data";
 import type { SchedulingConfig, ValidationResult } from "./rule-engine";
 import {
@@ -313,6 +315,21 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
    * 409 冲突后自动重载，全部沿用本 hook 既有的那套（见上面的自动保存 effect）。
    * 所以它**没有引入新的赛程写入点**，不需要改写入契约登记表。
    */
+  /**
+   * 调整对阵：交换两个签位的队伍。
+   *
+   * 先在**当前状态**上判一次（拿到可读理由直接返回给界面提示），再落状态 ——
+   * 抛错不能发生在 setState 的回调里（那会变成渲染期异常）。
+   * 理由由操作层强制（`swapTeamsOp` 会对空理由抛错），界面忘记了也绕不过去。
+   */
+  const applyTeamSwap = useCallback((from: TeamSlot, to: TeamSlot, reason: string): string | null => {
+    const refusal = teamSwapRefusal(state.matches, from, to);
+    if (refusal) return refusal;
+    dirtyRef.current = true;
+    setState((current) => swapTeamsOp(current, from, to, reason));
+    return null;
+  }, [state]);
+
   const applySchedulePlan = useCallback((assignments: BulkAssignment[]) => {
     if (assignments.length === 0) return;
     dirtyRef.current = true;
@@ -322,6 +339,7 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
   return {
     state,
     applySchedulePlan,
+    applyTeamSwap,
     submitRequest,
     approveRequest,
     rejectRequest,

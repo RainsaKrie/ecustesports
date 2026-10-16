@@ -13,6 +13,7 @@ import TournamentBracketCanvas, { advancementPath } from "@/components/events/To
 import { bracketDataIssue, buildBracketBlueprint } from "@/lib/scheduling/bracket-blueprint";
 import { SCHEDULE_MODE_LABELS, scheduleModeOf, unscheduledAnomalyNotice } from "@/lib/scheduling/schedule-mode";
 import { planBulkSchedule } from "@/lib/scheduling/bulk-schedule";
+import type { TeamSlot } from "@/lib/scheduling/team-swap";
 import { partitionSchedulable, schedulePlanInputFromEvent } from "@/lib/scheduling/schedule-policy";
 import type { EditableEvent } from "@/lib/site-config-schema";
 import { useAdminConfirm, useAdminToast, adminInputClass, adminSelectClass, AdminModal, EmptyState, type AdminBadgeTone } from "@/components/admin/ui";
@@ -127,7 +128,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
   const confirm = useAdminConfirm();
   const toast = useAdminToast();
-  const { state, applySchedulePlan, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
+  const { state, applySchedulePlan, applyTeamSwap, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
   const [eventConfig, setEventConfig] = useState<EditableEvent | null>(null);
 
   /**
@@ -141,6 +142,17 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   }, []);
 
   const [selected, setSelected] = useState<ScheduleMatch | null>(null);
+
+
+  // 调整对阵的弹窗状态（选两个签位 + 理由）
+
+  const [swapOpen, setSwapOpen] = useState(false);
+
+  const [swapFrom, setSwapFrom] = useState("");
+
+  const [swapTo, setSwapTo] = useState("");
+
+  const [swapReason, setSwapReason] = useState("");
   const [mode, setMode] = useState<DialogMode>("overview");
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
@@ -333,6 +345,31 @@ export default function SchedulePage({ params }: SchedulePageProps) {
    * 只排**参赛队已确定**的场次；参赛队未定的（组内决赛、淘汰赛后续轮次）单独报出来。
    * 写入沿用 hook 的既有链路（版本条件写入 + 冲突自动重载），没有引入新的赛程写入点。
    */
+  /** 可调整的签位：未开打、状态待排期、且队伍已确定的那些 */
+  const swappableSlots = state.matches
+    .filter((m) => !m.startTime && m.status === "待排期" && !m.winnerTeamId && (m.gameResults?.length ?? 0) === 0)
+    .flatMap((m) => (["A", "B"] as const)
+      .map((side) => ({
+        value: `${m.id}|${side}`,
+        label: `${m.id} · ${side} 位 · ${side === "A" ? m.teamAName : m.teamBName}`,
+        teamId: side === "A" ? m.teamAId : m.teamBId,
+      }))
+      .filter((item) => item.teamId !== "TBD" && item.teamId !== ""));
+
+  const parseSlot = (value: string): TeamSlot => {
+    const [matchId, side] = value.split("|");
+    return { matchId, side: side === "B" ? "B" : "A" };
+  };
+
+  function submitTeamSwap() {
+    if (!swapFrom || !swapTo) { toast.error("请选择要调整的两个签位"); return; }
+    if (!swapReason.trim()) { toast.error("请填写调整理由（事后要能说明依据）"); return; }
+    const refusal = applyTeamSwap(parseSlot(swapFrom), parseSlot(swapTo), swapReason);
+    if (refusal) { toast.error(refusal); return; }
+    toast.success("已调整对阵，稍后自动保存");
+    setSwapOpen(false); setSwapFrom(""); setSwapTo(""); setSwapReason("");
+  }
+
   function runBulkSchedule() {
     const { schedulable, awaitingTeams } = partitionSchedulable(state.matches);
     if (schedulable.length === 0) {
@@ -399,6 +436,11 @@ export default function SchedulePage({ params }: SchedulePageProps) {
             >
               刷新数据
             </button>
+            {swappableSlots.length >= 2 && (
+              <button type="button" onClick={() => setSwapOpen(true)} className="adm-btn adm-btn--secondary adm-btn--md">
+                调整对阵
+              </button>
+            )}
             {scheduleMode === "fixed" && (
               <button type="button" onClick={runBulkSchedule} className="adm-btn adm-btn--secondary adm-btn--md">
                 按规则批量排期
@@ -614,10 +656,47 @@ export default function SchedulePage({ params }: SchedulePageProps) {
         </section>
       )}
 
+        {swapOpen && (
+        <AdminModal
+          title="调整对阵：交换两个签位的队伍"
+          onClose={() => setSwapOpen(false)}
+          width="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">
+              只能在同一阶段内、且两场都还没开打时调整。改完会把理由写进赛程的版本记录里。
+            </p>
+            <label className="block">
+              <span className="mb-1 block text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">签位一</span>
+              <select value={swapFrom} onChange={(e) => setSwapFrom(e.target.value)} className={adminSelectClass}>
+                <option value="">请选择…</option>
+                {swappableSlots.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">签位二</span>
+              <select value={swapTo} onChange={(e) => setSwapTo(e.target.value)} className={adminSelectClass}>
+                <option value="">请选择…</option>
+                {swappableSlots.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">理由（必填）</span>
+              <input value={swapReason} onChange={(e) => setSwapReason(e.target.value)} className={adminInputClass} placeholder="例：两队协商一致 / 同院系避开" />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setSwapOpen(false)} className="adm-btn adm-btn--secondary adm-btn--md">取消</button>
+              <button type="button" onClick={submitTeamSwap} className="adm-btn adm-btn--primary adm-btn--md">确认调整</button>
+            </div>
+          </div>
+        </AdminModal>
+        )}
+
       {/* 比赛操作面板。原来是自己写的遮罩层（z-50、没有 Esc 关闭、没有点遮罩关闭），
           这里换成统一的 AdminModal —— 它自带 Esc、点遮罩关闭和滚动锁定。
           下面每个模式原来自带 `p-5`，去掉是因为 AdminModal 的内容容器已经给了。 */}
       {selected && (
+
         <AdminModal
           title={`${selected.id} · ${selected.phase}`}
           onClose={() => setSelected(null)}
