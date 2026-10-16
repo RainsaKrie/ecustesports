@@ -12,6 +12,8 @@ import type { BPSession } from "@/lib/scheduling/bp-ops";
 import TournamentBracketCanvas, { advancementPath } from "@/components/events/TournamentBracketCanvas";
 import { bracketDataIssue, buildBracketBlueprint } from "@/lib/scheduling/bracket-blueprint";
 import { SCHEDULE_MODE_LABELS, scheduleModeOf, unscheduledAnomalyNotice } from "@/lib/scheduling/schedule-mode";
+import { planBulkSchedule } from "@/lib/scheduling/bulk-schedule";
+import { partitionSchedulable, schedulePlanInputFromEvent } from "@/lib/scheduling/schedule-policy";
 import type { EditableEvent } from "@/lib/site-config-schema";
 import { useAdminConfirm, useAdminToast, adminInputClass, adminSelectClass, AdminModal, EmptyState, type AdminBadgeTone } from "@/components/admin/ui";
 
@@ -125,7 +127,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
   const confirm = useAdminConfirm();
   const toast = useAdminToast();
-  const { state, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
+  const { state, applySchedulePlan, approveRequest, rejectRequest, toggleFrozen, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
   const [eventConfig, setEventConfig] = useState<EditableEvent | null>(null);
 
   /**
@@ -325,6 +327,40 @@ export default function SchedulePage({ params }: SchedulePageProps) {
    */
   const scheduleMode = scheduleModeOf(eventConfig);
   const unscheduledNotice = unscheduledAnomalyNotice(scheduleMode, pendingScheduleCount);
+
+  /**
+   * 批量排期（固定比赛时间模式用）：按规则算出草案 → 让负责人过一眼 → 确认后才写入。
+   * 只排**参赛队已确定**的场次；参赛队未定的（组内决赛、淘汰赛后续轮次）单独报出来。
+   * 写入沿用 hook 的既有链路（版本条件写入 + 冲突自动重载），没有引入新的赛程写入点。
+   */
+  function runBulkSchedule() {
+    const { schedulable, awaitingTeams } = partitionSchedulable(state.matches);
+    if (schedulable.length === 0) {
+      toast.error("没有可排期的场次（参赛队已确定的那些都已排好）");
+      return;
+    }
+    const { config, windows } = schedulePlanInputFromEvent(eventConfig ?? {});
+    const plan = planBulkSchedule(schedulable, state.matches, config, windows);
+    if (plan.assignments.length === 0) {
+      toast.error("按当前规则排不下任何一场，请检查比赛日与时段设置");
+      return;
+    }
+    const lines = plan.assignments
+      .map((item) => {
+        const target = schedulable.find((m) => m.id === item.matchId);
+        return `${item.startTime.slice(5, 16).replace("T", " ")}–${item.endTime.slice(11, 16)}  ${item.matchId}  ${target?.teamAName ?? "?"} vs ${target?.teamBName ?? "?"}`;
+      })
+      .join("\n");
+    void confirm({
+      title: `按规则排期：${plan.assignments.length} 场`,
+      body: `${lines}${plan.skipped.length > 0 ? `\n\n排不下 ${plan.skipped.length} 场：${plan.skipped.map((item) => item.matchId).join("、")}` : ""}${awaitingTeams.length > 0 ? `\n\n另有 ${awaitingTeams.length} 场参赛队未定，本次不排：${awaitingTeams.map((m) => m.id).join("、")}` : ""}`,
+      confirmLabel: `写入 ${plan.assignments.length} 场时间`,
+      onConfirm: () => {
+        applySchedulePlan(plan.assignments);
+        toast.success(`已写入 ${plan.assignments.length} 场时间，稍后自动保存`);
+      },
+    });
+  }
   const blueprintMatches = useMemo(
     () => buildBracketBlueprint(eventConfig?.stageConfigs ?? []),
     [eventConfig],
@@ -363,6 +399,11 @@ export default function SchedulePage({ params }: SchedulePageProps) {
             >
               刷新数据
             </button>
+            {scheduleMode === "fixed" && (
+              <button type="button" onClick={runBulkSchedule} className="adm-btn adm-btn--secondary adm-btn--md">
+                按规则批量排期
+              </button>
+            )}
             <Link href={`/admin/events/${id}/schedule/draw`} className="adm-btn adm-btn--primary adm-btn--md">开始抽签</Link>
             <Link href={`/admin/events/${id}/referees`} className="adm-btn adm-btn--secondary adm-btn--md">裁判管理</Link>
             <Link href={`/admin/events/${id}/review`} className="adm-btn adm-btn--danger adm-btn--md">

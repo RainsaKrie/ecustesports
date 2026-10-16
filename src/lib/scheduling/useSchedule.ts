@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScheduleState, ScheduleMatch, GameResult } from "./schedule-data";
+import { applyBulkAssignments, type BulkAssignment } from "@/lib/scheduling/bulk-schedule";
 import { emptySchedule, normalizeScheduleState } from "./schedule-data";
 import type { SchedulingConfig, ValidationResult } from "./rule-engine";
 import {
@@ -305,8 +306,22 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     setState((current) => ({ ...current, configConfirmed: true }));
   }, []);
 
+  /**
+   * 批量排期：一次性把多场的时间写进去（固定比赛时间模式下用）。
+   *
+   * 只做「改 matches + 置脏」—— 持久化、版本条件写入（If-Match）、
+   * 409 冲突后自动重载，全部沿用本 hook 既有的那套（见上面的自动保存 effect）。
+   * 所以它**没有引入新的赛程写入点**，不需要改写入契约登记表。
+   */
+  const applySchedulePlan = useCallback((assignments: BulkAssignment[]) => {
+    if (assignments.length === 0) return;
+    dirtyRef.current = true;
+    setState((current) => ({ ...current, matches: applyBulkAssignments(current.matches, assignments) }));
+  }, []);
+
   return {
     state,
+    applySchedulePlan,
     submitRequest,
     approveRequest,
     rejectRequest,
