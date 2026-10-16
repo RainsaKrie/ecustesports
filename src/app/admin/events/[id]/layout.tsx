@@ -11,6 +11,7 @@ import type { EventStage } from "@/lib/scheduling/stage";
 import { publicationChecklist } from "@/lib/publication-check";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { resolveEventProgress } from "@/lib/scheduling/event-progress";
+import { scheduleModeOf } from "@/lib/scheduling/schedule-mode";
 import { postEventPublicContentIssues } from "@/lib/site-content-status";
 
 export default async function EventWorkspaceLayout({
@@ -63,6 +64,7 @@ export default async function EventWorkspaceLayout({
     matchCount: schedule.matches.length,
     unscheduledMatchCount: schedule.matches.filter((match) => match.status === "待排期").length,
     completedMatchCount: schedule.matches.filter((match) => match.status === "已完成").length,
+    scheduleMode: scheduleModeOf(event),
     stagesNotStarted: progress.stagesNotStarted,
     raceFinished: progress.finished,
     pendingRescheduleCount: schedule.requests.filter((request) => request.status === "待审批").length,

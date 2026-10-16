@@ -90,6 +90,12 @@ export interface StageGuidanceInput {
   stagesNotStarted: string[];
   /** **赛事真的打完了**（现有比赛全完成 且 赛制每个阶段都已开始），同上模块的 `finished` */
   raceFinished: boolean;
+  /**
+   * 排期模式：决定「还没排期的场次」是不是待办。
+   * `fixed` 固定比赛时间 → 排期是主办方的活，是待办；
+   * `open` 自由约赛 → 时间是队伍自己协商的，**不是主办方的待办**（不许拿它催人）。
+   */
+  scheduleMode: "open" | "fixed";
   pendingRescheduleCount: number;
   publicContentIssues: string[];
 }
@@ -200,7 +206,10 @@ export function getStageGuidance(stage: EventStage, input: StageGuidanceInput): 
     const blockers = [
       ...visibilityBlocker,
       ...(input.pendingRescheduleCount > 0 ? [`${input.pendingRescheduleCount} 条改期申请待处理`] : []),
-      ...(input.unscheduledMatchCount > 0 ? [`${input.unscheduledMatchCount} 场比赛尚未排期`] : []),
+      // 自由约赛模式下「还没排期」不是待办 —— 那是队伍在协商，不下这一条（否则等于在催主办方）
+      ...(input.unscheduledMatchCount > 0 && input.scheduleMode === "fixed"
+        ? [`${input.unscheduledMatchCount} 场比赛尚未排期`]
+        : []),
       ...(awaitNextStage
         ? [`赛制还有 ${input.stagesNotStarted.length} 个阶段未开始：${input.stagesNotStarted.join("、")}`]
         : []),
@@ -214,7 +223,8 @@ export function getStageGuidance(stage: EventStage, input: StageGuidanceInput): 
         ? "结束赛事"
         : awaitNextStage ? `开始${input.stagesNotStarted[0]}抽签`
           : input.pendingRescheduleCount > 0 ? "处理改期申请"
-            : input.unscheduledMatchCount > 0 ? `安排 ${input.unscheduledMatchCount} 场比赛`
+            : input.unscheduledMatchCount > 0
+              ? (input.scheduleMode === "fixed" ? `安排 ${input.unscheduledMatchCount} 场比赛` : "查看约赛进度")
               : "继续比赛执行",
       actionHref: input.raceFinished
         ? `${base}/settings`

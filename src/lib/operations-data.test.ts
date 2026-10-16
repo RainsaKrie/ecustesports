@@ -14,6 +14,7 @@ const base: StageGuidanceInput = {
   matchCount: 0,
   unscheduledMatchCount: 0,
   completedMatchCount: 0,
+  scheduleMode: "open",
   stagesNotStarted: [],
   raceFinished: false,
   pendingRescheduleCount: 0,
@@ -85,6 +86,27 @@ assert.ok(
   !awaitGroupStage.blockers.some((item) => item.includes("全部比赛已完成")),
   "现有比赛全完成但赛制未完时，不能说「全部比赛已完成」",
 );
+
+// ★ 自由约赛模式下「还没排期」不是待办：不下待完成事项，动作也不写成「安排 N 场」（那是在催主办方）
+const openModePending = getStageGuidance("比赛", {
+  ...base,
+  matchCount: 32,
+  completedMatchCount: 20,
+  unscheduledMatchCount: 12,
+});
+assert.equal(openModePending.actionLabel, "查看约赛进度");
+assert.ok(!openModePending.blockers.some((item) => item.includes("尚未排期")), `自由约赛不该出现催排期的待办：${JSON.stringify(openModePending.blockers)}`);
+
+// 固定比赛时间模式下，排期就是主办方的待办 —— 同一份数据应当说不同的话
+const fixedModePending = getStageGuidance("比赛", {
+  ...base,
+  scheduleMode: "fixed",
+  matchCount: 32,
+  completedMatchCount: 20,
+  unscheduledMatchCount: 12,
+});
+assert.equal(fixedModePending.actionLabel, "安排 12 场比赛");
+assert.ok(fixedModePending.blockers.some((item) => item.includes("12 场比赛尚未排期")), JSON.stringify(fixedModePending.blockers));
 
 const postEventUpdate = getStageGuidance("赛后", {
   ...base,

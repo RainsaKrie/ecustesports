@@ -402,8 +402,10 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 max-[760px]:hidden">
             {[
               ["总场次", `${state.matches.length} 场`],
-              // 同一个数字在两种模式下含义不同：固定模式有未排定即为异常
-              ["待排期", unscheduledNotice ? `${pendingScheduleCount} 场（异常）` : `${pendingScheduleCount} 场`],
+              // 同一个数字在两种模式下含义不同：
+              // 固定模式 = 主办方的待办（有未排定即异常）；自由约赛 = 队伍在协商，中性说法
+              [scheduleMode === "fixed" ? "待排期" : "待协商",
+                unscheduledNotice ? `${pendingScheduleCount} 场（异常）` : `${pendingScheduleCount} 场`],
               ["排期模式", SCHEDULE_MODE_LABELS[scheduleMode]],
               ["待报分", `${pendingReportCount} 场`],
               ["已完成", `${doneCount} 场`],
