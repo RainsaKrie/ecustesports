@@ -355,10 +355,10 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       title: `按规则排期：${plan.assignments.length} 场`,
       body: `${lines}${plan.skipped.length > 0 ? `\n\n排不下 ${plan.skipped.length} 场：${plan.skipped.map((item) => item.matchId).join("、")}` : ""}${awaitingTeams.length > 0 ? `\n\n另有 ${awaitingTeams.length} 场参赛队未定，本次不排：${awaitingTeams.map((m) => m.id).join("、")}` : ""}`,
       confirmLabel: `写入 ${plan.assignments.length} 场时间`,
-      onConfirm: () => {
-        applySchedulePlan(plan.assignments);
-        toast.success(`已写入 ${plan.assignments.length} 场时间，稍后自动保存`);
-      },
+    }).then((ok) => {
+      if (!ok) return;
+      applySchedulePlan(plan.assignments);
+      toast.success(`已写入 ${plan.assignments.length} 场时间，稍后自动保存`);
     });
   }
   const blueprintMatches = useMemo(
