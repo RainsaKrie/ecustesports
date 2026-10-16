@@ -17,6 +17,15 @@ import type { ScheduleMatch } from "./schedule-data";
 /** 时间推进粒度：15 分钟（排期以整点/半点为主，粒度太细会产生奇怪的时间） */
 const STEP_MINUTES = 15;
 
+/**
+ * 一个比赛日的时间窗口（如周六 12:00–18:00）。
+ * 真实赛事跨多个周末，所以规划器按**窗口列表**依次填充，而不是只看一个时段。
+ */
+export interface ScheduleWindow {
+  start: string;
+  end: string;
+}
+
 export interface BulkAssignment {
   matchId: string;
   startTime: string;
@@ -60,9 +69,12 @@ export function planBulkSchedule(
   pending: ScheduleMatch[],
   occupied: ScheduleMatch[],
   config: SchedulingConfig,
+  windows?: ScheduleWindow[],
 ): BulkPlan {
-  const windowStart = toMs(config.stageStart);
-  const windowEnd = toMs(config.stageEnd);
+  // 不传窗口时退回「单窗口」（与配置里的时段一致）——旧调用点与旧测试不必改
+  const days: ScheduleWindow[] = windows && windows.length > 0
+    ? windows
+    : [{ start: config.stageStart, end: config.stageEnd }];
   const intervals = occupied
     .filter((match) => Boolean(match.startTime) && Boolean(match.endTime))
     .map((match) => ({ start: toMs(match.startTime), end: toMs(match.endTime) }));
@@ -74,24 +86,31 @@ export function planBulkSchedule(
     const minutes = durationMinutes(match.boType, config);
     let placed: BulkAssignment | null = null;
 
-    for (let cursor = windowStart; cursor + minutes * 60_000 <= windowEnd; cursor += STEP_MINUTES * 60_000) {
-      const startTime = formatLocal(new Date(cursor));
-      const endTime = computeEndTime(startTime, match.boType, config);
-      const end = toMs(endTime);
-      if (end > windowEnd) break;
-      // 整场都不得超并发：检查期间每个起点时刻的并发数
-      let peak = 0;
-      for (let probe = cursor; probe < end; probe += STEP_MINUTES * 60_000) {
-        peak = Math.max(peak, concurrentAt([...intervals, ...assignments.map((a) => ({ start: toMs(a.startTime), end: toMs(a.endTime) }))], probe));
+    // 按比赛日依次找：**当天排得下就当天排**，排不下才顺延到下一个比赛日
+    for (const day of days) {
+      const windowStart = toMs(day.start);
+      const windowEnd = toMs(day.end);
+      for (let cursor = windowStart; cursor + minutes * 60_000 <= windowEnd; cursor += STEP_MINUTES * 60_000) {
+        const startTime = formatLocal(new Date(cursor));
+        const endTime = computeEndTime(startTime, match.boType, config);
+        const end = toMs(endTime);
+        // 一场比赛不得跨天：结束必须落在同一个比赛日窗口内
+        if (end > windowEnd) break;
+        // 整场都不得超并发：检查期间每个起点时刻的并发数
+        let peak = 0;
+        for (let probe = cursor; probe < end; probe += STEP_MINUTES * 60_000) {
+          peak = Math.max(peak, concurrentAt([...intervals, ...assignments.map((a) => ({ start: toMs(a.startTime), end: toMs(a.endTime) }))], probe));
+        }
+        if (peak < config.maxConcurrentMatches) {
+          placed = { matchId: match.id, startTime, endTime };
+          break;
+        }
       }
-      if (peak < config.maxConcurrentMatches) {
-        placed = { matchId: match.id, startTime, endTime };
-        break;
-      }
+      if (placed) break;
     }
 
     if (placed) assignments.push(placed);
-    else skipped.push({ matchId: match.id, reason: `比赛时段（${config.stageStart} ~ ${config.stageEnd}）内已排不下 ${match.boType}` });
+    else skipped.push({ matchId: match.id, reason: `整个比赛时段（${days.length} 个比赛日）都排不下 ${match.boType}` });
   }
 
   return { assignments, skipped };

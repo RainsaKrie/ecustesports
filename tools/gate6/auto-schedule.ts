@@ -25,26 +25,44 @@ const APPLY = args.includes("--yes");
 
 if (!PASSWORD) { console.error("缺少 ADMIN_PASSWORD。例：ADMIN_PASSWORD=xxx npm run ops:auto-schedule"); process.exit(2); }
 
-/** 排期配置：用站点现成的赛制约束（并发上限 / 各 BO 时长 / 时段窗口） */
-function configFromEvent(event: Record<string, unknown>): SchedulingConfig {
+/**
+ * 排期配置 + 比赛日窗口。
+ *
+ * 窗口按**周末**生成（赛制约束里的 matchdays 默认 [6,7]），从今天起排到赛期结束；
+ * 规划器会按顺序填，填满当前比赛日才用下一个。可用 --days=2026-10-17,2026-10-18 覆盖。
+ */
+function planInputFromEvent(event: Record<string, unknown>, overrideDays: string[]) {
   const constraints = (event.constraints ?? {}) as Record<string, unknown>;
   const durations = (constraints.durations ?? {}) as Record<string, number>;
-  const matchdays = Array.isArray(constraints.matchdays) ? constraints.matchdays as number[] : [6, 7];
-  const eventDate = String(event.eventDateLabel ?? "").match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
-  const nextSaturday = new Date();
-  nextSaturday.setDate(nextSaturday.getDate() + ((6 - nextSaturday.getDay() + 7) % 7 || 7));
-  const base = eventDate ? new Date(Number(eventDate[1]), Number(eventDate[2]) - 1, Number(eventDate[3]), 12, 0, 0) : nextSaturday;
-  const day = (offset: number) => { const d = new Date(base); d.setDate(d.getDate() + offset); return d; };
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const sessionStart = String(constraints.sessionStart ?? "12:00");
   const sessionEnd = String(constraints.sessionEnd ?? "18:00");
-  void matchdays;
-  return {
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const windowOf = (day: string) => ({ start: `${day}T${sessionStart}:00`, end: `${day}T${sessionEnd}:00` });
+
+  const days: string[] = overrideDays.length > 0 ? overrideDays : (() => {
+    // 赛期形如「比赛时间10.7-11.8」：取出起止（年份用当前年）
+    const span = String(event.eventDateLabel ?? "").match(/(\d{1,2})[.\-/](\d{1,2})\s*[-~至]\s*(\d{1,2})[.\-/](\d{1,2})/);
+    const year = new Date().getFullYear();
+    const end = span ? new Date(year, Number(span[3]) - 1, Number(span[4])) : new Date(Date.now() + 14 * 86_400_000);
+    const out: string[] = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    // 从明天起，取赛期内的周六周日（最多 8 天，够排两届小组赛）
+    cursor.setDate(cursor.getDate() + 1);
+    while (cursor <= end && out.length < 8) {
+      if (cursor.getDay() === 6 || cursor.getDay() === 0) out.push(fmt(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return out;
+  })();
+
+  const config: SchedulingConfig = {
     maxConcurrentMatches: Number(constraints.maxConcurrent ?? 2),
     boDurations: { BO1: durations.BO1 ?? 45, BO3: durations.BO3 ?? 90, BO5: durations.BO5 ?? 150 } as Record<BOType, number>,
-    stageStart: `${fmt(day(0))}T${sessionStart}:00`,
-    stageEnd: `${fmt(day(0))}T${sessionEnd}:00`,
+    stageStart: windowOf(days[0] ?? fmt(new Date())).start,
+    stageEnd: windowOf(days[days.length - 1] ?? fmt(new Date())).end,
   };
+  return { config, windows: days.map(windowOf) };
 }
 
 async function main() {
@@ -59,14 +77,24 @@ async function main() {
 
   const state = normalizeScheduleState(await (await fetch(`${BASE}/api/data/schedule?eventId=${encodeURIComponent(EVENT_ID)}`, { headers, cache: "no-store" })).json());
   const event = (await (await fetch(`${BASE}/api/admin/site-config`, { headers, cache: "no-store" })).json()).events?.find((e: { id: string }) => e.id === EVENT_ID) ?? {};
-  const config = configFromEvent(event);
+  const { config, windows } = planInputFromEvent(event, (take("--days") ?? process.env.DAYS ?? "").split(",").map((d) => d.trim()).filter(Boolean));
 
-  const pending = state.matches.filter((m) => m.status === "待排期" && (!PHASE || m.phase === PHASE));
+  // ★ 参赛队还没定的场次**不排**（组内决赛、淘汰赛后续轮次都属这类）：
+  //   它们的队伍要等前序比赛出结果，现在排具体时间必然要改期。
+  const awaitingTeams = state.matches.filter(
+    (m) => m.status === "待排期" && (!PHASE || m.phase === PHASE) && (m.teamAId === "TBD" || m.teamBId === "TBD"),
+  );
+  const pending = state.matches.filter(
+    (m) => m.status === "待排期" && (!PHASE || m.phase === PHASE) && m.teamAId !== "TBD" && m.teamBId !== "TBD",
+  );
   const occupied = state.matches.filter((m) => m.status !== "待排期");
-  console.log(`赛程 v${state.version}｜待排期 ${pending.length} 场｜时段 ${config.stageStart} ~ ${config.stageEnd}｜并发上限 ${config.maxConcurrentMatches}`);
-  if (pending.length === 0) { console.log("没有待排期的场次，结束。"); return; }
+  console.log(`赛程 v${state.version}｜待排期 ${pending.length} 场｜并发上限 ${config.maxConcurrentMatches}｜比赛日：${windows.map((w) => w.start.slice(0, 10)).join("、")}`);
+  if (awaitingTeams.length > 0) {
+    console.log(`另有 ${awaitingTeams.length} 场参赛队未定（等前序比赛出结果），本次不排：${awaitingTeams.map((m) => m.id).join("、")}`);
+  }
+  if (pending.length === 0) { console.log("没有可排期的场次（队伍已确定的），结束。"); return; }
 
-  const plan = planBulkSchedule(pending, occupied, config);
+  const plan = planBulkSchedule(pending, occupied, config, windows);
   console.log(`\n计划排期 ${plan.assignments.length} 场：`);
   for (const a of plan.assignments) {
     const m = pending.find((x) => x.id === a.matchId);

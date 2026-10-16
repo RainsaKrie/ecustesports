@@ -125,6 +125,38 @@ check(
   planBulkSchedule([match("M1")], [], DEFAULT_CONFIG).assignments[0] !== undefined,
 );
 
+group("组5 · 多个比赛日（真实赛事跨周末）");
+
+const TWO_DAYS = [
+  { start: "2026-10-17T12:00:00", end: "2026-10-17T18:00:00" },
+  { start: "2026-10-18T12:00:00", end: "2026-10-18T18:00:00" },
+];
+const twelveBo3 = planBulkSchedule(Array.from({ length: 12 }, (_, i) => match(`M${i + 1}`, "BO3")), [], CONFIG, TWO_DAYS);
+check("★ 12 场 BO3 跨两个比赛日全部排完（单日只能排 8 场）", twelveBo3.assignments.length === 12 && twelveBo3.skipped.length === 0,
+  `排上 ${twelveBo3.assignments.length} / 跳过 ${twelveBo3.skipped.length}`);
+check(
+  "每天的场次数不超过单日容量（4 时段 × 并发 2 = 8）",
+  ["2026-10-17", "2026-10-18"].every((d) => twelveBo3.assignments.filter((a) => a.startTime.startsWith(d)).length <= 8),
+  JSON.stringify(["2026-10-17", "2026-10-18"].map((d) => twelveBo3.assignments.filter((a) => a.startTime.startsWith(d)).length)),
+);
+check(
+  "★ 每场都落在自己那一天的窗口内（比赛不跨天）",
+  twelveBo3.assignments.every((a) => {
+    const day = TWO_DAYS.find((w) => a.startTime.startsWith(w.start.slice(0, 10)));
+    return Boolean(day) && a.startTime >= day!.start && a.endTime <= day!.end;
+  }),
+);
+check("第一天排满后才用第二天", twelveBo3.assignments.filter((a) => a.startTime.startsWith("2026-10-17")).length === 8);
+
+const overflowTwoDays = planBulkSchedule(Array.from({ length: 20 }, (_, i) => match(`M${i + 1}`, "BO3")), [], CONFIG, TWO_DAYS);
+check("整个赛期都排不下时才记 skipped", overflowTwoDays.assignments.length === 16 && overflowTwoDays.skipped.length === 4,
+  `排上 ${overflowTwoDays.assignments.length} / 跳过 ${overflowTwoDays.skipped.length}`);
+check("skipped 的原因点名比赛时段", overflowTwoDays.skipped.every((s) => s.reason.includes("比赛时段")));
+check(
+  "跨天排练也是确定性的",
+  JSON.stringify(overflowTwoDays) === JSON.stringify(planBulkSchedule(Array.from({ length: 20 }, (_, i) => match(`M${i + 1}`, "BO3")), [], CONFIG, TWO_DAYS)),
+);
+
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
 if (fail > 0) {
