@@ -11,6 +11,7 @@ import type { ValidationResult } from "@/lib/scheduling/rule-engine";
 import type { BPSession } from "@/lib/scheduling/bp-ops";
 import TournamentBracketCanvas, { advancementPath } from "@/components/events/TournamentBracketCanvas";
 import { bracketDataIssue, buildBracketBlueprint } from "@/lib/scheduling/bracket-blueprint";
+import { SCHEDULE_MODE_LABELS, scheduleModeOf, unscheduledAnomalyNotice } from "@/lib/scheduling/schedule-mode";
 import type { EditableEvent } from "@/lib/site-config-schema";
 import { useAdminConfirm, useAdminToast, adminInputClass, adminSelectClass, AdminModal, EmptyState, type AdminBadgeTone } from "@/components/admin/ui";
 
@@ -317,6 +318,13 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   // MatchStatus 只有三态，所以「已排期」就是「定了时间还没结果」= 待报分。
   const pendingScheduleCount = state.matches.filter((m) => m.status === "待排期").length;
   const pendingReportCount = state.matches.filter((m) => m.status === "已排期").length;
+  /**
+   * 排期模式决定「待排期」这件事是正常还是异常：
+   * 自由约赛下它正常（就等协商），固定比赛时间下它应当长期为 0，不为 0 说明排期漏了。
+   * 所以这里不是加一句说明，而是让同一个数字在两种模式下说不同的话。
+   */
+  const scheduleMode = scheduleModeOf(eventConfig);
+  const unscheduledNotice = unscheduledAnomalyNotice(scheduleMode, pendingScheduleCount);
   const blueprintMatches = useMemo(
     () => buildBracketBlueprint(eventConfig?.stageConfigs ?? []),
     [eventConfig],
@@ -394,7 +402,9 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 max-[760px]:hidden">
             {[
               ["总场次", `${state.matches.length} 场`],
-              ["待排期", `${pendingScheduleCount} 场`],
+              // 同一个数字在两种模式下含义不同：固定模式有未排定即为异常
+              ["待排期", unscheduledNotice ? `${pendingScheduleCount} 场（异常）` : `${pendingScheduleCount} 场`],
+              ["排期模式", SCHEDULE_MODE_LABELS[scheduleMode]],
               ["待报分", `${pendingReportCount} 场`],
               ["已完成", `${doneCount} 场`],
             ].map(([label, value]) => (
