@@ -12,6 +12,7 @@
 import {
   buildGroupSingleElimMatches,
   bracketOrderFromSeeds,
+  buildDoubleEliminationMatches,
 } from "./bracket-engine";
 import {
   extractGroupSingleElimQualifiers,
@@ -350,6 +351,50 @@ check(
     currentStages,
     played,
   ).length === 0,
+);
+
+// ── 组6 · 小组赛 → 淘汰赛的接续（P0：最后的未验证环节）─────────
+
+group("组6 · 组内单败打完 → 淘汰赛抽签：签位、避让、14 场对阵与连线");
+
+const knockoutOrder = buildKnockoutDrawOrder(qualifiers, () => 0.5);
+check("抽签顺序是 8 支队伍的排列（不重不漏）", knockoutOrder.length === 8 && new Set(knockoutOrder).size === 8);
+check(
+  "四个小组第一全部在列",
+  qualifiers.filter((q) => q.placement === 1).every((q) => knockoutOrder.includes(q.teamId)),
+);
+check(
+  "四个小组第二全部在列",
+  qualifiers.filter((q) => q.placement === 2).every((q) => knockoutOrder.includes(q.teamId)),
+);
+
+// ★ 同组的两支（第一与第二）首轮不能相遇：签位相邻成对（0-1 / 2-3 / 4-5 / 6-7）即相遇
+const pairBucket = (teamId: string) => Math.floor(knockoutOrder.indexOf(teamId) / 2);
+const groupsWithClash = ["A 组", "B 组", "C 组", "D 组"].filter((name) => {
+  const first = qualifiers.find((q) => q.group === name && q.placement === 1);
+  const second = qualifiers.find((q) => q.group === name && q.placement === 2);
+  return !first || !second || pairBucket(first.teamId) === pairBucket(second.teamId);
+});
+check("★ 同组的两支队伍首轮不相遇（淘汰赛抽签的避让规则）", groupsWithClash.length === 0, JSON.stringify(groupsWithClash));
+
+const knockoutMatches = buildDoubleEliminationMatches(knockoutOrder, teamName, {
+  startIndex: 33,
+  phase: "淘汰赛",
+  boType: "BO3",
+});
+check("淘汰赛生成 14 场（8 队双败）", knockoutMatches.length === 14, `实际 ${knockoutMatches.length}`);
+check("全部属于淘汰赛阶段", knockoutMatches.every((m) => m.phase === "淘汰赛"));
+check("首轮 8 支队伍都落在对阵里", new Set(knockoutMatches.slice(0, 4).flatMap((m) => [m.teamAId, m.teamBId])).size === 8);
+check(
+  "晋级连线完整：除最终场外每场都有下一场指向",
+  knockoutMatches.filter((m) => !m.nextMatchId && !m.nextLoserMatchId).length <= 1,
+  JSON.stringify(knockoutMatches.filter((m) => !m.nextMatchId && !m.nextLoserMatchId).map((m) => m.id)),
+);
+const withLoserLink = knockoutMatches.filter((m) => Boolean(m.nextLoserMatchId));
+check("双败结构：存在把败者送进败者组的连线", withLoserLink.length >= 4, `实际 ${withLoserLink.length}`);
+check(
+  "比赛 id 不与小组赛冲突（起始序号接在小组赛之后）",
+  knockoutMatches.every((m) => !completed.some((g) => g.id === m.id)),
 );
 
 console.log("");
