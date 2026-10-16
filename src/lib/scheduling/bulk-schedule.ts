@@ -24,6 +24,8 @@ const STEP_MINUTES = 15;
 export interface ScheduleWindow {
   start: string;
   end: string;
+  /** 当天最多打几场（可选，不设 = 只受时段与并发约束）。逐日可不同。 */
+  limit?: number;
 }
 
 export interface BulkAssignment {
@@ -81,6 +83,13 @@ export function planBulkSchedule(
 
   const assignments: BulkAssignment[] = [];
   const skipped: BulkPlan["skipped"] = [];
+  /** 已安置的场次：用于「每队每日上限」与「同队最小间隔」这两条约束 */
+  const arranged: Array<{ match: ScheduleMatch; start: number; end: number }> = [];
+  const sameDay = (iso: string, dayStart: string) => iso.slice(0, 10) === dayStart.slice(0, 10);
+  const sharesTeam = (a: ScheduleMatch, b: ScheduleMatch) =>
+    a.teamAId === b.teamAId || a.teamAId === b.teamBId || a.teamBId === b.teamAId || a.teamBId === b.teamBId;
+  const perTeamLimit = config.perTeamDailyLimit ?? Number.POSITIVE_INFINITY;
+  const gapMs = (config.gapMinutes ?? 0) * 60_000;
 
   for (const match of pending) {
     const minutes = durationMinutes(match.boType, config);
@@ -101,8 +110,17 @@ export function planBulkSchedule(
         for (let probe = cursor; probe < end; probe += STEP_MINUTES * 60_000) {
           peak = Math.max(peak, concurrentAt([...intervals, ...assignments.map((a) => ({ start: toMs(a.startTime), end: toMs(a.endTime) }))], probe));
         }
+        // 当天场次数上限（逐日可配：今天打 6 场、明天打 4 场都行）
+        const dayCount = assignments.filter((item) => sameDay(item.startTime, day.start)).length;
+        if (day.limit !== undefined && dayCount >= day.limit) break;
+        // 每队每日上限：防止把同一个队排出背靠背两场
+        const teamToday = arranged.filter((item) => sameDay(formatLocal(new Date(item.start)), day.start) && sharesTeam(item.match, match));
+        if (teamToday.length >= perTeamLimit) continue;
+        // 同队两场之间的最小间隔（项目不建模场地，落在「同队休息」上）
+        if (gapMs > 0 && teamToday.some((item) => cursor < item.end + gapMs && item.start < end + gapMs)) continue;
         if (peak < config.maxConcurrentMatches) {
           placed = { matchId: match.id, startTime, endTime };
+          arranged.push({ match, start: cursor, end });
           break;
         }
       }

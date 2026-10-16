@@ -170,6 +170,45 @@ check("★ 待排期的语义分流：固定模式下有未排定即为异常", 
 check("自由约赛模式不把待排期当异常", unscheduledAnomalyNotice("open", 11) === null);
 check("固定模式且无未排定则一切正常", unscheduledAnomalyNotice("fixed", 0) === null);
 
+group("组7 · 当天上限 / 每队每日上限 / 场间间隔 / 逐日不同时段");
+
+const limited = planBulkSchedule(
+  Array.from({ length: 4 }, (_, i) => match(`M${i + 1}`, "BO1")),
+  [],
+  CONFIG,
+  [{ start: "2026-10-20T12:00:00", end: "2026-10-20T18:00:00", limit: 2 }],
+);
+check("★ 当天上限 2：只排 2 场，其余记为排不下", limited.assignments.length === 2 && limited.skipped.length === 2,
+  `排上 ${limited.assignments.length} / 跳过 ${limited.skipped.length}`);
+
+const twoTeams = [
+  match("A1", "BO1", { teamAId: "T1", teamBId: "T2" }),
+  match("A2", "BO1", { teamAId: "T1", teamBId: "T3" }),
+];
+const withTeamLimit = planBulkSchedule(twoTeams, [], { ...CONFIG, perTeamDailyLimit: 1 }, TWO_DAYS);
+check("★ 每队每日上限 1：同队第二场被挪到另一天（不排背靠背）",
+  withTeamLimit.assignments.length === 2
+    && withTeamLimit.assignments[0].startTime.slice(0, 10) !== withTeamLimit.assignments[1].startTime.slice(0, 10),
+  JSON.stringify(withTeamLimit.assignments.map((a) => a.startTime)));
+
+const withGap = planBulkSchedule(twoTeams, [], { ...CONFIG, gapMinutes: 60 }, TWO_DAYS);
+const gapMinutes = Math.abs(
+  (new Date(withGap.assignments[1].startTime).getTime() - new Date(withGap.assignments[0].endTime).getTime()) / 60_000,
+);
+check("场间间隔 60 分钟生效（同队两场之间留够休息）", gapMinutes >= 60, `${gapMinutes} 分钟`);
+
+const unevenDays = [
+  { start: "2026-10-20T10:00:00", end: "2026-10-20T12:00:00" },
+  { start: "2026-10-21T14:00:00", end: "2026-10-21T16:00:00" },
+];
+const uneven = planBulkSchedule(Array.from({ length: 3 }, (_, i) => match(`M${i + 1}`, "BO3")), [], CONFIG, unevenDays);
+check("★ 逐日不同时段：每场都落在自己那一天的窗口内（10 点场不进 14 点那天的窗口）",
+  uneven.assignments.every((a) => {
+    const day = unevenDays.find((w) => a.startTime.startsWith(w.start.slice(0, 10)));
+    return Boolean(day) && a.startTime >= day!.start && a.endTime <= day!.end;
+  }),
+  JSON.stringify(uneven.assignments.map((a) => `${a.startTime}~${a.endTime}`)));
+
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
 if (fail > 0) {

@@ -29,6 +29,18 @@ export interface RescheduleRequest {
 
 /** 排程规则配置 */
 export interface SchedulingConfig {
+  /**
+   * 同一队一天最多打几场（可选）。预排模式下必须能设 —— 否则可能给一个队排出背靠背两场 BO3。
+   * 不设 = 不限。
+   */
+  perTeamDailyLimit?: number;
+  /**
+   * 同一队两场之间的最小间隔（分钟，可选）。不设 = 0。
+   *
+   * 注：排期规则文档写的是「与同场地前一场满足间隔」，但项目目前**不建模场地**，
+   * 所以这里落在**同队休息**上 —— 这是更实质的那一半；等有了场地字段再补另一半。
+   */
+  gapMinutes?: number;
   maxConcurrentMatches: number; // 时段最大并发场次（默认 2）
   boDurations: Record<BOType, number>; // 各 BO 时长（分钟）
   stageStart: string; // 阶段起止
