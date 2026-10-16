@@ -84,6 +84,34 @@ check(
 );
 
 console.log("");
+console.log("== 组4 · 事件字段的登记完整性 ==");
+
+/**
+ * 加一个「事件字段」要改的地方比阶段类型散得多：类型声明 → 默认事件 → 归一化 → 更新接口。
+ * 只加在类型里、忘了归一化，就会出现「存了又变回去」（2026-10-16 加 scheduleMode 时踩过）。
+ * 判据：每个字段名在整个 schema 文件里至少出现 **2 次**（类型声明之外还要有落点）。
+ */
+const schemaSource = read("src/lib/site-config-schema.ts");
+const schemaLines = schemaSource.split("\n");
+const ifaceStart = schemaLines.findIndex((line) => line.startsWith("export interface EditableEvent"));
+const ifaceEnd = schemaLines.findIndex((line, index) => index > ifaceStart && line === "}");
+const interfaceBody = schemaLines.slice(ifaceStart, ifaceEnd).join("\n");
+const eventFields = [...interfaceBody.matchAll(/^\s{2}(\w+)\??:/gm)].map((m) => m[1]);
+check("能解析出事件字段（否则守卫会永远为真）", eventFields.length >= 10, `解析到 ${eventFields.length} 个`);
+
+const registeredOnce = eventFields.filter((field) => {
+  // 判据必须精确到「归一化真的读了它」：出现 `item.<字段>` 或 `fallback.<字段>`。
+  // 早先只数「字段名出现 ≥2 次」被变异验证证明**抓不到**「加了字段却忘了归一化」
+  // —— 默认事件模板里那个字段名本身就凑了第二次出现。
+  return !new RegExp(`(item|fallback)\\.${field}\\b`).test(schemaSource);
+});
+check(
+  "★ 每个事件字段都真的被归一化读取（item./fallback.）",
+  registeredOnce.length === 0,
+  registeredOnce.length ? `没被归一化读取：${registeredOnce.join("、")}` : "",
+);
+
+console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
 if (fail > 0) {
   console.error(`${fail} 项未通过 —— 新加阶段类型时，请把上面点名的文件一起改`);
