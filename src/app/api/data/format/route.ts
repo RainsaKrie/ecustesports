@@ -1,6 +1,6 @@
 import { readEventData, writeEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";

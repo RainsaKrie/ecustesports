@@ -5,7 +5,7 @@
 
 import { updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { issueParticipantToken, withoutParticipantSecret } from "@/lib/participant-auth";
+import { issueParticipantToken, withoutParticipantSecret } from "@/lib/domains/identity/participant-auth";
 import { isKnownRank, normalizePositions } from "@/lib/games";
 import {
   initialRegistration,

@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { getCommonRuleLibrary, saveCommonRuleLibrary } from "@/lib/rule-library";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 

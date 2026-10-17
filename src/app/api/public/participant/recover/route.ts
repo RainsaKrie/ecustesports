@@ -1,6 +1,6 @@
 import { updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { issueParticipantToken, withoutParticipantSecret } from "@/lib/participant-auth";
+import { issueParticipantToken, withoutParticipantSecret } from "@/lib/domains/identity/participant-auth";
 import { isEventPublic } from "@/lib/configured-events";
 import {
   initialRegistration,

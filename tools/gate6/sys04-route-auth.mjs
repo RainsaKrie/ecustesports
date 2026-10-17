@@ -101,7 +101,7 @@ async function stopServer() {
   await new Promise((r) => setTimeout(r, 2000));
 }
 
-/** 本地自签会话 token（与 src/lib/auth.ts 的算法一致），避免依赖登录接口 */
+/** 本地自签会话 token（与 src/lib/domains/identity/admin-session.ts 的算法一致），避免依赖登录接口 */
 function sessionCookie() {
   const secret = process.env.AUTH_SECRET?.trim() || SECRET_FALLBACK;
   const exp = String(Date.now() + 7 * 24 * 60 * 60 * 1000);

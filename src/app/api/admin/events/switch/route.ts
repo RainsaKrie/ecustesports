@@ -4,7 +4,7 @@
 // =====================
 
 import { getSiteConfig, saveSiteConfig } from "@/lib/site-config";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 import type { NextRequest } from "next/server";
 

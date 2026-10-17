@@ -2,11 +2,11 @@
 // 管理员异常赛果工作台（RPT-06）
 // GET  /api/admin/review?eventId=xx  —— 读异常队列（needs-review 提交投影）
 // POST /api/admin/review             —— 裁决（resolve）/ 受控更正（correct）
-// 鉴权复用管理员 session（isAdminRequest@/lib/auth），不新造身份。
+// 鉴权复用管理员 session（isAdminRequest@/lib/domains/identity/admin-session），不新造身份。
 // =====================
 
 import type { NextRequest } from "next/server";
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import {
   adminReviewData,
   adminResolveReview,

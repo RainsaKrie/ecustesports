@@ -1,6 +1,6 @@
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import { emptySchedule, normalizeScheduleState } from "@/lib/scheduling/schedule-data";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { autoFillPendingSlots, type StagedFormatState } from "@/lib/scheduling/staged-format";

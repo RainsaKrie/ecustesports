@@ -7,7 +7,7 @@
 // =====================
 
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig } from "@/lib/scheduling/format-templates";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";

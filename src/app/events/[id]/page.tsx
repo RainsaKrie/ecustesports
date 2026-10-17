@@ -12,7 +12,7 @@ import Badge from "@/components/ui/Badge";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/domains/identity/admin-session";
 
 interface EventDetailPageProps {
   params: Promise<{ id: string }>;

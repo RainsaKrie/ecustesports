@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import {
   approveAllPlayersAdminOp,
@@ -27,7 +27,7 @@ import {
   type ReviewStatus,
   type RosterRole,
 } from "@/lib/scheduling/registration-admin-ops";
-import { issueParticipantToken } from "@/lib/participant-auth";
+import { issueParticipantToken } from "@/lib/domains/identity/participant-auth";
 import {
   initialRegistration,
   normalizeRegistrationState,

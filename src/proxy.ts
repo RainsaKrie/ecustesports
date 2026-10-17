@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { isHostedRuntime } from "@/lib/deployment";
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSessionToken, verifyPassword, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { createSessionToken, verifyPassword, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";

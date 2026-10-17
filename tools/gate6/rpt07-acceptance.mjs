@@ -64,7 +64,7 @@ const PORT = 3200;
 const BASE = `http://localhost:${PORT}`;
 const EVENT = "rpt07-acceptance";
 const EVENT_DIR = `data/events/${EVENT}`;
-const ADMIN_PASSWORD = "ecust2026"; // 本地默认值，见 src/lib/auth.ts
+const ADMIN_PASSWORD = "ecust2026"; // 本地默认值，见 src/lib/domains/identity/admin-session.ts
 const CRED_EXPIRES = "2026-12-31T23:59:59.000Z";
 
 const TEAMS = [

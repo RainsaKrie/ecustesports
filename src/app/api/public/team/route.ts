@@ -5,7 +5,7 @@
 
 import { updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
+import { findParticipant, readParticipantToken } from "@/lib/domains/identity/participant-auth";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
 import { createTeamOp, dissolveTeamOp, leaveTeamOp, renameTeamOp, setMemberRoleOp, type PlayerRole } from "@/lib/scheduling/registration-ops";
 import { isEventPublic } from "@/lib/configured-events";

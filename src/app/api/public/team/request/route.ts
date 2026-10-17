@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
+import { findParticipant, readParticipantToken } from "@/lib/domains/identity/participant-auth";
 import { addMemberOp, type PlayerRole } from "@/lib/scheduling/registration-ops";
 import {
   initialRegistration,

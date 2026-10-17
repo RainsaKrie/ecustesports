@@ -17,7 +17,7 @@
 // 2026-10-12 第三次收紧（组 1）：原来只断言「路由里出现了鉴权调用」，管不了**被调用的东西是否真在校验**
 // —— 实测把 `isAdmin` 的函数体改成 `return true`，整套守卫仍全绿。现在：
 //   ① 管理端写路由**不许自写鉴权函数**（原先 12 个文件各写了一份 `function isAdmin`）；
-//   ② 那份判断只有一份实现 —— `src/lib/auth.ts` 的 `isAdminRequest`；
+//   ② 那份判断只有一份实现 —— `src/lib/domains/identity/admin-session.ts` 的 `isAdminRequest`；
 //   ③ 它的函数体必须把 `verifySessionToken` 的结论**返回**（不能恒真、不能带旁路）。
 // 边界：`src/proxy.ts` 与 `data/*` 等处的「管理员会话判断」仍直接调 `verifySessionToken` ——
 // 那是**同一个底层函数**的不同调用形态，不是第二份实现，故不在禁止之列。
@@ -71,7 +71,7 @@ const methodsOf = (text: string): string[] =>
  *     把 `site-config` 的 `isAdmin` 改成 `return true`，整套守卫（28 项 + 9 组）**仍全绿**。
  *
  * → 所以 2026-10-12 起改成「**共享实现 + 单一调用形态**」：路由里不许再自己写鉴权函数
- *   （组1 断言），只能调 `@/lib/auth` 的 `isAdminRequest(...)`（或既有的 `verifySessionToken(...)` 形态）；
+ *   （组1 断言），只能调 `@/lib/domains/identity/admin-session` 的 `isAdminRequest(...)`（或既有的 `verifySessionToken(...)` 形态）；
  *   「共享实现真的在验签」由组1 最后一条断言锁住。这样「改错一处」在结构上不可能再只改到一份。
  *
  * 教训：断言「用了某能力」时，不能只看名字存在，也不能只看调用发生 ——
@@ -261,13 +261,13 @@ const selfWrittenAuth = adminWriteRoutes.filter((key) => {
 assert.deepEqual(
   selfWrittenAuth,
   [],
-  "管理端写路由不得再自写鉴权函数 —— 这份判断现在只有一份实现（`src/lib/auth.ts` 的 `isAdminRequest`），"
-    + `请改为 \`import { isAdminRequest } from "@/lib/auth"\`：\n  ${selfWrittenAuth.join("\n  ")}`,
+  "管理端写路由不得再自写鉴权函数 —— 这份判断现在只有一份实现（`src/lib/domains/identity/admin-session.ts` 的 `isAdminRequest`），"
+    + `请改为 \`import { isAdminRequest } from "@/lib/domains/identity/admin-session"\`：\n  ${selfWrittenAuth.join("\n  ")}`,
 );
 
-const authSource = readFileSync(path.join(process.cwd(), "src", "lib", "auth.ts"), "utf8");
+const authSource = readFileSync(path.join(process.cwd(), "src", "lib", "domains", "identity", "admin-session.ts"), "utf8");
 const helperBody = /export\s+function\s+isAdminRequest[\s\S]*?\n\}/.exec(authSource)?.[0] ?? "";
-assert.ok(helperBody.length > 0, "应能取到 `src/lib/auth.ts` 里 `isAdminRequest` 的定义");
+assert.ok(helperBody.length > 0, "应能取到 `src/lib/domains/identity/admin-session.ts` 里 `isAdminRequest` 的定义");
 assert.match(
   helperBody,
   /return\s+verifySessionToken\s*\(/,

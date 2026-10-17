@@ -3,7 +3,7 @@ import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { isEventPublic } from "@/lib/configured-events";
 import { captainNegotiationRefusal, scheduleModeOf } from "@/lib/scheduling/schedule-mode";
-import { findParticipant, readParticipantToken } from "@/lib/participant-auth";
+import { findParticipant, readParticipantToken } from "@/lib/domains/identity/participant-auth";
 import {
   initialRegistration,
   normalizeRegistrationState,

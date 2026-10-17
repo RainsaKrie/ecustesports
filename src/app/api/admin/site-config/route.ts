@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { getSiteConfig, saveSiteConfig } from "@/lib/site-config";
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";

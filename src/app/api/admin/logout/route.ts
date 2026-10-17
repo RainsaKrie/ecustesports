@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/lib/auth";
+import { SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

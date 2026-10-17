@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { readEventData } from "@/lib/data-store";
 import {
   initialRegistration,

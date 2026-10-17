@@ -303,10 +303,10 @@ function getJson(pathname: string, credential?: string): Promise<Res> {
  * 于是只有一处真源。
  */
 function readLocalAdminPassword(): string {
-  const source = readFileSync(path.join(ROOT, "src", "lib", "auth.ts"), "utf8");
+  const source = readFileSync(path.join(ROOT, "src", "lib", "domains", "identity", "admin-session.ts"), "utf8");
   const match = source.match(/requiredHostedSecret\(\s*"ADMIN_PASSWORD"\s*,\s*"([^"]+)"/);
   if (!match) {
-    throw new Error("没能从 src/lib/auth.ts 读到本地回退的管理端口令（那一段被改过？）");
+    throw new Error("没能从 src/lib/domains/identity/admin-session.ts 读到本地回退的管理端口令（那一段被改过？）");
   }
   return match[1];
 }

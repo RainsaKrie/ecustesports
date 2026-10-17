@@ -2,11 +2,11 @@
 // 管理员裁判管理 API（RPT-07a）
 // GET  /api/admin/referees?eventId=xx —— 裁判列表 + 比赛清单（含分配关系）
 // POST /api/admin/referees             —— create / disable / reset / assign / revoke
-// 鉴权复用管理员 session（isAdminRequest@/lib/auth），不新造身份。
+// 鉴权复用管理员 session（isAdminRequest@/lib/domains/identity/admin-session），不新造身份。
 // =====================
 
 import type { NextRequest } from "next/server";
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import {
   adminListReferees,
   adminCreateReferee,

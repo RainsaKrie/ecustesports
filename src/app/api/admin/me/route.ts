@@ -2,7 +2,7 @@
 // 当前登录状态查询（供 BP 房间等页面判断是否裁判身份）
 // =====================
 
-import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";

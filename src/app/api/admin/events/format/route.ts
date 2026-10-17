@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { getCommonRuleLibrary } from "@/lib/rule-library";
 import { readEventData, updateEventData } from "@/lib/data-store";

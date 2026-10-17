@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { isAdminRequest } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
