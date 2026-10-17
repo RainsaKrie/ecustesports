@@ -1,0 +1,5 @@
+# 原始截图含玩家昵称/聊天/好友信息，不进仓库（评测 README 的隐私规矩）
+# 只提交 manifest.json 与 truth.json
+images/
+*.jpg
+*.png

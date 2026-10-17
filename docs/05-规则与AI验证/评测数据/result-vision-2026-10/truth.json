@@ -1,0 +1,806 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "result-vision-2026-10",
+  "cases": [
+    {
+      "caseId": "rv-M01",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 11
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "waikiao",
+          "卖报小鸡仔",
+          "热爱可抵岁月漫长",
+          "Asuka",
+          "roxy"
+        ],
+        "b": [
+          "我就是小猫",
+          "冷月葬花魂",
+          "nAts",
+          "六分草",
+          "胃是袋儿"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M02",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "隐世修所",
+          "teamAScore": 8,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "方老魔头",
+          "苍蓝残响246",
+          "fyh123",
+          "CYH11",
+          "鼠标我偷机房"
+        ],
+        "b": [
+          "终不似少年游",
+          "Killer192Duck",
+          "纸纸纸袋",
+          "河恩ember",
+          "shop"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M03",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "隐世修所",
+          "teamAScore": 13,
+          "teamBScore": 3
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "原神转瓦",
+          "iFso",
+          "hhhh11",
+          "smallyao",
+          "爱吃云吞"
+        ],
+        "b": [
+          "长崎素世",
+          "压力我的是给",
+          "猪是的念着倒",
+          "Imberman",
+          "树先生"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M04",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 10
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "难过的西瓜汁",
+          "ss风蓝月",
+          "愿qruca",
+          "天上星",
+          "暴雨的跌"
+        ],
+        "b": [
+          "Sapphire",
+          "rrv",
+          "Plus",
+          "草履虫开智中＃79062",
+          "愿君念方"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M05",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 10,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "MRZIOUS",
+          "TOMATO",
+          "dexter",
+          "我没k",
+          "邪恶的城里入"
+        ],
+        "b": [
+          "陪小姜夺个冠",
+          "茶花女",
+          "EQ闪也留不住她",
+          "参见钰皇大帝",
+          "路明非"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M06",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 11
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "原神转瓦",
+          "iFso",
+          "hhhh11",
+          "smallyao",
+          "爱吃云吞"
+        ],
+        "b": [
+          "waikiao",
+          "卖报小鸡仔",
+          "热爱可抵岁月漫长",
+          "Asuka",
+          "roxy"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M07",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 10,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "奖介硅的拾投",
+          "中野三玖",
+          "我很菜＃28906",
+          "静静悄悄默默离开94297",
+          "sakura"
+        ],
+        "b": [
+          "ADDSNOW",
+          "woobo",
+          "塔塔子Taz1L",
+          "是雾总会彡",
+          "可可奈唯一老公"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M08",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "天枢云阙",
+          "teamAScore": 13,
+          "teamBScore": 2
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "snowfall",
+          "The故",
+          "月读命",
+          "离至上",
+          "Divinity"
+        ],
+        "b": [
+          "夸我一句把命给你",
+          "OneTab",
+          "vivarock",
+          "等着寿司吧",
+          "Kirito"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M09",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "隐世修所",
+          "teamAScore": 13,
+          "teamBScore": 9
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "mini",
+          "jokmak1r",
+          "橘橘爆",
+          "我是大大王",
+          "icemak1r"
+        ],
+        "b": [
+          "夜空隐月",
+          "玉面杨军",
+          "yuina",
+          "寂雨云流",
+          "Doloris"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M10",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "隐世修所",
+          "teamAScore": 13,
+          "teamBScore": 3
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "暮观棋",
+          "222爱丽丝",
+          "小杯燕麦拿铁",
+          "缘分过于浅薄",
+          "翼心只想颖"
+        ],
+        "b": [
+          "如果时间可以冻结",
+          "小洋人",
+          "月光下许过情真",
+          "枪给皮蛋都杀完了",
+          "何日人间重逢＃35059"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M11",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "隐世修所",
+          "teamAScore": 14,
+          "teamBScore": 12
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "树枝666",
+          "Ciallo",
+          "梦之小尾巴",
+          "Twist565",
+          "筱泽广重度依赖"
+        ],
+        "b": [
+          "陪小露许个愿",
+          "这个男人叫小帅",
+          "xxx",
+          "见好就收",
+          "Jasm1n3"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M12",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "日落之城",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "卯卯卯",
+          "风间琉璃",
+          "26012326",
+          "普欧珠",
+          "ECUSTxk"
+        ],
+        "b": [
+          "商心慈",
+          "陈汉升",
+          "Ethereal",
+          "随手踢死康康",
+          "Say1e"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M13",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 9
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "红袖添香",
+          "兮兮子不爱dd",
+          "kyousuke",
+          "019910365",
+          "你有傲慢之罪"
+        ],
+        "b": [
+          "难过的西瓜汁",
+          "ss风蓝月",
+          "愿qruca",
+          "天上星",
+          "暴雨的跌"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M14",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "幽邃地窟",
+          "teamAScore": 3,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "秀儿1",
+          "圣光谱尼",
+          "蒲夏蝉",
+          "Calypso",
+          "左蕊琳"
+        ],
+        "b": [
+          "昔年暮雨",
+          "vo0kashu",
+          "Citlali",
+          "Lunasama",
+          "不必哽咽"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M15",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 5,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "终不似少年游",
+          "Killer192Duck",
+          "纸纸纸袋",
+          "河恩ember",
+          "shop"
+        ],
+        "b": [
+          "zeus",
+          "十六岁青春期老灯",
+          "炼狱的大脚板",
+          "Primmie＃23528",
+          "冷雨夜"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M16",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 3
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "青山依旧在",
+          "哉狄莱文",
+          "加麻加辣",
+          "你不懂我想要的",
+          "耀升0"
+        ],
+        "b": [
+          "RUTEL",
+          "枫king",
+          "艾姆TT",
+          "Inori",
+          "Mon3tr"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M17",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "日落之城",
+          "teamAScore": 13,
+          "teamBScore": 2
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "哈基糯大王",
+          "DeathGod",
+          "井芹仁菜辍学打瓦",
+          "椰椰橙",
+          "我没有天赋"
+        ],
+        "b": [
+          "陪小灯许个愿",
+          "温柔的长崎素世",
+          "qzygwcs",
+          "L1ars",
+          "Camellia"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M18",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 0,
+        "b": 1
+      },
+      "winnerSide": "B",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 4,
+          "teamBScore": 13
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "Joyboy",
+          "大苹果",
+          "千之幽",
+          "先打老人",
+          "垂暮见苍天"
+        ],
+        "b": [
+          "想骂我就v我五十",
+          "矢吹樱",
+          "寒绪higher",
+          "奈奈子",
+          "软脚了扶我起来"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M19",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "莲华古城",
+          "teamAScore": 13,
+          "teamBScore": 1
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "ZywOo",
+          "凯奇 DAWANG",
+          "暮雪临",
+          "早点睡",
+          "何以解u"
+        ],
+        "b": [
+          "ALI",
+          "陪小白许个愿3",
+          "泪太轻",
+          "CHOUJEE",
+          "MoloPD"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    },
+    {
+      "caseId": "rv-M20",
+      "shouldRefuse": false,
+      "undeterminable": [],
+      "series": {
+        "a": 1,
+        "b": 0
+      },
+      "winnerSide": "A",
+      "games": [
+        {
+          "map": "亚海悬城",
+          "teamAScore": 13,
+          "teamBScore": 6
+        }
+      ],
+      "illegalBo": false,
+      "annotatedBy": [
+        "线上赛程记录（负责人录入）",
+        "AI 整理拼接"
+      ],
+      "groups": {
+        "a": [
+          "lyyyyy",
+          "落樱之夜丶",
+          "Avr1l26639",
+          "jiu97",
+          "为什么瞄着不中＃21834"
+        ],
+        "b": [
+          "jszka",
+          "今夕何夕",
+          "89556",
+          "卡尔辛德罗",
+          "一斩足矣"
+        ]
+      },
+      "disagreements": [],
+      "resolvedBy": "负责人"
+    }
+  ]
+}
