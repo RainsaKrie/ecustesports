@@ -62,7 +62,8 @@
     "ops:verify-backup": "tsx tools/gate6/verify-backup.ts",
     "ops:backup": "tsx tools/gate6/backup-restore.ts --backup-only",
     "ops:backup-drill": "tsx tools/gate6/backup-restore.ts",
-    "ops:audit-production": "tsx tools/gate6/production-audit.ts"
+    "ops:audit-production": "tsx tools/gate6/production-audit.ts",
+    "ops:export-roster": "tsx tools/gate6/export-roster.ts"
   },
   "dependencies": {
     "geist": "^1.7.2",
