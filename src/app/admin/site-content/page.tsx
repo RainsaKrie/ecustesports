@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/admin/ui";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import { getSiteConfig } from "@/lib/site-config";
-import { postEventPublicContentIssues } from "@/lib/site-content-status";
+import { postEventPublicContentIssues } from "@/lib/domains/content/status";
 
 interface SiteContentPageProps {
   searchParams: Promise<{ eventId?: string }>;

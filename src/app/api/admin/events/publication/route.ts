@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { isAdminRequest } from "@/lib/auth";
 import { readEventData } from "@/lib/data-store";
-import { canPublish, publicationChecklist } from "@/lib/publication-check";
+import { canPublish, publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";

@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
-import { eventDescriptionIssue, footerStatusIssue } from "@/lib/site-content-limits";
+import { eventDescriptionIssue, footerStatusIssue } from "@/lib/domains/content/limits";
 import { isAdminRequest } from "@/lib/auth";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 

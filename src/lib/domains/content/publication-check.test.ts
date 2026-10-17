@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { canPublish, publicationChecklist } from "./publication-check";
-import { DEFAULT_SITE_CONFIG, type EditableEvent } from "./site-config-schema";
+import { DEFAULT_SITE_CONFIG, type EditableEvent } from "@/lib/site-config-schema";
 
 function fixture(patch: Partial<EditableEvent> = {}): EditableEvent {
   return structuredClone({ ...DEFAULT_SITE_CONFIG.events[0], ...patch });

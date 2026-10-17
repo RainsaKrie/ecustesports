@@ -14,8 +14,8 @@ import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store
 import { initialRegistration } from "@/lib/scheduling/registration-data";
 import { getGameConfig } from "@/lib/games";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
-import { eventDescriptionIssue } from "@/lib/site-content-limits";
-import { canPublish, publicationChecklist } from "@/lib/publication-check";
+import { eventDescriptionIssue } from "@/lib/domains/content/limits";
+import { canPublish, publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getCommonRuleLibrary } from "@/lib/rule-library";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 import type { NextRequest } from "next/server";

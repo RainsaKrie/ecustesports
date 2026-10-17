@@ -1,5 +1,5 @@
 import type { EditableEvent } from "@/lib/site-config-schema";
-import { EVENT_DESCRIPTION_MAX, EVENT_DESCRIPTION_MIN } from "@/lib/site-content-limits";
+import { EVENT_DESCRIPTION_MAX, EVENT_DESCRIPTION_MIN } from "@/lib/domains/content/limits";
 
 export interface PublicationCheckItem {
   key: string;

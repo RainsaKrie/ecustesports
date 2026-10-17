@@ -8,11 +8,11 @@ import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
 import type { EventStage } from "@/lib/scheduling/stage";
-import { publicationChecklist } from "@/lib/publication-check";
+import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { resolveEventProgress } from "@/lib/scheduling/event-progress";
 import { scheduleModeOf } from "@/lib/scheduling/schedule-mode";
-import { postEventPublicContentIssues } from "@/lib/site-content-status";
+import { postEventPublicContentIssues } from "@/lib/domains/content/status";
 
 export default async function EventWorkspaceLayout({
   children,

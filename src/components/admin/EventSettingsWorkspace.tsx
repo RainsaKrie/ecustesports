@@ -11,7 +11,7 @@ import { getGameConfig, mapImageOf } from "@/lib/games";
 const MAP_CATALOG = getGameConfig().maps;
 import { buildDefaultEventRules } from "@/lib/scheduling/format-templates";
 import type { EditableEvent, EditableRule, EditableStep } from "@/lib/site-config-schema";
-import { publicationChecklist } from "@/lib/publication-check";
+import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { Field, Panel, adminInputClass, adminTextareaClass, useAdminConfirm, type AdminBadgeTone } from "@/components/admin/ui";
 
 type ViewKey = "overview" | "event" | "handbook" | "maps" | "public";

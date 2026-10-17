@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { isAdminRequest } from "@/lib/auth";
 import { readEventData, updateEventData } from "@/lib/data-store";
-import { publicationChecklist } from "@/lib/publication-check";
+import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
 import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
