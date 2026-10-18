@@ -54,7 +54,7 @@ export default function StageCards({ items, currentIndex, className = "" }: Stag
             ].join(" ")}
           >
             <div className="flex items-start justify-between">
-              <span className={`font-mono text-xs tracking-[0.12em] ${isActive ? "text-[#c83242]" : "text-[#96918a]"}`}>
+              <span className={`font-mono text-xs tracking-[0.12em] ${isActive ? "text-[#c83242]" : "text-[#8b929c]"}`}>
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span aria-hidden className="text-lg leading-none text-[#ff4655]">＋</span>
@@ -68,7 +68,7 @@ export default function StageCards({ items, currentIndex, className = "" }: Stag
               <h3 className={`mt-1.5 text-[1.375rem] font-black leading-tight tracking-[-0.01em] text-[#171a1f]`}>
                 {item.label}
               </h3>
-              {note && <p className={`mt-2 font-mono text-[0.6875rem] tracking-[0.04em] ${isActive ? "text-[#171a1f]" : "text-[#7b766f]"}`}>{note}</p>}
+              {note && <p className={`mt-2 font-mono text-[0.6875rem] tracking-[0.04em] ${isActive ? "text-[#171a1f]" : "text-[#5b626c]"}`}>{note}</p>}
             </div>
           </div>
         );

@@ -33,7 +33,7 @@ export default function TeamProfilePage({ params }: { params: Promise<{ id: stri
   if (!team) {
     return (
       <Container className="py-16">
-        <p className="border border-[#d8d1c6] bg-[#fffdf8] px-6 py-12 text-center text-sm font-bold text-[#60656d]">
+        <p className="border border-[#d8d1c6] bg-[#fffdf8] px-6 py-12 text-center text-sm font-bold text-[#5b626c]">
           找不到这支队伍，可能已退赛或尚未公布。
         </p>
         <p className="mt-4 text-center text-sm">
@@ -73,7 +73,7 @@ export default function TeamProfilePage({ params }: { params: Promise<{ id: stri
         <section>
           <h2 className="flex items-baseline justify-between border-b-2 border-[#171a1f] pb-2">
             <span className="text-lg font-black text-[#171a1f]">参赛阵容</span>
-            <span className="font-mono text-[0.6875rem] tracking-[0.14em] text-[#7b766f]">ROSTER</span>
+            <span className="font-mono text-[0.6875rem] tracking-[0.14em] text-[#5b626c]">ROSTER</span>
           </h2>
           <div className="mt-4 space-y-3">
             {ROLE_ORDER.map((role) => {
@@ -81,14 +81,14 @@ export default function TeamProfilePage({ params }: { params: Promise<{ id: stri
               const slotText = { 首发: "01–05", 替补: "06", 教练: "07" }[role];
               return (
                 <div key={role} className="flex items-baseline gap-4 border-b border-[#e7e1d7] pb-3">
-                  <span className="w-10 shrink-0 font-mono text-[0.6875rem] font-black tracking-[0.1em] text-[#96918a]">{slotText}</span>
+                  <span className="w-10 shrink-0 font-mono text-[0.6875rem] font-black tracking-[0.1em] text-[#8b929c]">{slotText}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[0.6875rem] font-black tracking-[0.12em] text-[#7b766f]">{role}</p>
+                    <p className="text-[0.6875rem] font-black tracking-[0.12em] text-[#5b626c]">{role}</p>
                     <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm font-bold text-[#171a1f]">
-                      {members.length > 0 ? members.map((member) => <span key={member.gameId}>{member.gameId}</span>) : <span className="text-[#96918a]">未提交</span>}
+                      {members.length > 0 ? members.map((member) => <span key={member.gameId}>{member.gameId}</span>) : <span className="text-[#8b929c]">未提交</span>}
                     </p>
                   </div>
-                  <span className="shrink-0 font-mono text-[0.6875rem] text-[#96918a]">{members.length} 人</span>
+                  <span className="shrink-0 font-mono text-[0.6875rem] text-[#8b929c]">{members.length} 人</span>
                 </div>
               );
             })}
@@ -98,10 +98,10 @@ export default function TeamProfilePage({ params }: { params: Promise<{ id: stri
         <section>
           <h2 className="flex items-baseline justify-between border-b-2 border-[#171a1f] pb-2">
             <span className="text-lg font-black text-[#171a1f]">比赛记录</span>
-            <span className="font-mono text-[0.6875rem] tracking-[0.14em] text-[#7b766f]">MATCHES</span>
+            <span className="font-mono text-[0.6875rem] tracking-[0.14em] text-[#5b626c]">MATCHES</span>
           </h2>
           {matches.length === 0 ? (
-            <p className="mt-4 border border-dashed border-[#d8d1c6] px-5 py-10 text-center text-sm text-[#60656d]">
+            <p className="mt-4 border border-dashed border-[#d8d1c6] px-5 py-10 text-center text-sm text-[#5b626c]">
               还没有安排到这支队伍的比赛
             </p>
           ) : (
@@ -115,16 +115,16 @@ export default function TeamProfilePage({ params }: { params: Promise<{ id: stri
                   <div key={match.id} className="flex items-center justify-between gap-4 border-b border-[#e7e1d7] px-4 py-3 last:border-b-0">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-[#171a1f]">
-                        <span className="font-mono text-[0.625rem] font-black text-[#96918a]">{match.id}</span>
-                        <span className="mx-2 text-[0.6875rem] font-normal text-[#96918a]">VS</span>
+                        <span className="font-mono text-[0.625rem] font-black text-[#8b929c]">{match.id}</span>
+                        <span className="mx-2 text-[0.6875rem] font-normal text-[#8b929c]">VS</span>
                         {opponent}
                       </p>
-                      <p className="mt-1 font-mono text-[0.6875rem] tracking-[0.04em] text-[#7b766f]">
+                      <p className="mt-1 font-mono text-[0.6875rem] tracking-[0.04em] text-[#5b626c]">
                         {match.phase} · {match.boType} · {match.startTime ? match.startTime.slice(5, 16).replace("T", " ") : "待安排"}
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 font-mono text-lg font-black ${done ? (won ? "text-[#c83242]" : "text-[#7b766f]") : "text-[#96918a]"}`}
+                      className={`shrink-0 font-mono text-lg font-black ${done ? (won ? "text-[#c83242]" : "text-[#5b626c]") : "text-[#8b929c]"}`}
                     >
                       {done ? (won ? "胜" : "负") : "—"}
                     </span>

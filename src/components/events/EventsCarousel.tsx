@@ -49,7 +49,7 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
         }
       `}</style>
 
-      <div className={`relative ${height} overflow-hidden bg-[#0a1318] text-white`}>
+      <div className={`relative ${height} overflow-hidden bg-[#0f1923] text-white`}>
         {/* 海报铺满全屏 */}
         {active.posterImage ? (
           <>
@@ -62,15 +62,15 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
               sizes="100vw"
               className="object-cover transition-opacity duration-700"
             />
-            <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0a1318]/95 via-[#0a1318]/55 to-transparent" />
-            <div aria-hidden className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#0a1318] via-[#0a1318]/85 to-transparent" />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-[#0f1923]/95 via-[#0f1923]/55 to-transparent" />
+            <div aria-hidden className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#0f1923] via-[#0f1923]/85 to-transparent" />
           </>
         ) : (
           <div
             aria-hidden
             className="absolute inset-0 transition-[background] duration-700"
             style={{
-              background: `radial-gradient(ellipse at 30% 40%, ${active.coverColor}77 0%, transparent 55%), linear-gradient(180deg, ${active.coverColor}22 0%, #0a1318 80%)`,
+              background: `radial-gradient(ellipse at 30% 40%, ${active.coverColor}77 0%, transparent 55%), linear-gradient(180deg, ${active.coverColor}22 0%, #0f1923 80%)`,
             }}
           />
         )}
@@ -155,7 +155,7 @@ export default function EventsCarousel({ events, height = "min-h-screen", stage 
                       {e.posterImage ? (
                         <Image src={e.posterImage} alt="" aria-hidden fill sizes="176px" className="object-cover" />
                       ) : null}
-                      <div aria-hidden className={`absolute inset-0 ${isActive ? "bg-black/10" : "bg-[#0a1318]/65"}`} />
+                      <div aria-hidden className={`absolute inset-0 ${isActive ? "bg-black/10" : "bg-[#0f1923]/65"}`} />
                       <div
                         aria-hidden
                         className={`absolute inset-y-0 left-0 w-1.5 ${isActive ? "" : "opacity-60"}`}

@@ -100,7 +100,7 @@ export default function ParticipantManagePage({
   }
 
   if (participant.loading) {
-    return <Container className="py-12"><div className="border border-black/10 bg-[#fffdf8] p-8 text-center text-sm font-bold text-[#60656d]">正在读取参赛信息…</div></Container>;
+    return <Container className="py-12"><div className="border border-black/10 bg-[#fffdf8] p-8 text-center text-sm font-bold text-[#5b626c]">正在读取参赛信息…</div></Container>;
   }
 
   if (!participant.data) {
@@ -108,7 +108,7 @@ export default function ParticipantManagePage({
       <Container className="py-6 sm:py-12">
         <div className="mx-auto max-w-lg border border-black/10 bg-[#fffdf8] p-5 sm:p-8">
           <h1 className="text-2xl font-black text-slate-950">找回参赛信息</h1>
-          <p className="mt-2 text-sm font-bold text-[#34383f]">{event.name}</p>
+          <p className="mt-2 text-sm font-bold text-[#2b3038]">{event.name}</p>
           <div className="mt-6 grid gap-3">
             <input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="报名学号" autoComplete="username" className={inputClass} />
             <input type="tel" inputMode="tel" value={recoveryPhone} onChange={(e) => setRecoveryPhone(e.target.value)} placeholder="报名手机号" autoComplete="tel" className={inputClass} />
@@ -120,7 +120,7 @@ export default function ParticipantManagePage({
           {(participant.error || message) && <p className={`mt-4 text-sm ${participant.error ? "text-red-600" : "text-emerald-700"}`}>{participant.error || message}</p>}
 
           <details className="mt-6 border-t border-black/10 pt-5" open={query.recover !== "1" && Boolean(participant.error)}>
-            <summary className="cursor-pointer text-sm font-bold text-[#34383f]">使用备用参赛码</summary>
+            <summary className="cursor-pointer text-sm font-bold text-[#2b3038]">使用备用参赛码</summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="粘贴参赛码" className={`${inputClass} font-mono`} />
               <button type="button" onClick={() => run(() => participant.connect(code), "已进入参赛管理。") } disabled={!code.trim() || busy} className="h-11 bg-[#171a1f] px-5 text-sm font-black text-white disabled:opacity-50">验证参赛码</button>
@@ -128,7 +128,7 @@ export default function ParticipantManagePage({
           </details>
 
           <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5 text-xs">
-            <span className="font-bold text-[#60656d]">还没有报名</span>
+            <span className="font-bold text-[#5b626c]">还没有报名</span>
             <Link href={`/events/${id}/register`} className="font-bold text-[#c83242]">前往报名</Link>
           </div>
         </div>
@@ -164,9 +164,9 @@ export default function ParticipantManagePage({
       <div className="mb-4 flex items-end justify-between gap-3 border-b border-black/15 pb-4 sm:mb-6 sm:pb-5">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-black text-slate-950 sm:text-3xl">{data.player.gameId}</h1>
-          <p className="mt-1 truncate text-xs font-bold text-[#60656d] sm:text-sm">{event.name}</p>
+          <p className="mt-1 truncate text-xs font-bold text-[#5b626c] sm:text-sm">{event.name}</p>
         </div>
-        <button onClick={disconnect} className="inline-flex min-h-11 shrink-0 items-center border border-black/15 px-3 text-xs font-black text-[#34383f]">切换身份</button>
+        <button onClick={disconnect} className="inline-flex min-h-11 shrink-0 items-center border border-black/15 px-3 text-xs font-black text-[#2b3038]">切换身份</button>
       </div>
 
       {(participant.error || message) && (
@@ -179,7 +179,7 @@ export default function ParticipantManagePage({
           ["matches", "我的比赛"] as const,
           ["profile", "报名信息"] as const,
         ]).map(([section, label]) => (
-          <Link key={section} href={sectionHref(id, section)} className={`inline-flex min-h-11 items-center justify-center border-r border-black/10 px-2 text-center text-xs font-black last:border-r-0 sm:text-sm ${requestedSection === section ? "bg-[#ff4655] text-white" : "text-[#34383f] hover:bg-[#fff1f2]"}`}>{label}</Link>
+          <Link key={section} href={sectionHref(id, section)} className={`inline-flex min-h-11 items-center justify-center border-r border-black/10 px-2 text-center text-xs font-black last:border-r-0 sm:text-sm ${requestedSection === section ? "bg-[#ff4655] text-white" : "text-[#2b3038] hover:bg-[#fff1f2]"}`}>{label}</Link>
         ))}
       </nav>
 
@@ -206,7 +206,7 @@ export default function ParticipantManagePage({
                         <button type="button" onClick={() => run(() => participant.setMyRole(myRole), "角色已更新。").then(() => setRoleOpen(false))} disabled={busy} className="h-11 bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">确认改角色</button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => { setMyRole(data.player.role ?? "首发"); setRoleOpen(true); setRenameOpen(false); }} className="border border-black/15 px-3 py-2 text-xs font-bold text-[#34383f] hover:bg-[#fff1f2]">调整我的角色</button>
+                      <button type="button" onClick={() => { setMyRole(data.player.role ?? "首发"); setRoleOpen(true); setRenameOpen(false); }} className="border border-black/15 px-3 py-2 text-xs font-bold text-[#2b3038] hover:bg-[#fff1f2]">调整我的角色</button>
                     )}
 
                     {data.isCaptain && (renameOpen ? (
@@ -216,7 +216,7 @@ export default function ParticipantManagePage({
                         <button type="button" onClick={() => run(() => participant.renameTeam(editingTeamName), "队名已更新。").then(() => setRenameOpen(false))} disabled={busy || !editingTeamName.trim()} className="h-11 bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">确认改名</button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => { setEditingTeamName(data.team!.name); setRenameOpen(true); setRoleOpen(false); }} className="border border-black/15 px-3 py-2 text-xs font-bold text-[#34383f] hover:bg-[#fff1f2]">修改队名</button>
+                      <button type="button" onClick={() => { setEditingTeamName(data.team!.name); setRenameOpen(true); setRoleOpen(false); }} className="border border-black/15 px-3 py-2 text-xs font-bold text-[#2b3038] hover:bg-[#fff1f2]">修改队名</button>
                     ))}
 
                     {confirmTeamAction ? (
@@ -373,14 +373,14 @@ export default function ParticipantManagePage({
               <label className="text-xs font-bold text-slate-600">QQ<input value={profile.qq} onChange={(e) => setProfileDraft({ ...profileDraft, qq: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-slate-600">手机号<input value={profile.phone} onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })} className={inputClass} /></label>
             </div>
-            <div className="mt-4"><p className="text-xs font-bold text-slate-600">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{GAME.positions.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`inline-flex min-h-11 items-center border px-3 text-xs ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-white text-[#34383f]"}`}>{pos}</button>; })}</div></div>
+            <div className="mt-4"><p className="text-xs font-bold text-slate-600">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{GAME.positions.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`inline-flex min-h-11 items-center border px-3 text-xs ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-black/15 bg-white text-[#2b3038]"}`}>{pos}</button>; })}</div></div>
             <label className="mt-4 block text-xs font-bold text-slate-600">自我介绍<textarea value={profile.intro} onChange={(e) => setProfileDraft({ ...profileDraft, intro: e.target.value })} rows={3} className="mt-1 w-full border border-black/15 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-[#ff4655]" /></label>
             <button onClick={() => run(() => participant.saveProfile(profile), "报名信息已更新。") } disabled={busy} className="mt-5 h-11 w-full bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50 sm:w-auto">保存修改</button>
           </section>
           <section className="border border-black/10 bg-[#fffdf8] p-4 sm:p-5">
             <h2 className="text-lg font-black text-[#171a1f]">备用参赛码</h2>
-            <code className="mt-4 block min-h-11 break-all border border-black/10 bg-[#f2eee6] p-3 text-xs font-bold text-[#34383f]">{showCode ? participant.token : "••••••••••••••••••••••••"}</code>
-            <div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setShowCode((value) => !value)} className="h-11 border border-black/15 px-3 text-xs font-black text-[#34383f]">{showCode ? "隐藏" : "显示"}</button><button onClick={() => navigator.clipboard.writeText(participant.token).then(() => setMessage("参赛码已复制。"))} className="h-11 bg-[#ff4655] px-3 text-xs font-black text-white">复制</button></div>
+            <code className="mt-4 block min-h-11 break-all border border-black/10 bg-[#f2eee6] p-3 text-xs font-bold text-[#2b3038]">{showCode ? participant.token : "••••••••••••••••••••••••"}</code>
+            <div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setShowCode((value) => !value)} className="h-11 border border-black/15 px-3 text-xs font-black text-[#2b3038]">{showCode ? "隐藏" : "显示"}</button><button onClick={() => navigator.clipboard.writeText(participant.token).then(() => setMessage("参赛码已复制。"))} className="h-11 bg-[#ff4655] px-3 text-xs font-black text-white">复制</button></div>
           </section>
         </div>
       )}

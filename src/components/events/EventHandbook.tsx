@@ -165,7 +165,7 @@ function RuleGroup({
                   </span>
                 )}
               </div>
-              <p className="text-xs font-medium leading-6 text-[#3f444a]">{rule.detail}</p>
+              <p className="text-xs font-medium leading-6 text-[#2b3038]">{rule.detail}</p>
             </article>
           );
         })}
@@ -255,7 +255,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
                 <div>
                   <p className="font-mono text-[9px] font-black tracking-[0.16em] text-[#777b80]">ENTRY STEP</p>
                   <h4 className="mt-2 text-base font-black text-[#171a1f]">{step.title}</h4>
-                  <p className="mt-3 text-xs font-medium leading-6 text-[#3f444a]">{step.detail}</p>
+                  <p className="mt-3 text-xs font-medium leading-6 text-[#2b3038]">{step.detail}</p>
                 </div>
               </li>
             ))}
@@ -290,7 +290,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
                     {stage.groupCount ? ` · ${stage.groupCount} 个小组` : ""}
                   </p>
                   {matchingRule && (
-                    <p className="mt-4 border-t border-black/10 pt-3 text-xs font-medium leading-6 text-[#3f444a]">
+                    <p className="mt-4 border-t border-black/10 pt-3 text-xs font-medium leading-6 text-[#2b3038]">
                       {matchingRule.detail}
                     </p>
                   )}
@@ -311,7 +311,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
               >
                 <span className="font-mono text-[10px] font-black text-[#ff4655]">F{String(index + 1).padStart(2, "0")}</span>
                 <h5 className="text-sm font-black">{rule.title}</h5>
-                <p className="text-xs font-medium leading-6 text-[#3f444a]">{rule.detail}</p>
+                <p className="text-xs font-medium leading-6 text-[#2b3038]">{rule.detail}</p>
               </article>
             ))}
           </div>
@@ -366,7 +366,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
               >
                 <span className="font-mono text-xs font-black text-[#ff4655]">{String(index + 1).padStart(2, "0")}</span>
                 <h4 className="text-sm font-black leading-6">{rule.title}</h4>
-                <p className="text-xs font-medium leading-6 text-[#3f444a]">{rule.detail}</p>
+                <p className="text-xs font-medium leading-6 text-[#2b3038]">{rule.detail}</p>
               </li>
             ))}
           </ol>
@@ -396,12 +396,12 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
             <div className="h-1 w-10 bg-[#ff4655]" />
             <p className="mt-4 font-mono text-[10px] font-black tracking-[0.2em] text-[#ff4655]">PRIZES</p>
             <h3 className="mt-2 text-2xl font-black">奖金与奖项</h3>
-            <p className="mt-3 text-sm font-medium leading-7 text-[#3f444a]">{event.prizePool || "奖金与奖项待公布"}</p>
+            <p className="mt-3 text-sm font-medium leading-7 text-[#2b3038]">{event.prizePool || "奖金与奖项待公布"}</p>
           </section>
           <section className="border-b border-r border-black/15 bg-[#f2eee6] p-6">
             <p className="font-mono text-[10px] font-black tracking-[0.2em] text-[#ff4655]">TOURNAMENT ADMINISTRATION</p>
             <h3 className="mt-2 text-2xl font-black">赛事通知与裁决</h3>
-            <p className="mt-3 text-sm font-medium leading-7 text-[#3f444a]">
+            <p className="mt-3 text-sm font-medium leading-7 text-[#2b3038]">
               赛程变更、竞赛判罚及申诉结果由 {event.organizer} 正式发布。赛事平台公告与赛事组通知共同构成本届赛事的有效信息。
             </p>
           </section>

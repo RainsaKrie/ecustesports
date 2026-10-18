@@ -94,7 +94,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
         <div className="mx-auto max-w-lg border border-black/10 bg-[#fffdf8] p-7 text-center sm:p-9">
           <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">REGISTRATION COMPLETE</p>
           <h1 className="mt-3 text-2xl font-black text-[#171a1f]">已完成参赛报名</h1>
-          <p className="mt-2 text-sm font-bold text-[#34383f]">{participant.data.player.gameId}</p>
+          <p className="mt-2 text-sm font-bold text-[#2b3038]">{participant.data.player.gameId}</p>
           {/* 原来这里没有群号——换设备找回参赛信息的人就永远看不到群公告。
               这类人恰好最需要它（换了设备，群里消息可能也没了）。 */}
           {event.eventQqGroup && (
@@ -105,7 +105,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <Link href={`/events/${id}/manage?section=team`} className="mt-5 block bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
             {participant.data.team ? "查看我的队伍" : "创建或加入队伍"}
           </Link>
-          <Link href={`/events/${id}`} className="mt-3 block border border-black/15 px-5 py-3 text-sm font-black text-[#34383f]">
+          <Link href={`/events/${id}`} className="mt-3 block border border-black/15 px-5 py-3 text-sm font-black text-[#2b3038]">
             返回赛事页
           </Link>
         </div>

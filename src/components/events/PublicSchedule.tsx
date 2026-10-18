@@ -17,7 +17,7 @@ function StatusBadge({ status }: { status: string }) {
   const style =
     status === "已完成"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-black/10 bg-[#f2eee6] text-[#60656d]";
+      : "border-black/10 bg-[#f2eee6] text-[#5b626c]";
   return <span className={`inline-block border px-2.5 py-1 text-[0.6875rem] font-black ${style}`}>{status}</span>;
 }
 
@@ -27,7 +27,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
 
   if (matches.length === 0) {
     return (
-      <div className="border border-black/10 bg-[#fffdf8] p-8 text-center text-sm font-bold text-[#60656d]">
+      <div className="border border-black/10 bg-[#fffdf8] p-8 text-center text-sm font-bold text-[#5b626c]">
         赛程尚未公布，请关注赛事通知。
       </div>
     );
@@ -87,8 +87,8 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               <div className="relative">
                 <p className="font-mono text-[0.625rem] font-black tracking-[0.18em] text-[#c83242]">CHAMPION / 冠军</p>
                 <h4 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#171a1f] sm:text-4xl">{champion}</h4>
-                <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-black text-[#34383f]">
-                  <span className="text-[#60656d]">总决赛</span>
+                <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-black text-[#2b3038]">
+                  <span className="text-[#5b626c]">总决赛</span>
                   <span>{champion}</span>
                   <strong className="font-mono text-lg text-[#c83242]">{championScore}:{runnerUpScore}</strong>
                   <span>{runnerUp}</span>
@@ -100,14 +100,14 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               <div className="flex min-h-24 items-center gap-4 border-b border-black/10 p-5 sm:min-h-28 sm:border-b-0 sm:border-r sm:p-6 lg:border-b lg:border-r-0">
                 <span className="font-mono text-2xl font-black text-[#c8c2b9]">02</span>
                 <div>
-                  <dt className="text-[0.625rem] font-black tracking-[0.12em] text-[#7b766f]">亚军</dt>
+                  <dt className="text-[0.625rem] font-black tracking-[0.12em] text-[#5b626c]">亚军</dt>
                   <dd className="mt-1.5 text-base font-black text-[#171a1f] sm:text-lg">{runnerUp}</dd>
                 </div>
               </div>
               <div className="flex min-h-28 items-center gap-4 p-5 sm:p-6">
                 <span className="font-mono text-2xl font-black text-[#c8c2b9]">03</span>
                 <div>
-                  <dt className="text-[0.625rem] font-black tracking-[0.12em] text-[#7b766f]">季军</dt>
+                  <dt className="text-[0.625rem] font-black tracking-[0.12em] text-[#5b626c]">季军</dt>
                   <dd className="mt-1.5 text-base font-black text-[#171a1f] sm:text-lg">{thirdPlace ?? "—"}</dd>
                 </div>
               </div>
@@ -123,7 +123,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">MATCH RESULTS</p>
               <h3 className="mt-1 text-lg font-black text-[#171a1f]">比赛结果</h3>
             </div>
-            <span className="font-mono text-[0.6875rem] font-black text-[#7b766f]">{completed.length} MATCHES</span>
+            <span className="font-mono text-[0.6875rem] font-black text-[#5b626c]">{completed.length} MATCHES</span>
           </div>
           <div className="space-y-2">
             {completedPhases.map((phase) => {
@@ -133,7 +133,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                   <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-4 bg-[#f2eee6] px-4 py-2.5 transition hover:bg-[#ebe5dc]">
                     <span className="text-sm font-black text-[#171a1f]">{phase}</span>
                     <span className="flex items-center gap-4">
-                      <span className="font-mono text-[0.625rem] font-black text-[#7b766f]">{phaseMatches.length} 场</span>
+                      <span className="font-mono text-[0.625rem] font-black text-[#5b626c]">{phaseMatches.length} 场</span>
                       <span aria-hidden className="text-lg font-black text-[#c83242] transition group-open:rotate-45">＋</span>
                     </span>
                   </summary>
@@ -141,13 +141,13 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                     {phaseMatches.map((m) => (
                       <div key={m.id} className="px-4 py-2 transition hover:bg-black/[0.025]">
                         <div className="grid gap-1.5 sm:grid-cols-[6rem_minmax(0,1fr)_minmax(8rem,1.1fr)_auto] sm:items-center sm:gap-3">
-                          <p className="font-mono text-[0.625rem] font-black text-[#96918a]">{m.id} · {m.round || m.boType}</p>
+                          <p className="font-mono text-[0.625rem] font-black text-[#8b929c]">{m.id} · {m.round || m.boType}</p>
                           <p className="text-xs font-bold text-[#171a1f]">
-                            {m.teamAName} <span className="mx-1.5 text-[#96918a]">VS</span> {m.teamBName}
+                            {m.teamAName} <span className="mx-1.5 text-[#8b929c]">VS</span> {m.teamBName}
                           </p>
                           <div className="flex flex-wrap gap-1">
                             {m.gameResults?.map((g, i) => (
-                              <span key={i} className="border border-black/10 bg-[#f2eee6] px-1.5 py-0.5 text-[0.625rem] font-bold text-[#60656d]">
+                              <span key={i} className="border border-black/10 bg-[#f2eee6] px-1.5 py-0.5 text-[0.625rem] font-bold text-[#5b626c]">
                                 {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
                               </span>
                             ))}
@@ -180,7 +180,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                     <p className="text-sm font-bold text-[#171a1f]">
                       {m.teamAName} vs {m.teamBName}
                     </p>
-                    <p className="mt-1 text-xs font-bold text-[#60656d]">
+                    <p className="mt-1 text-xs font-bold text-[#5b626c]">
                       {m.boType} · {fmt(m.startTime)}
                     </p>
                   </div>

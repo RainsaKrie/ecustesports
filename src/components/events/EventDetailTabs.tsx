@@ -28,20 +28,20 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
         <span className="font-mono text-[0.625rem] font-black text-[#c83242]">{players.length} PLAYERS</span>
       </header>
       {players.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm font-bold text-[#60656d]">暂无参赛选手</p>
+        <p className="px-5 py-10 text-center text-sm font-bold text-[#5b626c]">暂无参赛选手</p>
       ) : (
         <div>
-          <div className="hidden grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] gap-3 border-b border-black/10 bg-[#f2eee6] px-5 py-2 text-[0.625rem] font-black text-[#60656d] md:grid">
+          <div className="hidden grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] gap-3 border-b border-black/10 bg-[#f2eee6] px-5 py-2 text-[0.625rem] font-black text-[#5b626c] md:grid">
             <span>#</span><span>游戏 ID</span><span>段位</span><span>队伍</span><span>状态</span>
           </div>
           {players.map((player, index) => (
             <div key={player.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-black/10 px-4 py-2 last:border-b-0 md:grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] md:px-5 md:gap-3">
-              <span className="hidden font-mono text-[0.625rem] font-black text-[#96918a] md:block">{String(index + 1).padStart(2, "0")}</span>
+              <span className="hidden font-mono text-[0.625rem] font-black text-[#8b929c] md:block">{String(index + 1).padStart(2, "0")}</span>
               <strong className="min-w-0 truncate text-xs text-[#171a1f]">{player.gameId}</strong>
-              <span className="hidden text-xs font-semibold text-[#34383f] md:block">{player.rank}</span>
-              <span className="hidden text-xs font-semibold text-[#34383f] md:block">{player.teamName ?? "—"}{player.role ? ` · ${player.role}` : ""}</span>
+              <span className="hidden text-xs font-semibold text-[#2b3038] md:block">{player.rank}</span>
+              <span className="hidden text-xs font-semibold text-[#2b3038] md:block">{player.teamName ?? "—"}{player.role ? ` · ${player.role}` : ""}</span>
               <span className="w-fit border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{player.status}</span>
-              <span className="col-span-2 min-w-0 truncate text-[0.6875rem] font-semibold text-[#60656d] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
+              <span className="col-span-2 min-w-0 truncate text-[0.6875rem] font-semibold text-[#5b626c] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
             </div>
           ))}
         </div>
@@ -53,14 +53,14 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
 function RosterLine({ role, members, limit }: { role: string; members: Array<{ gameId: string }>; limit: number }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="w-8 shrink-0 pt-[3px] text-[0.625rem] font-black text-[#60656d]">{role}</span>
+      <span className="w-8 shrink-0 pt-[3px] text-[0.625rem] font-black text-[#5b626c]">{role}</span>
       <div className="flex flex-wrap gap-1">
         {Array.from({ length: limit }, (_, index) => {
           const member = members[index];
           return member ? (
-            <span key={member.gameId} className="max-w-[10rem] truncate whitespace-nowrap border border-black/10 bg-white px-1.5 py-[3px] text-[0.625rem] font-semibold leading-none text-[#34383f]">{member.gameId}</span>
+            <span key={member.gameId} className="max-w-[10rem] truncate whitespace-nowrap border border-black/10 bg-white px-1.5 py-[3px] text-[0.625rem] font-semibold leading-none text-[#2b3038]">{member.gameId}</span>
           ) : (
-            <span key={`${role}-空缺-${index}`} className="whitespace-nowrap border border-dashed border-black/15 px-1.5 py-[3px] text-[0.625rem] leading-none text-[#96918a]">空缺</span>
+            <span key={`${role}-空缺-${index}`} className="whitespace-nowrap border border-dashed border-black/15 px-1.5 py-[3px] text-[0.625rem] leading-none text-[#8b929c]">空缺</span>
           );
         })}
       </div>
@@ -76,10 +76,10 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
         <span className="font-mono text-[0.625rem] font-black text-[#c83242]">{teams.length} TEAMS</span>
       </header>
       {teams.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm font-bold text-[#60656d]">暂无参赛队伍</p>
+        <p className="px-5 py-10 text-center text-sm font-bold text-[#5b626c]">暂无参赛队伍</p>
       ) : (
         <div>
-          <div className="hidden grid-cols-[2.5rem_minmax(0,0.9fr)_minmax(0,3.4fr)_0.6fr] gap-3 border-b border-black/10 bg-[#f2eee6] px-5 py-2 text-[0.625rem] font-black text-[#60656d] md:grid">
+          <div className="hidden grid-cols-[2.5rem_minmax(0,0.9fr)_minmax(0,3.4fr)_0.6fr] gap-3 border-b border-black/10 bg-[#f2eee6] px-5 py-2 text-[0.625rem] font-black text-[#5b626c] md:grid">
             <span>#</span><span>队伍</span><span>参赛阵容</span><span>状态</span>
           </div>
           {teams.map((team, index) => {
@@ -92,7 +92,7 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
                     <div className="min-w-0">
                       <Link href={`/events/${eventId}/teams/${team.id}`} className="block truncate text-xs font-bold text-[#171a1f] underline-offset-2 hover:text-[#c83242] hover:underline">{team.name}</Link>
-                      <p className="mt-1 text-[0.6875rem] font-semibold text-[#60656d]">首发 {starters.length}/5 · 替补 {substitute ? "1/1" : "0/1"} · 教练 {coach ? "1/1" : "0/1"}</p>
+                      <p className="mt-1 text-[0.6875rem] font-semibold text-[#5b626c]">首发 {starters.length}/5 · 替补 {substitute ? "1/1" : "0/1"} · 教练 {coach ? "1/1" : "0/1"}</p>
                     </div>
                     <span className="shrink-0 border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{team.status}</span>
                   </summary>
@@ -103,7 +103,7 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                   </div>
                 </details>
                 <div className="hidden gap-1.5 px-5 py-2.5 md:grid md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,3.4fr)_0.6fr] md:items-start md:gap-3">
-                  <span className="font-mono text-[0.625rem] font-black text-[#96918a]">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="font-mono text-[0.625rem] font-black text-[#8b929c]">{String(index + 1).padStart(2, "0")}</span>
                   <Link href={`/events/${eventId}/teams/${team.id}`} className="pt-[3px] text-xs font-bold text-[#171a1f] underline-offset-2 hover:text-[#c83242] hover:underline">{team.name}</Link>
                   <div className="space-y-1.5">
                     <RosterLine role="首发" members={starters} limit={5} />
@@ -156,7 +156,7 @@ export default function EventDetailTabs({
                 className={`relative min-h-14 min-w-0 border-b-[3px] px-1.5 py-4 text-[0.6875rem] font-black transition sm:shrink-0 sm:px-8 sm:text-xs ${
                   isActive
                     ? "border-[#ff4655] bg-[#fffdf8] text-[#171a1f]"
-                    : "border-transparent text-[#60656d] hover:bg-black/[0.04] hover:text-[#171a1f]"
+                    : "border-transparent text-[#5b626c] hover:bg-black/[0.04] hover:text-[#171a1f]"
                 }`}
               >
                 {TAB_LABELS[item]}
