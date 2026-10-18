@@ -52,69 +52,68 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
   );
 }
 
-function RosterLine({ role, members, limit }: { role: string; members: Array<{ gameId: string }>; limit: number }) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="w-8 shrink-0 pt-[3px] text-[0.625rem] font-black text-[#5b626c]">{role}</span>
-      <div className="flex flex-wrap gap-1">
-        {Array.from({ length: limit }, (_, index) => {
-          const member = members[index];
-          return member ? (
-            <span key={member.gameId} className="max-w-[10rem] truncate whitespace-nowrap border border-black/10 bg-white px-1.5 py-[3px] text-[0.625rem] font-semibold leading-none text-[#2b3038]">{member.gameId}</span>
-          ) : (
-            <span key={`${role}-空缺-${index}`} className="whitespace-nowrap border border-dashed border-black/15 px-1.5 py-[3px] text-[0.625rem] leading-none text-[#8b929c]">空缺</span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"]; eventId: string }) {
   return (
-    <section className="border border-black/10 bg-[#fffdf8]">
-      <header className="flex items-center justify-between border-b border-black/10 px-5 py-3">
-        <h2 className="text-base font-black text-[#171a1f]">参赛队伍</h2>
-        <span className="font-mono text-[0.625rem] font-black text-[#c83242]">{teams.length} TEAMS</span>
-      </header>
-      {teams.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm font-bold text-[#5b626c]">暂无参赛队伍</p>
-      ) : (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-4 border-b border-[#d8d1c6] pb-2">
         <div>
-          <div className="hidden grid-cols-[2.5rem_minmax(0,0.9fr)_minmax(0,3.4fr)_0.6fr] gap-3 border-b border-black/10 bg-[#f2eee6] px-5 py-2 text-[0.625rem] font-black text-[#5b626c] md:grid">
-            <span>#</span><span>队伍</span><span>参赛阵容</span><span>状态</span>
-          </div>
+          <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[#c83242]">Teams</p>
+          <h2 className="mt-1 text-[1.375rem] font-black tracking-[-0.01em] text-[#171a1f]">参赛队伍</h2>
+        </div>
+        <span className="font-mono text-[0.6875rem] font-black text-[#8b929c]">{teams.length} 支</span>
+      </div>
+
+      {teams.length === 0 ? (
+        <p className="border border-dashed border-[#d8d1c6] px-5 py-12 text-center text-sm font-bold text-[#5b626c]">暂无参赛队伍</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {teams.map((team, index) => {
             const starters = team.members.filter((member) => member.role === "首发");
             const substitute = team.members.find((member) => member.role === "替补");
             const coach = team.members.find((member) => member.role === "教练");
+            // 七个点位：5 首发 + 1 替补 + 1 教练 —— 有人的填实，缺的留空
+            const slots = [
+              ...Array.from({ length: 5 }, (_, i) => Boolean(starters[i])),
+              Boolean(substitute),
+              Boolean(coach),
+            ];
+            const complete = starters.length >= 5;
             return (
-              <div key={team.id} className="border-b border-black/10 last:border-b-0">
-                <details className="group md:hidden">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
+              <Link
+                key={team.id}
+                href={`/events/${eventId}/teams/${team.id}`}
+                className="group relative block bg-[#fffdf8] p-4 ring-1 ring-[#d8d1c6] transition duration-150 hover:ring-[#171a1f]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="grid h-9 w-9 flex-none place-items-center bg-[#171a1f] font-mono text-sm font-black text-[#fffdf8]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
                     <div className="min-w-0">
-                      <Link href={`/events/${eventId}/teams/${team.id}`} className="block truncate text-xs font-bold text-[#171a1f] underline-offset-2 hover:text-[#c83242] hover:underline">{team.name}</Link>
-                      <p className="mt-1 text-[0.6875rem] font-semibold text-[#5b626c]">首发 {starters.length}/5 · 替补 {substitute ? "1/1" : "0/1"} · 教练 {coach ? "1/1" : "0/1"}</p>
+                      <p className="truncate text-[0.9375rem] font-black text-[#171a1f] group-hover:text-[#c83242]">{team.name}</p>
+                      <p className="mt-0.5 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-[#8b929c]">
+                        {complete ? "Roster complete" : `首发 ${starters.length}/5`}
+                      </p>
                     </div>
-                    <span className="shrink-0 border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{team.status}</span>
-                  </summary>
-                  <div className="space-y-1.5 border-t border-black/5 bg-black/[0.02] px-4 py-2.5">
-                    <RosterLine role="首发" members={starters} limit={5} />
-                    <RosterLine role="替补" members={substitute ? [substitute] : []} limit={1} />
-                    <RosterLine role="教练" members={coach ? [coach] : []} limit={1} />
                   </div>
-                </details>
-                <div className="hidden gap-1.5 px-5 py-2.5 md:grid md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,3.4fr)_0.6fr] md:items-start md:gap-3">
-                  <span className="font-mono text-[0.625rem] font-black text-[#8b929c]">{String(index + 1).padStart(2, "0")}</span>
-                  <Link href={`/events/${eventId}/teams/${team.id}`} className="pt-[3px] text-xs font-bold text-[#171a1f] underline-offset-2 hover:text-[#c83242] hover:underline">{team.name}</Link>
-                  <div className="space-y-1.5">
-                    <RosterLine role="首发" members={starters} limit={5} />
-                    <RosterLine role="替补" members={substitute ? [substitute] : []} limit={1} />
-                    <RosterLine role="教练" members={coach ? [coach] : []} limit={1} />
-                  </div>
-                  <StatusChip tone="accent">{team.status}</StatusChip>
+                  <StatusChip tone={complete ? "neutral" : "accent"}>{team.status}</StatusChip>
                 </div>
-              </div>
+
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-1" aria-label={`阵容 ${starters.length + (substitute ? 1 : 0) + (coach ? 1 : 0)}/7`}>
+                    {slots.map((filled, i) => (
+                      <span
+                        key={i}
+                        className={`h-1.5 w-4 ${filled ? (i < 5 ? "bg-[#171a1f]" : "bg-[#8b929c]") : "bg-[#e7e1d7]"}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="font-mono text-[0.625rem] font-black tracking-[0.06em] text-[#8b929c]">
+                    {starters.length + (substitute ? 1 : 0) + (coach ? 1 : 0)} / 7
+                  </span>
+                </div>
+              </Link>
             );
           })}
         </div>
