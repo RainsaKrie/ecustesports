@@ -2,6 +2,15 @@
 
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import type { GameResult } from "@/lib/scheduling/schedule-data";
+import StageCards, { type StageCardItem } from "@/components/events/StageCards";
+
+const PHASE_EN: Record<string, string> = {
+  资格赛: "QUALIFIER",
+  入围赛: "PLAY-IN",
+  小组赛: "GROUP STAGE",
+  淘汰赛: "PLAYOFFS",
+  总决赛: "GRAND FINAL",
+};
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
@@ -68,8 +77,23 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
   const championScore = finalMatch?.winnerTeamId === finalMatch?.teamAId ? finalWinsA : finalWinsB;
   const runnerUpScore = finalMatch?.winnerTeamId === finalMatch?.teamAId ? finalWinsB : finalWinsA;
 
+  // 阶段卡：按比赛里出现过的阶段顺序，统计「已完成 / 总数」；当前阶段 = 第一个未完成的
+  const phaseOrder = Array.from(new Set(matches.map((match) => match.phase)));
+  const stageItems: StageCardItem[] = phaseOrder.map((phase) => {
+    const inPhase = matches.filter((match) => match.phase === phase);
+    return {
+      label: phase,
+      en: PHASE_EN[phase] ?? undefined,
+      done: inPhase.filter((match) => match.status === "已完成").length,
+      total: inPhase.length,
+    };
+  });
+  const currentStageIndex = stageItems.findIndex((item) => (item.done ?? 0) < (item.total ?? 0));
+
   return (
     <div className="space-y-4">
+      <StageCards items={stageItems} currentIndex={currentStageIndex >= 0 ? currentStageIndex : undefined} />
+
       {allCompleted && finalMatch && champion && runnerUp && (
         <section className="overflow-hidden border border-black/15 bg-[#fffdf8]">
           <header className="flex items-center justify-between gap-4 border-b border-black/10 px-5 py-4 sm:px-7">
