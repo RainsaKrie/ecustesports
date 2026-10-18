@@ -2,7 +2,6 @@
 
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import type { GameResult } from "@/lib/scheduling/schedule-data";
-import StageCards, { stageCardsFromMatches } from "@/components/events/StageCards";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
@@ -69,12 +68,9 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
   const championScore = finalMatch?.winnerTeamId === finalMatch?.teamAId ? finalWinsA : finalWinsB;
   const runnerUpScore = finalMatch?.winnerTeamId === finalMatch?.teamAId ? finalWinsB : finalWinsA;
 
-  const { items: stageItems, currentIndex: currentStageIndex } = stageCardsFromMatches(matches);
 
   return (
     <div className="space-y-4">
-      <StageCards items={stageItems} currentIndex={currentStageIndex} />
-
       {allCompleted && finalMatch && champion && runnerUp && (
         <section className="overflow-hidden border border-black/15 bg-[#fffdf8]">
           <header className="flex items-center justify-between gap-4 border-b border-black/10 px-5 py-4 sm:px-7">

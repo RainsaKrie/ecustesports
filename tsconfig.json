@@ -36,7 +36,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".workbuddy/ss-check/types/**/*.ts",
-    ".workbuddy/ss-check/dev/types/**/*.ts"
+    ".workbuddy/ss-check/dev/types/**/*.ts",
+    ".workbuddy/ui-check2/types/**/*.ts",
+    ".workbuddy/ui-check2/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
