@@ -9,7 +9,7 @@
 // 每条用例都 try/finally 还原，跑完再核对文件是否恢复原样。
 // =====================
 
-import { readFileSync, writeFileSync, existsSync, rmSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const ROOT = process.cwd();

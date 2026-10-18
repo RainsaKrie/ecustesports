@@ -55,6 +55,9 @@ import {
    ③ 它的 z-index 是 70，统一弹窗是 80，和确认框不在同一层。
    本文件的弹窗现在一律用 `@/components/admin/ui` 的 `AdminModal`。 */
 
+/** 阵容排序：首发 → 替补 → 教练 */
+const ROLE_ORDER: Record<string, number> = { 首发: 0, 替补: 1, 教练: 2 };
+
 export default function RegistrationOperationsWorkspace({ eventId }: { eventId: string }) {
   const router = useRouter();
   const event = useCurrentEventConfig(eventId);
@@ -107,15 +110,27 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   const unteamedApproved = activePlayers.filter((player) => player.status === "已报名" && player.reviewStatus === "已通过");
   const activeTeams = state.teams.filter((team) => team.status !== "已退赛");
   const confirmedTeams = activeTeams.filter((team) => team.status === "已冻结").length;
+  /** 队名映射：选手搜索要认「队名」，但队伍名只在 teams 里 */
+  const teamNameById = useMemo(() => new Map(state.teams.map((team) => [team.id, team.name])), [state.teams]);
+
   const visiblePlayers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return state.players.filter((player) => {
       if (reviewFilter !== "全部" && player.reviewStatus !== reviewFilter) return false;
       if (!keyword) return true;
-      return [player.gameId, player.name, player.studentId, player.rank, ...(player.positions ?? [])]
-        .some((value) => value?.toLowerCase().includes(keyword));
+      // 2026-10-18：加队名。此前只能按选手自己的 ID/姓名/学号/段位/位置搜，
+      // 想「把这支队的人都找出来」就得先记住每个人的名字 —— 核验身份时很别扭。
+      return [
+        player.gameId,
+        player.name,
+        player.studentId,
+        player.rank,
+        ...(player.positions ?? []),
+        player.teamId ? teamNameById.get(player.teamId) : undefined,
+        player.teamId ? "未组队" : undefined,
+      ].some((value) => value?.toLowerCase().includes(keyword));
     });
-  }, [query, reviewFilter, state.players]);
+  }, [query, reviewFilter, state.players, teamNameById]);
   const pageSize = 20;
   const playerPageCount = Math.max(1, Math.ceil(visiblePlayers.length / pageSize));
   const safePlayerPage = Math.min(playerPage, playerPageCount);
@@ -593,6 +608,30 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         原来的路径是「点开队伍 → 记住队长 ID → 去选手列表搜这个 ID → 再找联系方式」，
                         36 支队就是 36 遍。这里一次给全：ID、号码、是 QQ 还是手机、一键复制。
                         号码缺失时显式标黄，避免「看着有空位、实际没填」被漏掉。 */}
+                    {/* 阵容身份核验：姓名 + 学号 + 游戏 ID 一屏看全。
+                        此前队伍卡只有队长，核验一支队要「去选手列表按 ID 一个个搜」，36 支就是 36×5 遍。
+                        不折叠 —— 折叠等于没解决「核验不方便」。 */}
+                    <div className="mt-[6px] border-t border-[var(--adm-line-soft)] pt-[6px]">
+                      <div className={`grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-[6px] ${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>
+                        <span>角色</span><span>游戏 ID</span><span>姓名</span><span>学号</span>
+                      </div>
+                      {[...members]
+                        .sort((a, b) => (ROLE_ORDER[a.role ?? ""] ?? 9) - (ROLE_ORDER[b.role ?? ""] ?? 9))
+                        .map((player) => (
+                          <div
+                            key={player.id}
+                            className={`mt-[2px] grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-[6px] ${DENSE_META} ${
+                              isFlagged(player.reviewStatus) ? "text-[var(--adm-warn-text)]" : ""
+                            }`}
+                          >
+                            <span className="font-bold text-[var(--adm-text-mute)]">{player.role ?? "—"}</span>
+                            <span className="truncate font-bold text-[var(--adm-text)]">{player.gameId}</span>
+                            <span className="truncate">{player.name ?? "—"}</span>
+                            <span className="truncate tabular-nums">{player.studentId ?? "—"}</span>
+                          </div>
+                        ))}
+                    </div>
+
                     <div className={`mt-[5px] flex min-w-0 items-center gap-[6px] ${DENSE_META}`}>
                       <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>队长</span>
                       {captain ? (
