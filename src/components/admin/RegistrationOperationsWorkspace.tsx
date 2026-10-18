@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { AdminModal, AdminOverflowMenu, EmptyState } from "@/components/admin/ui";
+import { AdminModal, AdminOverflowMenu, EmptyState, ContextBar} from "@/components/admin/ui";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import {
   initialRegistration,
@@ -348,19 +348,19 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
       {/* 上下文条：一行数字，不做卡片（设计文档 4.2）。信息与原来的四张统计卡完全一致，
           只是不再各占一块边框 —— 数字仍然是页面上第二重的东西，仅次于标题。
           移动端隐藏（设计文档 4.4：不减字号，改为减少一屏信息）。 */}
-      <section className="mb-5 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-[var(--adm-line-soft)] px-5 py-3 max-[760px]:hidden">
-        {[
-          ["有效报名", `${activePlayers.length} 人`],
-          ["资料待修改", `${flaggedPlayers.length} 人`],
-          ["未组队", `${unteamedApproved.length} 人`],
-          ["正式队伍", `${confirmedTeams}/${activeTeams.length} 支`],
-        ].map(([label, value]) => (
-          <p key={label} className="flex items-baseline gap-2">
-            <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">{label}</span>
-            <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{value}</span>
-          </p>
-        ))}
-      </section>
+      <ContextBar
+        items={[
+          { label: "有效报名", value: `${activePlayers.length} 人` },
+          {
+            label: "资料待修改",
+            value: `${flaggedPlayers.length} 人`,
+            tone: flaggedPlayers.length > 0 ? ("alert" as const) : ("default" as const),
+            note: flaggedPlayers.length > 0 ? "需要负责人处理" : undefined,
+          },
+          { label: "未组队", value: `${unteamedApproved.length} 人` },
+          { label: "正式队伍", value: `${confirmedTeams}/${activeTeams.length} 支` },
+        ]}
+      />
 
       <section className="mb-5 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
         <div className="grid gap-5 p-5 md:grid-cols-[auto_1fr] md:items-center">
