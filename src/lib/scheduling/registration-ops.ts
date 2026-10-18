@@ -3,7 +3,7 @@
 // 供公开组队接口与后台共用：建队（队长自动入队首发）、成员入队（角色与人数上限校验）
 // =====================
 
-import type { RegistrationState, RegistrationTeam } from "./registration-data";
+import type { RegistrationState, RegistrationTeam } from "@/lib/domains/registration/data";
 import { rosterLimitOf } from "@/lib/games";
 
 export type PlayerRole = "首发" | "替补" | "教练";

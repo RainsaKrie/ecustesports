@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 import { addMemberOp, createTeamOp, dissolveTeamOp, leaveTeamOp, renameTeamOp, setMemberRoleOp } from "./registration-ops";
-import type { RegistrationPlayer, RegistrationState } from "./registration-data";
+import type { RegistrationPlayer, RegistrationState } from "@/lib/domains/registration/data";
 
 function player(id: string, overrides: Partial<RegistrationPlayer> = {}): RegistrationPlayer {
   return {

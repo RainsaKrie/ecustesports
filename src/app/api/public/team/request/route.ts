@@ -10,7 +10,7 @@ import {
   type RegistrationState,
   type TeamRequest,
   type TeamRequestType,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import { isEventPublic } from "@/lib/configured-events";
 
 export const runtime = "nodejs";

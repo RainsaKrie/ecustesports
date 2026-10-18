@@ -8,7 +8,7 @@
 // 只做展示与派发：所有写操作仍由调用方（工作台页面）走 openModal，不在这里直接发请求。
 // =====================
 
-import type { RegistrationPlayer, RegistrationTeam } from "@/lib/scheduling/registration-data";
+import type { RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
 import AdminModal from "@/components/admin/ui/AdminModal";
 import AdminOverflowMenu from "@/components/admin/ui/AdminOverflowMenu";
 import { GAME, DENSE_META, DENSE_MICRO, isFlagged } from "@/components/admin/RegistrationWorkspaceParts";

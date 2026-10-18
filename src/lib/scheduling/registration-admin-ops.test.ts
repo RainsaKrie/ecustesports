@@ -18,7 +18,7 @@ import {
   withdrawPlayerAdminOp,
   withdrawTeamAdminOp,
 } from "./registration-admin-ops";
-import { normalizeRegistrationState, type RegistrationPlayer, type RegistrationState } from "./registration-data";
+import { normalizeRegistrationState, type RegistrationPlayer, type RegistrationState } from "@/lib/domains/registration/data";
 
 let passed = 0;
 

@@ -1,4 +1,4 @@
-import type { Group, SeedPot } from "./format-data";
+import type { Group, SeedPot } from "@/lib/domains/registration/format";
 import type { StageConfig } from "./format-templates";
 import type { ScheduleMatch } from "./schedule-data";
 import { QUALIFIER_MIN_TEAMS } from "./format-support";

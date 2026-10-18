@@ -21,7 +21,7 @@ import {
 } from "./staged-format";
 import { resolveSupportedFormat, formatChangeRefusal, unplayedStagesToClear } from "./format-support";
 import type { StageConfig } from "./format-templates";
-import type { Group } from "./format-data";
+import type { Group } from "@/lib/domains/registration/format";
 import type { ScheduleMatch } from "./schedule-data";
 
 let pass = 0;

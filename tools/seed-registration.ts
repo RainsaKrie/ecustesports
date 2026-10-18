@@ -5,7 +5,7 @@ import {
   type RegistrationPlayer,
   type RegistrationState,
   type RegistrationTeam,
-} from "../src/lib/scheduling/registration-data";
+} from "../src/lib/domains/registration/data";
 import { getGameConfig } from "../src/lib/games";
 
 /** 擅长位置取自游戏配置层（原来从 registration-data 导入，那份已并入 config）。 */

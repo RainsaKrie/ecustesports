@@ -6,7 +6,7 @@ import { getEventStage } from "@/lib/scheduling/stage";
 import { getOperationsModules, getStageGuidance, type ModuleWithState } from "@/lib/operations-data";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
-import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/scheduling/registration-data";
+import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/domains/registration/data";
 import type { EventStage } from "@/lib/scheduling/stage";
 import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";

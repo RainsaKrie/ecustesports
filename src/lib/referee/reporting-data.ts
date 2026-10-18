@@ -50,7 +50,7 @@ import {
   initialRegistration,
   normalizeRegistrationState,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import { buildSquadsByTeamId } from "@/lib/referee/identity-match";
 
 // 文档名（须通过 assertSafeDocumentName：仅 a-zA-Z0-9_-）

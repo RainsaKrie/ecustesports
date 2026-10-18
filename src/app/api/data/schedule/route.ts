@@ -5,7 +5,7 @@ import { emptySchedule, normalizeScheduleState } from "@/lib/scheduling/schedule
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { autoFillPendingSlots, type StagedFormatState } from "@/lib/scheduling/staged-format";
 import { applyScheduleSave, type ScheduleLoss } from "@/lib/scheduling/schedule-ops";
-import { initialRegistration, type RegistrationState } from "@/lib/scheduling/registration-data";
+import { initialRegistration, type RegistrationState } from "@/lib/domains/registration/data";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";

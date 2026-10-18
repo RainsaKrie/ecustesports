@@ -3,7 +3,7 @@
 // 当前落地三种结构：单败、8 队双败、16 队 GSL + 8 队双败。
 // =====================
 
-import type { Group, Matchup } from "./format-data";
+import type { Group, Matchup } from "@/lib/domains/registration/format";
 import type { ScheduleMatch } from "./schedule-data";
 
 /** 待定占位（晋级推进后由真实队伍填充） */

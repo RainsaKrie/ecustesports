@@ -7,7 +7,7 @@ import {
   normalizeRegistrationState,
   type RegistrationPlayer,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import { recoverParticipantAccess } from "@/lib/scheduling/participant-recovery";
 
 export const runtime = "nodejs";

@@ -68,7 +68,7 @@ import {
   drawGroups,
   generateMatchups,
   rankTeamsByAvgRank,
-} from "../../src/lib/scheduling/format-data";
+} from "../../src/lib/domains/registration/format";
 import { resolveSupportedFormat, type SupportedFormat } from "../../src/lib/scheduling/format-support";
 import {
   normalizeScheduleState,
@@ -90,7 +90,7 @@ import type {
   RegistrationPlayer,
   RegistrationState,
   RegistrationTeam,
-} from "../../src/lib/scheduling/registration-data";
+} from "../../src/lib/domains/registration/data";
 
 // ────────────────────────────────────────────────────────────
 // 0. 命令行参数与现场常量

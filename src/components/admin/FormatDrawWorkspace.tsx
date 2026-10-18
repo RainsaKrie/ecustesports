@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { AdminModal } from "@/components/admin/ui";
-import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, type Group, type SeedPot } from "@/lib/scheduling/format-data";
+import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, type Group, type SeedPot } from "@/lib/domains/registration/format";
 import {
   buildDoubleEliminationMatches,
   buildGslGroupMatches,
@@ -16,7 +16,7 @@ import {
   PENDING,
 } from "@/lib/scheduling/bracket-engine";
 import { resolveSupportedFormat, type SupportedFormat } from "@/lib/scheduling/format-support";
-import { initialRegistration, type RegistrationState } from "@/lib/scheduling/registration-data";
+import { initialRegistration, type RegistrationState } from "@/lib/domains/registration/data";
 import type { ScheduleMatch, ScheduleState } from "@/lib/scheduling/schedule-data";
 import { appendMatchesOp } from "@/lib/scheduling/schedule-ops";
 import {

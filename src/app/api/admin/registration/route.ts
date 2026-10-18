@@ -32,7 +32,7 @@ import {
   initialRegistration,
   normalizeRegistrationState,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import { emptySchedule, normalizeScheduleState, bracketTeamIds, type ScheduleState } from "@/lib/scheduling/schedule-data";
 
 export const runtime = "nodejs";

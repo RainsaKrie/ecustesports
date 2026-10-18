@@ -6,7 +6,7 @@ import {
   initialRegistration,
   normalizeRegistrationState,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

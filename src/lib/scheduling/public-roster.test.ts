@@ -11,7 +11,7 @@
 import assert from "node:assert/strict";
 
 import { isOfficialRosterPublished, selectPublicRoster } from "./public-roster";
-import type { RegistrationPlayer, RegistrationTeam } from "./registration-data";
+import type { RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
 
 let passed = 0;
 function check(name: string, condition: boolean, detail?: string) {

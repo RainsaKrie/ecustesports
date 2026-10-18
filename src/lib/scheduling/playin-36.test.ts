@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 
 import { buildQualificationMatches } from "./bracket-engine";
-import { buildPlayInPairs, rankTeamsByAvgRank, type Matchup } from "./format-data";
+import { buildPlayInPairs, rankTeamsByAvgRank, type Matchup } from "@/lib/domains/registration/format";
 import { resolveSupportedFormat } from "./format-support";
 import { resolvePlayInGate, resolveStagedDrawGate } from "./staged-format";
 import {
@@ -18,7 +18,7 @@ import {
 } from "./format-templates";
 import { appendMatchesOp, reportGameResultsOp } from "./schedule-ops";
 import { emptySchedule, normalizeScheduleState } from "./schedule-data";
-import type { RegistrationPlayer, RegistrationTeam } from "./registration-data";
+import type { RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
 
 const stages4: StageConfig[] = [
   { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1" },

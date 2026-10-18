@@ -4,9 +4,9 @@
 // 运行：npx tsx src/lib/scheduling/full-loop.test.ts
 // =====================
 
-import { normalizeRegistrationState, type RegistrationState, type RegistrationPlayer, type RegistrationTeam } from "./registration-data.ts";
+import { normalizeRegistrationState, type RegistrationState, type RegistrationPlayer, type RegistrationTeam } from "@/lib/domains/registration/data";
 import { createTeamOp, addMemberOp } from "./registration-ops.ts";
-import { buildSeedPots, drawGroups, generateMatchups } from "./format-data.ts";
+import { buildSeedPots, drawGroups, generateMatchups } from "@/lib/domains/registration/format";
 import {
   buildDoubleEliminationMatches,
   buildGslGroupMatches,

@@ -2,7 +2,7 @@ import {
   normalizeRegistrationState,
   type RegistrationPlayer,
   type RegistrationState,
-} from "./registration-data";
+} from "@/lib/domains/registration/data";
 
 function normalizeStudentId(value: string): string {
   return value.trim().toLowerCase();

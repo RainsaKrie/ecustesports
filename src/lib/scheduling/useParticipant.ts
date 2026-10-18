@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { RegistrationPlayer, RegistrationTeam, TeamRequest } from "./registration-data";
+import type { RegistrationPlayer, RegistrationTeam, TeamRequest } from "@/lib/domains/registration/data";
 import type { RescheduleRecord, ScheduleMatch } from "./schedule-data";
 import type { BOType, SchedulingConfig } from "./rule-engine";
 import { participantTokenKey } from "./usePublicRegistration";

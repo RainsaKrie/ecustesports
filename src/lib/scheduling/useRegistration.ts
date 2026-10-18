@@ -5,8 +5,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import type { RegistrationState, RegistrationPlayer, RegistrationTeam } from "./registration-data";
-import { initialRegistration, normalizeRegistrationState } from "./registration-data";
+import type { RegistrationState, RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
+import { initialRegistration, normalizeRegistrationState } from "@/lib/domains/registration/data";
 
 const PLAYER_ID_KEY = "current-player-id";
 const subscribePlayerIdentity = (onStoreChange: () => void) => {

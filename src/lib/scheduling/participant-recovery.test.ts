@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { initialRegistration, type RegistrationPlayer } from "./registration-data";
+import { initialRegistration, type RegistrationPlayer } from "@/lib/domains/registration/data";
 import { recoverParticipantAccess } from "./participant-recovery";
 
 const player: RegistrationPlayer = {

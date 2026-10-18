@@ -1,6 +1,6 @@
 import { readEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
-import { initialRegistration, normalizeRegistrationState } from "@/lib/scheduling/registration-data";
+import { initialRegistration, normalizeRegistrationState } from "@/lib/domains/registration/data";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import type { NextRequest } from "next/server";
 

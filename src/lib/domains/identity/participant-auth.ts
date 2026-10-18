@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
-import type { RegistrationPlayer, RegistrationState } from "@/lib/scheduling/registration-data";
+import type { RegistrationPlayer, RegistrationState } from "@/lib/domains/registration/data";
 
 export function issueParticipantToken(): { token: string; tokenHash: string } {
   const token = randomBytes(24).toString("base64url");

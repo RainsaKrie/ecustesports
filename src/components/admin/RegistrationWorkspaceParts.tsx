@@ -27,8 +27,8 @@ import {
   type RegistrationPlayer,
   type RegistrationState,
   type RegistrationTeam,
-} from "@/lib/scheduling/registration-data";
-import { teamAvgRank } from "@/lib/scheduling/format-data";
+} from "@/lib/domains/registration/data";
+import { teamAvgRank } from "@/lib/domains/registration/format";
 import { getGameConfig, rankValueOf } from "@/lib/games";
 
 /** 首发/替补/教练上限与段位阶梯都取自游戏配置层（原先是写死在本文件里的 5/1/1 与一张段位表）。 */

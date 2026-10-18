@@ -11,7 +11,7 @@ import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig } from "@/lib/scheduling/format-templates";
 import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";
-import { initialRegistration } from "@/lib/scheduling/registration-data";
+import { initialRegistration } from "@/lib/domains/registration/data";
 import { getGameConfig } from "@/lib/games";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import { eventDescriptionIssue } from "@/lib/domains/content/limits";

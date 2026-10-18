@@ -2,7 +2,7 @@
 // 赛制与抽签核心逻辑（种子分档 → 分组抽签 → 对阵生成）
 // =====================
 
-import type { RegistrationPlayer, RegistrationTeam } from "./registration-data";
+import type { RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
 import { getGameConfig, rankValueOf, type GameConfig } from "@/lib/games";
 
 export interface SeedPot {

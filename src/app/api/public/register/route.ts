@@ -12,7 +12,7 @@ import {
   normalizeRegistrationState,
   type RegistrationPlayer,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import { isEventPublic } from "@/lib/configured-events";
 
 export const runtime = "nodejs";

@@ -14,7 +14,7 @@ import {
   type RegistrationAuditLog,
   type RegistrationPlayer,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import {
   GAME,
   CopyButton,

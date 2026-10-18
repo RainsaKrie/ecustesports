@@ -4,7 +4,7 @@ import {
   buildSingleEliminationMatches,
   buildTournamentMatches,
 } from "./bracket-engine";
-import type { Group, Matchup } from "./format-data";
+import type { Group, Matchup } from "@/lib/domains/registration/format";
 import { resolveSupportedFormat } from "./format-support";
 import type { StageConfig } from "./format-templates";
 import type { ScheduleMatch } from "./schedule-data";

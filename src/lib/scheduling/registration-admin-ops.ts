@@ -4,8 +4,8 @@ import {
   type RegistrationSnapshot,
   type RegistrationState,
   type RegistrationTeam,
-} from "./registration-data";
-import { normalizeRegistrationState } from "./registration-data";
+} from "@/lib/domains/registration/data";
+import { normalizeRegistrationState } from "@/lib/domains/registration/data";
 import { normalizePositions, rosterLimitOf } from "@/lib/games";
 import { addMemberOp, createTeamOp, renameTeamOp, setMemberRoleOp, type PlayerRole } from "./registration-ops";
 import { dissolveTeamOp } from "./registration-ops";

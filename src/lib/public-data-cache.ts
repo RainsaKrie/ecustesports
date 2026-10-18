@@ -7,7 +7,7 @@ import {
   initialRegistration,
   normalizeRegistrationState,
   type RegistrationState,
-} from "@/lib/scheduling/registration-data";
+} from "@/lib/domains/registration/data";
 import {
   emptySchedule,
   normalizeScheduleState,
