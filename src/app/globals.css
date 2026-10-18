@@ -1936,3 +1936,21 @@ textarea:focus-visible,
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
+
+/* ——— 弹窗进出（U2）：进场 300ms 落定感，遮罩 200ms 淡入 ———
+   ★ 目前只做进场：退场需要"延迟卸载"，那会改动所有调用方的关闭时序，
+   风险高于收益，留到 U5 与 Toast 一起处理。 */
+.adm-modal-backdrop {
+  animation: adm-fade-in var(--dur-base) var(--ease-enter) both;
+}
+.adm-modal-panel {
+  animation: adm-rise-in var(--dur-panel) var(--ease-emphasized-decel) both;
+}
+@keyframes adm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes adm-rise-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

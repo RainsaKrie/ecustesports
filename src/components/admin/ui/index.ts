@@ -21,3 +21,5 @@ export type { AdminBadgeTone } from "./primitives";
 export { default as PageShell, ContextBar, Section } from "./PageShell";
 export type { PageShellProps, SectionProps, ContextItem } from "./PageShell";
 export { default as Skeleton, SkeletonBlock } from "./Skeleton";
+export { default as DataTable } from "./DataTable";
+export type { Column, DataTableProps } from "./DataTable";
