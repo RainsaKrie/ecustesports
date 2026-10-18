@@ -71,6 +71,15 @@ export interface AuditResult {
  * 这样才可能拿合成夹具把**每一组检查**分别弄红（见 --selftest），
  * 而不是只能对着线上说一句「跑下来没问题」。
  */
+/** 「待定」占位符：淘汰赛后续轮次在抽签后、上一轮打完前，两队都是 TBD —— 属正常状态，不算数据错误 */
+const isPlaceholderTeam = (id?: string | null, name?: string | null): boolean => {
+  // 只要**有一个**是真实值，就不是占位符。
+  // 不能写成 `!id || ...`：那样「只有队名、没有 id」的断言会被全部豁免（自测当场抓到过）。
+  if (id && id !== "TBD") return false;
+  if (name && name !== "TBD" && name !== "待定") return false;
+  return true;
+};
+
 export function auditProduction(input: AuditInput): AuditResult {
   const { matches, teams, players } = input;
   const problems: string[] = [];
@@ -88,7 +97,7 @@ export function auditProduction(input: AuditInput): AuditResult {
     if (seenIds.has(m.id)) problem(`比赛 ID 重复：${m.id}`);
     seenIds.add(m.id);
     if (!m.teamAId || !m.teamBId) problem(`${m.id}：缺少队伍 ID`);
-    if (m.teamAId && m.teamAId === m.teamBId) problem(`${m.id}：两队是同一支（${m.teamAId}）`);
+    if (m.teamAId && m.teamAId === m.teamBId && !isPlaceholderTeam(m.teamAId)) problem(`${m.id}：两队是同一支（${m.teamAId}）`);
     if (!m.teamAName || !m.teamBName) problem(`${m.id}：队名为空`);
     if (!(m.boType && m.boType in WIN_TARGET)) problem(`${m.id}：赛制无法识别（${m.boType}）`);
   }
@@ -155,7 +164,7 @@ export function auditProduction(input: AuditInput): AuditResult {
       const id = m[idKey];
       if (!id) continue;
       if (!teamById.has(id)) {
-        problem(`${m.id}：引用的队伍 ${id}（${m[nameKey]}）不在报名名单里`);
+        if (!isPlaceholderTeam(id, m[nameKey])) problem(`${m.id}：引用的队伍 ${id}（${m[nameKey]}）不在报名名单里`);
         continue;
       }
       if (nameById.get(id) !== m[nameKey]) {
@@ -241,7 +250,8 @@ export function auditProduction(input: AuditInput): AuditResult {
   const rosterNames = new Set(byTeam.keys());
   const scheduledNames = new Set(matches.flatMap((m) => [m.teamAName, m.teamBName]).filter(Boolean) as string[]);
   const notInRoster = [...scheduledNames].filter((n) => !rosterNames.has(n));
-  if (notInRoster.length > 0) problem(`赛程里有队名不在报名名单中：${notInRoster.join(", ")}`);
+  const realNotInRoster = notInRoster.filter((name) => !isPlaceholderTeam(undefined, name));
+  if (realNotInRoster.length > 0) problem(`赛程里有队名不在报名名单中：${realNotInRoster.join(", ")}`);
 
   return { problems, notes };
 }
