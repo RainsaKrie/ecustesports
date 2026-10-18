@@ -608,12 +608,32 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         原来的路径是「点开队伍 → 记住队长 ID → 去选手列表搜这个 ID → 再找联系方式」，
                         36 支队就是 36 遍。这里一次给全：ID、号码、是 QQ 还是手机、一键复制。
                         号码缺失时显式标黄，避免「看着有空位、实际没填」被漏掉。 */}
-                    {/* 阵容身份核验：姓名 + 学号 + 游戏 ID 一屏看全。
-                        此前队伍卡只有队长，核验一支队要「去选手列表按 ID 一个个搜」，36 支就是 36×5 遍。
-                        不折叠 —— 折叠等于没解决「核验不方便」。 */}
-                    <div className="mt-[6px] border-t border-[var(--adm-line-soft)] pt-[6px]">
-                      <div className={`grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-[6px] ${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>
-                        <span>角色</span><span>游戏 ID</span><span>姓名</span><span>学号</span>
+                    {/* 阵容：默认收起成一行（七个点位 + 人数），点开才摊开姓名与学号。
+                        第一版是直接平铺七行四列 —— 信息是齐了，但 36 张卡一屏全是字，观感很糟。
+                        改成与公开页一致的做法：卡片只留摘要，明细按需展开。
+                        用途没变：核验身份时点一下就能对着看，不用回选手列表逐个搜。 */}
+                    <details className="mt-[6px] border-t border-[var(--adm-line-soft)] pt-[5px]">
+                      <summary className={`flex cursor-pointer list-none items-center gap-[6px] ${DENSE_META} [&::-webkit-details-marker]:hidden`}>
+                        <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>阵容</span>
+                        <span className="flex items-center gap-[2px]" aria-hidden="true">
+                          {Array.from({ length: GAME.roster.starters + 2 }, (_, i) => {
+                            const filled = i < roster.starterCount || (i >= GAME.roster.starters);
+                            return (
+                              <span
+                                key={i}
+                                className={`h-[6px] w-[12px] ${filled ? "bg-[var(--adm-text-soft)]" : "bg-[var(--adm-line-soft)]"}`}
+                              />
+                            );
+                          })}
+                        </span>
+                        <span className="font-bold tabular-nums text-[var(--adm-text-soft)]">{members.length} 人 · 姓名与学号</span>
+                        <span aria-hidden="true" className="text-[var(--adm-text-mute)]">▾</span>
+                      </summary>
+                      <div className="mt-[4px] grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-[6px]">
+                        <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>角色</span>
+                        <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>游戏 ID</span>
+                        <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>姓名</span>
+                        <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>学号</span>
                       </div>
                       {[...members]
                         .sort((a, b) => (ROLE_ORDER[a.role ?? ""] ?? 9) - (ROLE_ORDER[b.role ?? ""] ?? 9))
@@ -630,7 +650,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                             <span className="truncate tabular-nums">{player.studentId ?? "—"}</span>
                           </div>
                         ))}
-                    </div>
+                    </details>
 
                     <div className={`mt-[5px] flex min-w-0 items-center gap-[6px] ${DENSE_META}`}>
                       <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>队长</span>
