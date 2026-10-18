@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import StatusChip from "@/components/events/StatusChip";
 
 import { useSchedule } from "@/lib/scheduling/useSchedule";
@@ -19,6 +20,7 @@ function winCount(games: GameResult[] | undefined, side: "A" | "B"): number {
 
 export default function PublicSchedule({ eventId, preview = false }: { eventId: string; preview?: boolean }) {
   const { state } = useSchedule(eventId, preview ? "preview" : "public");
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const matches = state.matches;
 
   if (matches.length === 0) {
@@ -164,12 +166,31 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
 
       {rest.length > 0 && (
         <section>
-          <div className="mb-3">
-            <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">UPCOMING MATCHES</p>
-            <h3 className="mt-1 text-lg font-black text-[#171a1f]">赛事赛程</h3>
+          <div className="mb-3 flex items-end justify-between gap-4">
+            <div>
+              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[#c83242]">UPCOMING MATCHES</p>
+              <h3 className="mt-1 text-lg font-black text-[#171a1f]">赛事赛程</h3>
+            </div>
+            {/* 同一批比赛，两种看法：列表适合扫时间，卡片适合看对阵 */}
+            <div className="flex border border-[#d8d1c6]">
+              {([["list", "列表"], ["card", "卡片"]] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  aria-pressed={viewMode === mode}
+                  className={`px-3 py-1 font-mono text-[0.6875rem] font-black tracking-[0.06em] transition ${
+                    viewMode === mode ? "bg-[#171a1f] text-[#fffdf8]" : "bg-[#fffdf8] text-[#5b626c] hover:text-[#171a1f]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="overflow-hidden border border-black/10 bg-[#fffdf8]">
-            <div className="divide-y divide-black/10">
+          {viewMode === "list" ? (
+          <div className="overflow-hidden border border-[#d8d1c6] bg-[#fffdf8]">
+            <div className="divide-y divide-[#e7e1d7]">
               {rest.map((m) => (
                 <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
                   <div>
@@ -185,6 +206,29 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               ))}
             </div>
           </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {rest.map((m) => (
+                <div key={m.id} className="border border-[#d8d1c6] bg-[#fffdf8] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-mono text-[0.625rem] font-black text-[#8b929c]">{m.id}</span>
+                    <StatusChip tone={m.status === "待排期" ? "accent" : "neutral"}>
+                      {m.status === "已排期" ? "待开始" : m.status}
+                    </StatusChip>
+                  </div>
+                  <p className="mt-3 text-[0.9375rem] font-black leading-snug text-[#171a1f]">
+                    {m.teamAName}
+                    <span className="mx-1.5 font-mono text-[0.625rem] font-normal text-[#8b929c]">VS</span>
+                    {m.teamBName}
+                  </p>
+                  <p className="mt-2 flex items-center justify-between font-mono text-[0.625rem] tracking-[0.06em] text-[#8b929c]">
+                    <span>{m.boType} · {m.phase}</span>
+                    <span>{fmt(m.startTime)}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>
