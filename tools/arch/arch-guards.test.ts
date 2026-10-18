@@ -96,9 +96,12 @@ const check = (name: string, ok: boolean, detail = "") => {
   else { fail += 1; console.log(`  ✗ ${name}${detail ? `\n${detail}` : ""}`); }
 };
 
+/** 基线条目形如 `path (123 行)`；比较时只认路径 —— 行数会随正常改动变化，比它等于自找假红 */
+const pathOf = (entry: string) => entry.replace(/\s*\(\d+ 行\)$/, "");
+
 const diff = (now: string[], base: string[]) => ({
-  added: now.filter((item) => !base.includes(item)),
-  removed: base.filter((item) => !now.includes(item)),
+  added: now.filter((item) => !base.some((prev) => pathOf(prev) === pathOf(item))),
+  removed: base.filter((item) => !now.some((cur) => pathOf(cur) === pathOf(item))),
 });
 
 console.log(`基线：超限文件 ${baseline.longFiles.length} / hooks ${baseline.hooksInLib.length} / 跨层 ${baseline.deepImports.length}`);

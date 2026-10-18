@@ -16,7 +16,7 @@ import { planBulkSchedule } from "@/lib/scheduling/bulk-schedule";
 import type { TeamSlot } from "@/lib/scheduling/team-swap";
 import { partitionSchedulable, schedulePlanInputFromEvent } from "@/lib/scheduling/schedule-policy";
 import type { EditableEvent } from "@/lib/site-config-schema";
-import { useAdminConfirm, useAdminToast, adminInputClass, adminSelectClass, AdminModal, EmptyState, type AdminBadgeTone } from "@/components/admin/ui";
+import { useAdminConfirm, useAdminToast, adminInputClass, adminSelectClass, AdminModal, EmptyState, ContextBar, type AdminBadgeTone } from "@/components/admin/ui";
 
 interface SchedulePageProps {
   params: Promise<{ id: string }>;
@@ -480,33 +480,36 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           把裁判刚报的赛果覆盖回去。所以它不跟着对阵图的有无走，抽签前骨架状态也在。
           移动端只隐藏前四个计数（设计文档 4.4：不减字号，改为减少一屏信息），
           「数据时间」保留 —— 它是信任信号，不是数字堆。 */}
-      <section className="mb-5 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-[var(--adm-line-soft)] px-5 py-3">
-        {state.matches.length > 0 && (
-          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 max-[760px]:hidden">
-            {[
-              ["总场次", `${state.matches.length} 场`],
-              // 同一个数字在两种模式下含义不同：
-              // 固定模式 = 主办方的待办（有未排定即异常）；自由约赛 = 队伍在协商，中性说法
-              [scheduleMode === "fixed" ? "待排期" : "待协商",
-                unscheduledNotice ? `${pendingScheduleCount} 场（异常）` : `${pendingScheduleCount} 场`],
-              ["排期模式", SCHEDULE_MODE_LABELS[scheduleMode]],
-              ["待报分", `${pendingReportCount} 场`],
-              ["已完成", `${doneCount} 场`],
-            ].map(([label, value]) => (
-              <p key={label} className="flex items-baseline gap-2">
-                <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">{label}</span>
-                <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{value}</span>
-              </p>
-            ))}
-          </div>
-        )}
-        <p className="flex flex-wrap items-baseline gap-2">
-          <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">数据时间</span>
-          <span className="text-[length:var(--adm-fs-lg)] font-semibold tabular-nums text-[var(--adm-text)]">{formatSyncedClock(syncedAt)}</span>
-          {syncedAgo && <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">· {syncedAgo}</span>}
-          {autoSynced && <span className="adm-chip" data-tone="done">已自动同步到 v{autoSynced.version}</span>}
-        </p>
-      </section>
+      <ContextBar
+        items={[
+          ...(state.matches.length > 0
+            ? [
+                { label: "总场次", value: `${state.matches.length} 场` },
+                {
+                  // 同一个数字在两种模式下含义不同：固定模式 = 主办方的待办；
+                  // 自由约赛 = 队伍在协商，中性说法
+                  label: scheduleMode === "fixed" ? "待排期" : "待协商",
+                  value: `${pendingScheduleCount} 场`,
+                  note: unscheduledNotice ?? undefined,
+                  tone: (unscheduledNotice ? "alert" : "default") as "alert" | "default",
+                },
+                { label: "排期模式", value: SCHEDULE_MODE_LABELS[scheduleMode] },
+                { label: "待报分", value: `${pendingReportCount} 场` },
+                { label: "已完成", value: `${doneCount} 场` },
+              ]
+            : []),
+          {
+            // 数据时间不跟着对阵图的有无走：赛事进行期里「手里这份新不新」必须一直看得见，
+            // 否则会对着过期赛程反复提交，甚至把裁判刚报的赛果覆盖回去。
+            label: "数据时间",
+            value: formatSyncedClock(syncedAt),
+            note:
+              [syncedAgo, autoSynced ? `已同步到 v${autoSynced.version}` : ""]
+                .filter(Boolean)
+                .join(" · ") || undefined,
+          },
+        ]}
+      />
 
       {saveError && (
         <div className="adm-note adm-note--danger mb-5 text-[length:var(--adm-fs-lg)] font-semibold">
