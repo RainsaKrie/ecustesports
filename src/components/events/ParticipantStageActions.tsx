@@ -10,7 +10,7 @@ function ActionLink({ href, children, emphasis = false }: { href: string; childr
     <Link
       href={href}
       className={`group flex min-h-12 w-full items-center justify-between gap-2 border px-3 py-3 text-left text-[0.6875rem] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff4655] focus-visible:ring-offset-2 ${emphasis
-        ? "border-[#ff4655] bg-[#ff4655] text-white hover:border-[#d93746] hover:bg-[#d93746]"
+        ? "border-[#ff4655] bg-[#ff4655] text-white hover:border-[#c83242] hover:bg-[#c83242]"
         : "border-black/15 bg-[#fffdf8] text-[#171a1f] hover:border-[#ff4655] hover:bg-[#fff1f2] hover:text-[#c83242]"
       }`}
     >

@@ -47,29 +47,28 @@ export default function StageCards({ items, currentIndex, className = "" }: Stag
               index === items.length - 1 ? "md:border-r-0" : "",
               index < 2 ? "border-b border-[#d8d1c6] md:border-b-0" : "",
               isActive
-                ? "bg-[#ff4655]"
+                ? "bg-[#fffdf8] ring-2 ring-inset ring-[#ff4655]"
                 : isDone
                   ? "bg-[#f2eee6]"
                   : "bg-[#fffdf8]",
             ].join(" ")}
-            style={isActive ? { clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%)" } : undefined}
           >
             <div className="flex items-start justify-between">
-              <span className={`font-mono text-xs tracking-[0.12em] ${isActive ? "text-[#171a1f]/60" : "text-[#96918a]"}`}>
+              <span className={`font-mono text-xs tracking-[0.12em] ${isActive ? "text-[#c83242]" : "text-[#96918a]"}`}>
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span aria-hidden className="text-lg leading-none text-[#ff4655]">＋</span>
             </div>
             <div>
               {item.en && (
-                <p className={`font-mono text-[0.625rem] font-black uppercase tracking-[0.16em] ${isActive ? "text-[#171a1f]" : "text-[#c83242]"}`}>
+                <p className={`font-mono text-[0.625rem] font-black uppercase tracking-[0.16em] text-[#c83242]`}>
                   {item.en}
                 </p>
               )}
               <h3 className={`mt-1.5 text-[1.375rem] font-black leading-tight tracking-[-0.01em] text-[#171a1f]`}>
                 {item.label}
               </h3>
-              {note && <p className={`mt-2 font-mono text-[0.6875rem] tracking-[0.04em] ${isActive ? "text-[#171a1f]/70" : "text-[#7b766f]"}`}>{note}</p>}
+              {note && <p className={`mt-2 font-mono text-[0.6875rem] tracking-[0.04em] ${isActive ? "text-[#171a1f]" : "text-[#7b766f]"}`}>{note}</p>}
             </div>
           </div>
         );
