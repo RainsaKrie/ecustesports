@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState } from "react";
 import EventHandbook, { type HandbookEvent } from "@/components/events/EventHandbook";
 import PublicSchedule from "@/components/events/PublicSchedule";
@@ -66,7 +68,7 @@ function RosterLine({ role, members, limit }: { role: string; members: Array<{ g
   );
 }
 
-function TeamList({ teams }: { teams: PublicRegistrationSummary["teams"] }) {
+function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"]; eventId: string }) {
   return (
     <section className="border border-black/10 bg-[#fffdf8]">
       <header className="flex items-center justify-between border-b border-black/10 px-5 py-3">
@@ -89,7 +91,7 @@ function TeamList({ teams }: { teams: PublicRegistrationSummary["teams"] }) {
                 <details className="group md:hidden">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
                     <div className="min-w-0">
-                      <strong className="block truncate text-xs text-[#171a1f]">{team.name}</strong>
+                      <Link href={`/events/${eventId}/teams/${team.id}`} className="block truncate text-xs font-bold text-[#171a1f] underline-offset-2 hover:text-[#c83242] hover:underline">{team.name}</Link>
                       <p className="mt-1 text-[0.6875rem] font-semibold text-[#60656d]">首发 {starters.length}/5 · 替补 {substitute ? "1/1" : "0/1"} · 教练 {coach ? "1/1" : "0/1"}</p>
                     </div>
                     <span className="shrink-0 border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{team.status}</span>
@@ -102,7 +104,7 @@ function TeamList({ teams }: { teams: PublicRegistrationSummary["teams"] }) {
                 </details>
                 <div className="hidden gap-1.5 px-5 py-2.5 md:grid md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,3.4fr)_0.6fr] md:items-start md:gap-3">
                   <span className="font-mono text-[0.625rem] font-black text-[#96918a]">{String(index + 1).padStart(2, "0")}</span>
-                  <strong className="pt-[3px] text-xs text-[#171a1f]">{team.name}</strong>
+                  <Link href={`/events/${eventId}/teams/${team.id}`} className="pt-[3px] text-xs font-bold text-[#171a1f] underline-offset-2 hover:text-[#c83242] hover:underline">{team.name}</Link>
                   <div className="space-y-1.5">
                     <RosterLine role="首发" members={starters} limit={5} />
                     <RosterLine role="替补" members={substitute ? [substitute] : []} limit={1} />
@@ -166,7 +168,7 @@ export default function EventDetailTabs({
 
       {tab === "赛事手册" && <EventHandbook event={event} />}
       {tab === "选手名单" && <PlayerList players={state.players} />}
-      {tab === "队伍名单" && <TeamList teams={state.teams} />}
+      {tab === "队伍名单" && <TeamList teams={state.teams} eventId={eventId} />}
       {tab === "赛程" && <PublicSchedule eventId={eventId} preview={preview} />}
       {tab === "对阵图" && <ScheduleBracket eventId={eventId} preview={preview} />}
     </div>
