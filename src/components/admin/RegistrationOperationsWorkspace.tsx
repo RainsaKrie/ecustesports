@@ -16,15 +16,12 @@ import {
 } from "@/lib/scheduling/registration-data";
 import {
   GAME,
-  CHIP_HEIGHT,
   CopyButton,
   DENSE_BODY,
   DENSE_META,
   DENSE_MICRO,
   DENSE_TITLE,
   Field,
-  ROSTER_SLOT_LABEL,
-  RosterMemberChip,
   TEAM_FILTERS,
   TEAM_SORTS,
   captainContactSheet,
@@ -54,9 +51,6 @@ import {
       而这页的弹窗是最多的（12 个）；
    ③ 它的 z-index 是 70，统一弹窗是 80，和确认框不在同一层。
    本文件的弹窗现在一律用 `@/components/admin/ui` 的 `AdminModal`。 */
-
-/** 阵容排序：首发 → 替补 → 教练 */
-const ROLE_ORDER: Record<string, number> = { 首发: 0, 替补: 1, 教练: 2 };
 
 export default function RegistrationOperationsWorkspace({ eventId }: { eventId: string }) {
   const router = useRouter();
@@ -629,27 +623,63 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         <span className="font-bold tabular-nums text-[var(--adm-text-soft)]">{members.length} 人 · 姓名与学号</span>
                         <span aria-hidden="true" className="text-[var(--adm-text-mute)]">▾</span>
                       </summary>
-                      <div className="mt-[4px] grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-[6px]">
+                      <div className="mt-[4px] grid grid-cols-[2.6rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_1.2rem] gap-x-[6px]">
                         <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>角色</span>
                         <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>游戏 ID</span>
                         <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>姓名</span>
                         <span className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>学号</span>
+                        <span />
                       </div>
-                      {[...members]
-                        .sort((a, b) => (ROLE_ORDER[a.role ?? ""] ?? 9) - (ROLE_ORDER[b.role ?? ""] ?? 9))
-                        .map((player) => (
-                          <div
-                            key={player.id}
-                            className={`mt-[2px] grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-[6px] ${DENSE_META} ${
-                              isFlagged(player.reviewStatus) ? "text-[var(--adm-warn-text)]" : ""
-                            }`}
-                          >
-                            <span className="font-bold text-[var(--adm-text-mute)]">{player.role ?? "—"}</span>
-                            <span className="truncate font-bold text-[var(--adm-text)]">{player.gameId}</span>
-                            <span className="truncate">{player.name ?? "—"}</span>
-                            <span className="truncate tabular-nums">{player.studentId ?? "—"}</span>
-                          </div>
-                        ))}
+                      {([
+                        { role: "首发" as const, limit: GAME.roster.starters },
+                        { role: "替补" as const, limit: GAME.roster.maxSubstitutes },
+                        { role: "教练" as const, limit: GAME.roster.maxCoaches },
+                      ]).flatMap(({ role, limit }) => {
+                        const roleMembers = members.filter((player) => player.role === role);
+                        // 数据异常（超出上限）时也要渲染出来，否则"看不见也就删不掉"
+                        const slots = Math.max(limit, roleMembers.length);
+                        return Array.from({ length: slots }, (_, index) => {
+                          const player = roleMembers[index];
+                          if (!player) {
+                            return (
+                              <div key={`${role}-${index}`} className={`mt-[2px] grid grid-cols-[2.6rem_minmax(0,1fr)_auto] items-center gap-x-[6px] ${DENSE_META}`}>
+                                <span className="font-bold text-[var(--adm-text-mute)]">{role}</span>
+                                <span className="truncate text-[var(--adm-text-mute)]">{role === "首发" ? `首发 ${index + 1} 空缺` : `${role}空缺`}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => openModal({ kind: "assign-player", team, role })}
+                                  disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0}
+                                  className={`${DENSE_MICRO} font-bold text-[var(--adm-red-text)] enabled:hover:underline disabled:cursor-default disabled:text-[var(--adm-text-mute)]`}
+                                >
+                                  指派
+                                </button>
+                              </div>
+                            );
+                          }
+                          const isCaptain = team.captainId === player.id;
+                          const actions: Array<{ text: string; onSelect: () => void; tone?: string }> = [];
+                          if (team.status === "报名中") actions.push({ text: "改角色", onSelect: () => openModal({ kind: "set-member-role", player }) });
+                          if (team.status !== "已退赛") actions.push({ text: "换人", onSelect: () => openModal({ kind: "replace-player", team, outgoing: player }) });
+                          if (team.status === "报名中") actions.push({ text: "移出", onSelect: () => openModal({ kind: "remove-player", player }), tone: "text-[var(--adm-red-text)]" });
+                          return (
+                            <div
+                              key={player.id}
+                              className={`mt-[2px] grid grid-cols-[2.6rem_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_1.2rem] items-center gap-x-[6px] ${DENSE_META} ${
+                                isFlagged(player.reviewStatus) ? "text-[var(--adm-warn-text)]" : ""
+                              }`}
+                            >
+                              <span className="font-bold text-[var(--adm-text-mute)]">{role}</span>
+                              <span className="truncate font-bold text-[var(--adm-text)]">
+                                {player.gameId}
+                                {isCaptain && <span className="ml-1 font-normal text-[var(--adm-text-mute)]">队长</span>}
+                              </span>
+                              <span className="truncate">{player.name ?? "—"}</span>
+                              <span className="truncate tabular-nums">{player.studentId ?? "—"}</span>
+                              <AdminOverflowMenu size="compact" label={`${player.gameId} 的成员操作`} items={actions} />
+                            </div>
+                          );
+                        });
+                      })}
                     </details>
 
                     <div className={`mt-[5px] flex min-w-0 items-center gap-[6px] ${DENSE_META}`}>
@@ -665,43 +695,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                         <span className="font-bold text-[var(--adm-warn-text)]">队长不在名单中</span>
                       )}
                     </div>
-                    <div className="mt-[6px] grid gap-[3px] border-t border-[var(--adm-line-soft)] pt-[5px]">
-                      {([
-                        { role: "首发" as const, limit: GAME.roster.starters },
-                        { role: "替补" as const, limit: GAME.roster.maxSubstitutes },
-                        { role: "教练" as const, limit: GAME.roster.maxCoaches },
-                      ]).map(({ role, limit }) => {
-                        const roleMembers = members.filter((player) => player.role === role);
-                        // 数据异常（超出上限）时也要把多出来的人渲染出来，
-                        // 否则会出现「列表里看不见、也就删不掉」的成员。
-                        const slots = Math.max(limit, roleMembers.length);
-                        const short = role === "首发" && roleMembers.length < limit;
-                        return (
-                          <div key={role} className="flex items-start gap-[6px]">
-                            <span className={`${ROSTER_SLOT_LABEL} ${DENSE_MICRO} font-semibold ${short ? "text-[var(--adm-warn-text)]" : "text-[var(--adm-text-mute)]"}`}>{role} {roleMembers.length}/{limit}</span>
-                            <div className="flex min-w-0 flex-1 flex-wrap gap-[3px]">
-                              {Array.from({ length: slots }, (_, index) => {
-                                const player = roleMembers[index];
-                                return player ? (
-                                  <RosterMemberChip
-                                    key={player.id}
-                                    player={player}
-                                    team={team}
-                                    onChangeRole={() => openModal({ kind: "set-member-role", player })}
-                                    onReplace={() => openModal({ kind: "replace-player", team, outgoing: player })}
-                                    onRemove={() => openModal({ kind: "remove-player", player })}
-                                  />
-                                ) : (
-                                  <button key={`${role}-${index}`} type="button" onClick={() => openModal({ kind: "assign-player", team, role })} disabled={team.status !== "报名中" || state.teamRegistrationClosed || unteamedApproved.length === 0} className={`inline-flex ${CHIP_HEIGHT} items-center border border-dashed border-[var(--adm-line)] bg-[var(--adm-surface-2)] px-[6px] ${DENSE_META} font-bold leading-none text-[var(--adm-text-mute)] enabled:hover:border-[var(--adm-red)] enabled:hover:text-[var(--adm-red-text)] disabled:cursor-default`}>
-                                    {role === "首发" ? `首发 ${index + 1} 空缺` : `${role}空缺`}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    
                   </article>
                 );
               })}
