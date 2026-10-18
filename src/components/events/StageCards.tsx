@@ -77,3 +77,32 @@ export default function StageCards({ items, currentIndex, className = "" }: Stag
     </div>
   );
 }
+
+const PHASE_EN: Record<string, string> = {
+  资格赛: "QUALIFIER",
+  入围赛: "PLAY-IN",
+  小组赛: "GROUP STAGE",
+  淘汰赛: "PLAYOFFS",
+  总决赛: "GRAND FINAL",
+};
+
+/**
+ * 从比赛列表推导阶段卡（赛程页与赛事页共用一份，避免两处各写一遍）。
+ * 顺序 = 比赛里首次出现的顺序；当前阶段 = 第一个还没打完的。
+ */
+export function stageCardsFromMatches(
+  matches: Array<{ phase: string; status: string }>,
+): { items: StageCardItem[]; currentIndex?: number } {
+  const order = Array.from(new Set(matches.map((match) => match.phase)));
+  const items = order.map((phase) => {
+    const inPhase = matches.filter((match) => match.phase === phase);
+    return {
+      label: phase,
+      en: PHASE_EN[phase] ?? undefined,
+      done: inPhase.filter((match) => match.status === "已完成").length,
+      total: inPhase.length,
+    };
+  });
+  const current = items.findIndex((item) => (item.done ?? 0) < (item.total ?? 0));
+  return { items, currentIndex: current >= 0 ? current : undefined };
+}

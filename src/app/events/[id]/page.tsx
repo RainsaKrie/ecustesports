@@ -5,6 +5,7 @@ import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
 import { readEventData } from "@/lib/data-store";
 import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
 import EventDetailTabs from "@/components/events/EventDetailTabs";
+import StageCards, { stageCardsFromMatches } from "@/components/events/StageCards";
 import GroupNotice from "@/components/events/GroupNotice";
 import ParticipantStageActions from "@/components/events/ParticipantStageActions";
 import Container from "@/components/layout/Container";
@@ -34,6 +35,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   // 阶段判定（自动 + 手动覆盖）
   const schedule = await readEventData<ScheduleState>(cfgEvent.id, "schedule", emptySchedule());
+  const stageCards = stageCardsFromMatches(schedule.matches);
   const hasSchedule = Array.isArray(schedule.matches) && schedule.matches.length > 0;
   const stage = getEventStage({
     status: event.status,
@@ -145,6 +147,8 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
       {/* Tabs / Content */}
       <Container className="py-8">
+        {/* 阶段进度：一进赛事页就知道打到第几阶段（与赛程页顶部同一组件、同一数据推导） */}
+        <StageCards className="mb-6" items={stageCards.items} currentIndex={stageCards.currentIndex} />
         <EventDetailTabs key={`${stage}-${tab ?? "default"}`} eventId={id} stage={stage} event={event} initialTab={tab} preview={previewMode} />
       </Container>
     </div>
