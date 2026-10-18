@@ -16,3 +16,8 @@ export {
   adminSelectClass,
 } from "./primitives";
 export type { AdminBadgeTone } from "./primitives";
+
+// U2（2026-10-18）：页面骨架与骨架屏
+export { default as PageShell, ContextBar, Section } from "./PageShell";
+export type { PageShellProps, SectionProps, ContextItem } from "./PageShell";
+export { default as Skeleton, SkeletonBlock } from "./Skeleton";
