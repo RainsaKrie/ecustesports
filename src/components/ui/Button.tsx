@@ -10,6 +10,8 @@ interface ButtonProps {
   className?: string;
   type?: "button" | "submit";
   disabled?: boolean;
+  /** 处理中：文案保留占位以锁定宽度，叠加转圈，并自动禁用 */
+  loading?: boolean;
 }
 
 const variantClasses = {
@@ -36,16 +38,41 @@ export default function Button({
   className = "",
   type = "button",
   disabled = false,
+  loading = false,
 }: ButtonProps) {
-  const baseClass = `btn-cut inline-flex items-center justify-center gap-3 disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+  const baseClass = [
+    "btn-cut relative inline-flex items-center justify-center gap-3",
+    "transition-[background-color,border-color,color,transform,opacity] duration-[var(--dur-fast)] ease-[var(--ease-standard)]",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--red)]",
+    "active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50",
+    loading ? "cursor-progress" : "",
+    variantClasses[variant], sizeClasses[size], className,
+  ].filter(Boolean).join(" ");
+
+  const content = loading ? (
+    <>
+      <span className="opacity-0">{children}</span>
+      <span className="absolute inset-0 grid place-items-center" aria-hidden="true">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      </span>
+    </>
+  ) : (
+    children
+  );
 
   if (href) {
-    return <Link href={href} className={baseClass}>{children}</Link>;
+    return <Link href={href} className={baseClass}>{content}</Link>;
   }
 
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={baseClass}>
-      {children}
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={baseClass}
+    >
+      {content}
     </button>
   );
 }

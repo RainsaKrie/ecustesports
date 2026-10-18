@@ -20,7 +20,7 @@
   --adm-line-soft: #e7e1d7;    /* 弱结构线 */
   --adm-text: #171a1f;         /* 正文 */
   --adm-text-soft: #575c62;    /* 次要文字 */
-  --adm-text-mute: #8a9199;    /* 更弱文字 */
+  --adm-text-mute: #5f656b;    /* 更弱文字（原 #8a9199 对比度 3.13:1 不合格，已提到 ≈4.6:1） */
   --adm-red: #ff4655;          /* 品牌红（= --red） */
   --adm-red-hover: #d83b48;    /* 红 hover（= --red-dark） */
   --adm-red-text: #c83242;     /* 浅底上的红字 */
@@ -30,7 +30,7 @@
   --adm-ok-text: #047857;      /* 成功文字 */
   --adm-ok-soft: #ecfdf5;      /* 成功浅底 */
   --adm-ok-line: #a7f3d0;
-  --adm-warn-text: #b45309;    /* 警告文字 */
+  --adm-warn-text: #9a4808;    /* 警告文字 */
   --adm-warn-soft: #fffbeb;
   --adm-warn-line: #fde68a;
   --adm-info-text: #1d4ed8;    /* 信息文字 */
@@ -46,6 +46,36 @@
   --adm-fs-md: 15px;
   --adm-fs-lg: 18px;
   --adm-fs-xl: 24px;
+
+  /* ——— v2 刻度（2026-10-18）：字号带行高与字距 ——— */
+  --fs-display: 72px;  --lh-display: 0.94;
+  --fs-h1: 32px;       --lh-h1: 1.15;
+  --fs-h2: 24px;       --lh-h2: 1.25;
+  --fs-h3: 18px;       --lh-h3: 1.4;
+  --fs-body: 15px;     --lh-body: 1.65;
+  --fs-sm: 13px;       --lh-sm: 1.6;
+  --fs-xs: 12px;       --lh-xs: 1.5;
+
+  /* ——— v2 间距刻度（4 的倍数） ——— */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
+
+  /* ——— v2 动效令牌（时长与曲线取自 Material 3 easing & duration） ——— */
+  --dur-instant: 100ms;  /* 悬停微反馈 */
+  --dur-fast: 150ms;     /* 按下 / 小范围 */
+  --dur-base: 200ms;     /* 小面积出现 / 退出 */
+  --dur-panel: 350ms;    /* 面板、抽屉进入 */
+  --dur-reveal: 300ms;   /* 滚动进入，只一次 */
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 1, 1);
+  --ease-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-emphasized-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
+
+  /* ——— 焦点样式（WCAG 2.2：≥2px 且与相邻对比 ≥3:1） ——— */
+  --focus-ring: 2px solid var(--red);
+  --focus-offset: 2px;
 
   /* ---- 中文字体栈（2026-10-08 新增）----
      Geist / Geist Mono 只带 Latin 子集，中文一直是浏览器随机回退，
@@ -1851,4 +1881,48 @@ summary:focus-visible {
 .score-input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* 减少动效偏好：关闭位移与缩放类动画（保留必要的透明度变化） */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ——— 焦点与过渡（2026-10-18）———
+   管理端按钮：悬停只改色，按下位移 1px，焦点 2px 红描边 + 2px 偏移。
+   输入控件统一焦点样式 —— 之前完全依赖浏览器默认轮廓，在深色块上几乎不可见。 */
+.adm-btn {
+  transition: background-color var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard),
+              transform var(--dur-fast) var(--ease-standard);
+}
+.adm-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.adm-btn:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(1px);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* 全局过渡：只用 transform/opacity/颜色，不动会触发重排的属性 */
+.adm-chip,
+.adm-note {
+  transition: background-color var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard);
 }

@@ -1,0 +1,15 @@
+{
+  "handwritten": [
+    "src/components/admin/AdminSidebar.tsx",
+    "src/components/admin/EventListSwitcher.tsx",
+    "src/components/admin/EventSettingsWorkspace.tsx",
+    "src/components/admin/RegistrationOperationsWorkspace.tsx",
+    "src/components/admin/RegistrationWorkspaceParts.tsx",
+    "src/components/admin/ui/AdminOverflowMenu.tsx",
+    "src/components/events/EventDetailTabs.tsx"
+  ],
+  "looseTransition": [
+    "src/app/bp/[id]/page.tsx",
+    "src/components/legacy/GameLanding.tsx"
+  ]
+}
