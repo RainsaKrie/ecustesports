@@ -117,7 +117,7 @@ export default function ParticipantManagePage({
             </button>
           </div>
 
-          {(participant.error || message) && <p className={`mt-4 text-sm ${participant.error ? "text-red-600" : "text-emerald-700"}`}>{participant.error || message}</p>}
+          {(participant.error || message) && <p className={`mt-4 text-sm ${participant.error ? "text-[#c83242]" : "text-[#047857]"}`}>{participant.error || message}</p>}
 
           <details className="mt-6 border-t border-black/10 pt-5" open={query.recover !== "1" && Boolean(participant.error)}>
             <summary className="cursor-pointer text-sm font-bold text-[#2b3038]">使用备用参赛码</summary>
@@ -170,7 +170,7 @@ export default function ParticipantManagePage({
       </div>
 
       {(participant.error || message) && (
-        <div className={`mb-4 border p-3 text-sm ${participant.error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{participant.error || message}</div>
+        <div className={`mb-4 border p-3 text-sm ${participant.error ? "border-[#ffd9dd] bg-[#fff1f2] text-[#c83242]" : "border-[#a7f3d0] bg-[#ecfdf5] text-[#047857]"}`}>{participant.error || message}</div>
       )}
 
       <nav className="sticky top-16 z-20 mb-5 grid grid-cols-3 border border-black/10 bg-[#fffdf8] shadow-sm sm:static sm:mb-6 sm:shadow-none" aria-label="参赛管理导航">
@@ -220,9 +220,9 @@ export default function ParticipantManagePage({
                     ))}
 
                     {confirmTeamAction ? (
-                      <div className="border border-amber-200 bg-amber-50 p-4">
-                        <p className="text-sm font-bold text-amber-900">{confirmTeamAction === "leave" ? "确定退出这支队伍吗？" : "确定解散这支队伍吗？"}</p>
-                        <p className="mt-1 text-xs text-amber-700">{confirmTeamAction === "leave" ? "你将回到未组队状态，之后可以重新申请其他队伍。" : "整支队伍会被删除，所有成员回到未组队状态，此操作不可撤销。"}</p>
+                      <div className="border border-[#fde68a] bg-[#fffbeb] p-4">
+                        <p className="text-sm font-bold text-[#9a4808]">{confirmTeamAction === "leave" ? "确定退出这支队伍吗？" : "确定解散这支队伍吗？"}</p>
+                        <p className="mt-1 text-xs text-[#9a4808]">{confirmTeamAction === "leave" ? "你将回到未组队状态，之后可以重新申请其他队伍。" : "整支队伍会被删除，所有成员回到未组队状态，此操作不可撤销。"}</p>
                         <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
                           <button type="button" onClick={() => setConfirmTeamAction(null)} disabled={busy} className="h-10 border border-[#d8d1c6] bg-white px-4 text-xs font-bold">取消</button>
                           <button type="button" onClick={() => run(() => (confirmTeamAction === "leave" ? participant.leaveTeam() : participant.dissolveTeam()), confirmTeamAction === "leave" ? "已退出队伍。" : "队伍已解散。").then(() => setConfirmTeamAction(null))} disabled={busy} className="h-10 bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">{confirmTeamAction === "leave" ? "确认退出" : "确认解散"}</button>
@@ -231,7 +231,7 @@ export default function ParticipantManagePage({
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs font-bold text-[#5b626c]">{data.isCaptain ? "组队期可随时解散重来" : "组队期可退出并重新加入其他队伍"}</p>
-                        <button type="button" onClick={() => setConfirmTeamAction(data.isCaptain ? "dissolve" : "leave")} className="shrink-0 border border-red-200 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-50">{data.isCaptain ? "解散队伍" : "退出队伍"}</button>
+                        <button type="button" onClick={() => setConfirmTeamAction(data.isCaptain ? "dissolve" : "leave")} className="shrink-0 border border-[#ffd9dd] px-3 py-2 text-xs font-black text-[#c83242] hover:bg-[#fff1f2]">{data.isCaptain ? "解散队伍" : "退出队伍"}</button>
                       </div>
                     )}
                   </div>
@@ -338,7 +338,7 @@ export default function ParticipantManagePage({
         <section className="border border-black/10 bg-[#fffdf8] p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3"><h2 className="text-lg font-black text-[#171a1f]">我的比赛</h2>{data.nextMatch && <span className="border border-[#d8d1c6] px-2 py-1 text-xs font-bold text-[#5b626c]">{data.nextMatch.id} · {data.nextMatch.boType}</span>}</div>
           {!data.team ? (
-            <div className="mt-4 border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-bold text-amber-800">加入队伍后显示比赛</p><Link href={sectionHref(id, "team")} className="mt-3 inline-flex min-h-11 items-center text-sm font-black text-[#c83242]">前往组队</Link></div>
+            <div className="mt-4 border border-[#fde68a] bg-[#fffbeb] p-4"><p className="text-sm font-bold text-[#9a4808]">加入队伍后显示比赛</p><Link href={sectionHref(id, "team")} className="mt-3 inline-flex min-h-11 items-center text-sm font-black text-[#c83242]">前往组队</Link></div>
           ) : !data.nextMatch ? (
             <p className="mt-4 text-sm text-[#5b626c]">暂无待安排比赛</p>
           ) : (
@@ -347,7 +347,7 @@ export default function ParticipantManagePage({
               {data.scheduleRequests.map((request) => (
                 <div key={request.id} className={`border p-4 ${["待对手确认", "待审批"].includes(request.status) ? "border-[#ff4655]/40 bg-[#fff7f7]" : "border-[#d8d1c6]"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-black text-[#171a1f]">{formatMatchTime(request.newStartTime)}</p><p className="mt-1 text-xs text-[#5b626c]">{request.reason || "双方协商时间"}</p></div><span className="border border-current px-2 py-1 text-xs font-bold text-[#c83242]">{request.status}</span></div>
-                  {request.conflicts.length > 0 && <ul className="mt-3 space-y-1 text-xs text-red-600">{request.conflicts.map((conflict) => <li key={`${request.id}-${conflict.code}`}>[{conflict.code}] {conflict.message}</li>)}</ul>}
+                  {request.conflicts.length > 0 && <ul className="mt-3 space-y-1 text-xs text-[#c83242]">{request.conflicts.map((conflict) => <li key={`${request.id}-${conflict.code}`}>[{conflict.code}] {conflict.message}</li>)}</ul>}
                   {request.canConfirm && <div className="mt-4 grid grid-cols-2 gap-2 sm:flex"><button disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "reject"), "已拒绝该时间。") } className="h-10 border border-[#d8d1c6] px-4 text-xs font-bold">拒绝</button><button disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "accept"), "已确认时间，等待负责人审批。") } className="h-10 bg-[#ff4655] px-4 text-xs font-black text-white">确认时间</button></div>}
                 </div>
               ))}
@@ -355,7 +355,7 @@ export default function ParticipantManagePage({
                 <div className="border-t border-[#e7e1d7] pt-5">
                   <h3 className="text-sm font-black text-[#171a1f]">队长约赛与改期</h3>
                   <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><input type="datetime-local" value={proposedTime} onChange={(e) => setProposedTime(e.target.value)} className={inputClass} /><input value={proposedReason} onChange={(e) => setProposedReason(e.target.value)} placeholder="备注" className={inputClass} /><button disabled={busy || !proposedTime || !data.scheduleConfigConfirmed} onClick={() => run(() => participant.createScheduleRequest(data.nextMatch!.id, proposedTime, proposedReason), "约赛时间已提交。") } className="h-11 bg-[#ff4655] px-5 text-xs font-black text-white disabled:opacity-50">提交时间</button></div>
-                  {!data.scheduleConfigConfirmed && <p className="mt-2 text-xs font-medium text-amber-700">负责人尚未开放约赛时间</p>}
+                  {!data.scheduleConfigConfirmed && <p className="mt-2 text-xs font-medium text-[#9a4808]">负责人尚未开放约赛时间</p>}
                 </div>
               )}
             </div>
@@ -366,7 +366,7 @@ export default function ParticipantManagePage({
       {requestedSection === "profile" && (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section className="border border-black/10 bg-[#fffdf8] p-4 sm:p-6">
-            <div className="flex items-center justify-between"><h2 className="text-lg font-black text-[#171a1f]">报名信息</h2><span className="bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{data.player.status}</span></div>
+            <div className="flex items-center justify-between"><h2 className="text-lg font-black text-[#171a1f]">报名信息</h2><span className="bg-[#ecfdf5] px-2 py-1 text-xs font-bold text-[#047857]">{data.player.status}</span></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-bold text-[#5b626c]">游戏 ID<input value={profile.gameId} onChange={(e) => setProfileDraft({ ...profileDraft, gameId: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-[#5b626c]">当前段位<select value={profile.rank} onChange={(e) => setProfileDraft({ ...profileDraft, rank: e.target.value })} className={inputClass}>{GAME.ranks.map((item) => <option key={item}>{item}</option>)}</select></label>

@@ -2,7 +2,7 @@
 // 公开面状态标签（2026-10-18）
 //
 // 公开面此前有 4 种写法：PublicSchedule 的 StatusBadge（绿色）、名单里的红描边小标、
-// bp 页的 <Badge className="bg-yellow-500">、以及若干手写 span。
+// bp 页的 <Badge className="bg-[#ff4655]">、以及若干手写 span。
 // 现在收口到这一个组件，只允许四种 tone —— 与"全站只有一个彩色"的规则一致。
 //
 // 注意：管理端仍用 .adm-chip（令牌色），公开面用这里的硬编码色。两套是**按端分开**的，

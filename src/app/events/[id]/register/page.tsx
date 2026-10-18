@@ -117,7 +117,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
     return (
       <Container className="py-8">
         <div className="mx-auto max-w-lg border border-[#d8d1c6] bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center  bg-emerald-50 text-emerald-600">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center  bg-[#ecfdf5] text-[#047857]">
             <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -133,7 +133,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             <Link href={`/events/${id}/manage?section=team&mode=create`} className="bg-[#ff4655] px-5 py-3 text-sm font-black text-white transition hover:bg-[#d83b48]">
               创建队伍
             </Link>
-            <Link href={`/events/${id}/manage?section=team`} className="border border-[#ff4655] px-5 py-3 text-sm font-black text-[#c83242] transition hover:bg-red-50">
+            <Link href={`/events/${id}/manage?section=team`} className="border border-[#ff4655] px-5 py-3 text-sm font-black text-[#c83242] transition hover:bg-[#fff1f2]">
               加入队伍
             </Link>
           </div>
@@ -166,7 +166,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <h1 className="text-xl font-bold text-[#171a1f] md:text-2xl">{event.name} · 选手报名</h1>
           <Link href={`/events/${id}/manage?recover=1`} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-[#c83242]">已经报过名？找回参赛信息</Link>
           {phase !== "open" && (
-            <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-[#f2eee6] text-[#5b626c]"}`}>
+            <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-[#fffbeb] text-[#9a4808]" : "bg-[#f2eee6] text-[#5b626c]"}`}>
               {phase === "not-open"
                 ? `报名未开放，开始时间：${event.registrationStart || "待公布"}`
                 : `报名已截止（截止 ${event.registrationEnd || ""}）`}
@@ -186,19 +186,19 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
         <div className="border border-[#d8d1c6] bg-white p-5 shadow-sm md:p-6">
           <div className="space-y-3 md:space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#5b626c]">姓名 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">姓名 <span className="text-[#c83242]">*</span></label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="真实姓名（仅负责人可见）" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#5b626c]">学号 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">学号 <span className="text-[#c83242]">*</span></label>
               <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="用于身份核验（仅负责人可见）" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#5b626c]">游戏 ID <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">游戏 ID <span className="text-[#c83242]">*</span></label>
               <input type="text" value={gameId} onChange={(e) => setGameId(e.target.value)} placeholder="如：玩家昵称#1234" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#5b626c]">当前段位 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">当前段位 <span className="text-[#c83242]">*</span></label>
               <select value={rank} onChange={(e) => setRank(e.target.value)} className={inputClass}>
                 <option value="">请选择段位</option>
                 {GAME.ranks.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -209,18 +209,18 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <p className="mb-3 text-xs font-medium text-[#5b626c]">联系方式（必填）</p>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-[#5b626c]">QQ 号 <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-sm font-medium text-[#5b626c]">QQ 号 <span className="text-[#c83242]">*</span></label>
                   <input type="text" inputMode="numeric" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-[#5b626c]">手机号 <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-sm font-medium text-[#5b626c]">手机号 <span className="text-[#c83242]">*</span></label>
                   <input type="text" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#5b626c]">擅长位置 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">擅长位置 <span className="text-[#c83242]">*</span></label>
               <p className="mb-2 text-xs text-[#5b626c]">可多选，将用于分组与队伍位置协调</p>
               <div className="flex flex-wrap gap-2">
                 {GAME.positions.map((pos) => {
@@ -245,7 +245,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             {error && (
-              <div className="bg-red-50 p-3 text-sm text-red-600">{error}</div>
+              <div className="bg-[#fff1f2] p-3 text-sm text-[#c83242]">{error}</div>
             )}
 
             <button

@@ -12,7 +12,7 @@ function winCount(m: ScheduleMatch, side: "A" | "B"): number {
 function StatusBadge({ status }: { status: string }) {
   const style =
     status === "已完成"
-      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+      ? "bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]"
       : "bg-[#f2eee6] text-[#5b626c] border border-[#d8d1c6]";
   return <span className={`inline-block px-1 py-0 text-[0.5rem] font-bold ${style}`}>{status === "已排期" ? "待开始" : status === "待排期" ? "待排期" : status}</span>;
 }
