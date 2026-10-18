@@ -66,7 +66,8 @@
     "ops:export-roster": "tsx tools/gate6/export-roster.ts",
     "test:arch-guards": "tsx tools/arch/arch-guards.test.ts",
     "test:ui-guards": "tsx tools/ui/ui-guards.test.ts",
-    "test:color-guard": "tsx tools/ui/color-guard.test.ts"
+    "test:color-guard": "tsx tools/ui/color-guard.test.ts",
+    "test:guard-mutation": "tsx tools/ui/guard-mutation-check.ts"
   },
   "dependencies": {
     "geist": "^1.7.2",
