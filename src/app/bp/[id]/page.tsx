@@ -1,5 +1,6 @@
 "use client";
 
+import StatusChip from "@/components/events/StatusChip";
 import Link from "next/link";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
@@ -185,7 +186,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
               </p>
           </div>
           <div className="flex items-center gap-3">
-            {admin && <Badge className="bg-[#ff4655] text-white">裁判模式</Badge>}
+            {admin && <StatusChip tone="accent">裁判模式</StatusChip>}
             <Link href={`/bp?eventId=${encodeURIComponent(eventId)}`} className="border border-gray-600 px-4 py-2 text-xs font-bold text-gray-300 hover:bg-gray-800">← BP 列表</Link>
           </div>
         </div>
@@ -244,7 +245,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 bg-[#ff4655]" />
               <span className="font-bold">{match.teamAName}</span>
-              {session && session.firstTeamId === match.teamAId && <Badge className="bg-yellow-500 text-black">先手</Badge>}
+              {session && session.firstTeamId === match.teamAId && <StatusChip tone="accent">先手</StatusChip>}
             </div>
             <p className="mt-1 text-xs text-gray-400">A 侧</p>
           </div>
@@ -252,7 +253,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 bg-[#25313b]" />
               <span className="font-bold">{match.teamBName}</span>
-              {session && session.firstTeamId === match.teamBId && <Badge className="bg-yellow-500 text-black">先手</Badge>}
+              {session && session.firstTeamId === match.teamBId && <StatusChip tone="accent">先手</StatusChip>}
             </div>
             <p className="mt-1 text-xs text-gray-400">B 侧</p>
           </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import StatusChip from "@/components/events/StatusChip";
+
 import Link from "next/link";
 
 import { useState } from "react";
@@ -40,7 +42,7 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
               <strong className="min-w-0 truncate text-xs text-[#171a1f]">{player.gameId}</strong>
               <span className="hidden text-xs font-semibold text-[#2b3038] md:block">{player.rank}</span>
               <span className="hidden text-xs font-semibold text-[#2b3038] md:block">{player.teamName ?? "—"}{player.role ? ` · ${player.role}` : ""}</span>
-              <span className="w-fit border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{player.status}</span>
+              <StatusChip tone="accent">{player.status}</StatusChip>
               <span className="col-span-2 min-w-0 truncate text-[0.6875rem] font-semibold text-[#5b626c] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
             </div>
           ))}
@@ -110,7 +112,7 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                     <RosterLine role="替补" members={substitute ? [substitute] : []} limit={1} />
                     <RosterLine role="教练" members={coach ? [coach] : []} limit={1} />
                   </div>
-                  <span className="w-fit border border-[#ff4655]/40 px-1.5 py-0.5 text-[0.625rem] font-black text-[#c83242]">{team.status}</span>
+                  <StatusChip tone="accent">{team.status}</StatusChip>
                 </div>
               </div>
             );

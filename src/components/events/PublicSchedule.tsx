@@ -1,5 +1,7 @@
 "use client";
 
+import StatusChip from "@/components/events/StatusChip";
+
 import { useSchedule } from "@/lib/scheduling/useSchedule";
 import type { GameResult } from "@/lib/scheduling/schedule-data";
 
@@ -13,13 +15,7 @@ function winCount(games: GameResult[] | undefined, side: "A" | "B"): number {
   return games.filter((g) => (side === "A" ? g.teamAScore > g.teamBScore : g.teamBScore > g.teamAScore)).length;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const style =
-    status === "已完成"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-black/10 bg-[#f2eee6] text-[#5b626c]";
-  return <span className={`inline-block border px-2.5 py-1 text-[0.6875rem] font-black ${style}`}>{status}</span>;
-}
+
 
 export default function PublicSchedule({ eventId, preview = false }: { eventId: string; preview?: boolean }) {
   const { state } = useSchedule(eventId, preview ? "preview" : "public");
@@ -184,7 +180,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                       {m.boType} · {fmt(m.startTime)}
                     </p>
                   </div>
-                  <StatusBadge status={m.status === "已排期" ? "待开始" : m.status === "待排期" ? "待排期" : m.status} />
+                  <StatusChip tone={m.status === "已完成" ? "neutral" : "muted"}>{m.status === "已排期" ? "待开始" : m.status}</StatusChip>
                 </div>
               ))}
             </div>
