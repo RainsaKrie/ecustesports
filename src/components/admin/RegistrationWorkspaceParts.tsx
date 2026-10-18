@@ -48,6 +48,7 @@ export type Modal =
   | { kind: "withdraw-team"; team: RegistrationTeam }
   | { kind: "dissolve-team"; team: RegistrationTeam }
   | { kind: "rename-team"; team: RegistrationTeam }
+  | { kind: "team-detail"; team: RegistrationTeam }
   | { kind: "set-member-role"; player: RegistrationPlayer }
   /**
    * 代录选手：给没走线上报名的选手补一条报名数据，可直接编入指定队伍。
