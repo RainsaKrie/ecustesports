@@ -403,7 +403,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
               <button type="button" onClick={() => runOperation("approve-all-players")} disabled={busy || flaggedPlayers.length === 0} className="inline-flex min-h-[32px] shrink-0 items-center bg-[var(--adm-ok-text)] px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-white hover:bg-[var(--adm-ok-text)] disabled:cursor-not-allowed disabled:opacity-40">全部通过{flaggedPlayers.length > 0 ? `（${flaggedPlayers.length} 人）` : ""}</button>
               {/* data-search-input 是 Cmd/Ctrl+K 的约定（见 AdminUIProvider）：
                   全站任何搜索框只要带上这个属性，那个快捷键就会聚焦到它。 */}
-              <input data-search-input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名或学号" className="min-h-[32px] min-w-0 border border-[var(--adm-line-soft)] px-[10px] text-[length:var(--adm-fs-sm)] leading-tight outline-none focus:border-[var(--adm-red)] md:w-56" />
+              <input data-search-input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名、学号或队名" className="min-h-[32px] min-w-0 border border-[var(--adm-line-soft)] px-[10px] text-[length:var(--adm-fs-sm)] leading-tight outline-none focus:border-[var(--adm-red)] md:w-56" />
               <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] leading-tight outline-none">
                 {(["全部", "已通过", "需修改", "已拒绝"] as const).map((status) => <option key={status}>{status}</option>)}
               </select>
@@ -528,7 +528,21 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                     <div className={`mt-[6px] grid gap-[5px] border-t border-[var(--adm-line-soft)] pt-[6px] ${DENSE_META} sm:grid-cols-2 xl:grid-cols-4`}>
                       <div><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>段位 / 位置</p><p className="mt-0.5 truncate">{player.rank} · {(player.positions ?? []).join("、") || "未填"}</p></div>
                       <div><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>联系方式</p><p className="mt-0.5 truncate">{contactOf(player)}</p></div>
-                      <div className="sm:col-span-2"><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>队伍状态</p><p className="mt-0.5 truncate">{team ? <><span className="font-bold text-[var(--adm-text)]">{team.name}</span><span className="ml-1 text-[var(--adm-text-mute)]">· {player.role}</span></> : player.status === "已退赛" ? "已退赛" : "未组队"}</p></div>
+                      <div className="sm:col-span-2"><p className={`${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>队伍状态</p><p className="mt-0.5 truncate">{team ? (
+                        <>
+                          {/* 队名可点：一键按这支队筛选手 —— 比让负责人手动敲队名省事，
+                              也是"核验一支队"这条路径上最常做的一步。 */}
+                          <button
+                            type="button"
+                            onClick={() => { setQuery(team.name); setPlayerPage(1); }}
+                            title={`只看 ${team.name} 的选手`}
+                            className="font-bold text-[var(--adm-text)] underline-offset-2 hover:text-[var(--adm-red-text)] hover:underline"
+                          >
+                            {team.name}
+                          </button>
+                          <span className="ml-1 text-[var(--adm-text-mute)]">· {player.role}</span>
+                        </>
+                      ) : player.status === "已退赛" ? "已退赛" : "未组队"}</p></div>
                     </div>
                   </article>
                 );
