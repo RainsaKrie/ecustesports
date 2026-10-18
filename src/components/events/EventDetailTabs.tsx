@@ -1,8 +1,8 @@
 "use client";
 
 import StatusChip from "@/components/events/StatusChip";
+import TeamModal from "@/components/events/TeamModal";
 
-import Link from "next/link";
 
 import { useState } from "react";
 import EventHandbook, { type HandbookEvent } from "@/components/events/EventHandbook";
@@ -54,6 +54,7 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
 
 
 function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"]; eventId: string }) {
+  const [picked, setPicked] = useState<PublicRegistrationSummary["teams"][number] | null>(null);
   return (
     <section>
       <div className="mb-3 flex items-end justify-between gap-4 border-b border-[#d8d1c6] pb-2">
@@ -80,9 +81,10 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
             ];
             const complete = starters.length >= 5;
             return (
-              <Link
+              <button
                 key={team.id}
-                href={`/events/${eventId}/teams/${team.id}`}
+                type="button"
+                onClick={() => setPicked(team)}
                 className="group relative block bg-[#fffdf8] p-4 ring-1 ring-[#d8d1c6] transition duration-150 hover:ring-[#171a1f]"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -113,11 +115,13 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                     {starters.length + (substitute ? 1 : 0) + (coach ? 1 : 0)} / 7
                   </span>
                 </div>
-              </Link>
+              </button>
             );
           })}
         </div>
       )}
+
+      {picked && <TeamModal team={picked} eventId={eventId} onClose={() => setPicked(null)} />}
     </section>
   );
 }
