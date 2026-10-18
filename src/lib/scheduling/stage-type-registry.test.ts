@@ -92,7 +92,10 @@ console.log("== 组4 · 事件字段的登记完整性 ==");
  * 判据：每个字段名在整个 schema 文件里至少出现 **2 次**（类型声明之外还要有落点）。
  */
 const schemaSource = read("src/lib/site-config-schema.ts");
-const schemaLines = schemaSource.split("\n");
+// 换行符要先归一：本机 core.autocrlf=true，工作区文件可能是 CRLF，
+// 而下面对「接口结束」的判断是 line === "}" —— 行尾多一个 \r 就永远匹配不上，
+// 接口体被截成空，于是报"所有字段都没被归一化读取"。CI 是 Linux（LF）所以一直是绿的。
+const schemaLines = schemaSource.replace(/\r\n/g, "\n").split("\n");
 const ifaceStart = schemaLines.findIndex((line) => line.startsWith("export interface EditableEvent"));
 const ifaceEnd = schemaLines.findIndex((line, index) => index > ifaceStart && line === "}");
 const interfaceBody = schemaLines.slice(ifaceStart, ifaceEnd).join("\n");
