@@ -106,7 +106,7 @@ function GroupStageBracket({ matches, renderMatch }: TournamentBracketCanvasProp
             </div>
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_0.75rem_minmax(0,1fr)_1rem_minmax(0,1fr)] items-stretch gap-1">
                 <RoundColumn title="揭幕战" matches={openers} renderMatch={renderMatch} />
-                <div className="flex items-center justify-center font-mono text-sm font-black text-slate-300" aria-hidden>→</div>
+                <div className="flex items-center justify-center font-mono text-sm font-black text-[#c3c9d2]" aria-hidden>→</div>
                 <RoundColumn title="胜者 / 败者战" matches={middle} renderMatch={renderMatch} />
                 <div className="flex flex-col items-center justify-center text-center font-mono text-[0.5rem] font-bold leading-4 text-[#8b929c]" aria-hidden>
                   <span>败者</span><span>＋</span><span>胜者 →</span>
@@ -137,7 +137,7 @@ function DoubleEliminationBracket({ matches, renderMatch }: TournamentBracketCan
             ))}
           </div>
         </section>
-        <section className="min-w-0 border-l-2 border-slate-400 pl-3">
+        <section className="min-w-0 border-l-2 border-[#8b929c] pl-3">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-xs font-black text-[#171a1f]">败者组</h4>
             <span className="font-mono text-[0.5rem] text-[#8b929c]">再负一场即淘汰</span>
@@ -172,7 +172,7 @@ export default function TournamentBracketCanvas({ matches, renderMatch }: Tourna
           <section key={phase} className="min-w-0">
             <div className="mb-2 flex items-center gap-3">
               <h3 className="font-mono text-[0.6875rem] font-black tracking-[0.12em] text-[#5b626c]">{phase}</h3>
-              <span className="h-px flex-1 bg-slate-200" />
+              <span className="h-px flex-1 bg-[#d8d1c6]" />
               <span className="font-mono text-[0.5rem] text-[#8b929c]">{phaseMatches.length} 场</span>
             </div>
             <PhaseBracket matches={phaseMatches} renderMatch={renderMatch} />

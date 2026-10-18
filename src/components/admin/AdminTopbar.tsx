@@ -18,7 +18,7 @@ export default function AdminTopbar() {
         </Link>
       </div>
       <nav className="flex h-full items-center gap-3 text-[length:var(--adm-fs-sm)] font-bold sm:gap-4" aria-label="工作台全局导航">
-        <Link href="/admin" className="inline-flex h-full items-center text-slate-200 hover:text-white">全部赛事</Link>
+        <Link href="/admin" className="inline-flex h-full items-center text-[#d8dde4] hover:text-white">全部赛事</Link>
         <Link href="/admin/site-content" className="inline-flex h-full items-center text-[#8b929c] hover:text-white">官网内容</Link>
         <Link href="/" className="inline-flex h-full items-center text-[#8b929c] hover:text-white">返回官网</Link>
         <button

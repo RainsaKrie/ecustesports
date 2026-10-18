@@ -193,7 +193,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
 
         {/* 身份提示条 */}
         {!admin && (
-          <div className={`mb-4 px-4 py-3 text-sm font-bold ${isCaptain && inMatch ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+          <div className={`mb-4 px-4 py-3 text-sm font-bold ${isCaptain && inMatch ? "bg-[#22a06b]/15 text-[#4ade80]" : "bg-[#f5b544]/15 text-[#f5b544]"}`}>
             {isCaptain && inMatch
               ? `你是 ${myTeam?.name} 的队长${myTurn ? "，现在轮到本方操作" : "，等待本方回合"}` 
               : me && inMatch
@@ -331,7 +331,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                       isBanned
                         ? "border-[#ff4655]/50 opacity-40"
                         : isPicked
-                          ? "border-green-500"
+                          ? "border-[#4ade80]"
                           : clickable
                             ? "border-[#3a4048] hover:border-[#ff4655] hover:bg-[#ff4655]/10 cursor-pointer"
                             : "border-[#3a4048]"
@@ -354,12 +354,12 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                     </div>
                     {isBanned && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-red-500">✕ BAN</span>
+                        <span className="text-2xl font-bold text-[#c83242]">✕ BAN</span>
                       </div>
                     )}
                     {isPicked && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xl font-bold text-green-500">✓ PICK{pickIndex >= 0 ? ` #${pickIndex + 1}` : ""}</span>
+                        <span className="text-xl font-bold text-[#047857]">✓ PICK{pickIndex >= 0 ? ` #${pickIndex + 1}` : ""}</span>
                       </div>
                     )}
                     {record && (
@@ -438,12 +438,12 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                     <button onClick={handleUndo} disabled={busy} className="border border-[#3a4048] px-5 py-2.5 text-xs font-bold text-[#e2e6ec] hover:bg-[#1e2228] disabled:opacity-50">回退上一步</button>
                   )}
                   {(admin || (isCaptain && inMatch && session.actions.length === 0)) && (
-                    <button onClick={handleRoll} disabled={busy} className="border border-yellow-600 px-5 py-2.5 text-xs font-bold text-[#f5b544] hover:bg-[#f5b544]/10 disabled:opacity-50">掷骰子比大小</button>
+                    <button onClick={handleRoll} disabled={busy} className="border border-[#f5b544] px-5 py-2.5 text-xs font-bold text-[#f5b544] hover:bg-[#f5b544]/10 disabled:opacity-50">掷骰子比大小</button>
                   )}
                   {admin && (
                     <>
                       <button onClick={handleSwap} disabled={busy} className="border border-[#3a4048] px-5 py-2.5 text-xs font-bold text-[#e2e6ec] hover:bg-[#1e2228] disabled:opacity-50">手动交换先手</button>
-                      <button onClick={handleReset} disabled={busy} className="border border-red-600 px-5 py-2.5 text-xs font-bold text-[#ff8177] hover:bg-[#ff4655]/10 disabled:opacity-50">重置 BP（含先手结果）</button>
+                      <button onClick={handleReset} disabled={busy} className="border border-[#ff4655] px-5 py-2.5 text-xs font-bold text-[#ff8177] hover:bg-[#ff4655]/10 disabled:opacity-50">重置 BP（含先手结果）</button>
                     </>
                   )}
                 </div>

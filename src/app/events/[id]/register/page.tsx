@@ -137,7 +137,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               加入队伍
             </Link>
           </div>
-          <Link href={`/events/${id}/manage?section=profile`} className="mt-2 block border border-[#d8d1c6] px-5 py-3 text-sm font-bold text-[#5b626c] transition hover:border-gray-500">
+          <Link href={`/events/${id}/manage?section=profile`} className="mt-2 block border border-[#d8d1c6] px-5 py-3 text-sm font-bold text-[#5b626c] transition hover:border-[#8b929c]">
             查看报名信息
           </Link>
           <details className="mt-5 border-t border-[#d8d1c6] pt-4 text-left">
@@ -205,7 +205,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               </select>
             </div>
 
-            <div className="border-t border-gray-100 pt-3 md:pt-4">
+            <div className="border-t border-[#e7e1d7] pt-3 md:pt-4">
               <p className="mb-3 text-xs font-medium text-[#5b626c]">联系方式（必填）</p>
               <div className="space-y-4">
                 <div>
@@ -251,7 +251,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             <button
               onClick={handleSubmit}
               disabled={phase !== "open"}
-              className={`w-full py-3 text-sm font-bold text-white transition ${phase === "open" ? "bg-[#ff4655] hover:bg-[#d83b48]" : "cursor-not-allowed bg-slate-300"}`}
+              className={`w-full py-3 text-sm font-bold text-white transition ${phase === "open" ? "bg-[#ff4655] hover:bg-[#d83b48]" : "cursor-not-allowed bg-[#d8d1c6]"}`}
             >
               {phase === "not-open" ? "报名未开放" : phase === "closed" ? "报名已截止" : "提交报名"}
             </button>

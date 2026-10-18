@@ -1,0 +1,100 @@
+{
+  "offenders": {
+    "src/app/bp/[id]/page.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/app/contact/page.tsx": {
+      "hex": 5,
+      "named": 0
+    },
+    "src/app/events/page.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/app/events/[id]/bracket/page.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/app/events/[id]/manage/page.tsx": {
+      "hex": 36,
+      "named": 0
+    },
+    "src/app/events/[id]/page.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/app/events/[id]/register/page.tsx": {
+      "hex": 21,
+      "named": 0
+    },
+    "src/app/events/[id]/teams/[teamId]/page.tsx": {
+      "hex": 14,
+      "named": 0
+    },
+    "src/app/login/page.tsx": {
+      "hex": 2,
+      "named": 0
+    },
+    "src/app/news/page.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/app/news/[id]/page.tsx": {
+      "hex": 2,
+      "named": 0
+    },
+    "src/app/page.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/app/referee/RefereeWorkbench.tsx": {
+      "hex": 31,
+      "named": 0
+    },
+    "src/components/admin/AdminTopbar.tsx": {
+      "hex": 3,
+      "named": 0
+    },
+    "src/components/events/EventDetailTabs.tsx": {
+      "hex": 14,
+      "named": 0
+    },
+    "src/components/events/EventHandbook.tsx": {
+      "hex": 20,
+      "named": 0
+    },
+    "src/components/events/GroupNotice.tsx": {
+      "hex": 1,
+      "named": 0
+    },
+    "src/components/events/PublicSchedule.tsx": {
+      "hex": 14,
+      "named": 0
+    },
+    "src/components/events/ScheduleBracket.tsx": {
+      "hex": 8,
+      "named": 0
+    },
+    "src/components/events/StageCards.tsx": {
+      "hex": 2,
+      "named": 0
+    },
+    "src/components/events/StatusChip.tsx": {
+      "hex": 2,
+      "named": 0
+    },
+    "src/components/events/TournamentBracketCanvas.tsx": {
+      "hex": 10,
+      "named": 0
+    },
+    "src/lib/legacy-site-content.ts": {
+      "hex": 18,
+      "named": 0
+    },
+    "src/lib/mock-data.ts": {
+      "hex": 20,
+      "named": 0
+    }
+  }
+}

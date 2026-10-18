@@ -33,7 +33,7 @@ function MatchCell({ m }: { m: ScheduleMatch }) {
           <span className={`truncate text-[0.6875rem] ${aWin ? "font-bold text-[#171a1f]" : "text-[#5b626c]"}`}>{m.teamAName}</span>
           {completed && <span className={`font-mono text-[0.6875rem] font-bold ${aWin ? "text-[#ff4655]" : "text-[#8b929c]"}`}>{winCount(m, "A")}</span>}
         </div>
-        {!completed && <div className="text-center text-[0.5625rem] leading-3 text-gray-300">VS</div>}
+        {!completed && <div className="text-center text-[0.5625rem] leading-3 text-[#c3c9d2]">VS</div>}
         <div className="flex items-center justify-between gap-1">
           <span className={`truncate text-[0.6875rem] ${bWin ? "font-bold text-[#171a1f]" : "text-[#5b626c]"}`}>{m.teamBName}</span>
           {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[#ff4655]" : "text-[#8b929c]"}`}>{winCount(m, "B")}</span>}
