@@ -18,16 +18,16 @@ export default async function BracketFullScreenPage({ params }: BracketFullScree
   const statusInfo = getStatusInfo(event.status);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 p-6">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#f2eee6] p-6">
       <div className="mx-auto max-w-[1600px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-900">{event.name}</h1>
+              <h1 className="text-xl font-bold text-[#171a1f]">{event.name}</h1>
               <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
             </div>
-            <p className="text-sm text-gray-500 mt-1">对阵图全屏视图</p>
+            <p className="text-sm text-[#5b626c] mt-1">对阵图全屏视图</p>
           </div>
           <Button href={`/events/${event.id}`} variant="outline">
             ← 返回赛事详情
@@ -35,7 +35,7 @@ export default async function BracketFullScreenPage({ params }: BracketFullScree
         </div>
 
         {/* Bracket */}
-        <div className="border border-gray-200 bg-white p-6">
+        <div className="border border-[#d8d1c6] bg-white p-6">
           <ScheduleBracket eventId={id} />
         </div>
       </div>

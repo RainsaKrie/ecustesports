@@ -13,7 +13,7 @@ import { getGameConfig } from "@/lib/games";
 const GAME = getGameConfig();
 
 const inputClass =
-  "min-h-11 w-full border border-gray-300 px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
+  "min-h-11 w-full border border-[#d8d1c6] px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
 
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -116,14 +116,14 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   if (done) {
     return (
       <Container className="py-8">
-        <div className="mx-auto max-w-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto max-w-lg border border-[#d8d1c6] bg-white p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center  bg-emerald-50 text-emerald-600">
             <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-gray-900">报名成功</h2>
-          <p className="mt-3 text-sm font-medium text-slate-600">参赛身份已保存在当前浏览器</p>
+          <h2 className="text-lg font-bold text-[#171a1f]">报名成功</h2>
+          <p className="mt-3 text-sm font-medium text-[#5b626c]">参赛身份已保存在当前浏览器</p>
           {event.eventQqGroup && (
             <div className="mt-4 text-left">
               <GroupNotice group={event.eventQqGroup} />
@@ -137,21 +137,21 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               加入队伍
             </Link>
           </div>
-          <Link href={`/events/${id}/manage?section=profile`} className="mt-2 block border border-gray-300 px-5 py-3 text-sm font-bold text-gray-700 transition hover:border-gray-500">
+          <Link href={`/events/${id}/manage?section=profile`} className="mt-2 block border border-[#d8d1c6] px-5 py-3 text-sm font-bold text-[#5b626c] transition hover:border-gray-500">
             查看报名信息
           </Link>
-          <details className="mt-5 border-t border-slate-200 pt-4 text-left">
-            <summary className="cursor-pointer text-xs font-bold text-slate-500">备用参赛码</summary>
-            <code className="mt-3 block break-all bg-slate-50 p-3 text-xs text-slate-600">{manageToken}</code>
+          <details className="mt-5 border-t border-[#d8d1c6] pt-4 text-left">
+            <summary className="cursor-pointer text-xs font-bold text-[#5b626c]">备用参赛码</summary>
+            <code className="mt-3 block break-all bg-[#f2eee6] p-3 text-xs text-[#5b626c]">{manageToken}</code>
             <button
               type="button"
               onClick={() => navigator.clipboard.writeText(manageToken).then(() => setCopied(true))}
-              className="mt-2 w-full border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700"
+              className="mt-2 w-full border border-[#d8d1c6] px-3 py-2 text-xs font-bold text-[#5b626c]"
             >
               {copied ? "已复制" : "复制参赛码"}
             </button>
           </details>
-          <div className="mt-5 text-xs font-medium text-slate-500">
+          <div className="mt-5 text-xs font-medium text-[#5b626c]">
             换设备时可用学号和报名手机号找回
           </div>
         </div>
@@ -163,10 +163,10 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
     <Container className="py-6 md:py-8">
       <div className="mx-auto max-w-xl">
         <div className="mb-4 text-center md:mb-6">
-          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">{event.name} · 选手报名</h1>
+          <h1 className="text-xl font-bold text-[#171a1f] md:text-2xl">{event.name} · 选手报名</h1>
           <Link href={`/events/${id}/manage?recover=1`} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-[#c83242]">已经报过名？找回参赛信息</Link>
           {phase !== "open" && (
-            <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+            <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-amber-50 text-amber-700" : "bg-[#f2eee6] text-[#5b626c]"}`}>
               {phase === "not-open"
                 ? `报名未开放，开始时间：${event.registrationStart || "待公布"}`
                 : `报名已截止（截止 ${event.registrationEnd || ""}）`}
@@ -183,22 +183,22 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           </div>
         )}
 
-        <div className="border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+        <div className="border border-[#d8d1c6] bg-white p-5 shadow-sm md:p-6">
           <div className="space-y-3 md:space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">姓名 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">姓名 <span className="text-red-500">*</span></label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="真实姓名（仅负责人可见）" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">学号 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">学号 <span className="text-red-500">*</span></label>
               <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="用于身份核验（仅负责人可见）" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">游戏 ID <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">游戏 ID <span className="text-red-500">*</span></label>
               <input type="text" value={gameId} onChange={(e) => setGameId(e.target.value)} placeholder="如：玩家昵称#1234" className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">当前段位 <span className="text-red-500">*</span></label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">当前段位 <span className="text-red-500">*</span></label>
               <select value={rank} onChange={(e) => setRank(e.target.value)} className={inputClass}>
                 <option value="">请选择段位</option>
                 {GAME.ranks.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -206,22 +206,22 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             <div className="border-t border-gray-100 pt-3 md:pt-4">
-              <p className="mb-3 text-xs font-medium text-gray-500">联系方式（必填）</p>
+              <p className="mb-3 text-xs font-medium text-[#5b626c]">联系方式（必填）</p>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">QQ 号 <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-sm font-medium text-[#5b626c]">QQ 号 <span className="text-red-500">*</span></label>
                   <input type="text" inputMode="numeric" value={qq} onChange={(e) => setQq(e.target.value)} placeholder="QQ 号" className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">手机号 <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-sm font-medium text-[#5b626c]">手机号 <span className="text-red-500">*</span></label>
                   <input type="text" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className={inputClass} />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">擅长位置 <span className="text-red-500">*</span></label>
-              <p className="mb-2 text-xs text-gray-500">可多选，将用于分组与队伍位置协调</p>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">擅长位置 <span className="text-red-500">*</span></label>
+              <p className="mb-2 text-xs text-[#5b626c]">可多选，将用于分组与队伍位置协调</p>
               <div className="flex flex-wrap gap-2">
                 {GAME.positions.map((pos) => {
                   const active = positions.includes(pos);
@@ -230,7 +230,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
                       key={pos}
                       type="button"
                       onClick={() => togglePosition(pos)}
-                      className={`inline-flex min-h-11 items-center border px-4 text-sm transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-gray-300 bg-white text-gray-700 hover:border-[#ff4655]"}`}
+                      className={`inline-flex min-h-11 items-center border px-4 text-sm transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-[#d8d1c6] bg-white text-[#5b626c] hover:border-[#ff4655]"}`}
                     >
                       {pos}
                     </button>
@@ -240,7 +240,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">自我介绍（选填）</label>
+              <label className="mb-1 block text-sm font-medium text-[#5b626c]">自我介绍（选填）</label>
               <textarea value={intro} onChange={(e) => setIntro(e.target.value)} placeholder="简单介绍自己，比如擅长英雄、参赛经历等" rows={4} className={inputClass} />
             </div>
 

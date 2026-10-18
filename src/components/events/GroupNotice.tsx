@@ -28,7 +28,7 @@ export default function GroupNotice({ group, compact = false }: { group: string;
   return (
     <div className={`border border-[#ff4655]/35 bg-[#fff1f2] ${compact ? "p-4" : "p-4 sm:p-5"}`}>
       <p className="text-sm font-black text-[#171a1f]">请加入赛事 QQ 群</p>
-      <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
+      <p className="mt-1 text-xs font-medium leading-5 text-[#5b626c]">
         赛程、分组、改期与开赛提醒都在群内发布。
         <span className="font-bold text-[#c83242]">未进群可能错过自己的比赛时间。</span>
       </p>

@@ -13,7 +13,7 @@ function StatusBadge({ status }: { status: string }) {
   const style =
     status === "已完成"
       ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-      : "bg-slate-50 text-slate-500 border border-slate-200";
+      : "bg-[#f2eee6] text-[#5b626c] border border-[#d8d1c6]";
   return <span className={`inline-block px-1 py-0 text-[0.5rem] font-bold ${style}`}>{status === "已排期" ? "待开始" : status === "待排期" ? "待排期" : status}</span>;
 }
 
@@ -23,23 +23,23 @@ function MatchCell({ m }: { m: ScheduleMatch }) {
   const bWin = completed && m.winnerTeamId === m.teamBId;
   const advancement = advancementPath(m);
   return (
-    <div className="w-full min-w-0 border border-gray-200 bg-white p-1.5">
+    <div className="w-full min-w-0 border border-[#d8d1c6] bg-white p-1.5">
       <div className="mb-0.5 flex items-center justify-between gap-1">
-        <span className="text-[0.5625rem] text-gray-400">{m.boType}</span>
+        <span className="text-[0.5625rem] text-[#8b929c]">{m.boType}</span>
         <StatusBadge status={m.status} />
       </div>
       <div className="space-y-0.5">
         <div className="flex items-center justify-between gap-1">
-          <span className={`truncate text-[0.6875rem] ${aWin ? "font-bold text-gray-900" : "text-gray-600"}`}>{m.teamAName}</span>
-          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${aWin ? "text-[#ff4655]" : "text-gray-400"}`}>{winCount(m, "A")}</span>}
+          <span className={`truncate text-[0.6875rem] ${aWin ? "font-bold text-[#171a1f]" : "text-[#5b626c]"}`}>{m.teamAName}</span>
+          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${aWin ? "text-[#ff4655]" : "text-[#8b929c]"}`}>{winCount(m, "A")}</span>}
         </div>
         {!completed && <div className="text-center text-[0.5625rem] leading-3 text-gray-300">VS</div>}
         <div className="flex items-center justify-between gap-1">
-          <span className={`truncate text-[0.6875rem] ${bWin ? "font-bold text-gray-900" : "text-gray-600"}`}>{m.teamBName}</span>
-          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[#ff4655]" : "text-gray-400"}`}>{winCount(m, "B")}</span>}
+          <span className={`truncate text-[0.6875rem] ${bWin ? "font-bold text-[#171a1f]" : "text-[#5b626c]"}`}>{m.teamBName}</span>
+          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[#ff4655]" : "text-[#8b929c]"}`}>{winCount(m, "B")}</span>}
         </div>
       </div>
-      {advancement && <div className="mt-1 border-t border-slate-100 pt-1 font-mono text-[0.45rem] text-slate-400">{advancement}</div>}
+      {advancement && <div className="mt-1 border-t border-[#e7e1d7] pt-1 font-mono text-[0.45rem] text-[#8b929c]">{advancement}</div>}
     </div>
   );
 }
@@ -50,7 +50,7 @@ export default function ScheduleBracket({ eventId, preview = false }: { eventId:
 
   if (matches.length === 0) {
     return (
-      <div className="border border-gray-200 bg-white p-10 text-center text-sm text-gray-400">
+      <div className="border border-[#d8d1c6] bg-white p-10 text-center text-sm text-[#8b929c]">
         对阵尚未生成，请等待抽签分组后发布赛程。
       </div>
     );
