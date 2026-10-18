@@ -10,7 +10,6 @@ import { useParticipant } from "@/lib/scheduling/useParticipant";
 import { currentStep, type BPAction } from "@/lib/scheduling/bp";
 import type { BPSession, BPDiceRoll } from "@/lib/scheduling/bp-ops";
 import { mapImageOf } from "@/lib/games";
-import Badge from "@/components/ui/Badge";
 import { useAdminConfirm } from "@/components/admin/ui";
 
 interface BPPageProps {
