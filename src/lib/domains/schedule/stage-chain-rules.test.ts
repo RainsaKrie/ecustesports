@@ -1,5 +1,5 @@
 // 赛段链规则的单测：13 条规则各一个反例，外加现有四套赛制的回归样本。
-import { validateStageChain, LEGACY_CHAINS, type StageChain, type StageSpec } from "./stage-chain-rules.ts";
+import { validateStageChain, LEGACY_CHAINS, type StageChain } from "./stage-chain-rules.ts";
 
 let pass = 0;
 let fail = 0;
@@ -88,7 +88,6 @@ console.log("== 13 条规则各一个反例 ==");
   const r = validateStageChain(c);
   check("R9 非末段不满 4 场被拒 / 末段 4→1 不被拒",
     r.problems.some((p) => p.rule === "R9") === false || r.problems.some((p) => p.rule === "R9"));
-  const last = base();
   check("R9 末段 4 进 1（3 场）允许", !validateStageChain({ entrants: 8, stages: [
     { name: "四强", type: "single-elim", entrants: 4, advance: 1, bo: 3 },
   ] }).problems.some((p) => p.rule === "R9"));
