@@ -90,9 +90,10 @@ export function validateStageChain(chain: StageChain): StageChainResult {
 
   // ——— 顺序按文档 §4：先边界，再末段，再逐段，再段数，再 BO，再全局 ———
 
-  // R8 边界：8–48 队
-  if (chain.entrants < 8 || chain.entrants > 48) {
-    add("R8", null, `参赛队伍数需在 8–48 之间（当前 ${chain.entrants}）。49 队以上请拆成预选与正赛两届。`);
+  // R8 边界：4–48 队。下限原本写 8，会误杀现有「6 队 · 单循环积分赛」模板 ——
+  // 回归样本（从真实模板生成）当场抓到。下方各类型规则另有各自的下限。
+  if (chain.entrants < 4 || chain.entrants > 48) {
+    add("R8", null, `参赛队伍数需在 4–48 之间（当前 ${chain.entrants}）。49 队以上请拆成预选与正赛两届。`);
   }
   if (chain.stages.length === 0) {
     add("R8", null, "至少要有一个赛段。");
@@ -204,38 +205,3 @@ export function validateStageChain(chain: StageChain): StageChainResult {
 
   return { problems, warnings };
 }
-
-/** 现有四套赛制在新模型下的表达（用于回归：它们必须全部通过校验） */
-export const LEGACY_CHAINS: Record<string, StageChain> = {
-  "staged-playin-32": {
-    entrants: 36,
-    stages: [
-      { name: "资格赛", type: "single-elim", entrants: 36, advance: 32, bo: 1 },
-      { name: "入围赛", type: "single-elim", entrants: 32, advance: 16, bo: 3 },
-      { name: "小组赛", type: "gsl-groups", entrants: 16, advance: 8, bo: 3, groups: 4 },
-      { name: "淘汰赛", type: "single-elim", entrants: 8, advance: 1, bo: 5 },
-    ],
-  },
-  "staged-direct-16": {
-    entrants: 24,
-    stages: [
-      { name: "入围赛", type: "single-elim", entrants: 24, advance: 16, bo: 3 },
-      { name: "小组赛", type: "gsl-groups", entrants: 16, advance: 8, bo: 3, groups: 4 },
-      { name: "淘汰赛", type: "single-elim", entrants: 8, advance: 1, bo: 5 },
-    ],
-  },
-  "single-elim-groups-8": {
-    entrants: 8,
-    stages: [
-      { name: "小组赛", type: "gsl-groups", entrants: 8, advance: 4, bo: 3, groups: 2 },
-      { name: "淘汰赛", type: "single-elim", entrants: 4, advance: 1, bo: 5 },
-    ],
-  },
-  "group-single-elim-16": {
-    entrants: 16,
-    stages: [
-      { name: "小组赛", type: "group-single-elim", entrants: 16, advance: 8, bo: 3, groups: 4 },
-      { name: "淘汰赛", type: "single-elim", entrants: 8, advance: 1, bo: 5 },
-    ],
-  },
-};

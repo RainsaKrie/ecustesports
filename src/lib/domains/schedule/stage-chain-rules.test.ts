@@ -1,5 +1,6 @@
 // 赛段链规则的单测：13 条规则各一个反例，外加现有四套赛制的回归样本。
-import { validateStageChain, LEGACY_CHAINS, type StageChain } from "./stage-chain-rules.ts";
+import { validateStageChain, type StageChain } from "./stage-chain-rules.ts";
+import { FORMAT_TEMPLATES } from "./format-templates.ts";
 
 let pass = 0;
 let fail = 0;
@@ -22,9 +23,44 @@ const rules = (chain: StageChain) => validateStageChain(chain).problems.map((p) 
 
 console.log("== 基准与回归 ==");
 check("基准链（36 队四段）通过", rules(base()).length === 0, `实际：${rules(base()).join(",")}`);
-for (const [name, chain] of Object.entries(LEGACY_CHAINS)) {
+/**
+ * 回归样本**从真实模板生成**（原来手写 4 套，而真实模板有 7 套 —— 审视报告指出对不上）。
+ * advance 由"下一段的进入数"推出，末段为 1；类型名做两套命名的归一。
+ */
+function chainFromTemplate(template: (typeof FORMAT_TEMPLATES)[number]): StageChain {
+  const KIND: Record<string, string> = {
+    "single-elim": "single-elim",
+    "double-elim": "double-elim",
+    "gsl-groups": "gsl-groups",
+    "single-elim-groups": "group-single-elim",
+    "round-robin": "round-robin",
+  };
+  const stages = template.stages.map((stage, index) => ({
+    name: stage.name,
+    type: (KIND[stage.type] ?? "single-elim") as never,
+    entrants: stage.teamCount,
+    advance: template.stages[index + 1]?.teamCount ?? 1,
+    bo: Number(String(stage.boType).replace("BO", "")) as 1 | 3 | 5,
+    ...(stage.groupCount ? { groups: stage.groupCount } : {}),
+  }));
+  return { entrants: stages[0]?.entrants ?? 0, stages };
+}
+
+for (const template of FORMAT_TEMPLATES) {
+  // 「汇合型」模板（前一段比后一段小，如资格赛 8 队并入入围赛 32 队）**不是链条** ——
+  // 赛段链模型目前表达不了"28 支直进 + 4 支从资格赛并入"，这里明确跳过并报出来，
+  // 不装作它通过了校验。
+  const merging = template.stages.some((stage, index) => {
+    const next = template.stages[index + 1];
+    return next ? stage.teamCount < next.teamCount : false;
+  });
+  if (merging) {
+    console.log(`  – 现有赛制 ${template.name}：汇合型（前一赛段并入后一赛段），赛段链模型暂不支持，跳过`);
+    continue;
+  }
+  const chain = chainFromTemplate(template);
   const result = validateStageChain(chain);
-  check(`现有赛制 ${name} 通过校验（不能被新规则误杀）`, result.problems.length === 0,
+  check(`现有赛制 ${template.name} 通过校验（不能被新规则误杀）`, result.problems.length === 0,
     result.problems.map((p) => `${p.rule}: ${p.message}`).join(" | "));
 }
 
@@ -83,11 +119,13 @@ console.log("== 13 条规则各一个反例 ==");
   check("R8 段数超上限被拒", rules(c).includes("R8"));
 }
 {
-  const c = base();
-  c.stages.splice(2, 2, { name: "半决", type: "single-elim", entrants: 16, advance: 12, bo: 3 });
-  const r = validateStageChain(c);
-  check("R9 非末段不满 4 场被拒 / 末段 4→1 不被拒",
-    r.problems.some((p) => p.rule === "R9") === false || r.problems.some((p) => p.rule === "R9"));
+  // 6 队单败进 4：第一段只有 2 场（6−4），是**非末段**，必须被 R9 拒。
+  // 初版写成 `X === false || X`（恒真），等于没测 —— 审视报告抓到；这里改成真断言。
+  const r = validateStageChain({ entrants: 6, stages: [
+    { name: "初赛", type: "single-elim", entrants: 6, advance: 4, bo: 3 },
+    { name: "决赛", type: "single-elim", entrants: 4, advance: 1, bo: 3 },
+  ] });
+  check("R9 非末段不满 4 场被拒（6→4 只有 2 场）", r.problems.some((p) => p.rule === "R9"), r.problems.map((p) => p.rule).join(","));
   check("R9 末段 4 进 1（3 场）允许", !validateStageChain({ entrants: 8, stages: [
     { name: "四强", type: "single-elim", entrants: 4, advance: 1, bo: 3 },
   ] }).problems.some((p) => p.rule === "R9"));
