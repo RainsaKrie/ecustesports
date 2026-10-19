@@ -113,6 +113,24 @@ check(
   longDiff.added.length === 0,
   longDiff.added.map((item) => `    + ${item}`).join("\n"),
 );
+
+// ①b 已在基线里的文件**只能变短、不能变长**（2026-10-19 补）。
+// 原先只比路径不比行数，于是同一个文件可以无限增长 —— FormatDrawWorkspace 从 948 涨到 975 仍然绿。
+// 改成"只允许减少"，才是真正的棘轮：不逼你改现有文件，但不许它们继续变胖。
+const lineCountOf = (entry: string) => Number(entry.match(/\((\d+) 行\)/)?.[1] ?? 0);
+const grown = current.longFiles
+  .map((cur) => {
+    const prev = baseline.longFiles.find((entry) => pathOf(entry) === pathOf(cur));
+    return prev && lineCountOf(cur) > lineCountOf(prev)
+      ? `${pathOf(cur)}：${lineCountOf(prev)} → ${lineCountOf(cur)} 行`
+      : null;
+  })
+  .filter((item): item is string => item !== null);
+check(
+  "①b 已在基线里的超限文件没有继续变长",
+  grown.length === 0,
+  grown.map((item) => `    ↑ ${item}`).join("\n"),
+);
 if (longDiff.removed.length > 0) console.log(`    ↓ 已达标：${longDiff.removed.join("、")}`);
 
 const hookDiff = diff(current.hooksInLib, baseline.hooksInLib);
