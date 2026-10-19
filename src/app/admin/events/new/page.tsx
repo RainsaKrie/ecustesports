@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FORMAT_TEMPLATES, STAGE_TYPE_LABELS, STAGE_TYPE_DEFAULT_BO, estimateStageConfig, type StageConfig, type StageType } from "@/lib/scheduling/format-templates";
-import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
+import { FORMAT_TEMPLATES, STAGE_TYPE_LABELS, STAGE_TYPE_DEFAULT_BO, estimateStageConfig, type StageConfig, type StageType } from "@/lib/domains/schedule/format-templates";
+import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
 import { getGameConfig } from "@/lib/games";
 
 const inputClass = "h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] font-normal text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)]";

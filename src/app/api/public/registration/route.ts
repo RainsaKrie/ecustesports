@@ -5,7 +5,7 @@ import {
   getPublicSiteConfig,
   PUBLIC_CACHE_CONTROL,
 } from "@/lib/public-data-cache";
-import { selectPublicRoster } from "@/lib/scheduling/public-roster";
+import { selectPublicRoster } from "@/lib/domains/schedule/public-roster";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

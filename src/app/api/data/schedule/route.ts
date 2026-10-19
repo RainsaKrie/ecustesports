@@ -1,10 +1,10 @@
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
-import { emptySchedule, normalizeScheduleState } from "@/lib/scheduling/schedule-data";
-import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
-import { autoFillPendingSlots, type StagedFormatState } from "@/lib/scheduling/staged-format";
-import { applyScheduleSave, type ScheduleLoss } from "@/lib/scheduling/schedule-ops";
+import { emptySchedule, normalizeScheduleState } from "@/lib/domains/schedule/schedule-data";
+import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
+import { autoFillPendingSlots, type StagedFormatState } from "@/lib/domains/schedule/staged-format";
+import { applyScheduleSave, type ScheduleLoss } from "@/lib/domains/schedule/schedule-ops";
 import { initialRegistration, type RegistrationState } from "@/lib/domains/registration/data";
 import type { NextRequest } from "next/server";
 

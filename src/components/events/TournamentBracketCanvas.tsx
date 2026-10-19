@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ScheduleMatch } from "@/lib/scheduling/schedule-data";
+import type { ScheduleMatch } from "@/lib/domains/schedule/schedule-data";
 
 interface TournamentBracketCanvasProps {
   matches: ScheduleMatch[];

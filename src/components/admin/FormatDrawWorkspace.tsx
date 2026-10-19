@@ -14,11 +14,11 @@ import {
   buildTournamentMatches,
   BYE,
   PENDING,
-} from "@/lib/scheduling/bracket-engine";
-import { resolveSupportedFormat, type SupportedFormat } from "@/lib/scheduling/format-support";
+} from "@/lib/domains/schedule/bracket-engine";
+import { resolveSupportedFormat, type SupportedFormat } from "@/lib/domains/schedule/format-support";
 import { initialRegistration, type RegistrationState } from "@/lib/domains/registration/data";
-import type { ScheduleMatch, ScheduleState } from "@/lib/scheduling/schedule-data";
-import { appendMatchesOp } from "@/lib/scheduling/schedule-ops";
+import type { ScheduleMatch, ScheduleState } from "@/lib/domains/schedule/schedule-data";
+import { appendMatchesOp } from "@/lib/domains/schedule/schedule-ops";
 import {
   buildKnockoutDrawOrder,
   buildQualifierSlots,
@@ -30,9 +30,9 @@ import {
   type PlayInGate,
   type StagedDrawGate,
   type StagedFormatState,
-} from "@/lib/scheduling/staged-format";
-import type { StageConfig } from "@/lib/scheduling/format-templates";
-import { FORMAT_TEMPLATES } from "@/lib/scheduling/format-templates";
+} from "@/lib/domains/schedule/staged-format";
+import type { StageConfig } from "@/lib/domains/schedule/format-templates";
+import { FORMAT_TEMPLATES } from "@/lib/domains/schedule/format-templates";
 import type { EditableEvent } from "@/lib/site-config-schema";
 
 type DrawMode = "slot" | "groups" | "locked";

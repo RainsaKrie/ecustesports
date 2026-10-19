@@ -4,8 +4,8 @@ import { readEventData, updateEventData } from "@/lib/data-store";
 import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/domains/registration/data";
-import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
-import { completeEventRefusal } from "@/lib/scheduling/event-progress";
+import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
+import { completeEventRefusal } from "@/lib/domains/schedule/event-progress";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";

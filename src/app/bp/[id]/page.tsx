@@ -5,10 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
-import { useSchedule } from "@/lib/scheduling/useSchedule";
-import { useParticipant } from "@/lib/scheduling/useParticipant";
-import { currentStep, type BPAction } from "@/lib/scheduling/bp";
-import type { BPSession, BPDiceRoll } from "@/lib/scheduling/bp-ops";
+import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { useParticipant } from "@/lib/domains/schedule/useParticipant";
+import { currentStep, type BPAction } from "@/lib/domains/schedule/bp";
+import type { BPSession, BPDiceRoll } from "@/lib/domains/schedule/bp-ops";
 import { mapImageOf } from "@/lib/games";
 import { useAdminConfirm } from "@/components/admin/ui";
 

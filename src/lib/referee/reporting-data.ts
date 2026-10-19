@@ -10,8 +10,8 @@ import "server-only";
 import { readEventData, updateEventData, updateEventDataBatch, writeEventData } from "@/lib/data-store";
 import { isHostedRuntime } from "@/lib/deployment";
 import { deleteEvidenceObject, storeEvidenceObject } from "@/lib/referee/evidence-store";
-import { emptySchedule, normalizeScheduleState, type ScheduleMatch, type ScheduleState } from "@/lib/scheduling/schedule-data";
-import type { BOType } from "@/lib/scheduling/rule-engine";
+import { emptySchedule, normalizeScheduleState, type ScheduleMatch, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
+import type { BOType } from "@/lib/domains/schedule/rule-engine";
 import {
   emptyRefereeLedger,
   createRefereeOp,
@@ -24,12 +24,12 @@ import {
   authenticateReferee,
   hashCredential,
   type RefereeOpResult,
-} from "@/lib/scheduling/referee-ops";
-import type { RefereeLedger } from "@/lib/scheduling/referee-domain";
-import { emptyLedger as emptyResultLedger } from "@/lib/scheduling/result-ops";
-import type { ResultLedger } from "@/lib/scheduling/result-domain";
-import { checkEvidenceFile, emptyEvidenceLedger, registerEvidenceOp } from "@/lib/scheduling/evidence-ops";
-import type { EvidenceLedger } from "@/lib/scheduling/evidence-domain";
+} from "@/lib/domains/schedule/referee-ops";
+import type { RefereeLedger } from "@/lib/domains/schedule/referee-domain";
+import { emptyLedger as emptyResultLedger } from "@/lib/domains/schedule/result-ops";
+import type { ResultLedger } from "@/lib/domains/schedule/result-domain";
+import { checkEvidenceFile, emptyEvidenceLedger, registerEvidenceOp } from "@/lib/domains/schedule/evidence-ops";
+import type { EvidenceLedger } from "@/lib/domains/schedule/evidence-domain";
 import {
   loginRefereeOp,
   submitRefereeResultOp,
@@ -43,9 +43,9 @@ import {
   type OpenMatchSummary,
   type ReportingOpResult,
   type ReportingState,
-} from "@/lib/scheduling/reporting-service";
-import { resolveReviewOp, correctResultOp } from "@/lib/scheduling/result-ops";
-import { expirePendingRequests, stampScheduleVersion } from "@/lib/scheduling/schedule-ops";
+} from "@/lib/domains/schedule/reporting-service";
+import { resolveReviewOp, correctResultOp } from "@/lib/domains/schedule/result-ops";
+import { expirePendingRequests, stampScheduleVersion } from "@/lib/domains/schedule/schedule-ops";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -610,7 +610,7 @@ export async function refereeUploadEvidence(
   }
 }
 
-export type { AdminReviewItem, AcceptedResultItem, ReviewRiskTag } from "@/lib/scheduling/reporting-service";
+export type { AdminReviewItem, AcceptedResultItem, ReviewRiskTag } from "@/lib/domains/schedule/reporting-service";
 
 /** 一次读取同时生成异常队列与已生效列表，避免同一请求重复读取四份文档。 */
 export async function adminReviewData(eventId: string) {

@@ -2,16 +2,16 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { getSiteConfig } from "@/lib/site-config";
-import { getEventStage } from "@/lib/scheduling/stage";
+import { getEventStage } from "@/lib/domains/schedule/stage";
 import { getOperationsModules, getStageGuidance, type ModuleWithState } from "@/lib/operations-data";
 import { readEventData } from "@/lib/data-store";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import { initialRegistration, normalizeRegistrationState, type RegistrationState } from "@/lib/domains/registration/data";
-import type { EventStage } from "@/lib/scheduling/stage";
+import type { EventStage } from "@/lib/domains/schedule/stage";
 import { publicationChecklist } from "@/lib/domains/content/publication-check";
-import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
-import { resolveEventProgress } from "@/lib/scheduling/event-progress";
-import { scheduleModeOf } from "@/lib/scheduling/schedule-mode";
+import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
+import { resolveEventProgress } from "@/lib/domains/schedule/event-progress";
+import { scheduleModeOf } from "@/lib/domains/schedule/schedule-mode";
 import { postEventPublicContentIssues } from "@/lib/domains/content/status";
 
 export default async function EventWorkspaceLayout({

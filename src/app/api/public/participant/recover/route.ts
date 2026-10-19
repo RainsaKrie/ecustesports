@@ -8,7 +8,7 @@ import {
   type RegistrationPlayer,
   type RegistrationState,
 } from "@/lib/domains/registration/data";
-import { recoverParticipantAccess } from "@/lib/scheduling/participant-recovery";
+import { recoverParticipantAccess } from "@/lib/domains/schedule/participant-recovery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

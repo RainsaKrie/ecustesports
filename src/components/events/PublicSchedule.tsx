@@ -3,8 +3,8 @@
 import { useState } from "react";
 import StatusChip from "@/components/events/StatusChip";
 
-import { useSchedule } from "@/lib/scheduling/useSchedule";
-import type { GameResult } from "@/lib/scheduling/schedule-data";
+import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import type { GameResult } from "@/lib/domains/schedule/schedule-data";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";

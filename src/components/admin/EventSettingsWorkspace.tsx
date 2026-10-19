@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { SCHEDULE_MODE_LABELS, type ScheduleMode } from "@/lib/scheduling/schedule-mode";
+import { SCHEDULE_MODE_LABELS, type ScheduleMode } from "@/lib/domains/schedule/schedule-mode";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { getGameConfig, mapImageOf } from "@/lib/games";
 
 /** 当前游戏的地图目录（数据在 `@/lib/games`）。 */
 const MAP_CATALOG = getGameConfig().maps;
-import { buildDefaultEventRules } from "@/lib/scheduling/format-templates";
+import { buildDefaultEventRules } from "@/lib/domains/schedule/format-templates";
 import type { EditableEvent, EditableRule, EditableStep } from "@/lib/site-config-schema";
 import { publicationChecklist } from "@/lib/domains/content/publication-check";
 import { Field, Panel, adminInputClass, adminTextareaClass, useAdminConfirm, type AdminBadgeTone } from "@/components/admin/ui";

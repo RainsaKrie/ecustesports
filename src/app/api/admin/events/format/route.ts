@@ -9,10 +9,10 @@ import {
   buildEventFromTemplate,
   getFormatTemplate,
   type StageConfig,
-} from "@/lib/scheduling/format-templates";
-import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
-import { formatChangeRefusal, unplayedStagesToClear } from "@/lib/scheduling/format-support";
-import { stampScheduleVersion } from "@/lib/scheduling/schedule-ops";
+} from "@/lib/domains/schedule/format-templates";
+import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
+import { formatChangeRefusal, unplayedStagesToClear } from "@/lib/domains/schedule/format-support";
+import { stampScheduleVersion } from "@/lib/domains/schedule/schedule-ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

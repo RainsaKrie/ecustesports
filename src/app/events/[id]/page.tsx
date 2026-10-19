@@ -1,9 +1,9 @@
 import { getConfiguredEvents, toConfiguredEvent } from "@/lib/configured-events";
 import { getEvent, getSiteConfig } from "@/lib/site-config";
 import { getStatusInfo } from "@/lib/utils";
-import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
+import { getEventStage, STAGE_CONFIGS } from "@/lib/domains/schedule/stage";
 import { readEventData } from "@/lib/data-store";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import EventDetailTabs from "@/components/events/EventDetailTabs";
 import StageCards, { stageCardsFromMatches } from "@/components/events/StageCards";
 import GroupNotice from "@/components/events/GroupNotice";

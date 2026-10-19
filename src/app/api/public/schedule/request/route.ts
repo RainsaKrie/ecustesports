@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { isEventPublic } from "@/lib/configured-events";
-import { captainNegotiationRefusal, scheduleModeOf } from "@/lib/scheduling/schedule-mode";
+import { captainNegotiationRefusal, scheduleModeOf } from "@/lib/domains/schedule/schedule-mode";
 import { findParticipant, readParticipantToken } from "@/lib/domains/identity/participant-auth";
 import {
   initialRegistration,
@@ -13,13 +13,13 @@ import {
   emptySchedule,
   normalizeScheduleState,
   type ScheduleState,
-} from "@/lib/scheduling/schedule-data";
+} from "@/lib/domains/schedule/schedule-data";
 import {
   resolveCaptainRequestOp,
   stampScheduleVersion,
   submitCaptainRequestOp,
   type CaptainRequestResult,
-} from "@/lib/scheduling/schedule-ops";
+} from "@/lib/domains/schedule/schedule-ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

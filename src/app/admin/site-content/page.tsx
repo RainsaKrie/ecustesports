@@ -3,7 +3,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import SiteContentWorkspace from "@/components/admin/SiteContentWorkspace";
 import { EmptyState } from "@/components/admin/ui";
 import { readEventData } from "@/lib/data-store";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import { getSiteConfig } from "@/lib/site-config";
 import { postEventPublicContentIssues } from "@/lib/domains/content/status";
 

@@ -3,9 +3,9 @@ import { dirname, join } from "node:path";
 import {
   DEFAULT_CONFIG, computeEndTime, validateReschedule,
   type BOType, type RescheduleRequest, type ScheduledMatch, type SchedulingConfig,
-} from "../../src/lib/scheduling/rule-engine";
-import { approveRequestOp } from "../../src/lib/scheduling/schedule-ops";
-import type { ScheduleMatch, ScheduleState } from "../../src/lib/scheduling/schedule-data";
+} from "../../src/lib/domains/schedule/rule-engine";
+import { approveRequestOp } from "../../src/lib/domains/schedule/schedule-ops";
+import type { ScheduleMatch, ScheduleState } from "../../src/lib/domains/schedule/schedule-data";
 
 type Category = "可批准时间" | "超出赛事时间范围" | "队伍时间冲突" | "并发容量冲突" | "前置依赖" | "赛程版本过期" | "复合冲突";
 type Decision = "可进入人工审批" | "暂不可批准" | "无需重复处理";

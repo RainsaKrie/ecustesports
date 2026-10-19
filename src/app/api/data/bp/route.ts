@@ -14,8 +14,8 @@ import {
   emptySchedule,
   normalizeScheduleState,
   type ScheduleState,
-} from "@/lib/scheduling/schedule-data";
-import { stampScheduleVersion } from "@/lib/scheduling/schedule-ops";
+} from "@/lib/domains/schedule/schedule-data";
+import { stampScheduleVersion } from "@/lib/domains/schedule/schedule-ops";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -33,7 +33,7 @@ import {
   type BPStore,
   type BPSession,
   type BPDiceRoll,
-} from "@/lib/scheduling/bp-ops";
+} from "@/lib/domains/schedule/bp-ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

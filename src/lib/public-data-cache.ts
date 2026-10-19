@@ -12,7 +12,7 @@ import {
   emptySchedule,
   normalizeScheduleState,
   type ScheduleState,
-} from "@/lib/scheduling/schedule-data";
+} from "@/lib/domains/schedule/schedule-data";
 
 export const PUBLIC_DATA_REVALIDATE_SECONDS = 5;
 export const PUBLIC_CACHE_CONTROL =

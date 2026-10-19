@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { findParticipant, readParticipantToken } from "@/lib/domains/identity/participant-auth";
-import { addMemberOp, type PlayerRole } from "@/lib/scheduling/registration-ops";
+import { addMemberOp, type PlayerRole } from "@/lib/domains/schedule/registration-ops";
 import {
   initialRegistration,
   normalizeRegistrationState,

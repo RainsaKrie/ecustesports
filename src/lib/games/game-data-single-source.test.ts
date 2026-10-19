@@ -119,7 +119,7 @@ console.log(`  地图：${GAME.maps.length} 张，默认图池 ${GAME.defaultMap
 
 checkSingleSource("段位阶梯", GAME.ranks, [
   {
-    file: "src/lib/scheduling/useRegistration.ts",
+    file: "src/lib/domains/schedule/useRegistration.ts",
     reason: "演示数据生成器：段位只用来把 16 支演示队分档，不参与任何校验，不需要跟着阶梯走",
   },
 ]);

@@ -61,7 +61,7 @@ import {
   buildDoubleEliminationMatches,
   buildGslGroupMatches,
   buildQualificationMatches,
-} from "../../src/lib/scheduling/bracket-engine";
+} from "../../src/lib/domains/schedule/bracket-engine";
 import {
   buildPlayInPairs,
   buildSeedPots,
@@ -69,13 +69,13 @@ import {
   generateMatchups,
   rankTeamsByAvgRank,
 } from "../../src/lib/domains/registration/format";
-import { resolveSupportedFormat, type SupportedFormat } from "../../src/lib/scheduling/format-support";
+import { resolveSupportedFormat, type SupportedFormat } from "../../src/lib/domains/schedule/format-support";
 import {
   normalizeScheduleState,
   type ScheduleMatch,
   type ScheduleState,
-} from "../../src/lib/scheduling/schedule-data";
-import { appendMatchesOp, reportGameResultsOp } from "../../src/lib/scheduling/schedule-ops";
+} from "../../src/lib/domains/schedule/schedule-data";
+import { appendMatchesOp, reportGameResultsOp } from "../../src/lib/domains/schedule/schedule-ops";
 import {
   buildKnockoutDrawOrder,
   buildQualifierSlots,
@@ -83,8 +83,8 @@ import {
   resolvePlayInGate,
   resolveStagedDrawGate,
   type StagedFormatState,
-} from "../../src/lib/scheduling/staged-format";
-import type { StageConfig } from "../../src/lib/scheduling/format-templates";
+} from "../../src/lib/domains/schedule/staged-format";
+import type { StageConfig } from "../../src/lib/domains/schedule/format-templates";
 import { getGameConfig } from "../../src/lib/games";
 import type {
   RegistrationPlayer,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { getConfiguredEvents } from "@/lib/configured-events";
 import { getEvent } from "@/lib/site-config";
-import { getEventStage, STAGE_CONFIGS } from "@/lib/scheduling/stage";
+import { getEventStage, STAGE_CONFIGS } from "@/lib/domains/schedule/stage";
 import {
   getPublicSchedule,
   getPublicSiteConfig,

@@ -1,35 +1,35 @@
 {
   "longFiles": [
-    "src/app/admin/events/[id]/schedule/page.tsx (893 行)",
+    "src/app/admin/events/[id]/schedule/page.tsx (896 行)",
     "src/app/bp/[id]/page.tsx (458 行)",
     "src/app/events/[id]/manage/page.tsx (390 行)",
     "src/app/referee/RefereeWorkbench.tsx (882 行)",
     "src/components/admin/EventSettingsWorkspace.tsx (610 行)",
     "src/components/admin/FormatDrawWorkspace.tsx (948 行)",
-    "src/components/admin/RegistrationOperationsWorkspace.tsx (749 行)",
+    "src/components/admin/RegistrationOperationsWorkspace.tsx (779 行)",
     "src/components/admin/ReviewWorkspace.tsx (435 行)",
     "src/components/events/EventHandbook.tsx (413 行)",
+    "src/lib/domains/schedule/bracket-engine.ts (427 行)",
+    "src/lib/domains/schedule/format-templates.ts (621 行)",
+    "src/lib/domains/schedule/registration-admin-ops.ts (532 行)",
+    "src/lib/domains/schedule/reporting-service.ts (547 行)",
+    "src/lib/domains/schedule/schedule-ops.ts (826 行)",
+    "src/lib/domains/schedule/staged-format.ts (448 行)",
     "src/lib/referee/identity-match.ts (403 行)",
     "src/lib/referee/reporting-data.ts (753 行)",
     "src/lib/referee/result-vision.ts (522 行)",
-    "src/lib/scheduling/bracket-engine.ts (427 行)",
-    "src/lib/scheduling/format-templates.ts (621 行)",
-    "src/lib/scheduling/registration-admin-ops.ts (532 行)",
-    "src/lib/scheduling/reporting-service.ts (547 行)",
-    "src/lib/scheduling/schedule-ops.ts (826 行)",
-    "src/lib/scheduling/staged-format.ts (448 行)",
     "src/lib/site-config-schema.ts (568 行)",
     "tools/ai-eval/result-vision/metrics.ts (557 行)",
     "tools/ai-eval/result-vision/run-eval.ts (488 行)",
     "tools/gate6/e2e-referee-http.ts (745 行)",
     "tools/gate6/playin36-rehearsal.ts (1080 行)",
-    "tools/gate6/production-audit.ts (442 行)"
+    "tools/gate6/production-audit.ts (452 行)"
   ],
   "hooksInLib": [
-    "src/lib/scheduling/useParticipant.ts",
-    "src/lib/scheduling/usePublicRegistration.ts",
-    "src/lib/scheduling/useRegistration.ts",
-    "src/lib/scheduling/useSchedule.ts"
+    "src/lib/domains/schedule/useParticipant.ts",
+    "src/lib/domains/schedule/usePublicRegistration.ts",
+    "src/lib/domains/schedule/useRegistration.ts",
+    "src/lib/domains/schedule/useSchedule.ts"
   ],
   "deepImports": [
     "src/app/admin/events/[id]/layout.tsx",

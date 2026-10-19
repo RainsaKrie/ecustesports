@@ -26,14 +26,14 @@ import {
   type AdminRegistrationResult,
   type ReviewStatus,
   type RosterRole,
-} from "@/lib/scheduling/registration-admin-ops";
+} from "@/lib/domains/schedule/registration-admin-ops";
 import { issueParticipantToken } from "@/lib/domains/identity/participant-auth";
 import {
   initialRegistration,
   normalizeRegistrationState,
   type RegistrationState,
 } from "@/lib/domains/registration/data";
-import { emptySchedule, normalizeScheduleState, bracketTeamIds, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, normalizeScheduleState, bracketTeamIds, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

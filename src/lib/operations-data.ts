@@ -1,4 +1,4 @@
-import type { EventStage } from "@/lib/scheduling/stage";
+import type { EventStage } from "@/lib/domains/schedule/stage";
 
 export type ModuleState = "ready" | "in-progress" | "planned";
 

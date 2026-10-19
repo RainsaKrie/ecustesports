@@ -25,8 +25,8 @@ import {
   visionOptionsFromEnv,
 } from "@/lib/referee/result-vision";
 import { buildRecognizeSuggestion } from "@/lib/referee/recognize-result";
-import { hashEvidenceBytes } from "@/lib/scheduling/evidence-ops";
-import { MAX_EVIDENCE_BYTES } from "@/lib/scheduling/evidence-domain";
+import { hashEvidenceBytes } from "@/lib/domains/schedule/evidence-ops";
+import { MAX_EVIDENCE_BYTES } from "@/lib/domains/schedule/evidence-domain";
 import { getGameConfig } from "@/lib/games";
 
 export const runtime = "nodejs";

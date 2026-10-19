@@ -1,7 +1,7 @@
 "use client";
 
-import { useSchedule } from "@/lib/scheduling/useSchedule";
-import type { ScheduleMatch } from "@/lib/scheduling/schedule-data";
+import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import type { ScheduleMatch } from "@/lib/domains/schedule/schedule-data";
 import TournamentBracketCanvas, { advancementPath } from "@/components/events/TournamentBracketCanvas";
 
 function winCount(m: ScheduleMatch, side: "A" | "B"): number {

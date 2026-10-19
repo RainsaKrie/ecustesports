@@ -1,0 +1,145 @@
+// =====================
+// 批量排期规划器（2026-10-16，P2）
+//
+// 为什么需要它：赛程页排期是**逐场**设置的，一次要排 11 场（淘汰赛还有 14 场）时，
+// 手工排最怕的是**撞车** —— 同一时段超过并发上限、或越出比赛时段。
+// 手工做这件事要一边看已有排期一边算时长，很容易出错。
+//
+// 所以把"填时间"这件事抽成一个**确定性纯函数**：同样的输入永远得到同样的输出，
+// 于是它可以被断言、可以重跑、可以在写入前先跑一遍看结果（dry-run）。
+//
+// 约束来源：`SchedulingConfig`（并发上限 / 各 BO 时长 / 时段窗口），与单场排期用的是同一份配置。
+// =====================
+
+import { computeEndTime, type SchedulingConfig } from "./rule-engine.ts";
+import type { ScheduleMatch } from "./schedule-data.ts";
+
+/** 时间推进粒度：15 分钟（排期以整点/半点为主，粒度太细会产生奇怪的时间） */
+const STEP_MINUTES = 15;
+
+/**
+ * 一个比赛日的时间窗口（如周六 12:00–18:00）。
+ * 真实赛事跨多个周末，所以规划器按**窗口列表**依次填充，而不是只看一个时段。
+ */
+export interface ScheduleWindow {
+  start: string;
+  end: string;
+  /** 当天最多打几场（可选，不设 = 只受时段与并发约束）。逐日可不同。 */
+  limit?: number;
+}
+
+export interface BulkAssignment {
+  matchId: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface BulkPlan {
+  /** 可以排上的场次（按给定顺序） */
+  assignments: BulkAssignment[];
+  /** 排不上的场次与原因（不静默丢弃） */
+  skipped: Array<{ matchId: string; reason: string }>;
+}
+
+const toMs = (value: string) => new Date(value).getTime();
+const formatLocal = (date: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+function durationMinutes(boType: ScheduleMatch["boType"], config: SchedulingConfig): number {
+  return config.boDurations[boType] ?? config.boDurations.BO3;
+}
+
+/** 某个时刻正在进行的场次数（半开区间，首尾相接不算重叠） */
+function concurrentAt(intervals: Array<{ start: number; end: number }>, at: number): number {
+  return intervals.filter((interval) => interval.start <= at && at < interval.end).length;
+}
+
+/**
+ * 把待排期的场次依次填进时段。
+ *
+ * @param pending  待排期的场次，**按给定顺序**依次安置（调用方决定先排哪场）
+ * @param occupied 已排期 / 已完成的场次（它们占用的时段必须被尊重）
+ * @param config   并发上限、BO 时长、时段窗口
+ *
+ * 规则：从 `stageStart` 起以 15 分钟为步长找**最早**的可用时间；
+ * 一个时刻的并发数（含已占用）不得超过 `maxConcurrentMatches`；
+ * 结束时间超出 `stageEnd` 的场次记为 skipped 并写明原因，**不静默丢弃**。
+ */
+export function planBulkSchedule(
+  pending: ScheduleMatch[],
+  occupied: ScheduleMatch[],
+  config: SchedulingConfig,
+  windows?: ScheduleWindow[],
+): BulkPlan {
+  // 不传窗口时退回「单窗口」（与配置里的时段一致）——旧调用点与旧测试不必改
+  const days: ScheduleWindow[] = windows && windows.length > 0
+    ? windows
+    : [{ start: config.stageStart, end: config.stageEnd }];
+  const intervals = occupied
+    .filter((match) => Boolean(match.startTime) && Boolean(match.endTime))
+    .map((match) => ({ start: toMs(match.startTime), end: toMs(match.endTime) }));
+
+  const assignments: BulkAssignment[] = [];
+  const skipped: BulkPlan["skipped"] = [];
+  /** 已安置的场次：用于「每队每日上限」与「同队最小间隔」这两条约束 */
+  const arranged: Array<{ match: ScheduleMatch; start: number; end: number }> = [];
+  const sameDay = (iso: string, dayStart: string) => iso.slice(0, 10) === dayStart.slice(0, 10);
+  const sharesTeam = (a: ScheduleMatch, b: ScheduleMatch) =>
+    a.teamAId === b.teamAId || a.teamAId === b.teamBId || a.teamBId === b.teamAId || a.teamBId === b.teamBId;
+  const perTeamLimit = config.perTeamDailyLimit ?? Number.POSITIVE_INFINITY;
+  const gapMs = (config.gapMinutes ?? 0) * 60_000;
+
+  for (const match of pending) {
+    const minutes = durationMinutes(match.boType, config);
+    let placed: BulkAssignment | null = null;
+
+    // 按比赛日依次找：**当天排得下就当天排**，排不下才顺延到下一个比赛日
+    for (const day of days) {
+      const windowStart = toMs(day.start);
+      const windowEnd = toMs(day.end);
+      for (let cursor = windowStart; cursor + minutes * 60_000 <= windowEnd; cursor += STEP_MINUTES * 60_000) {
+        const startTime = formatLocal(new Date(cursor));
+        const endTime = computeEndTime(startTime, match.boType, config);
+        const end = toMs(endTime);
+        // 一场比赛不得跨天：结束必须落在同一个比赛日窗口内
+        if (end > windowEnd) break;
+        // 整场都不得超并发：检查期间每个起点时刻的并发数
+        let peak = 0;
+        for (let probe = cursor; probe < end; probe += STEP_MINUTES * 60_000) {
+          peak = Math.max(peak, concurrentAt([...intervals, ...assignments.map((a) => ({ start: toMs(a.startTime), end: toMs(a.endTime) }))], probe));
+        }
+        // 当天场次数上限（逐日可配：今天打 6 场、明天打 4 场都行）
+        const dayCount = assignments.filter((item) => sameDay(item.startTime, day.start)).length;
+        if (day.limit !== undefined && dayCount >= day.limit) break;
+        // 每队每日上限：防止把同一个队排出背靠背两场
+        const teamToday = arranged.filter((item) => sameDay(formatLocal(new Date(item.start)), day.start) && sharesTeam(item.match, match));
+        if (teamToday.length >= perTeamLimit) continue;
+        // 同队两场之间的最小间隔（项目不建模场地，落在「同队休息」上）
+        if (gapMs > 0 && teamToday.some((item) => cursor < item.end + gapMs && item.start < end + gapMs)) continue;
+        if (peak < config.maxConcurrentMatches) {
+          placed = { matchId: match.id, startTime, endTime };
+          arranged.push({ match, start: cursor, end });
+          break;
+        }
+      }
+      if (placed) break;
+    }
+
+    if (placed) assignments.push(placed);
+    else skipped.push({ matchId: match.id, reason: `整个比赛时段（${days.length} 个比赛日）都排不下 ${match.boType}` });
+  }
+
+  return { assignments, skipped };
+}
+
+/** 把规划结果套用到赛程上（纯函数，返回新数组；不动没被排的场次） */
+export function applyBulkAssignments(matches: ScheduleMatch[], assignments: BulkAssignment[]): ScheduleMatch[] {
+  const byId = new Map(assignments.map((item) => [item.matchId, item]));
+  return matches.map((match) => {
+    const hit = byId.get(match.id);
+    if (!hit) return match;
+    return { ...match, startTime: hit.startTime, endTime: hit.endTime, status: "已排期" as const };
+  });
+}

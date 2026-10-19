@@ -4,8 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { EsportEvent } from "@/types";
 import { getStatusInfo } from "@/lib/utils";
-import { STAGE_CONFIGS, type EventStage } from "@/lib/scheduling/stage";
-import { useParticipant } from "@/lib/scheduling/useParticipant";
+import { STAGE_CONFIGS, type EventStage } from "@/lib/domains/schedule/stage";
+import { useParticipant } from "@/lib/domains/schedule/useParticipant";
 import Button from "@/components/ui/Button";
 
 interface Props {

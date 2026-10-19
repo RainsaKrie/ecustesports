@@ -11,9 +11,9 @@
 // 写入走既有的整份保存接口（自带版本护栏与内容丢失护栏），并用 if-match 防覆盖。
 // =====================
 
-import { planBulkSchedule, applyBulkAssignments } from "../../src/lib/scheduling/bulk-schedule";
-import { partitionSchedulable, schedulePlanInputFromEvent } from "../../src/lib/scheduling/schedule-policy";
-import { normalizeScheduleState, type ScheduleMatch } from "../../src/lib/scheduling/schedule-data";
+import { planBulkSchedule, applyBulkAssignments } from "../../src/lib/domains/schedule/bulk-schedule";
+import { partitionSchedulable, schedulePlanInputFromEvent } from "../../src/lib/domains/schedule/schedule-policy";
+import { normalizeScheduleState, type ScheduleMatch } from "../../src/lib/domains/schedule/schedule-data";
 
 const args = process.argv.slice(2);
 const take = (flag: string) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : undefined; };

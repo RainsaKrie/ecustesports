@@ -4,7 +4,7 @@ import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { readEventData } from "@/lib/data-store";
 import { canPublish, publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import { recordOperationAuditSafely } from "@/lib/operation-audit";
 
 export const runtime = "nodejs";

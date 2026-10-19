@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
-import { useParticipant } from "@/lib/scheduling/useParticipant";
+import { useParticipant } from "@/lib/domains/schedule/useParticipant";
 import { getGameConfig } from "@/lib/games";
 
 /** 段位阶梯、擅长位置与队伍人数上限取自游戏配置层（原先本文件里各写了一遍）。 */

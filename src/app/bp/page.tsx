@@ -4,9 +4,9 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
-import { useSchedule } from "@/lib/scheduling/useSchedule";
-import { buildBPOrder } from "@/lib/scheduling/bp";
-import type { BPSession } from "@/lib/scheduling/bp-ops";
+import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { buildBPOrder } from "@/lib/domains/schedule/bp";
+import type { BPSession } from "@/lib/domains/schedule/bp-ops";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
@@ -18,7 +18,7 @@ const BO_TYPES = ["BO1", "BO3", "BO5"] as const;
 
 /**
  * 各 BO 需要的最终地图数，用于提示地图池是否够。
- * 与 `lib/scheduling/bp.ts` 的 `MAPS_NEEDED` 保持一致（BO1 剩 1 / BO3 剩 3 / BO5 选满 5）。
+ * 与 `lib/domains/schedule/bp.ts` 的 `MAPS_NEEDED` 保持一致（BO1 剩 1 / BO3 剩 3 / BO5 选满 5）。
  */
 const MIN_POOL: Record<(typeof BO_TYPES)[number], number> = { BO1: 1, BO3: 3, BO5: 5 };
 

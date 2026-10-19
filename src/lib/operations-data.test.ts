@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { getStageGuidance, type StageGuidanceInput } from "./operations-data";
-import { STAGE_CONFIGS } from "./scheduling/stage";
+import { STAGE_CONFIGS } from "./domains/schedule/stage";
 
 const base: StageGuidanceInput = {
   eventId: "event-test",

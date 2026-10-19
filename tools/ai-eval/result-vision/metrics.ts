@@ -8,8 +8,8 @@
 //      评测与线上用同一套 BO 校验，避免两边规则分叉后评测结果偏乐观。
 // =====================
 
-import { validateGames } from "../../../src/lib/scheduling/schedule-ops";
-import type { GameResult } from "../../../src/lib/scheduling/schedule-data";
+import { validateGames } from "../../../src/lib/domains/schedule/schedule-ops";
+import type { GameResult } from "../../../src/lib/domains/schedule/schedule-data";
 import type { CaseInput, CasePrediction, CaseTruth, ParsedGame, ParsedOutput, TruthGame } from "./types";
 
 export type CaseStatus =

@@ -17,8 +17,8 @@ import { readRefereeCredential } from "@/lib/referee/referee-auth";
 import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
 import { refereeFailureResponse } from "@/lib/referee/failure-response";
 import { refereeUploadEvidence } from "@/lib/referee/reporting-data";
-import { hashEvidenceBytes } from "@/lib/scheduling/evidence-ops";
-import { MAX_EVIDENCE_BYTES } from "@/lib/scheduling/evidence-domain";
+import { hashEvidenceBytes } from "@/lib/domains/schedule/evidence-ops";
+import { MAX_EVIDENCE_BYTES } from "@/lib/domains/schedule/evidence-domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

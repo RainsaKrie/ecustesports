@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { getLifecycleStages, stateTones, type ModuleWithState, type StageGuidance } from "@/lib/operations-data";
 import type { EditableEvent } from "@/lib/site-config-schema";
-import type { EventStage } from "@/lib/scheduling/stage";
+import type { EventStage } from "@/lib/domains/schedule/stage";
 import { useAdminConfirm } from "@/components/admin/ui";
 
 interface AdminSidebarProps {

@@ -1,5 +1,5 @@
 import type { EventStatus } from "@/types";
-import type { StageConfig } from "@/lib/scheduling/format-templates";
+import type { StageConfig } from "@/lib/domains/schedule/format-templates";
 import { getGameConfig } from "@/lib/games";
 
 /** 默认图池（取自游戏配置层）。新建赛事时预勾选这些地图。 */

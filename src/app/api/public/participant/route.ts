@@ -3,7 +3,7 @@ import { readEventData, updateEventData } from "@/lib/data-store";
 import { getSiteConfig } from "@/lib/site-config";
 import { findParticipant, readParticipantToken, withoutParticipantSecret } from "@/lib/domains/identity/participant-auth";
 import { isKnownRank, normalizePositions } from "@/lib/games";
-import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import {
   initialRegistration,
   normalizeRegistrationState,

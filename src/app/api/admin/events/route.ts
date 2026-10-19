@@ -8,12 +8,12 @@
 
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { isAdminRequest } from "@/lib/domains/identity/admin-session";
-import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig } from "@/lib/scheduling/format-templates";
-import { resolveSupportedFormat } from "@/lib/scheduling/format-support";
+import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig } from "@/lib/domains/schedule/format-templates";
+import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";
 import { initialRegistration } from "@/lib/domains/registration/data";
 import { getGameConfig } from "@/lib/games";
-import { emptySchedule, type ScheduleState } from "@/lib/scheduling/schedule-data";
+import { emptySchedule, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import { eventDescriptionIssue } from "@/lib/domains/content/limits";
 import { canPublish, publicationChecklist } from "@/lib/domains/content/publication-check";
 import { getCommonRuleLibrary } from "@/lib/rule-library";

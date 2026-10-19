@@ -1,7 +1,7 @@
 import "server-only";
 
 import { readData, writeData } from "@/lib/data-store";
-import { DEFAULT_COMMON_HANDBOOK_RULES } from "@/lib/scheduling/format-templates";
+import { DEFAULT_COMMON_HANDBOOK_RULES } from "@/lib/domains/schedule/format-templates";
 import type { EditableRule } from "@/lib/site-config-schema";
 
 const categories: NonNullable<EditableRule["category"]>[] = ["format", "match-day", "conduct", "incident", "appeal"];
