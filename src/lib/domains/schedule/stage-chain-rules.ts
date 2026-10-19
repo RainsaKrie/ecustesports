@@ -23,6 +23,12 @@ export interface StageSpec {
   bo: BoFormat;
   /** 分组类段：小组数（每组固定 4 队） */
   groups?: number;
+  /**
+   * 直进名额（2026-10-19 加）：本段除了接上一段的晋级队，还有多少支**直接进入**。
+   * 用于"资格赛并入正赛"这类汇合：如 28 支直进 + 4 支从资格赛打进 = 32 强。
+   * 不填视为 0（纯链条）。
+   */
+  directEntries?: number;
   /** 双败：败者组的 BO（不填则同 bo） */
   loserBo?: BoFormat;
 }
@@ -108,10 +114,24 @@ export function validateStageChain(chain: StageChain): StageChainResult {
 
   // R6 入口守恒 + 段内规则
   chain.stages.forEach((stage, index) => {
-    const expected = index === 0 ? chain.entrants : chain.stages[index - 1].advance;
+    const direct = Math.max(0, stage.directEntries ?? 0);
+    // 首段的"应进入数"：报名数扣掉第 2 段声明的直进名额。
+    // 汇合型下报名数 ≠ 首段进入数（36 队里 8 支打资格赛、28 支直进入围赛）。
+    const firstStageShare = chain.entrants - Math.max(0, chain.stages[1]?.directEntries ?? 0);
+    const expected = index === 0 ? firstStageShare : chain.stages[index - 1].advance + direct;
     if (stage.entrants !== expected) {
-      add("R6", index, `第 ${index + 1} 段要求 ${stage.entrants} 支，但${index === 0 ? "报名" : `第 ${index} 段只晋级`} ${expected} 支。`);
+      const source = index === 0
+        ? `报名 ${expected} 支`
+        : direct > 0
+          ? `第 ${index} 段晋级 ${chain.stages[index - 1].advance} 支 + 直进 ${direct} 支`
+          : `第 ${index} 段只晋级 ${expected} 支`;
+      add("R6", index, `第 ${index + 1} 段要求 ${stage.entrants} 支，但${source}。`);
       return; // 入口不对时，后面的段内判定没有意义
+    }
+    // 首段不该有直进（它的来源就是报名）
+    if (index === 0 && direct > 0) {
+      add("R6", 0, "第 1 段的进入数就是报名数，不需要再设直进名额。");
+      return;
     }
     if (stage.advance < 1 || stage.advance >= stage.entrants) {
       add("R6", index, `第 ${index + 1} 段晋级数必须是 1 到 ${stage.entrants - 1} 之间（当前 ${stage.advance}）。`);

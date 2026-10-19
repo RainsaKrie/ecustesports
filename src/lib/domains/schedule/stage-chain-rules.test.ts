@@ -35,29 +35,40 @@ function chainFromTemplate(template: (typeof FORMAT_TEMPLATES)[number]): StageCh
     "single-elim-groups": "group-single-elim",
     "round-robin": "round-robin",
   };
-  const stages = template.stages.map((stage, index) => ({
-    name: stage.name,
-    type: (KIND[stage.type] ?? "single-elim") as never,
-    entrants: stage.teamCount,
-    advance: template.stages[index + 1]?.teamCount ?? 1,
-    bo: Number(String(stage.boType).replace("BO", "")) as 1 | 3 | 5,
-    ...(stage.groupCount ? { groups: stage.groupCount } : {}),
-  }));
-  return { entrants: stages[0]?.entrants ?? 0, stages };
+  const stages = template.stages.map((stage, index) => {
+    const next = template.stages[index + 1];
+    // 汇合型（下一段比本段大，如资格赛 8 队并入入围赛 32 队）：本段晋级 = 本段一半；
+    // 纯链条：本段晋级 = 下一段的进入数（末段为 1）。
+    const mergingNext = next ? next.teamCount > stage.teamCount : false;
+    const advance = mergingNext ? Math.max(1, Math.floor(stage.teamCount / 2)) : (next?.teamCount ?? 1);
+    // 本段的直进 = 本段进入数 − 上一段晋级数（首段为 0）
+    const prevStage = template.stages[index - 1];
+    const prevMerging = prevStage ? stage.teamCount > prevStage.teamCount : false;
+    const prevAdvance = index === 0 ? stage.teamCount
+      : prevMerging ? Math.max(1, Math.floor(prevStage.teamCount / 2))
+      : prevStage.teamCount;
+    const directEntries = index === 0 ? 0 : Math.max(0, stage.teamCount - prevAdvance);
+    return {
+      name: stage.name,
+      type: (KIND[stage.type] ?? "single-elim") as never,
+      entrants: stage.teamCount,
+      advance,
+      bo: Number(String(stage.boType).replace("BO", "")) as 1 | 3 | 5,
+      ...(stage.groupCount ? { groups: stage.groupCount } : {}),
+      ...(directEntries > 0 ? { directEntries } : {}),
+    };
+  });
+  // 总报名数：首段进入数 + 第 2 段的直进名额。
+  // 汇合型下「报名数」不等于任何一段的进入数 —— 36 队里 8 支打资格赛、28 支直进入围赛。
+  const totalEntrants = (stages[0]?.entrants ?? 0) + (stages[1]?.directEntries ?? 0);
+  return { entrants: totalEntrants, stages };
 }
 
 for (const template of FORMAT_TEMPLATES) {
   // 「汇合型」模板（前一段比后一段小，如资格赛 8 队并入入围赛 32 队）**不是链条** ——
   // 赛段链模型目前表达不了"28 支直进 + 4 支从资格赛并入"，这里明确跳过并报出来，
   // 不装作它通过了校验。
-  const merging = template.stages.some((stage, index) => {
-    const next = template.stages[index + 1];
-    return next ? stage.teamCount < next.teamCount : false;
-  });
-  if (merging) {
-    console.log(`  – 现有赛制 ${template.name}：汇合型（前一赛段并入后一赛段），赛段链模型暂不支持，跳过`);
-    continue;
-  }
+
   const chain = chainFromTemplate(template);
   const result = validateStageChain(chain);
   check(`现有赛制 ${template.name} 通过校验（不能被新规则误杀）`, result.problems.length === 0,
