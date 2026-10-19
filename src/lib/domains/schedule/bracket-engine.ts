@@ -7,86 +7,12 @@ import type { Group, Matchup } from "@/lib/domains/registration/format";
 import type { ScheduleMatch } from "./schedule-data.ts";
 
 /** 待定占位（晋级推进后由真实队伍填充） */
-export const TBD = "TBD";
+import { BYE, PENDING, TBD, createMatch, isPowerOfTwo, matchId, singleEliminationRoundName, slot } from "@/lib/domains/schedule/bracket-engine-core";
+import type { MatchFactoryOptions, Slot } from "@/lib/domains/schedule/bracket-engine-core";
 
-/** 轮空占位：签位中该位置直接晋级，不生成比赛。 */
-export const BYE = "BYE";
+// 保持对外的导出面不变：常量此前从本模块导出。
+export { BYE, PENDING, TBD };
 
-/**
- * 预留席位占位符。
- *
- * 用于「资格赛还没全部打完，但想先把剩余席位抽掉」的场景：
- * 入围赛有 `advancingTeams × 2` 个签位，其中几个要等资格赛胜者，
- * 就把这几个位置填成 PENDING。
- *
- * **与 BYE 的区别**：BYE 表示「对手轮空、本队直接晋级」，**不产生比赛**；
- * PENDING 表示「对手待定」，**比赛照常生成**，等资格赛补齐后再填队。
- * 所以有 PENDING 时轮空数为 0，16 场全打。
- */
-export const PENDING = "PENDING";
-
-
-interface Slot {
-  id: string;
-  side: "A" | "B";
-}
-
-interface MatchFactoryOptions {
-  startIndex?: number;
-  phase: string;
-  /**
-   * 该场比赛所属的轮次名。单轮阶段（资格赛、入围赛）不传时默认等于阶段名 ——
-   * 不能写死成「入围赛」：四阶段赛制里资格赛也复用这个构造器，写死会让
-   * 资格赛的对阵显示成「资格赛 · 入围赛」。
-   */
-  round?: string;
-  boType: ScheduleMatch["boType"];
-}
-
-function slot(id: string, side: "A" | "B"): Slot {
-  return { id, side };
-}
-
-function matchId(index: number): string {
-  return `M${String(index).padStart(2, "0")}`;
-}
-
-function createMatch(
-  id: string,
-  phase: string,
-  round: string,
-  boType: ScheduleMatch["boType"],
-  extra: Partial<ScheduleMatch> = {},
-): ScheduleMatch {
-  return {
-    id,
-    phase,
-    round,
-    boType,
-    teamAId: TBD,
-    teamBId: TBD,
-    teamAName: "待定",
-    teamBName: "待定",
-    startTime: "",
-    endTime: "",
-    status: "待排期",
-    frozen: false,
-    ...extra,
-  };
-}
-
-function isPowerOfTwo(value: number): boolean {
-  return value >= 2 && (value & (value - 1)) === 0;
-}
-
-function singleEliminationRoundName(entrants: number, roundIndex: number): string {
-  if (entrants === 2) return "决赛";
-  if (entrants === 4) return "半决赛";
-  if (entrants === 8) return "四分之一决赛";
-  return `第 ${roundIndex + 1} 轮`;
-}
-
-/** 生成完整单败结构；例如 4 队 = 2 场半决赛 + 1 场决赛。 */
 export function buildSingleEliminationMatches(
   teamIds: string[],
   teamName: (id: string) => string,
