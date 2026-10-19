@@ -128,7 +128,8 @@ const WRITERS: Array<{ file: string; sites: number; stamp: string; reason: strin
   },
   {
     file: "app/api/admin/events/format/route.ts",
-    sites: 1,
+    // 2026-10-19 新增：自定义赛段链保存时，清掉「抽完签但一场没打」的旧骨架（同一次请求内）
+    sites: 2,
     stamp: "stampScheduleVersion",
     reason: "换赛制时清掉「未开打骨架」（只清待排期且无开赛时间的场次），需递增 version",
   },

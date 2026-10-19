@@ -13,6 +13,7 @@ import {
 import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import { formatChangeRefusal, unplayedStagesToClear } from "@/lib/domains/schedule/format-support";
 import { stampScheduleVersion } from "@/lib/domains/schedule/schedule-ops";
+import type { StageType } from "@/lib/domains/schedule/format-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,15 +35,21 @@ export async function POST(request: NextRequest) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
   try {
-    const body = await request.json().catch(() => null) as { eventId?: string; templateId?: string } | null;
+    const body = await request.json().catch(() => null) as {
+      eventId?: string;
+      templateId?: string;
+      /** 自定义赛段链（自由编排）。给了它就不再走模板 */
+      stages?: Array<{ name?: string; type?: string; teamCount?: number; boType?: string; groupCount?: number }>;
+    } | null;
     const eventId = body?.eventId?.trim() ?? "";
     const templateId = body?.templateId?.trim() ?? "";
-    if (!eventId || !templateId) {
+    const customStages = Array.isArray(body?.stages) ? body.stages : null;
+    if (!eventId || (!templateId && !customStages)) {
       return Response.json({ message: "缺少赛事或赛制" }, { status: 400 });
     }
 
-    const template = getFormatTemplate(templateId);
-    if (!template) return Response.json({ message: "赛制模板不存在" }, { status: 400 });
+    const template = templateId ? getFormatTemplate(templateId) : null;
+    if (templateId && !template) return Response.json({ message: "赛制模板不存在" }, { status: 400 });
 
     const config = await getSiteConfig();
     const existing = config.events.find((event) => event.id === eventId);
@@ -53,7 +60,52 @@ export async function POST(request: NextRequest) {
     // 于是「入围赛打完了、想把还没抽签的小组赛换个打法」这种安全改动也被挡住。
     // 现在按真正要守的两条判：已生成阶段的配置不变、它的晋级人数不变（见 formatChangeRefusal）。
     const schedule = await readEventData<ScheduleState>(eventId, "schedule", emptySchedule());
-    const stageConfigs = toStageConfigs(template.stages);
+
+    // —— 自定义赛段链：只改赛段配置，不动赛事的文案与规则（那些仍来自赛事当前模板）——
+    if (customStages) {
+      const STAGE_TYPES = ["single-elim", "double-elim", "gsl-groups", "single-elim-groups", "round-robin", "swiss"];
+      const cleaned = customStages
+        .map((stage) => ({
+          name: (stage.name ?? "").trim().slice(0, 40) || "赛段",
+          type: String(stage.type ?? "") as StageType,
+          teamCount: Number(stage.teamCount ?? 0),
+          boType: String(stage.boType ?? "BO3") as "BO1" | "BO3" | "BO5",
+          ...(stage.groupCount ? { groupCount: Number(stage.groupCount) } : {}),
+        }))
+        .filter((stage) => STAGE_TYPES.includes(stage.type) && stage.teamCount > 0 && ["BO1", "BO3", "BO5"].includes(stage.boType));
+      if (cleaned.length === 0) return Response.json({ message: "赛段配置不完整" }, { status: 400 });
+
+      // 复用同一条护栏：已生成阶段的配置与晋级人数不许变
+      const refusalCustom = formatChangeRefusal(existing.stageConfigs ?? [], cleaned, schedule.matches ?? []);
+      if (refusalCustom) return Response.json({ message: refusalCustom }, { status: 400 });
+
+      const clearedCustom = unplayedStagesToClear(existing.stageConfigs ?? [], cleaned, schedule.matches ?? []);
+      await updateSiteConfig((config) => ({
+        ...config,
+        events: config.events.map((event) => (event.id === eventId ? { ...event, stageConfigs: cleaned } : event)),
+      }));
+      if (clearedCustom.length > 0) {
+        // 清掉「抽完签但一场没打」的旧骨架，否则新赛制会被场次校验堵死
+        await updateEventData<ScheduleState>(eventId, "schedule", emptySchedule(), (stored) => {
+          const state = normalizeScheduleState(stored);
+          // 写 schedule 必须递增版本 —— 否则版本护栏看不见这次改动（写入点清单也这么要求）
+          return stampScheduleVersion(state, {
+            ...state,
+            matches: (state.matches ?? []).filter((match) => !clearedCustom.includes(match.phase)),
+          });
+        });
+      }
+      await recordOperationAuditSafely(request, {
+        eventId,
+        actorType: "admin",
+        action: "event.format.custom",
+        target: existing.name,
+        metadata: { stages: cleaned.length },
+      });
+      return Response.json({ message: "赛制已保存", stageConfigs: cleaned });
+    }
+
+    const stageConfigs = toStageConfigs(template!.stages);
     const refusal = formatChangeRefusal(existing.stageConfigs ?? [], stageConfigs, schedule.matches ?? []);
     if (refusal) {
       return Response.json({ message: refusal }, { status: 400 });
@@ -124,8 +176,8 @@ export async function POST(request: NextRequest) {
 
     return Response.json({
       message: clearedMatchCount > 0
-        ? `赛制已调整为 ${template.name}；同时清除了 ${clearedPhases.join("、")} 的 ${clearedMatchCount} 场未排期对阵，请到抽签页重新生成`
-        : `赛制已调整为 ${template.name}`,
+        ? `赛制已调整为 ${template!.name}；同时清除了 ${clearedPhases.join("、")} 的 ${clearedMatchCount} 场未排期对阵，请到抽签页重新生成`
+        : `赛制已调整为 ${template!.name}`,
       clearedPhases,
       clearedMatchCount,
       event: saved.events.find((event) => event.id === eventId),
