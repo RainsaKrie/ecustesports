@@ -3,6 +3,7 @@
     "src/app/admin/events/[id]/schedule/page.tsx (896 行)",
     "src/app/bp/[id]/page.tsx (458 行)",
     "src/app/events/[id]/manage/page.tsx (390 行)",
+    "src/app/globals.css (1966 行)",
     "src/app/referee/RefereeWorkbench.tsx (882 行)",
     "src/components/admin/EventSettingsWorkspace.tsx (610 行)",
     "src/components/admin/FormatDrawWorkspace.tsx (981 行)",
@@ -45,5 +46,20 @@
     "src/app/events/[id]/page.tsx",
     "src/app/layout.tsx",
     "src/app/page.tsx"
+  ],
+  "domainToInfra": [
+    "src/lib/domains/result/evidence-store.ts",
+    "src/lib/domains/result/reporting-data.ts"
+  ],
+  "crossDomain": [
+    "src/lib/domains/identity/participant-auth.ts",
+    "src/lib/domains/result/reporting-data.ts",
+    "src/lib/domains/schedule/bracket-blueprint.ts",
+    "src/lib/domains/schedule/bracket-engine.ts",
+    "src/lib/domains/schedule/participant-recovery.ts",
+    "src/lib/domains/schedule/registration-admin-ops.ts",
+    "src/lib/domains/schedule/registration-ops.ts",
+    "src/lib/domains/schedule/round-robin.ts",
+    "src/lib/domains/schedule/staged-format.ts"
   ]
 }

@@ -31,7 +31,7 @@ function walk(dir: string): string[] {
     if (name === "node_modules" || name === ".next" || name.startsWith(".")) continue;
     const full = join(dir, name);
     if (statSync(full).isDirectory()) out.push(...walk(full));
-    else if (/\.(ts|tsx)$/.test(name)) out.push(full);
+    else if (/\.(ts|tsx|css)$/.test(name)) out.push(full);
   }
   return out;
 }
@@ -44,6 +44,10 @@ interface Baseline {
   longFiles: string[];
   hooksInLib: string[];
   deepImports: string[];
+  /** 领域层直连基础设施（2026-10-19 补） */
+  domainToInfra: string[];
+  /** 领域之间互相引用（2026-10-19 补） */
+  crossDomain: string[];
 }
 
 function scan(): Baseline {
@@ -70,7 +74,33 @@ function scan(): Baseline {
     .map((file) => relative(ROOT, file).replace(/\\/g, "/"))
     .sort();
 
-  return { longFiles, hooksInLib, deepImports };
+  // ④ 领域层不许直连基础设施：domains/** 里 import 内核的数据访问入口
+  const domainToInfra = walk(join(ROOT, "src/lib/domains"))
+    .filter((file) => !isTest(file))
+    .filter((file) => {
+      const src = read(file);
+      return KERNEL_ENTRIES.some((entry) => new RegExp(`from\\s+["']@/lib/${entry}["']`).test(src));
+    })
+    .map((file) => relative(ROOT, file).replace(/\\/g, "/"))
+    .sort();
+
+  // ⑤ 领域之间不许互相引用（跨域编排只允许在 application 层）
+  const domainName = (rel: string) => rel.split("/")[3] ?? "";
+  const crossDomain = walk(join(ROOT, "src/lib/domains"))
+    .filter((file) => !isTest(file))
+    .filter((file) => {
+      const self = domainName(relative(ROOT, file).replace(/\\/g, "/"));
+      const src = read(file);
+      const targets = [...src.matchAll(/from\s+["'](?:@\/lib\/domains\/|\.\.\/[^"']*)/g)].length;
+      if (targets === 0) return false;
+      // 别名形式：@/lib/domains/<other>/
+      const aliased = [...src.matchAll(/from\s+["']@\/lib\/domains\/([^/"']+)/g)].map((m) => m[1]);
+      return aliased.some((target) => target !== self);
+    })
+    .map((file) => relative(ROOT, file).replace(/\\/g, "/"))
+    .sort();
+
+  return { longFiles, hooksInLib, deepImports, domainToInfra, crossDomain };
 }
 
 const current = scan();
@@ -149,8 +179,25 @@ check(
 );
 if (deepDiff.removed.length > 0) console.log(`    ↓ 已收敛：${deepDiff.removed.join("、")}`);
 
+// ④ / ⑤（2026-10-19 补）：两个此前完全没查的方向
+const d2iDiff = diff(current.domainToInfra, baseline.domainToInfra);
+check(
+  "④ 领域层没有新增的「直连基础设施」",
+  d2iDiff.added.length === 0,
+  d2iDiff.added.map((item) => `    + ${item}`).join("\n"),
+);
+if (d2iDiff.removed.length > 0) console.log(`    ↓ 已收敛：${d2iDiff.removed.join("、")}`);
+
+const crossDiff = diff(current.crossDomain, baseline.crossDomain);
+check(
+  "⑤ 领域之间没有新增的互相引用（跨域编排只允许在 application）",
+  crossDiff.added.length === 0,
+  crossDiff.added.map((item) => `    + ${item}`).join("\n"),
+);
+if (crossDiff.removed.length > 0) console.log(`    ↓ 已收敛：${crossDiff.removed.join("、")}`);
+
 console.log("");
-console.log(`当前待还：超限文件 ${current.longFiles.length} 个、lib 内 hooks ${current.hooksInLib.length} 个、跨层 import ${current.deepImports.length} 个`);
+console.log(`当前待还：超限文件 ${current.longFiles.length} 个（含 .css）、lib 内 hooks ${current.hooksInLib.length} 个、跨层 import ${current.deepImports.length} 个、领域直连基础设施 ${current.domainToInfra.length} 个、跨域引用 ${current.crossDomain.length} 个`);
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
 if (fail > 0) {
