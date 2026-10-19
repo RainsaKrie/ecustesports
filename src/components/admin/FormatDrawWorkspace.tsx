@@ -320,8 +320,14 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   }, [eventId]);
 
   const drawnGroupIds = useMemo(() => new Set(groups.flatMap((group) => group.teamIds)), [groups]);
-  const totalSlots = drawMode === "locked" ? 0 : eligibleTeamIds.length;
-  const drawnCount = drawMode === "slot" ? drawOrder.length : drawMode === "groups" ? drawnGroupIds.size : 0;
+  // 瑞士轮 / 循环赛**不需要抽签**：第 1 轮按种子顺序直接配对（见 buildSwissMatches）。
+  // 这里把它们视为"已就绪"，否则 done 永远为 false —— 发布按钮永远点不了，
+  // 后端明明能生成对阵（bracket-blueprint 已接），界面上却没有入口。
+  const noDrawNeeded = format?.kind === "swiss" || format?.kind === "round-robin";
+  const totalSlots = noDrawNeeded ? eligibleTeamIds.length : (drawMode === "locked" ? 0 : eligibleTeamIds.length);
+  const drawnCount = noDrawNeeded
+    ? totalSlots
+    : drawMode === "slot" ? drawOrder.length : drawMode === "groups" ? drawnGroupIds.size : 0;
   const done = totalSlots > 0 && drawnCount === totalSlots;
 
   function drawOne() {
