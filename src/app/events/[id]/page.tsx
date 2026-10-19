@@ -87,7 +87,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   const isPreparing = event.status === "draft";
   return (
-    <div>
+    <div className="pub-dark pub-poster relative overflow-hidden">
       {previewMode && (
         <div className="border-b border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-[#9a4808]">
           <Container className="flex flex-wrap items-center justify-between gap-3">

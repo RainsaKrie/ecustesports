@@ -147,7 +147,7 @@ export default function EventDetailTabs({
 
   return (
     <div id="event-content" className="scroll-mt-24">
-      <div className="mb-0 overflow-hidden border-y border-black/10 bg-[#f2eee6] sm:overflow-x-auto">
+      <div className="mb-0 overflow-hidden border-y border-[var(--pub-line)] bg-black/30 sm:overflow-x-auto">
         <div role="tablist" aria-label="赛事资料" className="mx-auto grid w-full grid-cols-5 sm:flex sm:min-w-max sm:justify-center">
           {TABS.map((item) => {
             const isActive = tab === item;
@@ -160,8 +160,8 @@ export default function EventDetailTabs({
                 onClick={() => setTab(item)}
                 className={`relative min-h-14 min-w-0 border-b-[3px] px-1.5 py-4 text-[0.6875rem] font-black transition sm:shrink-0 sm:px-8 sm:text-xs ${
                   isActive
-                    ? "border-[#ff4655] bg-[#fffdf8] text-[#171a1f]"
-                    : "border-transparent text-[#5b626c] hover:bg-black/[0.04] hover:text-[#171a1f]"
+                    ? "border-[#ff4655] bg-white/[0.07] text-[var(--pub-txt)]"
+                    : "border-transparent text-[var(--pub-txt-soft)] hover:bg-white/[0.04] hover:text-[var(--pub-txt)]"
                 }`}
               >
                 {TAB_LABELS[item]}
