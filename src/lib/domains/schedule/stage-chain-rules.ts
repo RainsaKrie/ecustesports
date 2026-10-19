@@ -67,8 +67,9 @@ function matchesOf(stage: StageSpec): number {
     case "gsl-groups":
     case "group-single-elim": {
       const groups = stage.groups ?? Math.floor(stage.entrants / 4);
-      // 每组 4 队双败制：GSL 每组 4 场；小组单败每组 3 场 + 交叉淘汰
-      const perGroup = stage.type === "gsl-groups" ? 4 : 3;
+      // GSL 每组 5 场（2 揭幕 + 胜者组决赛 + 败者组首轮 + 败者组决赛）；
+      // 小组单败是组内循环：每组 C(4,2) = 6 场。初版把两者写成 4/3，估少了。
+      const perGroup = stage.type === "gsl-groups" ? 5 : 6;
       return groups * perGroup + Math.max(0, eliminated - groups);
     }
   }
