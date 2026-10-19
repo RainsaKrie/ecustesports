@@ -14,7 +14,7 @@
 //   2. types/index.ts 的类型联合
 //   3. site-config-schema.ts 的 validTypes 白名单
 //   4. app/api/admin/events/route.ts 的 validTypes 白名单
-//   5. components/events/EventHandbook.tsx 的文案表（★ 就是漏过的那一处）
+//   5. components/events/EventHandbookParts.tsx 的文案表（★ 就是漏过的那一处）
 // =====================
 
 import { readFileSync } from "node:fs";
@@ -62,7 +62,7 @@ const registries: Array<{ label: string; file: string }> = [
   { label: "types/index.ts 的类型联合", file: "src/types/index.ts" },
   { label: "site-config-schema.ts 的 validTypes 白名单", file: "src/lib/site-config-schema.ts" },
   { label: "app/api/admin/events/route.ts 的 validTypes 白名单", file: "src/app/api/admin/events/route.ts" },
-  { label: "★ EventHandbook.tsx 的文案表（漏过一次的那处）", file: "src/components/events/EventHandbook.tsx" },
+  { label: "★ EventHandbook.tsx 的文案表（漏过一次的那处）", file: "src/components/events/EventHandbookParts.tsx" },
 ];
 
 for (const { label, file } of registries) {

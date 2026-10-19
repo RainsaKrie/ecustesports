@@ -21,7 +21,11 @@
       "named": 0
     },
     "src/components/events/EventHandbook.tsx": {
-      "hex": 13,
+      "hex": 7,
+      "named": 0
+    },
+    "src/components/events/EventHandbookParts.tsx": {
+      "hex": 6,
       "named": 0
     },
     "src/components/events/PublicSchedule.tsx": {

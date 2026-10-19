@@ -8,7 +8,6 @@
     "src/components/admin/FormatDrawWorkspace.tsx (948 行)",
     "src/components/admin/RegistrationOperationsWorkspace.tsx (779 行)",
     "src/components/admin/ReviewWorkspace.tsx (435 行)",
-    "src/components/events/EventHandbook.tsx (413 行)",
     "src/lib/domains/result/reporting-data.ts (753 行)",
     "src/lib/domains/result/result-vision.ts (522 行)",
     "src/lib/domains/schedule/bracket-engine.ts (427 行)",
