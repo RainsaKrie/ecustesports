@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { useParticipant } from "@/lib/domains/schedule/useParticipant";
+import { useParticipant } from "@/hooks/useParticipant";
 import type { EventStage } from "@/lib/domains/schedule/stage";
 
 function ActionLink({ href, children, emphasis = false }: { href: string; children: React.ReactNode; emphasis?: boolean }) {

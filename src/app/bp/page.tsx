@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
-import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { useSchedule } from "@/hooks/useSchedule";
 import { buildBPOrder } from "@/lib/domains/schedule/bp";
 import type { BPSession } from "@/lib/domains/schedule/bp-ops";
 

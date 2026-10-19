@@ -5,7 +5,7 @@ import Image from "next/image";
 import { EsportEvent } from "@/types";
 import { getStatusInfo } from "@/lib/utils";
 import { STAGE_CONFIGS, type EventStage } from "@/lib/domains/schedule/stage";
-import { useParticipant } from "@/lib/domains/schedule/useParticipant";
+import { useParticipant } from "@/hooks/useParticipant";
 import Button from "@/components/ui/Button";
 
 interface Props {

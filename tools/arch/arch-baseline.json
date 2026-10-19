@@ -25,12 +25,7 @@
     "tools/gate6/playin36-rehearsal.ts (1080 行)",
     "tools/gate6/production-audit.ts (452 行)"
   ],
-  "hooksInLib": [
-    "src/lib/domains/schedule/useParticipant.ts",
-    "src/lib/domains/schedule/usePublicRegistration.ts",
-    "src/lib/domains/schedule/useRegistration.ts",
-    "src/lib/domains/schedule/useSchedule.ts"
-  ],
+  "hooksInLib": [],
   "deepImports": [
     "src/app/admin/events/[id]/layout.tsx",
     "src/app/admin/site-content/page.tsx",

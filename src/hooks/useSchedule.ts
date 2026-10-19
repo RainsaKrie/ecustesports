@@ -6,12 +6,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ScheduleState, ScheduleMatch, GameResult } from "./schedule-data.ts";
+import type { ScheduleState, ScheduleMatch, GameResult } from "@/lib/domains/schedule/schedule-data";
 import { applyBulkAssignments, type BulkAssignment } from "@/lib/domains/schedule/bulk-schedule";
 import { teamSwapRefusal, type TeamSlot } from "@/lib/domains/schedule/team-swap";
 import { swapTeamsOp } from "@/lib/domains/schedule/schedule-ops";
-import { emptySchedule, normalizeScheduleState } from "./schedule-data.ts";
-import type { SchedulingConfig, ValidationResult } from "./rule-engine.ts";
+import { emptySchedule, normalizeScheduleState } from "@/lib/domains/schedule/schedule-data";
+import type { SchedulingConfig, ValidationResult } from "@/lib/domains/schedule/rule-engine";
 import {
   importMatchesOp,
   archiveAndClearScheduleOp,
@@ -22,8 +22,8 @@ import {
   reportGameResultsOp,
   setMatchTimeOp,
   saveBPMapsOp,
-} from "./schedule-ops.ts";
-import { SCHEDULE_SYNC_POLL_MS, decideScheduleSync } from "./schedule-freshness.ts";
+} from "@/lib/domains/schedule/schedule-ops";
+import { SCHEDULE_SYNC_POLL_MS, decideScheduleSync } from "@/lib/domains/schedule/schedule-freshness";
 
 /** 「已自动同步」提示的停留时长：够看完一句话，又不至于常驻。 */
 const AUTO_SYNC_NOTE_MS = 10_000;

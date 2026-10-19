@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { selectPublicRoster } from "./public-roster.ts";
+import { selectPublicRoster } from "@/lib/domains/schedule/public-roster";
 
 export interface PublicRegistrationSummary {
   playerCount: number;

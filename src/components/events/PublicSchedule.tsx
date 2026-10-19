@@ -3,7 +3,7 @@
 import { useState } from "react";
 import StatusChip from "@/components/events/StatusChip";
 
-import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { useSchedule } from "@/hooks/useSchedule";
 import type { GameResult } from "@/lib/domains/schedule/schedule-data";
 
 function fmt(iso: string): string {

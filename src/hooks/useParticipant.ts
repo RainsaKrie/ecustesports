@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { RegistrationPlayer, RegistrationTeam, TeamRequest } from "@/lib/domains/registration/data";
-import type { RescheduleRecord, ScheduleMatch } from "./schedule-data.ts";
-import type { BOType, SchedulingConfig } from "./rule-engine.ts";
-import { participantTokenKey } from "./usePublicRegistration.ts";
+import type { RescheduleRecord, ScheduleMatch } from "@/lib/domains/schedule/schedule-data";
+import type { BOType, SchedulingConfig } from "@/lib/domains/schedule/rule-engine";
+import { participantTokenKey } from "@/hooks/usePublicRegistration";
 
 export interface ParticipantTeam extends RegistrationTeam {
   members: Array<Pick<RegistrationPlayer, "id" | "gameId" | "rank" | "role">>;

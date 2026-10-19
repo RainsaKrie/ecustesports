@@ -11,7 +11,7 @@
 // =====================
 
 import { useEffect } from "react";
-import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { useSchedule } from "@/hooks/useSchedule";
 import StatusChip from "@/components/events/StatusChip";
 
 type Team = {

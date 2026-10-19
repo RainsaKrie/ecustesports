@@ -1,6 +1,6 @@
 "use client";
 
-import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { useSchedule } from "@/hooks/useSchedule";
 import type { ScheduleMatch } from "@/lib/domains/schedule/schedule-data";
 import TournamentBracketCanvas, { advancementPath } from "@/components/events/TournamentBracketCanvas";
 

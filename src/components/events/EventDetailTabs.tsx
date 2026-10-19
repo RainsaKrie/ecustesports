@@ -8,7 +8,7 @@ import { useState } from "react";
 import EventHandbook, { type HandbookEvent } from "@/components/events/EventHandbook";
 import PublicSchedule from "@/components/events/PublicSchedule";
 import ScheduleBracket from "@/components/events/ScheduleBracket";
-import { usePublicRegistration, type PublicRegistrationSummary } from "@/lib/domains/schedule/usePublicRegistration";
+import { usePublicRegistration, type PublicRegistrationSummary } from "@/hooks/usePublicRegistration";
 import { STAGE_CONFIGS, type EventStage } from "@/lib/domains/schedule/stage";
 
 const TABS = ["赛事手册", "选手名单", "队伍名单", "赛程", "对阵图"] as const;

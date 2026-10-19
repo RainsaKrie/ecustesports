@@ -3,7 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import { useSchedule } from "@/lib/domains/schedule/useSchedule";
+import { useSchedule } from "@/hooks/useSchedule";
 import { formatSyncedAgo, formatSyncedClock } from "@/lib/domains/schedule/schedule-freshness";
 import { validateGames, maxGames, winTarget } from "@/lib/domains/schedule/schedule-ops";
 import type { ScheduleMatch, GameResult } from "@/lib/domains/schedule/schedule-data";

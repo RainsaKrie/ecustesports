@@ -5,8 +5,8 @@ import Link from "next/link";
 import Container from "@/components/layout/Container";
 import GroupNotice from "@/components/events/GroupNotice";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
-import { participantTokenKey, usePublicRegistration } from "@/lib/domains/schedule/usePublicRegistration";
-import { useParticipant } from "@/lib/domains/schedule/useParticipant";
+import { participantTokenKey, usePublicRegistration } from "@/hooks/usePublicRegistration";
+import { useParticipant } from "@/hooks/useParticipant";
 import { getGameConfig } from "@/lib/games";
 
 /** 段位阶梯与擅长位置取自游戏配置层（原先本文件里各写了一遍段位表与位置表）。 */
