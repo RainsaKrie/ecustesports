@@ -95,6 +95,29 @@ console.log("== 随机战绩路径（20 组）==");
   check("20 组随机战绩全部无重赛、每轮人人出场", worst === 0, `问题数 ${worst}`);
 }
 
+console.log("== 随机战绩路径（20 组）==");
+{
+  // 不只测"id 小的赢"这一条路径：随机决定胜负，检查任意战绩分布下都能配出无重赛对阵
+  let seed = 42;
+  const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  let worst = 0;
+  for (let trial = 0; trial < 20; trial += 1) {
+    const ids = teams(16);
+    let state: SwissState = { scores: {}, played: [], hadBye: [] };
+    for (let round = 0; round < 4; round += 1) {
+      const pairing = pairSwissRound(ids, state, round);
+      const seen = new Set<string>();
+      for (const [x, y] of pairing.pairs) {
+        if (state.played.includes(pairKey(x, y))) worst += 1;
+        seen.add(x); seen.add(y);
+      }
+      if (seen.size !== 16) worst += 1;
+      state = applySwissRound(state, pairing, pairing.pairs.map(([x, y]) => (rand() < 0.5 ? x : y)));
+    }
+  }
+  check("20 组随机战绩全部无重赛、每轮人人出场", worst === 0, `问题数 ${worst}`);
+}
+
 console.log("");
 console.log(`结果：通过 ${pass} / ${pass + fail}`);
 if (fail > 0) process.exit(1);
