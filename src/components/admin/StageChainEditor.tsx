@@ -20,6 +20,7 @@ import {
   type StageChain,
   type StageType,
 } from "@/lib/domains/schedule/stage-chain-rules";
+import { FORMAT_TEMPLATES } from "@/lib/domains/schedule/format-templates";
 import { DENSE_MICRO, DENSE_META, DENSE_TITLE } from "@/components/admin/RegistrationWorkspaceParts";
 
 type TypeMeta = { id: StageType; name: string; desc: string };
@@ -60,36 +61,38 @@ const TYPES: TypeMeta[] = [
   { id: "swiss", name: "瑞士轮", desc: "同战绩互打，不淘汰，打满轮数取前几名" },
 ];
 
-interface Template {
-  label: string;
-  entrants: number;
-  stages: Array<{ name: string; type: StageType; advance: number; bo: BoFormat }>;
+/** 模板**从真实模板表生成**（7 套），不手写副本 —— 手写的会脱节：
+ *  原先这里有 5 套硬编码，而 `FORMAT_TEMPLATES` 有 7 套，少了那两套汇合型（资格赛并入正赛）。 */
+type Template = { label: string; entrants: number; stages: EditorStage[] };
+type FormatTemplateStage = (typeof FORMAT_TEMPLATES)[number]["stages"][number];
+
+function templatesFromLibrary(): Template[] {
+  return FORMAT_TEMPLATES.map((template) => {
+    const stages: EditorStage[] = template.stages.map((stage: FormatTemplateStage, index: number) => {
+      const next = template.stages[index + 1];
+      const prev = template.stages[index - 1];
+      // 汇合型：本段比上一段大 → 本段晋级 = 本段一半，差额是直进
+      const mergingNext = next ? next.teamCount > stage.teamCount : false;
+      const advance = mergingNext ? Math.max(1, Math.floor(stage.teamCount / 2)) : (next?.teamCount ?? 1);
+      const prevAdvance = index === 0 ? stage.teamCount
+        : (stage.teamCount > (prev?.teamCount ?? 0) ? Math.max(1, Math.floor((prev?.teamCount ?? 0) / 2)) : (prev?.teamCount ?? 0));
+      const directEntries = index === 0 ? 0 : Math.max(0, stage.teamCount - prevAdvance);
+      const bo = Number(String(stage.boType).replace("BO", "")) as BoFormat;
+      return {
+        name: stage.name,
+        type: stage.type as StageType,
+        advance,
+        bo: (bo === 1 || bo === 5 ? bo : 3) as BoFormat,
+        ...(directEntries > 0 ? { directEntries } : {}),
+      };
+    });
+    // 队伍数 = 首段进入数 + 第 2 段直进（汇合型下总报名 ≠ 首段进入数）
+    const total = (template.stages[0]?.teamCount ?? 0) + (stages[1]?.directEntries ?? 0);
+    return { label: template.name, entrants: total, stages };
+  });
 }
 
-/** 模板按**赛制结构**命名，不用赛事品牌名（品牌名不解释事情） */
-const TEMPLATES: Template[] = [
-  { label: "16 队 · 小组 + 双败", entrants: 16, stages: [
-    { name: "小组赛", type: "gsl-groups", advance: 8, bo: 3 },
-    { name: "淘汰赛", type: "double-elim", advance: 1, bo: 5 },
-  ] },
-  { label: "16 队 · 瑞士轮 + 单败", entrants: 16, stages: [
-    { name: "瑞士轮", type: "swiss", advance: 8, bo: 1 },
-    { name: "淘汰赛", type: "single-elim", advance: 1, bo: 3 },
-  ] },
-  { label: "8 队 · 双败", entrants: 8, stages: [
-    { name: "双败淘汰", type: "double-elim", advance: 1, bo: 5 },
-  ] },
-  { label: "32 队 · 小组 + 双败", entrants: 32, stages: [
-    { name: "小组赛", type: "gsl-groups", advance: 16, bo: 3 },
-    { name: "淘汰赛", type: "double-elim", advance: 1, bo: 5 },
-  ] },
-  { label: "36 队 · 四段（现行）", entrants: 36, stages: [
-    { name: "资格赛", type: "single-elim", advance: 32, bo: 1 },
-    { name: "入围赛", type: "single-elim", advance: 16, bo: 3 },
-    { name: "小组赛", type: "gsl-groups", advance: 8, bo: 3 },
-    { name: "淘汰赛", type: "single-elim", advance: 1, bo: 5 },
-  ] },
-];
+const TEMPLATES = templatesFromLibrary();
 
 const isPowerOfTwo = (n: number) => n >= 2 && (n & (n - 1)) === 0;
 
@@ -143,7 +146,7 @@ export default function StageChainEditor({
     onChange(value.map((stage, index) => (index === i ? { ...stage, ...part } : stage)));
 
   const applyTemplate = (tpl: Template) => {
-    onChange(tpl.stages.map((stage) => ({ ...stage, directEntries: 0 })));
+    onChange(tpl.stages.map((stage) => ({ ...stage })));
     setOpenIndex(-1);
     setOpenIndex(-1);
   };
