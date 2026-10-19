@@ -13,7 +13,8 @@
 > - **生产已上线**：`https://ecustesports.top` 运行第三届华理瓦理杯。**今天已进入比赛期**（报名 09-01～09-30 已结束；比赛计划 10.7–11.8）。本文件早前记录的 staging 预发布地址 `esports-operations-assistant-stagin.vercel.app` **已失效**（域名不再解析到 Vercel），不要再当作可用环境。
 > - **赛事进展（2026-10-12 只读核实生产）**：赛程版本 75，已建 20 场 —— 资格赛 4/4 已完成、入围赛 6/16 已完成，另有 9 场已排期、1 场待排期。报名口径：36 支队伍 / 205 人。
 > - **匿名测试赛 `event-mt8f43vq` 已完成全部 50 场**（含完整双败与两场 BO5，冠军疾风战队），**不得重置、另建赛事或重复回放**。它只存在于本地/staging，**不在生产**。
-> - **Gate 5 / Gate 6 / Gate 7 均已通过**。生产迁移三项已全部执行（含 `match-evidence` 私有桶）。
+> - **Gate 5 / Gate 6 已通过；Gate 7 进行中** —— 生产已上线（`ecustesports.top`），赛事 10.7–11.8 仍在进行，验收指标待赛后回收。
+> - 生产迁移三项已全部执行（含 `match-evidence` 私有桶）。
 > - **裁判报分开关已在生产启用**（2026-09-16）**，但按本文档记录尚未建裁判账号**。2026-10-12 复核：开关确实是开的（用无效凭证打六个裁判接口得到的是 401，而不是「功能暂未开放」的 403），且失败提示已统一成中文、不再把内部码显示给裁判。**「有没有账号」无法从公开接口核实**；若确实还没建，那已录的 10 场结果就只能是负责人在工作台手工录的。
 > - **AI 状态（精确表述）**：识图报分的代码、工作台接入与离线评测**都已做完**（真实截图 5/5 正确），但**生产未配置视觉模型环境变量，功能未启用**。AI **不写赛果**——最终写入仍必须走裁判确认。
 > - **审核语义已于 2026-09-17 改为「默认通过 + 手动标记需修改」**：报名者不需要逐个审核，负责人只在选手列表里标记不合规的人。四处硬门槛（建队/补人/冻结名单/换人）仍要求「已通过」，但默认值即为已通过，因此不需要人工逐个点。**若看到旧文档说「待审核」，那是过期表述。**
@@ -31,7 +32,7 @@
 - Node：使用系统命令 `node` / `npm`（当前环境 Node.js 22）
 - **项目根目录：`D:\Projects\esports-operations-assistant-production-fixes`**
   （文档里出现的 `D:\桌面\esports-operations-assistant` 是**旧路径**，已迁盘，不要再使用）
-- 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → 38 个测试套件 → 构建）
+- 统一门禁：`CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run gate`（= lint → typecheck → **42 个测试套件**（含 game-data / arch-guards / ui-guards / color-guard / stage-chain-rules / round-robin / swiss）→ 构建）
   · 环境变量 `CODEBUDDY_SAFE_DELETE_ENABLED=0` 是必须的：本机删除守卫会在 Next 清理构建缓存时拦截，报
   `SAFE_DELETE_BULK_CONFIRM_REQUIRED`，**不是代码问题**；CI 不需要该开关。
 - 端到端验收（不在上面的门禁里）：`npm run test:rehearsal36`
@@ -153,7 +154,7 @@ typecheck 通过、**20 个测试套件全部通过**、构建 19/19 静态页�
   ④ 公开赛事页的「参赛选手／参赛队伍」改为只呈现**正式名单**（真实浏览器实测 16/16）：
   组队申报截止且已有正式队伍之后，未满编队伍、未组队选手不再出现在公开接口与公开页面上
   （线上 42 支 195 人 → 公开 36 支 180 人），**数据一条未删** —— 后台照旧完整可见、可撤销、可申诉。
-  规则集中在 `src/lib/scheduling/public-roster.ts`，公开接口与管理端预览共用同一份，避免两处走歪。
+  规则集中在 `src/lib/domains/schedule/public-roster.ts`，公开接口与管理端预览共用同一份，避免两处走歪。
   报名期（组队申报未截止）行为完全不变：那时玩家要靠这份名单找队伍加入，
   且「组队刚截止、还没确认任何队伍」时会退回显示全部，避免公开页出现空名单。
   新增套件 `npm run test:public-roster`（15 条断言），已并入 `test:all`。
@@ -229,8 +230,8 @@ typecheck 通过、**20 个测试套件全部通过**、构建 19/19 静态页�
 |---|---|
 | `src/lib/operations-data.ts` | 3 模块定义 + 状态徽标 + 生命周期条 |
 | `src/lib/site-config-schema.ts` | 数据模型（EditableEvent 含 stageConfigs；proposal 仅为旧数据兼容字段） |
-| `src/lib/scheduling/format-templates.ts` | 赛制模板（StageConfig 类型 + buildEventFromTemplate） |
-| `src/lib/scheduling/bracket.ts` | 对阵图生成逻辑 |
+| `src/lib/domains/schedule/format-templates.ts` | 赛制模板（StageConfig 类型 + buildEventFromTemplate） |
+| `src/lib/domains/schedule/bracket-engine.ts` | 对阵图生成逻辑（单败/双败/GSL/小组单败的构建器） |
 | `src/components/admin/AdminSidebar.tsx` | 侧边栏（生命周期条 + 状态徽标 + 返回入口） |
 | `src/components/admin/EventListSwitcher.tsx` | 赛事列表切换器 |
 | `src/app/admin/page.tsx` | L1 赛事列表页 |
@@ -242,7 +243,7 @@ typecheck 通过、**20 个测试套件全部通过**、构建 19/19 静态页�
 | `src/app/admin/events/[id]/registration/page.tsx` | 01 报名路由入口 |
 | `src/components/admin/RegistrationOperationsWorkspace.tsx` | 报名审核、更正、代建/补人、名单确认、换人、退赛、操作记录和撤销工作台 |
 | `src/app/api/admin/registration/route.ts` | 赛事级原子化负责人报名操作接口 |
-| `src/lib/scheduling/registration-admin-ops.ts` | 负责人异常运营纯函数与安全撤销规则 |
+| `src/lib/domains/schedule/registration-admin-ops.ts` | 负责人异常运营纯函数与安全撤销规则 |
 | `src/app/admin/events/[id]/settings/page.tsx` | 03 设置（已精简） |
 | `src/components/admin/EventSettingsWorkspace.tsx` | 单赛事分区设置工作区、规则继承与发布检查 |
 | `src/app/admin/events/[id]/format/page.tsx` | 重定向到 /schedule |
@@ -252,7 +253,7 @@ typecheck 通过、**20 个测试套件全部通过**、构建 19/19 静态页�
 | `src/app/api/admin/events/publication/route.ts` | 赛事显式发布/撤回 API 与赛程发布门槛 |
 | `src/app/events/[id]/page.tsx` | 玩家赛事页阶段主任务、唯一主按钮与当前安排 |
 | `src/components/events/EventDetailTabs.tsx` | 玩家赛事资料标签与后台数据驱动的赛事手册 |
-| `src/lib/scheduling/stage.ts` | 负责人端与玩家端共用的阶段判定、玩家阶段引导配置 |
+| `src/lib/domains/schedule/stage.ts` | 负责人端与玩家端共用的阶段判定、玩家阶段引导配置 |
 | `src/app/globals.css` | 全局样式 |
 
 ## 数据模型要点
@@ -314,7 +315,19 @@ const token=exp+"."+createHmac("sha256",S).update(exp).digest("hex");
 
 ## 立即开始
 
-**当前阶段（2026-10-12）：Gate 7 已完成，生产已上线运行，赛事进行中（10.7–11.8）。**
+
+### 2026-10-17 起的新主线（旧交接文档不含，必须一起读）
+
+| 主线 | 文档 | 状态（2026-10-19） |
+|---|---|---|
+| 架构重构 | `10-后续开发规划/19` 方案 / `20` 计划 | 阶段 0 完成；阶段 1 领域归位 5/5（7 域未满：缺 event/format）；阶段 2 用例 2/2（需要的那两个） |
+| 设计系统 | `23` UI 升级 / `24` 重建设计简报 / `25` 公开面规范 | 结构资产（PageShell/Section/ContextBar/DataTable/StatusChip）已落地；**视觉方向 10-18 清零，未重定** |
+| 赛制自定义 | `27-赛制规则设计_v2.0`（**唯一有效**；v1 已标废弃） | 13 条规则 + 6 个引擎（含瑞士轮/循环）+ 编排器 + 保存**已打通**；**汇合型模板（资格赛并入正赛）模型暂不支持** |
+| 守卫 | `26` 守卫与巡检梳理 | 建议稿，未执行 |
+
+> **状态以 `git log` 与本文档为准**；上述计划文档的头部状态多为「待确认」，**不反映实际执行进度**。
+
+**当前阶段（2026-10-19 更新）：Gate 7 进行中 —— 生产已上线运行，赛事 10.7–11.8 进行中，验收指标待赛后回收。**
 
 > **负责人已明确表态的三件事（不要再提、不要排进待办）**：
 > ① **催报名/催满编** —— 不需要 AI 介入，**不要主动提起**；
