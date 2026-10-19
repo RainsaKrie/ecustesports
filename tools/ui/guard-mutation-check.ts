@@ -44,6 +44,27 @@ const CASES: Case[] = [
     },
   },
   {
+    // 2026-10-19 新增：基线内文件只许变短、不许变长
+    name: "①b 基线内文件变长（arch-guards）",
+    script: "test:arch-guards",
+    expect: "①b 已在基线里的超限文件没有继续变长",
+    apply: () => patchFile("src/components/admin/FormatDrawWorkspace.tsx", "\"use client\";", "\"use client\";\n// mutation probe"),
+  },
+  {
+    // 2026-10-19 新增：领域层不许直连基础设施
+    name: "④ 领域层直连基础设施（arch-guards）",
+    script: "test:arch-guards",
+    expect: "④ 领域层没有新增的「直连基础设施」",
+    apply: () => patchFile("src/lib/domains/content/publication-check.ts", "import", "import { readEventData } from \"@/lib/data-store\";\nimport"),
+  },
+  {
+    // 2026-10-19 新增：领域之间不许互相引用
+    name: "⑤ 领域之间互相引用（arch-guards）",
+    script: "test:arch-guards",
+    expect: "⑤ 领域之间没有新增的互相引用",
+    apply: () => patchFile("src/lib/domains/content/publication-check.ts", "import", "import type { ScheduleMatch } from \"@/lib/domains/schedule/schedule-data\";\nimport"),
+  },
+  {
     name: "② lib 下新增 hooks 导出（arch-guards）",
     script: "test:arch-guards",
     expect: "② src/lib 下没有新增的 hooks 导出",
