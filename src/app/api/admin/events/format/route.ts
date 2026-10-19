@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       eventId?: string;
       templateId?: string;
       /** 自定义赛段链（自由编排）。给了它就不再走模板 */
-      stages?: Array<{ name?: string; type?: string; teamCount?: number; boType?: string; groupCount?: number }>;
+      stages?: Array<{ name?: string; type?: string; teamCount?: number; boType?: string; groupCount?: number; directEntries?: number }>;
     } | null;
     const eventId = body?.eventId?.trim() ?? "";
     const templateId = body?.templateId?.trim() ?? "";
@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
         teamCount: Number(stage.teamCount ?? 0),
         boType: String(stage.boType ?? "BO3") as "BO1" | "BO3" | "BO5",
         ...(stage.groupCount ? { groupCount: Number(stage.groupCount) } : {}),
+        // 直进名额（汇合型）：本段进入数里有多少支不从上一段来
+        ...(Number(stage.directEntries ?? 0) > 0 ? { directEntries: Number(stage.directEntries) } : {}),
       }));
       if (cleaned.length === 0 || cleaned.some((stage) => !(stage.teamCount > 0))) {
         return Response.json({ message: "赛段配置不完整" }, { status: 400 });
@@ -108,7 +110,10 @@ export async function POST(request: NextRequest) {
           name: stage.name,
           type: RULE_KIND[stage.type] as never,
           entrants: stage.teamCount,
-          advance: cleaned[index + 1]?.teamCount ?? 1,
+          // 晋级数：若下一段是汇合型（比本段大），本段晋级 = 本段一半；否则 = 下一段进入数
+          advance: cleaned[index + 1] && cleaned[index + 1].teamCount > stage.teamCount
+            ? Math.max(1, Math.floor(stage.teamCount / 2))
+            : (cleaned[index + 1]?.teamCount ?? 1),
           bo: Number(stage.boType.replace("BO", "")) as BoFormat,
           ...(stage.groupCount ? { groups: stage.groupCount } : {}),
         })),

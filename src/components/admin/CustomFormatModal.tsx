@@ -62,10 +62,12 @@ export default function CustomFormatModal({
       // 编辑器只存 {名称, 类型, 晋级, BO} —— 这里补出库里要的 teamCount 与 boType
       let cursor = teams;
       const payload = value.map((stage) => {
+        const direct = Math.max(0, stage.directEntries ?? 0);
         const row = {
           name: stage.name,
           type: stage.type,
-          teamCount: cursor,
+          teamCount: cursor + direct,
+          ...(direct > 0 ? { directEntries: direct } : {}),
           boType: `BO${stage.bo}` as "BO1" | "BO3" | "BO5",
           ...(stage.type === "gsl-groups" || stage.type === "group-single-elim"
             ? { groupCount: Math.max(1, Math.round(cursor / 4)) }

@@ -25,15 +25,25 @@ import { DENSE_MICRO, DENSE_META, DENSE_TITLE } from "@/components/admin/Registr
 type TypeMeta = { id: StageType; name: string; desc: string };
 
 /** 编辑器里每段只存这四个字段 —— 进入数是**推出来**的，不让人填，也就不会对不上 */
-export type EditorStage = { name: string; type: StageType; advance: number; bo: BoFormat };
+export type EditorStage = {
+  name: string;
+  type: StageType;
+  advance: number;
+  bo: BoFormat;
+  /** 直进名额：本段除了接上一段晋级，还有多少支直接进入（汇合型，如 28 直进 + 4 资格赛打进 = 32） */
+  directEntries?: number;
+};
 
 /** 转成校验器要的完整链（补出每段的 entrants） */
 function toChain(entrants: number, stages: EditorStage[]): StageChain {
-  let cursor = entrants;
+  // 首段进入数 = 总报名数 − 第 2 段的直进名额（汇合型下不相等：36 队里只有 8 支打资格赛）
+  const firstShare = Math.max(0, entrants - Math.max(0, stages[1]?.directEntries ?? 0));
+  let cursor = firstShare;
   return {
     entrants,
     stages: stages.map((stage) => {
-      const spec = { ...stage, entrants: cursor };
+      const direct = Math.max(0, stage.directEntries ?? 0);
+      const spec = { ...stage, entrants: cursor + direct };
       cursor = stage.advance;
       return spec;
     }),
@@ -120,7 +130,10 @@ export default function StageChainEditor({
   const { problems, warnings } = useMemo(() => validateStageChain(chain), [chain]);
 
   /** 第 i 段进入多少支 */
-  const entryOf = (i: number) => (i === 0 ? entrants : value[i - 1].advance);
+  const firstShare = Math.max(0, entrants - Math.max(0, value[1]?.directEntries ?? 0));
+  /** 第 i 段的进入数：首段扣掉汇合直进，其余接上一段晋级 + 本段直进 */
+  const entryOf = (i: number) =>
+    i === 0 ? firstShare : value[i - 1].advance + Math.max(0, value[i].directEntries ?? 0);
 
   // 漏斗宽度：以最大队数为满宽，逐层收窄（宽度本身就是信息）
   const maxN = Math.max(entrants, ...value.map((_, i) => entryOf(i)), 1);
@@ -130,7 +143,8 @@ export default function StageChainEditor({
     onChange(value.map((stage, index) => (index === i ? { ...stage, ...part } : stage)));
 
   const applyTemplate = (tpl: Template) => {
-    onChange(tpl.stages.map((stage) => ({ ...stage })));
+    onChange(tpl.stages.map((stage) => ({ ...stage, directEntries: 0 })));
+    setOpenIndex(-1);
     setOpenIndex(-1);
   };
 
@@ -248,6 +262,32 @@ export default function StageChainEditor({
                       })}
                     </div>
                     <p className={`mt-2 ${DENSE_META} text-[var(--adm-text-soft)]`}>{type?.desc}</p>
+
+                    {i > 0 && (
+                      <>
+                        <p className={`mt-3 ${DENSE_MICRO} font-bold text-[var(--adm-text-soft)]`}>
+                          直进（除上一段晋级外，本段还有多少支直接进入）
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          {[0, 4, 8, 12, 16, 20, 24, 28, 32].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              disabled={readOnly}
+                              aria-pressed={(stage.directEntries ?? 0) === n}
+                              onClick={() => patch(i, { directEntries: n })}
+                              className={`border px-2.5 py-1 font-mono text-[length:var(--adm-fs-sm)] tabular-nums transition-colors duration-150 ${
+                                (stage.directEntries ?? 0) === n
+                                  ? "border-[var(--adm-red)] font-bold text-[var(--adm-red-text)] shadow-[inset_0_0_0_1px_var(--adm-red)]"
+                                  : "border-[var(--adm-line)] font-semibold text-[var(--adm-text)] hover:border-[var(--adm-text)]"
+                              }`}
+                            >
+                              {n === 0 ? "无" : `+${n}`}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
 
                     <div className="mt-3 flex flex-wrap gap-6">
                       <div>
