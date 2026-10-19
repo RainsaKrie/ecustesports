@@ -91,22 +91,10 @@ const DEFAULT_MIN_EXACT_HITS = 2;
  *
  * 顺带处理：全角井号、首尾空白、以及零宽字符。
  */
-export function normalizeGameId(raw: string): string {
-  if (typeof raw !== "string") return "";
-  // 常见的井号变体，以及零宽字符
-  const cleaned = raw
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .replace(/[＃﹟]/g, "#")
-    .trim();
-  const hash = cleaned.lastIndexOf("#");
-  const name = hash > 0 ? cleaned.slice(0, hash) : cleaned;
-  return name.trim();
-}
+import { matchKey, normalizeGameId } from "@/lib/domains/result/identity-match-keys";
 
-/** 比较用的键：忽略大小写与内部空白差异 */
-function matchKey(name: string): string {
-  return normalizeGameId(name).toLowerCase().replace(/\s+/g, "");
-}
+// 保持对外的导出面不变：调用方此前从本模块 import normalizeGameId。
+export { normalizeGameId };
 
 interface RosterIndex {
   /** matchKey → 拥有该昵称的队伍集合 */
