@@ -13,6 +13,7 @@
 import { useEffect } from "react";
 import { useSchedule } from "@/hooks/useSchedule";
 import StatusChip from "@/components/events/StatusChip";
+import { advancementPath } from "@/components/events/TournamentBracketCanvas";
 
 type Team = {
   id: string;
@@ -119,6 +120,12 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
                   {next.startTime ? next.startTime.slice(5, 16).replace("T", " ") : next.status}
                   <span className="ml-2">{next.phase} · {next.boType}</span>
                 </p>
+                {/* 晋级路径：方案里点名"有晋级路径、我们没有"。复用对阵图同一个纯函数，避免两处口径走偏。 */}
+                {advancementPath(next) && (
+                  <p className="mt-1 border-t border-[#ffd9dd] pt-1 font-mono text-[0.5625rem] text-[#c83242]">
+                    {advancementPath(next)}
+                  </p>
+                )}
               </div>
             )}
             {matches.length === 0 ? (
