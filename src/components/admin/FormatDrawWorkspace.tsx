@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import CustomFormatModal from "@/components/admin/CustomFormatModal";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { AdminModal } from "@/components/admin/ui";
@@ -106,6 +107,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
   const [formatModalOpen, setFormatModalOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
   const [targetTemplate, setTargetTemplate] = useState("");
   const [changingFormat, setChangingFormat] = useState(false);
 
@@ -633,16 +635,37 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
     setFormatModalOpen(true);
   }
 
-  const formatModalNode = formatModalOpen ? (
-    <FormatChangeModal
-      hint={rosterHint}
-      targetTemplate={targetTemplate}
-      onSelect={setTargetTemplate}
-      onClose={() => setFormatModalOpen(false)}
-      onConfirm={changeFormat}
-      busy={changingFormat}
-    />
-  ) : null;
+  // 两个弹窗挂在同一个节点里：它已经在三个分支（正常 / 早退 / 错误）各渲染一次，
+  // 放这里就三处都拿得到，不用改三处 JSX。
+  const formatModalNode = (
+    <>
+      {formatModalOpen && (
+        <FormatChangeModal
+          hint={rosterHint}
+          targetTemplate={targetTemplate}
+          onSelect={setTargetTemplate}
+          onClose={() => setFormatModalOpen(false)}
+          onConfirm={changeFormat}
+          onCustom={() => { setFormatModalOpen(false); setCustomOpen(true); }}
+          busy={changingFormat}
+        />
+      )}
+      {customOpen && event && (
+        <CustomFormatModal
+          eventId={eventId}
+          teams={(event.stageConfigs?.[0]?.teamCount) ?? event.teamCount ?? 0}
+          stages={(event.stageConfigs ?? []).map((stage) => ({
+            name: stage.name,
+            type: stage.type,
+            teamCount: stage.teamCount,
+            boType: stage.boType,
+          }))}
+          onClose={() => setCustomOpen(false)}
+          onSaved={() => { setCustomOpen(false); window.location.reload(); }}
+        />
+      )}
+    </>
+  );
 
   if (!loaded) {
     return <div className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-16 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">加载抽签数据…</div>;
@@ -846,6 +869,7 @@ function FormatChangeModal({
   onSelect,
   onClose,
   onConfirm,
+  onCustom,
   busy,
 }: {
   hint: string;
@@ -853,6 +877,8 @@ function FormatChangeModal({
   onSelect: (id: string) => void;
   onClose: () => void;
   onConfirm: () => void;
+  /** 自定义赛段链：交给父组件开编排器 */
+  onCustom: () => void;
   busy: boolean;
 }) {
   return (
@@ -862,6 +888,7 @@ function FormatChangeModal({
       onClose={onClose}
       footer={
         <>
+          <button type="button" onClick={onCustom} className="mr-auto adm-btn adm-btn--ghost adm-btn--md">自定义赛段链</button>
           <button type="button" onClick={onClose} className="adm-btn adm-btn--secondary adm-btn--md">取消</button>
           <button type="button" onClick={onConfirm} disabled={busy || !targetTemplate} className="adm-btn adm-btn--primary adm-btn--md">{busy ? "调整中…" : "确认调整"}</button>
         </>
