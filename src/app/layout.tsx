@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
+import "./pub-theme.css";
 import AppChrome from "@/components/layout/AppChrome";
 import { getPublicSiteConfig } from "@/lib/public-data-cache";
 

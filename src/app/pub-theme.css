@@ -1,0 +1,54 @@
+/* =====================
+   公开面暗色主题（2026-10-19 起，负责人决定全站换暗）
+   对齐 VLR.gg 的信息设计 + VALORANT 海报的硬边几何。
+   与后台的 --adm-* 浅色令牌**互不干扰**：公开面用 --pub-*，后台仍用 --adm-*。
+   三项硬指标：文字对比度 AA（灰字 ≥4.5:1）、卡片玻璃底在窄屏降级为纯色、只用一种强调色。
+   ===================== */
+.pub-dark {
+  --pub-bg: #0a0b0d;
+  --pub-card: rgba(255, 255, 255, 0.05);
+  --pub-card-solid: rgba(255, 255, 255, 0.055);
+  --pub-line: rgba(255, 255, 255, 0.16);
+  --pub-line-soft: rgba(255, 255, 255, 0.09);
+  --pub-txt: #f2f3f5;
+  --pub-txt-soft: rgba(242, 243, 245, 0.64);
+  /* .52 实测 5.26:1 —— .38 只有 3.27:1，不到 AA */
+  --pub-txt-mute: rgba(242, 243, 245, 0.52);
+  --pub-red: #ff4655;
+  background: var(--pub-bg);
+  color: var(--pub-txt);
+}
+/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片 */
+.pub-dark .pub-poster::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% -6%, rgba(255, 70, 85, 0.3), transparent 46%),
+    radial-gradient(circle at 92% 104%, rgba(255, 70, 85, 0.18), transparent 52%);
+}
+.pub-dark .pub-poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--pub-line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--pub-line-soft) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.5;
+}
+/* 玻璃卡：窄屏与不支持模糊时降级为纯色，避免逐行模糊掉帧 */
+.pub-dark .pub-card {
+  background: var(--pub-card);
+  border: 1px solid var(--pub-line-soft);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+@media (max-width: 780px) {
+  .pub-dark .pub-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--pub-card-solid); }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .pub-dark .pub-card { background: rgba(255, 255, 255, 0.07); }
+}
