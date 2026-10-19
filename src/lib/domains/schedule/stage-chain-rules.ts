@@ -139,10 +139,12 @@ export function validateStageChain(chain: StageChain): StageChainResult {
       }
     }
 
-    // R4 瑞士轮：8–64，全局最多一段
+    // R4 瑞士轮：队伍数必须是 2 的幂（8/16/32/64），且全局最多一段
+    // 负责人 2026-10-19 收紧：不是"随便什么队数都能进瑞士轮" ——
+    // 非 2 的幂会有轮空，配对时"谁轮空"会影响能否避免重赛，规则上直接禁止更干净。
     if (stage.type === "swiss") {
-      if (stage.entrants < 8 || stage.entrants > 64) {
-        add("R4", index, `瑞士轮需要 8–64 支队伍，第 ${index + 1} 段是 ${stage.entrants} 支。`);
+      if (!isPowerOfTwo(stage.entrants) || stage.entrants < 8) {
+        add("R4", index, `瑞士轮要求队伍数是 2 的幂（8/16/32/64）。第 ${index + 1} 段是 ${stage.entrants} 支 —— 请先筛到 8/16/32，或改用单败/循环。`);
       }
       if (chain.stages.filter((s) => s.type === "swiss").length > 1) {
         add("R4", index, "一个赛事只能有一段瑞士轮（它本身已经是多轮）。");

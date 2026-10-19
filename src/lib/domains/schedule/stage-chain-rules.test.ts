@@ -48,10 +48,19 @@ console.log("== 13 条规则各一个反例 ==");
   check("R3 小组数与队伍数不匹配被拒", rules(c).includes("R3"));
 }
 {
-  const c = base();
-  c.stages[2] = { ...c.stages[2], type: "swiss", entrants: 16, advance: 8 };
-  c.stages[3] = { ...c.stages[3], type: "swiss", entrants: 8, advance: 1 };
-  check("R4 两段瑞士轮被拒", rules(c).includes("R4"));
+  // 24 队瑞士：非 2 的幂，必须被拒（负责人 2026-10-19 收紧规则）
+  const c: StageChain = { entrants: 24, stages: [
+    { name: "瑞士", type: "swiss", entrants: 24, advance: 8, bo: 3 },
+    { name: "淘汰", type: "single-elim", entrants: 8, advance: 1, bo: 5 },
+  ] };
+  check("R4 瑞士轮队数非 2 的幂被拒", rules(c).includes("R4"));
+}
+{
+  const c: StageChain = { entrants: 16, stages: [
+    { name: "瑞士", type: "swiss", entrants: 16, advance: 8, bo: 3 },
+    { name: "淘汰", type: "single-elim", entrants: 8, advance: 1, bo: 5 },
+  ] };
+  check("R4 16 队瑞士通过", rules(c).length === 0, rules(c).join(","));
 }
 {
   const c = base();
