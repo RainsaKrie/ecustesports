@@ -113,10 +113,12 @@ const WRITERS: Array<{ file: string; sites: number; stamp: string; reason: strin
     reason: "BP 完成写入选图与通知",
   },
   {
-    file: "app/api/public/schedule/request/route.ts",
+    // 2026-10-19 阶段 2：这段编排从路由抽到了 application 用例，写入点随之迁移。
+    // 数量仍是 2（提交 / 处理各一次），只是位置变了 —— 属于登记而不是放宽。
+    file: "lib/application/reschedule.ts",
     sites: 2,
     stamp: "stampScheduleVersion",
-    reason: "队长提交约赛申请、对手队长确认 / 拒绝",
+    reason: "队长提交约赛申请、对手队长确认 / 拒绝（经 application/reschedule 用例）",
   },
   {
     file: "lib/domains/result/reporting-data.ts",

@@ -123,8 +123,10 @@ const SELF_AUTH = new Map<string, { marker: string | null; reason: string }>([
     reason: "玩家入口：报名建档本身。没有既有身份，安全性由字段校验与限流承担。",
   }],
   ["/api/public/schedule/request", {
-    marker: "findParticipant(",
-    reason: "队长提交/确认约赛时间，身份由参赛管理码推导，并校验是否为本场参赛队长。",
+    // 2026-10-19 阶段 2：鉴权编排随用例抽到 application/reschedule，路由本身不再直接调 findParticipant。
+    // 标记改成"委派给用例"——这不代表鉴权消失，而是它移到了 L2（用例内部仍校验管理码 + 是否本队队长）。
+    marker: "submitRescheduleRequest(",
+    reason: "队长提交/确认约赛时间，身份由参赛管理码推导并校验是否本场参赛队长（委派给 application/reschedule 用例）。",
   }],
   ["/api/public/team", {
     marker: "findParticipant(",
