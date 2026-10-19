@@ -11,9 +11,10 @@ import {
   type StageConfig,
 } from "@/lib/domains/schedule/format-templates";
 import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
+import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
+import { validateStageChain, type BoFormat } from "@/lib/domains/schedule/stage-chain-rules";
 import { formatChangeRefusal, unplayedStagesToClear } from "@/lib/domains/schedule/format-support";
 import { stampScheduleVersion } from "@/lib/domains/schedule/schedule-ops";
-import type { StageType } from "@/lib/domains/schedule/format-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,17 +64,69 @@ export async function POST(request: NextRequest) {
 
     // —— 自定义赛段链：只改赛段配置，不动赛事的文案与规则（那些仍来自赛事当前模板）——
     if (customStages) {
-      const STAGE_TYPES = ["single-elim", "double-elim", "gsl-groups", "single-elim-groups", "round-robin", "swiss"];
-      const cleaned = customStages
-        .map((stage) => ({
-          name: (stage.name ?? "").trim().slice(0, 40) || "赛段",
-          type: String(stage.type ?? "") as StageType,
-          teamCount: Number(stage.teamCount ?? 0),
-          boType: String(stage.boType ?? "BO3") as "BO1" | "BO3" | "BO5",
-          ...(stage.groupCount ? { groupCount: Number(stage.groupCount) } : {}),
-        }))
-        .filter((stage) => STAGE_TYPES.includes(stage.type) && stage.teamCount > 0 && ["BO1", "BO3", "BO5"].includes(stage.boType));
-      if (cleaned.length === 0) return Response.json({ message: "赛段配置不完整" }, { status: 400 });
+      // 类型有两个命名体系：库里存的是 format-templates 的名字（如 single-elim-groups），
+      // 规则层用的是 stage-chain-rules 的名字（如 group-single-elim）。这里做**别名归一**，
+      // 而不是用白名单过滤 —— 过滤会"静默丢段"（选组内循环，返回成功但少一段），必须报错。
+      // 只允许抽签端能画的类型。瑞士轮引擎（swiss.ts）已就绪，但抽签端还没接，
+      // 存进去就变成"能存不能抽" —— 所以在这里明确拒绝并说明，而不是静默丢段。
+      if (customStages.some((stage) => String(stage.type ?? "") === "swiss")) {
+        return Response.json({
+          message: "瑞士轮现在还不能自动生成对阵（引擎已就绪、抽签端未接入），暂不能保存。",
+        }, { status: 400 });
+      }
+      const PERSISTED: Record<string, "single-elim" | "double-elim" | "gsl-groups" | "single-elim-groups" | "round-robin"> = {
+        "single-elim": "single-elim",
+        "double-elim": "double-elim",
+        "gsl-groups": "gsl-groups",
+        "group-single-elim": "single-elim-groups",
+        "single-elim-groups": "single-elim-groups",
+        "round-robin": "round-robin",
+      };
+      const RULE_KIND: Record<string, string> = {
+        "single-elim": "single-elim",
+        "double-elim": "double-elim",
+        "gsl-groups": "gsl-groups",
+        "single-elim-groups": "group-single-elim",
+        "round-robin": "round-robin",
+        "swiss": "swiss",
+      };
+
+      const unknown = customStages.find((stage) => !PERSISTED[String(stage.type ?? "")]);
+      if (unknown) return Response.json({ message: `不认识的赛段类型：${String(unknown.type ?? "")}` }, { status: 400 });
+
+      const cleaned = customStages.map((stage) => ({
+        name: (stage.name ?? "").trim().slice(0, 40) || "赛段",
+        type: PERSISTED[String(stage.type ?? "")],
+        teamCount: Number(stage.teamCount ?? 0),
+        boType: String(stage.boType ?? "BO3") as "BO1" | "BO3" | "BO5",
+        ...(stage.groupCount ? { groupCount: Number(stage.groupCount) } : {}),
+      }));
+      if (cleaned.length === 0 || cleaned.some((stage) => !(stage.teamCount > 0))) {
+        return Response.json({ message: "赛段配置不完整" }, { status: 400 });
+      }
+
+      // ① 规则校验（与编辑器**同一份实现**）：不成立就拒绝，并说清哪一段
+      const chainResult = validateStageChain({
+        entrants: cleaned[0].teamCount,
+        stages: cleaned.map((stage, index) => ({
+          name: stage.name,
+          type: RULE_KIND[stage.type] as never,
+          entrants: stage.teamCount,
+          advance: cleaned[index + 1]?.teamCount ?? 1,
+          bo: Number(stage.boType.replace("BO", "")) as BoFormat,
+          ...(stage.groupCount ? { groups: stage.groupCount } : {}),
+        })),
+      });
+      if (chainResult.problems.length > 0) {
+        return Response.json({ message: chainResult.problems[0].message }, { status: 400 });
+      }
+
+      // ② 抽签端能不能画出这套组合：不能就别存（"能存不能抽"比不让存更糟）
+      if (resolveSupportedFormat(cleaned).kind === "unsupported") {
+        return Response.json({
+          message: "这套赛段组合目前还不能自动生成对阵，存了也抽不出赛程。请改用已有结构，或等对应引擎接入。",
+        }, { status: 400 });
+      }
 
       // 复用同一条护栏：已生成阶段的配置与晋级人数不许变
       const refusalCustom = formatChangeRefusal(existing.stageConfigs ?? [], cleaned, schedule.matches ?? []);
