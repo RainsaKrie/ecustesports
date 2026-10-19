@@ -33,6 +33,16 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
 
   const matches = schedule.matches.filter((m) => m.teamAId === team.id || m.teamBId === team.id);
   const finished = matches.filter((m) => m.status === "已完成");
+  // 选手最常问的是"我下一场什么时候、打谁" —— 未完成的比赛里按时间取最早一场。
+  // 没有时间的（待约期）排在有时间的后面，而不是排在最前。
+  const next = matches
+    .filter((m) => m.status !== "已完成")
+    .slice()
+    .sort((a, b) => {
+      const ta = a.startTime ? new Date(a.startTime).getTime() : Number.MAX_SAFE_INTEGER;
+      const tb = b.startTime ? new Date(b.startTime).getTime() : Number.MAX_SAFE_INTEGER;
+      return ta - tb;
+    })[0];
   const wins = finished.filter((m) => m.winnerTeamId === team.id).length;
   const complete = team.starterCount >= 5;
 
@@ -98,6 +108,19 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
           {/* 比赛记录：紧凑行 */}
           <div className="px-5 pb-5 pt-4">
             <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[#c83242]">Matches</p>
+            {next && (
+              <div className="mt-2 border-l-2 border-[#ff4655] bg-[#fff1f2] px-2.5 py-2">
+                <p className="font-mono text-[0.5625rem] font-black tracking-[0.12em] text-[#c83242]">NEXT</p>
+                <p className="mt-0.5 text-[0.8125rem] font-bold text-[#171a1f]">
+                  <span className="mr-1.5 text-[0.6875rem] font-normal text-[#8b929c]">VS</span>
+                  {next.teamAId === team.id ? next.teamBName : next.teamAName}
+                </p>
+                <p className="mt-0.5 font-mono text-[0.625rem] tracking-[0.06em] text-[#5b626c]">
+                  {next.startTime ? next.startTime.slice(5, 16).replace("T", " ") : next.status}
+                  <span className="ml-2">{next.phase} · {next.boType}</span>
+                </p>
+              </div>
+            )}
             {matches.length === 0 ? (
               <p className="mt-2 text-[0.8125rem] text-[#8b929c]">还没有安排到这支队伍的比赛</p>
             ) : (
