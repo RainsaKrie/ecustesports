@@ -92,7 +92,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
         <div className="border-b border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-[#9a4808]">
           <Container className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs font-bold">负责人预览 · {configured?.visibility === "public" ? "已公开" : "未公开"}</p>
-            <Link href={`/admin/events/${id}/settings`} className="border border-[#fde68a] bg-white px-3 py-2 text-xs font-black">返回赛事设置</Link>
+            <Link href={`/admin/events/${id}/settings`} className="border border-[#fde68a] bg-[var(--pub-card)] px-3 py-2 text-xs font-black">返回赛事设置</Link>
           </Container>
         </div>
       )}
@@ -106,19 +106,19 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
-                <span className="text-sm font-bold text-[#5b626c]">{event.game}</span>
+                <span className="text-sm font-bold text-[var(--pub-txt-soft)]">{event.game}</span>
               </div>
-              <h1 className="text-2xl font-bold text-[#171a1f] sm:text-3xl">{event.name}</h1>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[#171a1f]">{event.description}</p>
+              <h1 className="text-2xl font-bold text-[var(--pub-txt)] sm:text-3xl">{event.name}</h1>
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--pub-txt)]">{event.description}</p>
             </div>
 
-            <div className="mt-7 border border-[#d8d1c6] bg-white shadow-[0_16px_45px_rgba(15,25,35,0.08)]">
+            <div className="mt-7 border border-[var(--pub-line)] bg-[var(--pub-card)] shadow-[0_16px_45px_rgba(15,25,35,0.08)]">
               <div className="grid lg:grid-cols-[1fr_auto]">
-                <div className="border-b border-[#d8d1c6] p-5 sm:p-7 lg:border-b-0 lg:border-r">
+                <div className="border-b border-[var(--pub-line)] p-5 sm:p-7 lg:border-b-0 lg:border-r">
                   <p className="font-mono text-[11px] font-black tracking-[0.18em] text-[#ff4655]">当前阶段任务 · {stage}</p>
-                  <h2 className="mt-3 text-xl font-black text-[#171a1f] sm:text-2xl">{stageConfig.title}</h2>
-                  <div className="mt-5 border-l-2 border-[#ff4655] bg-[#f2eee6] px-4 py-3">
-                    <p className="text-sm font-bold leading-6 text-[#171a1f]">{stageContext}</p>
+                  <h2 className="mt-3 text-xl font-black text-[var(--pub-txt)] sm:text-2xl">{stageConfig.title}</h2>
+                  <div className="mt-5 border-l-2 border-[#ff4655] bg-white/[0.06] px-4 py-3">
+                    <p className="text-sm font-bold leading-6 text-[var(--pub-txt)]">{stageContext}</p>
                   </div>
                 </div>
 
