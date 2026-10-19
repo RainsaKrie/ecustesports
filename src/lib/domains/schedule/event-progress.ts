@@ -35,6 +35,9 @@ export function formatStageNames(format: SupportedFormat): string[] {
       return [format.groupStage.name, format.knockoutStage.name];
     case "slot-draw":
       return [format.stage.name];
+    case "swiss":
+    case "round-robin":
+      return [format.stage.name];
     case "unsupported":
       return [];
   }

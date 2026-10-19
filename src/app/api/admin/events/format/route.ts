@@ -69,18 +69,14 @@ export async function POST(request: NextRequest) {
       // 而不是用白名单过滤 —— 过滤会"静默丢段"（选组内循环，返回成功但少一段），必须报错。
       // 只允许抽签端能画的类型。瑞士轮引擎（swiss.ts）已就绪，但抽签端还没接，
       // 存进去就变成"能存不能抽" —— 所以在这里明确拒绝并说明，而不是静默丢段。
-      if (customStages.some((stage) => String(stage.type ?? "") === "swiss")) {
-        return Response.json({
-          message: "瑞士轮现在还不能自动生成对阵（引擎已就绪、抽签端未接入），暂不能保存。",
-        }, { status: 400 });
-      }
-      const PERSISTED: Record<string, "single-elim" | "double-elim" | "gsl-groups" | "single-elim-groups" | "round-robin"> = {
+      const PERSISTED: Record<string, "single-elim" | "double-elim" | "gsl-groups" | "single-elim-groups" | "round-robin" | "swiss"> = {
         "single-elim": "single-elim",
         "double-elim": "double-elim",
         "gsl-groups": "gsl-groups",
         "group-single-elim": "single-elim-groups",
         "single-elim-groups": "single-elim-groups",
         "round-robin": "round-robin",
+        "swiss": "swiss",
       };
       const RULE_KIND: Record<string, string> = {
         "single-elim": "single-elim",

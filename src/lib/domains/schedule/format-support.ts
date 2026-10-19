@@ -15,6 +15,10 @@ export type SupportedFormat =
       /** 参加资格赛的队伍数（恒为偶数，一半晋级） */
       playInTeams: number;
     }
+  /** 单段瑞士轮：只生成第 1 轮（相邻配对），后续轮次依赖战绩、报分后逐轮生成 */
+  | { kind: "swiss"; stage: StageConfig; requiredTeams: number }
+  /** 单段循环赛：全部队伍两两都打 */
+  | { kind: "round-robin"; stage: StageConfig; requiredTeams: number }
   | { kind: "unsupported"; message: string; requiredTeams: number };
 
 /** 32 队入围赛允许的最少真实队伍数：不足 17 队时应降级到 16 队赛制，而非用大量轮空硬凑 32 强。 */
@@ -174,6 +178,25 @@ export function resolveSupportedFormat(stages: StageConfig[]): SupportedFormat {
       minTeams: QUALIFIER_MIN_TEAMS,
     };
   }
+  // 单段瑞士轮：队伍数必须是 2 的幂且 ≥8（与 R4 同口径）。
+  // 注意它与单败/循环的语义差别：**抽签只出第 1 轮**，后续靠报分逐轮生成。
+  if (stages.length === 1 && stages[0]?.type === "swiss") {
+    const n = stages[0].teamCount;
+    if (!isPowerOfTwo(n) || n < 8) {
+      return { kind: "unsupported", requiredTeams: n, message: "瑞士轮要求队伍数是 2 的幂且不少于 8 支（8/16/32）。" };
+    }
+    return { kind: "swiss", stage: stages[0], requiredTeams: n };
+  }
+
+  // 单段循环赛：3–6 队（与 R5 同口径；队再多场次会爆）
+  if (stages.length === 1 && stages[0]?.type === "round-robin") {
+    const n = stages[0].teamCount;
+    if (n < 3 || n > 6) {
+      return { kind: "unsupported", requiredTeams: n, message: "循环赛只支持 3–6 支队伍；更多队伍请改用小组赛。" };
+    }
+    return { kind: "round-robin", stage: stages[0], requiredTeams: n };
+  }
+
   if (stages.length === 1 && stages[0]?.type === "single-elim") {
     if (!isPowerOfTwo(stages[0].teamCount)) {
       return { kind: "unsupported", requiredTeams, message: "单败淘汰的队伍数需为 2 的幂，例如 4、8、16 或 32 支。" };

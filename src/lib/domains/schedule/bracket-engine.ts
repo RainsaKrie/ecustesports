@@ -8,6 +8,8 @@ import type { ScheduleMatch } from "./schedule-data.ts";
 
 /** 待定占位（晋级推进后由真实队伍填充） */
 import { BYE, PENDING, TBD, createMatch, isPowerOfTwo, matchId, singleEliminationRoundName, slot } from "@/lib/domains/schedule/bracket-engine-core";
+import { pairSwissRound } from "@/lib/domains/schedule/swiss";
+import { buildRoundRobinRounds } from "@/lib/domains/schedule/round-robin";
 import type { MatchFactoryOptions, Slot } from "@/lib/domains/schedule/bracket-engine-core";
 
 // 保持对外的导出面不变：常量此前从本模块导出。
@@ -95,6 +97,50 @@ export function buildQualificationMatches(
     matchOffset++;
   }
   return { matches, byes };
+}
+
+/**
+ * 生成瑞士轮的**第 1 轮**（2026-10-19）。
+ *
+ * 与单败/循环的根本差别：瑞士轮**不能一次抽完全部对阵** —— 后续每轮依赖上一轮战绩。
+ * 所以这里只按种子顺序相邻配对出第 1 轮，其余轮次在报分后由 `pairSwissRound` 逐轮生成。
+ * 抽签页必须把这件事说清楚，否则办赛者会以为抽完就该看到决赛。
+ */
+export function buildSwissMatches(
+  teamIds: string[],
+  teamName: (id: string) => string,
+  options: MatchFactoryOptions,
+): ScheduleMatch[] {
+  const start = options.startIndex ?? 1;
+  const { pairs } = pairSwissRound(teamIds, { scores: {}, played: [], hadBye: [] }, 0);
+  return pairs.map(([a, b], index) =>
+    createMatch(matchId(start + index), options.phase, "第 1 轮", options.boType, { teamAId: a, teamBId: b, teamAName: teamName(a), teamBName: teamName(b) }),
+  );
+}
+
+/** 生成循环赛的全部场次（单组，3–6 队） */
+export function buildRoundRobinMatches(
+  teamIds: string[],
+  teamName: (id: string) => string,
+  options: MatchFactoryOptions,
+): ScheduleMatch[] {
+  const start = options.startIndex ?? 1;
+  const rounds = buildRoundRobinRounds(teamIds);
+  const matches: ScheduleMatch[] = [];
+  rounds.forEach((pairs, roundIndex) => {
+    pairs.forEach((pair) => {
+      const a = pair.teamAId;
+      const b = pair.teamBId;
+      matches.push(createMatch(
+        matchId(start + matches.length),
+        options.phase,
+        `第 ${roundIndex + 1} 轮`,
+        options.boType,
+        { teamAId: a, teamBId: b, teamAName: teamName(a), teamBName: teamName(b) },
+      ));
+    });
+  });
+  return matches;
 }
 
 /** 生成 8 队双败（14 场、总决赛不重置）。 */

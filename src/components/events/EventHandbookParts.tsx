@@ -16,6 +16,7 @@ export const STAGE_TYPE_LABELS: Record<string, string> = {
   "gsl-groups": "GSL 双败小组",
   "double-elim": "双败淘汰",
   "round-robin": "循环赛",
+  "swiss": "瑞士轮",
 };
 
 export const RULE_GROUPS = [

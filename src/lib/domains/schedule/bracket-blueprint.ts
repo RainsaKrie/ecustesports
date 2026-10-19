@@ -2,6 +2,8 @@ import {
   buildDoubleEliminationMatches,
   buildQualificationMatches,
   buildSingleEliminationMatches,
+  buildRoundRobinMatches,
+  buildSwissMatches,
   buildTournamentMatches,
 } from "./bracket-engine.ts";
 import type { Group, Matchup } from "@/lib/domains/registration/format";
@@ -64,6 +66,20 @@ export function buildBracketBlueprint(stages: StageConfig[]): ScheduleMatch[] {
           phase: format.stage.name,
           boType: format.stage.boType,
         });
+  }
+
+  // 单段瑞士轮 / 循环赛（2026-10-19 接入）：不走分组抽签盘
+  if (format.kind === "swiss") {
+    return buildSwissMatches(slotIds(format.requiredTeams), placeholderName, {
+      phase: format.stage.name,
+      boType: format.stage.boType,
+    });
+  }
+  if (format.kind === "round-robin") {
+    return buildRoundRobinMatches(slotIds(format.requiredTeams), placeholderName, {
+      phase: format.stage.name,
+      boType: format.stage.boType,
+    });
   }
 
   const { groups, matchups } = gslBlueprint();

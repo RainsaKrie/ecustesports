@@ -465,7 +465,7 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
           if (sourceStages.length === 0) return fallback.stageConfigs;
           // 白名单之外的类型会被**改写**成兜底模板的类型 —— 新增阶段类型时这里必须同步，
           // 否则存进去的赛制读回来会静默变样（2026-10-14 加 single-elim-groups 时踩过这个点）。
-          const validTypes = ["single-elim", "single-elim-groups", "gsl-groups", "double-elim", "round-robin"];
+          const validTypes = ["single-elim", "single-elim-groups", "gsl-groups", "double-elim", "round-robin", "swiss"];
           const validBo = ["BO1", "BO3", "BO5"];
           return sourceStages.map((rawStage, si) => {
             const st = record(rawStage);

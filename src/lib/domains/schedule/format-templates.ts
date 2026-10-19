@@ -11,7 +11,7 @@ import { getGameConfig } from "@/lib/games";
 /** 默认图池（取自游戏配置层）。 */
 const DEFAULT_MAP_POOL = getGameConfig().defaultMapPool;
 
-export type StageType = "single-elim" | "single-elim-groups" | "gsl-groups" | "double-elim" | "round-robin";
+export type StageType = "single-elim" | "single-elim-groups" | "gsl-groups" | "double-elim" | "round-robin" | "swiss";
 
 /** 一个比赛阶段的可配置项（新建比赛赛制配置器的产物） */
 export interface StageConfig {
@@ -29,6 +29,7 @@ export const STAGE_TYPE_LABELS: Record<StageType, string> = {
   "double-elim": "双败淘汰",
   "gsl-groups": "GSL 小组双败",
   "round-robin": "单循环",
+  "swiss": "瑞士轮",
 };
 
 /** 赛制类型的默认 BO（新建阶段时预填） */
@@ -38,6 +39,7 @@ export const STAGE_TYPE_DEFAULT_BO: Record<StageType, "BO1" | "BO3" | "BO5"> = {
   "double-elim": "BO3",
   "gsl-groups": "BO3",
   "round-robin": "BO1",
+  "swiss": "BO3",
 };
 
 /** 由阶段配置估算总场次与比赛小时数 */

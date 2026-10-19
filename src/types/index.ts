@@ -103,7 +103,7 @@ export interface EsportEvent {
   mapPool?: Array<{ id: string; name: string }>;
   stageConfigs?: Array<{
     name: string;
-    type: "single-elim" | "single-elim-groups" | "gsl-groups" | "double-elim" | "round-robin";
+    type: "single-elim" | "single-elim-groups" | "gsl-groups" | "double-elim" | "round-robin" | "swiss";
     teamCount: number;
     boType: "BO1" | "BO3" | "BO5";
     groupCount?: number;
