@@ -14,7 +14,6 @@
     "src/lib/domains/schedule/registration-admin-ops.ts (532 行)",
     "src/lib/domains/schedule/reporting-service.ts (547 行)",
     "src/lib/domains/schedule/schedule-ops.ts (826 行)",
-    "src/lib/domains/schedule/staged-format.ts (448 行)",
     "src/lib/site-config-schema.ts (568 行)",
     "tools/ai-eval/result-vision/metrics.ts (557 行)",
     "tools/ai-eval/result-vision/run-eval.ts (488 行)",
