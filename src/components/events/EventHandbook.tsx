@@ -46,8 +46,8 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
   ];
 
   return (
-    <div className="bg-[#fffdf8] text-[#171a1f]">
-      <section className="border-b border-black/10 bg-[#f2eee6] px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+    <div className="bg-[var(--pub-card)] text-[var(--pub-txt)]">
+      <section className="border-b border-[var(--pub-line-soft)] bg-white/[0.06] px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
         <div className="mx-auto max-w-7xl border-t-4 border-[#ff4655] pt-5">
           <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-12">
             <div>
@@ -66,24 +66,24 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
             </div>
           </div>
 
-          <dl className="mt-7 grid border-l border-t border-black/15 sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="mt-7 grid border-l border-t border-[var(--pub-line)] sm:grid-cols-2 lg:grid-cols-4">
             {facts.map((fact) => (
-              <div key={fact.label} className="border-b border-r border-black/15 bg-[#fffdf8]/70 px-5 py-4">
+              <div key={fact.label} className="border-b border-r border-[var(--pub-line)] bg-[var(--pub-card)]/70 px-5 py-4">
                 <dt className="text-[10px] font-black tracking-wider text-[#686d73]">{fact.label}</dt>
-                <dd className="mt-2 text-sm font-black leading-6 text-[#171a1f]">{fact.value}</dd>
+                <dd className="mt-2 text-sm font-black leading-6 text-[var(--pub-txt)]">{fact.value}</dd>
               </div>
             ))}
           </dl>
         </div>
       </section>
 
-      <nav aria-label="参赛手册目录" className="border-b border-black/10 bg-[#fffdf8]">
+      <nav aria-label="参赛手册目录" className="border-b border-[var(--pub-line-soft)] bg-[var(--pub-card)]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 sm:grid-cols-4">
           {directory.map(([href, index, label]) => (
             <a
               key={href}
               href={href}
-              className="group flex min-h-14 min-w-0 items-center gap-3 border-b border-r border-black/10 px-4 transition hover:bg-[#171a1f] hover:text-white sm:border-b-0 sm:px-5"
+              className="group flex min-h-14 min-w-0 items-center gap-3 border-b border-r border-[var(--pub-line-soft)] px-4 transition hover:bg-[var(--pub-txt)] hover:text-white sm:border-b-0 sm:px-5"
             >
               <span className="font-mono text-[10px] font-black text-[#ff4655]">{index}</span>
               <span className="text-xs font-black">{label}</span>
@@ -94,37 +94,37 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
 
       <Section id="handbook-entry" index="01" eyebrow="ENTRY PROCEDURE" title="报名与参赛程序">
         {event.preparationSteps?.length ? (
-          <ol className="grid border-l border-t border-black/15 md:grid-cols-2 lg:grid-cols-3">
+          <ol className="grid border-l border-t border-[var(--pub-line)] md:grid-cols-2 lg:grid-cols-3">
             {event.preparationSteps.map((step, index) => (
               <li
                 key={`${step.number}-${step.title}`}
-                className="grid min-h-40 grid-cols-[3rem_1fr] gap-4 border-b border-r border-black/15 p-5"
+                className="grid min-h-40 grid-cols-[3rem_1fr] gap-4 border-b border-r border-[var(--pub-line)] p-5"
               >
                 <span className="font-mono text-xs font-black text-[#ff4655]">
                   {step.number || String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
                   <p className="font-mono text-[9px] font-black tracking-[0.16em] text-[#777b80]">ENTRY STEP</p>
-                  <h4 className="mt-2 text-base font-black text-[#171a1f]">{step.title}</h4>
-                  <p className="mt-3 text-xs font-medium leading-6 text-[#2b3038]">{step.detail}</p>
+                  <h4 className="mt-2 text-base font-black text-[var(--pub-txt)]">{step.title}</h4>
+                  <p className="mt-3 text-xs font-medium leading-6 text-[var(--pub-txt-soft)]">{step.detail}</p>
                 </div>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="border-y border-black/15 py-6 text-sm font-bold">参赛程序待公布</p>
+          <p className="border-y border-[var(--pub-line)] py-6 text-sm font-bold">参赛程序待公布</p>
         )}
       </Section>
 
       <Section id="handbook-format" index="02" eyebrow="TOURNAMENT FORMAT" title="竞赛赛制与地图池" tone="cream">
         {event.stageConfigs?.length ? (
-          <div className="grid border-l border-t border-black/15 lg:grid-cols-3">
+          <div className="grid border-l border-t border-[var(--pub-line)] lg:grid-cols-3">
             {event.stageConfigs.map((stage, index) => {
               const matchingRule = formatRules.find((rule) => rule.title.includes(stage.name));
               return (
                 <article
                   key={`${stage.name}-${index}`}
-                  className="relative border-b border-r border-black/15 bg-[#fffdf8] p-5 lg:min-h-56"
+                  className="relative border-b border-r border-[var(--pub-line)] bg-[var(--pub-card)] p-5 lg:min-h-56"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <p className="font-mono text-[10px] font-black tracking-widest text-[#ff4655]">
@@ -141,7 +141,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
                     {stage.groupCount ? ` · ${stage.groupCount} 个小组` : ""}
                   </p>
                   {matchingRule && (
-                    <p className="mt-4 border-t border-black/10 pt-3 text-xs font-medium leading-6 text-[#2b3038]">
+                    <p className="mt-4 border-t border-[var(--pub-line-soft)] pt-3 text-xs font-medium leading-6 text-[var(--pub-txt-soft)]">
                       {matchingRule.detail}
                     </p>
                   )}
@@ -150,25 +150,25 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
             })}
           </div>
         ) : (
-          <p className="border-y border-black/15 py-6 text-sm font-bold">竞赛赛制待公布</p>
+          <p className="border-y border-[var(--pub-line)] py-6 text-sm font-bold">竞赛赛制待公布</p>
         )}
 
         {otherFormatRules.length > 0 && (
-          <div className="mt-4 border-l border-t border-black/15 bg-[#fffdf8]">
+          <div className="mt-4 border-l border-t border-[var(--pub-line)] bg-[var(--pub-card)]">
             {otherFormatRules.map((rule, index) => (
               <article
                 key={rule.title}
-                className="grid gap-2 border-b border-r border-black/15 px-5 py-5 md:grid-cols-[3rem_12rem_1fr] md:gap-5"
+                className="grid gap-2 border-b border-r border-[var(--pub-line)] px-5 py-5 md:grid-cols-[3rem_12rem_1fr] md:gap-5"
               >
                 <span className="font-mono text-[10px] font-black text-[#ff4655]">F{String(index + 1).padStart(2, "0")}</span>
                 <h5 className="text-sm font-black">{rule.title}</h5>
-                <p className="text-xs font-medium leading-6 text-[#2b3038]">{rule.detail}</p>
+                <p className="text-xs font-medium leading-6 text-[var(--pub-txt-soft)]">{rule.detail}</p>
               </article>
             ))}
           </div>
         )}
 
-        <div className="mt-7 border-t-2 border-[#171a1f] pt-4">
+        <div className="mt-7 border-t-2 border-[var(--pub-txt)] pt-4">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[10px] font-black tracking-[0.18em] text-[#ff4655]">ACTIVE MAP POOL</p>
@@ -179,9 +179,9 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
             </p>
           </div>
           {event.mapPool?.length ? (
-            <div className="mt-4 grid grid-cols-2 border-l border-t border-black/15 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+            <div className="mt-4 grid grid-cols-2 border-l border-t border-[var(--pub-line)] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
               {event.mapPool.map((map, index) => (
-                <article key={map.id} className="relative aspect-[4/3] overflow-hidden border-b border-r border-black/15 bg-[#292c31]">
+                <article key={map.id} className="relative aspect-[4/3] overflow-hidden border-b border-r border-[var(--pub-line)] bg-[#292c31]">
                   {mapImageOf(map) && (
                     <Image
                       src={mapImageOf(map)!}
@@ -200,29 +200,29 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
               ))}
             </div>
           ) : (
-            <p className="mt-5 border-y border-black/15 py-6 text-sm font-bold">赛事地图池待公布</p>
+            <p className="mt-5 border-y border-[var(--pub-line)] py-6 text-sm font-bold">赛事地图池待公布</p>
           )}
         </div>
       </Section>
 
       <Section id="handbook-match" index="03" eyebrow="MATCH PROCEDURE" title="比赛程序">
         {matchDayRules.length ? (
-          <ol className="border-l border-t border-black/15">
+          <ol className="border-l border-t border-[var(--pub-line)]">
             {matchDayRules.map((rule, index) => (
               <li
                 key={`${rule.title}-${index}`}
-                className={`grid gap-2 border-b border-r border-black/15 px-5 py-4 sm:px-6 md:grid-cols-[3.5rem_13rem_1fr] md:gap-5 md:py-5 ${
-                  rule.emphasis === "important" ? "bg-[#faf6f0]" : "bg-[#fffdf8]"
+                className={`grid gap-2 border-b border-r border-[var(--pub-line)] px-5 py-4 sm:px-6 md:grid-cols-[3.5rem_13rem_1fr] md:gap-5 md:py-5 ${
+                  rule.emphasis === "important" ? "bg-[#faf6f0]" : "bg-[var(--pub-card)]"
                 }`}
               >
                 <span className="font-mono text-xs font-black text-[#ff4655]">{String(index + 1).padStart(2, "0")}</span>
                 <h4 className="text-sm font-black leading-6">{rule.title}</h4>
-                <p className="text-xs font-medium leading-6 text-[#2b3038]">{rule.detail}</p>
+                <p className="text-xs font-medium leading-6 text-[var(--pub-txt-soft)]">{rule.detail}</p>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="border-y border-black/15 py-6 text-sm font-bold">比赛程序待公布</p>
+          <p className="border-y border-[var(--pub-line)] py-6 text-sm font-bold">比赛程序待公布</p>
         )}
       </Section>
 
@@ -241,18 +241,18 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
         </div>
       </Section>
 
-      <footer className="bg-[#fffdf8] px-5 py-8 sm:px-8 lg:px-12 lg:py-9">
-        <div className="mx-auto grid max-w-7xl border-l border-t border-black/15 lg:grid-cols-2">
-          <section className="border-b border-r border-black/15 p-6">
+      <footer className="bg-[var(--pub-card)] px-5 py-8 sm:px-8 lg:px-12 lg:py-9">
+        <div className="mx-auto grid max-w-7xl border-l border-t border-[var(--pub-line)] lg:grid-cols-2">
+          <section className="border-b border-r border-[var(--pub-line)] p-6">
             <div className="h-1 w-10 bg-[#ff4655]" />
             <p className="mt-4 font-mono text-[10px] font-black tracking-[0.2em] text-[#ff4655]">PRIZES</p>
             <h3 className="mt-2 text-2xl font-black">奖金与奖项</h3>
-            <p className="mt-3 text-sm font-medium leading-7 text-[#2b3038]">{event.prizePool || "奖金与奖项待公布"}</p>
+            <p className="mt-3 text-sm font-medium leading-7 text-[var(--pub-txt-soft)]">{event.prizePool || "奖金与奖项待公布"}</p>
           </section>
-          <section className="border-b border-r border-black/15 bg-[#f2eee6] p-6">
+          <section className="border-b border-r border-[var(--pub-line)] bg-white/[0.06] p-6">
             <p className="font-mono text-[10px] font-black tracking-[0.2em] text-[#ff4655]">TOURNAMENT ADMINISTRATION</p>
             <h3 className="mt-2 text-2xl font-black">赛事通知与裁决</h3>
-            <p className="mt-3 text-sm font-medium leading-7 text-[#2b3038]">
+            <p className="mt-3 text-sm font-medium leading-7 text-[var(--pub-txt-soft)]">
               赛程变更、竞赛判罚及申诉结果由 {event.organizer} 正式发布。赛事平台公告与赛事组通知共同构成本届赛事的有效信息。
             </p>
           </section>
