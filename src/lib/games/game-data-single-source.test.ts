@@ -128,7 +128,7 @@ checkSingleSource("擅长位置", GAME.positions, []);
 
 checkSingleSource("地图目录", GAME.maps.map((m) => m.name), [
   {
-    file: "src/lib/referee/map-name.ts",
+    file: "src/lib/domains/result/map-name.ts",
     reason: "视觉误读校正词表：右侧必须写字面官方名，它对齐的目标就是目录里的名字",
   },
 ]);

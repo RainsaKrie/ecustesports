@@ -16,7 +16,7 @@
 import {
   refereeFailureMessage,
   refereeFailureStatus,
-} from "./failure-response";
+} from "./failure-response.ts";
 
 let pass = 0;
 let fail = 0;

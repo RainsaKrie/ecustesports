@@ -14,17 +14,17 @@
 // =====================
 
 import type { NextRequest } from "next/server";
-import { readRefereeCredential } from "@/lib/referee/referee-auth";
-import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
-import { refereeFailureResponse } from "@/lib/referee/failure-response";
-import { refereeMatchContext, refereeUploadEvidence } from "@/lib/referee/reporting-data";
+import { readRefereeCredential } from "@/lib/domains/result/referee-auth";
+import { refereeReportingEnabled } from "@/lib/domains/result/feature-flag";
+import { refereeFailureResponse } from "@/lib/domains/result/failure-response";
+import { refereeMatchContext, refereeUploadEvidence } from "@/lib/domains/result/reporting-data";
 import {
   callVisionModel,
   toDataUrl,
   visionConfigHint,
   visionOptionsFromEnv,
-} from "@/lib/referee/result-vision";
-import { buildRecognizeSuggestion } from "@/lib/referee/recognize-result";
+} from "@/lib/domains/result/result-vision";
+import { buildRecognizeSuggestion } from "@/lib/domains/result/recognize-result";
 import { hashEvidenceBytes } from "@/lib/domains/schedule/evidence-ops";
 import { MAX_EVIDENCE_BYTES } from "@/lib/domains/schedule/evidence-domain";
 import { getGameConfig } from "@/lib/games";

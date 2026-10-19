@@ -12,10 +12,10 @@
 // =====================
 
 import type { NextRequest } from "next/server";
-import { readRefereeCredential } from "@/lib/referee/referee-auth";
-import { refereeReportingEnabled } from "@/lib/referee/feature-flag";
-import { refereeFailureResponse } from "@/lib/referee/failure-response";
-import { refereeClaimMatch, refereeOpenMatches, refereeReleaseMatch } from "@/lib/referee/reporting-data";
+import { readRefereeCredential } from "@/lib/domains/result/referee-auth";
+import { refereeReportingEnabled } from "@/lib/domains/result/feature-flag";
+import { refereeFailureResponse } from "@/lib/domains/result/failure-response";
+import { refereeClaimMatch, refereeOpenMatches, refereeReleaseMatch } from "@/lib/domains/result/reporting-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

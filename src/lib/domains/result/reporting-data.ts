@@ -9,7 +9,7 @@ import "server-only";
 
 import { readEventData, updateEventData, updateEventDataBatch, writeEventData } from "@/lib/data-store";
 import { isHostedRuntime } from "@/lib/deployment";
-import { deleteEvidenceObject, storeEvidenceObject } from "@/lib/referee/evidence-store";
+import { deleteEvidenceObject, storeEvidenceObject } from "@/lib/domains/result/evidence-store";
 import { emptySchedule, normalizeScheduleState, type ScheduleMatch, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import type { BOType } from "@/lib/domains/schedule/rule-engine";
 import {
@@ -51,7 +51,7 @@ import {
   normalizeRegistrationState,
   type RegistrationState,
 } from "@/lib/domains/registration/data";
-import { buildSquadsByTeamId } from "@/lib/referee/identity-match";
+import { buildSquadsByTeamId } from "@/lib/domains/result/identity-match";
 
 // 文档名（须通过 assertSafeDocumentName：仅 a-zA-Z0-9_-）
 const DOC_REFEREE = "referee-ledger";

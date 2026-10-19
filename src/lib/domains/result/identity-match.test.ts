@@ -12,7 +12,7 @@ import {
   normalizeGameId,
   type IdentityMatchInput,
   type TeamRoster,
-} from "./identity-match";
+} from "./identity-match.ts";
 
 let pass = 0;
 let fail = 0;

@@ -14,7 +14,7 @@ import {
   adminResetCredential,
   adminAssignMatch,
   adminRevokeAssignment,
-} from "@/lib/referee/reporting-data";
+} from "@/lib/domains/result/reporting-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

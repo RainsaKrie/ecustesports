@@ -14,7 +14,7 @@
 //   六个裁判接口在「凭证无效」时表现不一致：claim / upload / matches 回 401 且提示是中文，
 //   而 submit 回 **400**，并把内部码 `INVALID_CREDENTIAL` **原样当成提示文案**。
 //   裁判屏幕上看到的是一串大写英文，不知道要重新登录；负责人也无从判断该不该重置凭证。
-//   现已统一走 `src/lib/referee/failure-response.ts`（状态码与文案成对产生）。
+//   现已统一走 `src/lib/domains/result/failure-response.ts`（状态码与文案成对产生）。
 //
 // ── 覆盖 ────────────────────────────────────────────────────
 //   · 鉴权一致性：七个调用点（六个接口）用无效凭证打一遍，一律 401 + 同一句可照做的中文
@@ -78,7 +78,7 @@ const PORT = Number(args[args.indexOf("--port") + 1]) || 3998;
 const BASE = `http://localhost:${PORT}`;
 
 const EVENT = "demo-referee";
-/** 与 src/lib/referee/reporting-data.ts 的 DEMO_CREDENTIAL 一致 */
+/** 与 src/lib/domains/result/reporting-data.ts 的 DEMO_CREDENTIAL 一致 */
 const CREDENTIAL = "referee-demo-credential-2026-09";
 /** 无效凭证：长度足够（须 ≥20），但不在台账里 */
 const WRONG_CREDENTIAL = "invalid-credential-0000000000";

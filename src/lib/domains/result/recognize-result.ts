@@ -13,9 +13,9 @@
 //   校正的前提是身份匹配给出确定结论。证据不足时宁可不动，也不猜。
 // =====================
 
-import { buildRoster, matchTeamsByIdentity, type TeamRoster } from "./identity-match";
-import { resolveMapName } from "./map-name";
-import { checkGroupSanity, type RecognizedResult } from "./result-vision";
+import { buildRoster, matchTeamsByIdentity, type TeamRoster } from "./identity-match.ts";
+import { resolveMapName } from "./map-name.ts";
+import { checkGroupSanity, type RecognizedResult } from "./result-vision.ts";
 
 export interface RecognizeContext {
   matchId: string;

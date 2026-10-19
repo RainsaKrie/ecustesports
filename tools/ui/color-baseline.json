@@ -8,10 +8,6 @@
       "hex": 1,
       "named": 0
     },
-    "src/app/events/[id]/teams/[teamId]/page.tsx": {
-      "hex": 1,
-      "named": 0
-    },
     "src/app/login/page.tsx": {
       "hex": 2,
       "named": 0

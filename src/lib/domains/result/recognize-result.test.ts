@@ -6,8 +6,8 @@
 // 重点覆盖「用名单校正左右」——这是把识别结果变成可用预填的关键一步。
 // =====================
 
-import { buildRecognizeSuggestion, type RecognizeContext } from "./recognize-result";
-import type { RecognizedResult } from "./result-vision";
+import { buildRecognizeSuggestion, type RecognizeContext } from "./recognize-result.ts";
+import type { RecognizedResult } from "./result-vision.ts";
 
 const OUR = ["甲一", "甲二", "甲三", "甲四", "甲五"];
 const THEIR = ["乙一", "乙二", "乙三", "乙四", "乙五"];

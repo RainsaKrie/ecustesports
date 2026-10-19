@@ -121,7 +121,7 @@ const CANONICAL = "src/lib/data-backend.ts";
 const CONSUMERS = [
   "src/lib/data-store.ts",
   "src/lib/asset-store.ts",
-  "src/lib/referee/evidence-store.ts",
+  "src/lib/domains/result/evidence-store.ts",
   "src/lib/rate-limit.ts",
 ];
 

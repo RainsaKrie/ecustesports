@@ -7,7 +7,7 @@
 //   · MIME 白名单与 5MB 上限由**桶**强制（应用层被绕过时，桶是最后一道）
 //   · 同路径重传不静默覆盖
 //
-// 为什么不 import `src/lib/referee/evidence-store`：
+// 为什么不 import `src/lib/domains/result/evidence-store`：
 // 该模块 `import "server-only"`，而 `server-only` 由 Next 内部提供、不在 node_modules 里，
 // 纯 Node 下解析不到（装真包反而会主动抛错）。
 // **应用层那条路径改由端到端验收覆盖**——走 /api/referee/upload，在 Next 里运行，

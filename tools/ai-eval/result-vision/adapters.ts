@@ -7,7 +7,7 @@
 // 本文件不引入任何供应商 SDK，只用 fetch；`fetchImpl` 可注入，因此网络路径
 // 也能在没有密钥、没有外网的情况下被测到。
 //
-// ★ 提示词与解析逻辑不在本文件，而是从生产模块 `@/lib/referee/result-vision` 引入。
+// ★ 提示词与解析逻辑不在本文件，而是从生产模块 `@/lib/domains/result/result-vision` 引入。
 //   理由：评测要回答的是「生产环境下准确率如何」。若两处各写一套提示词，
 //   早晚会漂移，那时评测量到的就不是生产行为了。
 //   依赖方向是 tools → src（已有先例：tools/seed-registration.ts）。
@@ -20,7 +20,7 @@ import {
   normalizeModelJson as normalizeFromProduction,
   PROMPT_VERSION,
   type VisionCallOptions,
-} from "@/lib/referee/result-vision";
+} from "@/lib/domains/result/result-vision";
 import { validateParsedOutput } from "./schema";
 import type { CaseInput, ParsedOutput, TokenUsage } from "./types";
 
@@ -204,7 +204,7 @@ function guessMime(file: string): string {
 // 解析与规范化复用生产实现，保证「评测口径 = 生产口径」。
 // 这里只做类型转出：生产返回 RecognizedResult，评测用的是本目录的 ParsedOutput，
 // 两者结构一致（series / winnerSide / games / groups），故可直接赋值。
-export { extractJson } from "@/lib/referee/result-vision";
+export { extractJson } from "@/lib/domains/result/result-vision";
 
 export function normalizeModelJson(value: unknown): { parsed: ParsedOutput | null; problems: string[] } {
   const result = normalizeFromProduction(value);

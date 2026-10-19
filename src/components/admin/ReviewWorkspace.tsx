@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { adminInputClass, EmptyState, type AdminBadgeTone } from "@/components/admin/ui";
-import type { AcceptedResultItem, AdminReviewItem } from "@/lib/referee/reporting-data";
+import type { AcceptedResultItem, AdminReviewItem } from "@/lib/domains/result/reporting-data";
 
 type GameRow = { map?: string; teamAScore: number; teamBScore: number };
 type Tab = "review" | "correct";
