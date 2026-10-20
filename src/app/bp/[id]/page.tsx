@@ -1,6 +1,7 @@
 "use client";
 
 import StatusChip from "@/components/events/StatusChip";
+import Button from "@/components/ui/Button";
 import Link from "next/link";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
@@ -267,14 +268,14 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               {((isCaptain && inMatch) || admin) && (
-                <button onClick={handleStart} disabled={busy} className="bg-[#ff4655] px-6 py-3 text-sm font-bold text-white hover:bg-[var(--ui-red-hover)] disabled:opacity-50">
+                <Button variant="primary" size="md" onClick={handleStart} disabled={busy}>
                   开始 BP（A 侧先手）
-                </button>
+                </Button>
               )}
               {((isCaptain && inMatch) || admin) && (
-                <button onClick={handleRoll} disabled={busy} className="border border-[#ff4655] px-6 py-3 text-sm font-bold text-[#ff4655] hover:bg-[#ff4655]/10 disabled:opacity-50">
+                <Button variant="secondary" size="md" onClick={handleRoll} disabled={busy}>
                   掷骰子比大小决定先手
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -434,15 +435,15 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
               {session.status === "进行中" && (
                 <div className="flex flex-col gap-2">
                   {(admin || canUndoLast) && (
-                    <button onClick={handleUndo} disabled={busy} className="border border-[var(--ui-line)] px-5 py-2.5 text-xs font-bold text-[var(--ui-text)] hover:bg-[var(--ui-surface)] disabled:opacity-50">回退上一步</button>
+                    <Button variant="secondary" size="md" onClick={handleUndo} disabled={busy}>回退上一步</Button>
                   )}
                   {(admin || (isCaptain && inMatch && session.actions.length === 0)) && (
-                    <button onClick={handleRoll} disabled={busy} className="border border-[#ff4655] px-5 py-2.5 text-xs font-bold text-[#ff4655] hover:bg-[#ff4655]/10 disabled:opacity-50">掷骰子比大小</button>
+                    <Button variant="secondary" size="md" onClick={handleRoll} disabled={busy}>掷骰子比大小</Button>
                   )}
                   {admin && (
                     <>
-                      <button onClick={handleSwap} disabled={busy} className="border border-[var(--ui-line)] px-5 py-2.5 text-xs font-bold text-[var(--ui-text)] hover:bg-[var(--ui-surface)] disabled:opacity-50">手动交换先手</button>
-                      <button onClick={handleReset} disabled={busy} className="border border-[#ff4655] px-5 py-2.5 text-xs font-bold text-[var(--ui-red)] hover:bg-[#ff4655]/10 disabled:opacity-50">重置 BP（含先手结果）</button>
+                      <Button variant="secondary" size="md" onClick={handleSwap} disabled={busy}>手动交换先手</Button>
+                      <Button variant="danger" size="md" onClick={handleReset} disabled={busy}>重置 BP（含先手结果）</Button>
                     </>
                   )}
                 </div>
