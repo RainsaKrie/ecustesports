@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import StatusChip from "@/components/events/StatusChip";
+import GroupStandings from "@/components/events/GroupStandings";
 
 import { useSchedule } from "@/hooks/useSchedule";
 import type { GameResult } from "@/lib/domains/schedule/schedule-data";
@@ -122,6 +123,18 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               </div>
             </dl>
           </div>
+        </section>
+      )}
+
+      {matches.some((m) => m.phase.includes("小组赛") || m.phase.includes("组内")) && (
+        <section>
+          <div className="mb-2 flex items-end justify-between gap-4">
+            <div>
+              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">GROUP STANDINGS</p>
+              <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">分组积分</h3>
+            </div>
+          </div>
+          <GroupStandings matches={matches} />
         </section>
       )}
 
