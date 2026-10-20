@@ -305,4 +305,35 @@
   .pub-dark .ui-stat .v { font-size: 22px; }
 }
 
+/* ===== 打印 / 投屏（2026-10-20，P6）=====
+   全站是深底 + 半透明玻璃 + 1px 低对比线，直接打印或投到会议室屏幕上会糊成一片黑。
+   比赛现场用纸打赛程、或者把赛程投到屏幕上都是真实场景，所以这里给一份兜底：
+   白底黑字、去掉背景/模糊/动效、隐藏导航与操作控件。 */
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  .pub-dark, .pub-dark .pub-poster, .adm-scope { background: #fff !important; color: #111 !important; }
+  .pub-dark .pub-poster::before,
+  .pub-dark .pub-poster::after { display: none !important; }
+  .site-header, .site-footer, footer, nav[aria-label="主导航"], .mobile-nav,
+  .ui-toggle, .ui-bulkbar, .adm-bulkbar, .ui-empty { display: none !important; }
+  .pub-dark .ui-frame, .pub-dark .ui-row, .pub-dark .ui-stage, .pub-dark .ui-card,
+  .adm-scope .adm-panel, .adm-scope .adm-modal-panel {
+    background: #fff !important;
+    border-color: #bbb !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .pub-dark .ui-frame::before, .pub-dark .ui-frame::after,
+  .pub-dark .ui-stage.now::before, .adm-scope .adm-modal-panel::before { display: none !important; }
+  .pub-dark .ui-eyebrow, .pub-dark .ui-sec span, .pub-dark .ui-row .rel,
+  .pub-dark .ui-row .ctx, .pub-dark .ui-stat .k, .adm-scope .adm-micro { color: #555 !important; }
+  .pub-dark .ui-red, .pub-dark .ui-row .score.win, .pub-dark .ui-stat.hot .v { color: #b3212c !important; }
+  .pub-dark .ui-row, .pub-dark .ui-listrow { break-inside: avoid; }
+  .pub-dark .ui-sec { border-bottom-color: #b3212c !important; }
+  a { color: inherit !important; text-decoration: underline; }
+  * { animation: none !important; transition: none !important; }
+}
+
+
 
