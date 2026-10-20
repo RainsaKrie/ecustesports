@@ -54,7 +54,7 @@ export function AdminModal({
 
   return (
     <div
-      className="adm-modal-backdrop fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(15,25,35,0.55)] p-4"
+      className="adm-modal-backdrop fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -62,7 +62,7 @@ export function AdminModal({
         if (dismissible && event.target === event.currentTarget) onClose();
       }}
     >
-      <div className={`adm-modal-panel max-h-[90vh] w-full ${WIDTH_CLASS[width]} overflow-y-auto border border-[var(--adm-line)] bg-[var(--adm-surface-2)]`}>
+      <div className={`adm-modal-panel adm-panel max-h-[90vh] w-full ${WIDTH_CLASS[width]} overflow-y-auto`}>
         <div
           className={`flex items-start justify-between gap-5 border-b px-5 py-4 ${
             tone === "danger"

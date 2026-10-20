@@ -1,0 +1,121 @@
+/* =====================
+   管理端主题层（2026-10-20，对齐公开面 v8 基准）
+
+   分工：公开面用 `--pub-*` + `.ui-*`（pub-theme.css）；后台用 `--adm-*` + `.adm-*`。
+   令牌值已经在 globals.css 统一（结构线 22–14%、文字 64–52%、页面底 #0a0b0d），
+   所以这里只补「后台专属」的五类形态，不重复定义颜色：
+     ① .adm-panel  玻璃卡（半透明 + 1px 14% + 模糊）
+     ② .adm-micro  微排版（mono 10.5px 大写表头，v8 的表头语言）
+     ③ .adm-row    表格行（hover 变亮，不再是变暗）
+     ④ .adm-input  输入控件（44px 定值 + 深底 + 聚焦红框）
+     ⑤ 弹窗遮罩/面板（60% 黑 + 玻璃 + 左上红折线）
+
+   规则全部 `.adm-scope` 前缀（特异性 0,2,0），才压得过 globals.css 里未分层的 `.adm-*`。
+   ⚠️ 本文件受架构守卫 400 行上限约束。
+   ===================== */
+
+/* ① 玻璃卡：后台一屏最多 3 块，表格不套（几十行逐行模糊会掉帧） */
+.adm-scope .adm-panel {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--adm-line-soft);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+@media (max-width: 780px) {
+  .adm-scope .adm-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.055);
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .adm-scope .adm-panel { background: rgba(255, 255, 255, 0.07); }
+}
+
+/* ② 微排版：v8 的表头是 mono 10.5px / 700 / 字距 .14em / 大写 */
+.adm-scope .adm-micro {
+  font-family: var(--adm-font-num);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--adm-text-mute);
+}
+
+/* ③ 表格行：hover 变亮（原来变暗），可点/选中行加左红条 */
+.adm-scope .adm-row {
+  transition: background-color var(--dur-fast) var(--ease-standard);
+}
+.adm-scope .adm-row:hover { background: rgba(255, 255, 255, 0.06); }
+.adm-scope .adm-row--active { box-shadow: inset 2px 0 0 var(--adm-red); }
+
+/* ④ 输入控件：44px 定值（桌面根字号 150%，rem 会撑到 66px） */
+.adm-scope .adm-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--adm-line-soft);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: var(--adm-fs-md);
+  color: var(--adm-text);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+.adm-scope textarea.adm-input {
+  padding: 10px 12px;
+  min-height: 96px;
+  resize: vertical;
+}
+.adm-scope select.adm-input { padding: 0 10px; }
+.adm-scope .adm-input::placeholder { color: var(--adm-text-mute); font-size: var(--adm-fs-sm); }
+.adm-scope .adm-input:focus {
+  border-color: var(--adm-red);
+  box-shadow: 0 0 0 2px rgba(255, 70, 85, 0.2);
+}
+.adm-scope .adm-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ⑤ 弹窗：v8 定的是 60% 黑遮罩（原来 55% 蓝黑），面板玻璃 + 左上红折线 */
+.adm-scope .adm-modal-backdrop { background: rgba(0, 0, 0, 0.6); }
+.adm-scope .adm-modal-panel {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--adm-line-soft);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.adm-scope .adm-modal-panel::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid var(--adm-red);
+  border-top: 1px solid var(--adm-red);
+  pointer-events: none;
+}
+@media (max-width: 780px) {
+  .adm-scope .adm-modal-panel { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* 顶部动作条：批量操作吸顶时用（多选/批量在后台最高频） */
+.adm-scope .adm-bulkbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--adm-line-soft);
+  border-top: 2px solid var(--adm-red);
+  background: rgba(10, 11, 13, 0.92);
+  padding: 10px 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.adm-scope .adm-bulkbar strong { color: var(--adm-red-text); font-variant-numeric: tabular-nums; }

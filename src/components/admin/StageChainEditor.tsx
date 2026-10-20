@@ -379,8 +379,8 @@ export default function StageChainEditor({
           problems.length
             ? "border-[var(--adm-red-line)] bg-[var(--adm-red-soft)] text-[var(--adm-red-text)]"
             : warnings.length
-              ? "border-[#fde68a] bg-[#fffbeb] text-[#9a4808]"
-              : "border-[#a7f3d0] bg-[#ecfdf5] text-[#047857]"
+              ? "border-[var(--adm-warn-line)] bg-[var(--adm-warn-soft)] text-[var(--adm-red-text)]"
+              : "border-[var(--adm-line-soft)] bg-[var(--adm-ok-soft)] text-[var(--adm-text)]"
         }`}
       >
         <b className="block text-[length:var(--adm-fs-md)] font-bold">

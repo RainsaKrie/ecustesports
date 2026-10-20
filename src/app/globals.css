@@ -49,15 +49,15 @@
   --adm-red-deep: #9f2431;     /* 更深一档红字 */
   --adm-red-soft: var(--ui-red-soft); /* 暗底红 */
   --adm-red-line: var(--ui-red-line); /* 红细边 */
-  --adm-ok-text: #34d399;      /* 成功文字 */
-  --adm-ok-soft: #ecfdf5;      /* 成功浅底 */
-  --adm-ok-line: #a7f3d0;
-  --adm-warn-text: #fbbf24;    /* 警告文字 */
-  --adm-warn-soft: #fffbeb;
-  --adm-warn-line: #fde68a;
-  --adm-info-text: #1d4ed8;    /* 信息文字 */
-  --adm-info-soft: #eff6ff;
-  --adm-info-line: #bfdbfe;
+  --adm-ok-text: #f2f3f5;      /* 成功文字 */
+  --adm-ok-soft: rgba(255,255,255,0.06);      /* 成功浅底 */
+  --adm-ok-line: var(--ui-line-soft);
+  --adm-warn-text: #ff4655;    /* 警告文字 */
+  --adm-warn-soft: rgba(255,70,85,0.10);
+  --adm-warn-line: var(--ui-red-line);
+  --adm-info-text: #f2f3f5;    /* 信息文字 */
+  --adm-info-soft: rgba(255,255,255,0.06);
+  --adm-info-line: var(--ui-line-soft);
 
   /* ---- 管理端字号阶（px 定值，不受 html 150% 根字号影响）----
      改造前后台混用 10.8 / 12 / 13.5 / 15 / 16.5 / 18 / 21 / 24 共 8 档，

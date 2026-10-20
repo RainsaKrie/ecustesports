@@ -59,9 +59,11 @@ export function useAdminConfirm() {
 }
 
 const TOAST_TONE_CLASS: Record<AdminToastTone, string> = {
-  success: "border-[var(--adm-ok-line)] bg-[var(--adm-ok-soft)] text-[var(--adm-ok-text)]",
-  error: "border-[var(--adm-red-line)] bg-[var(--adm-red-soft)] text-[var(--adm-red-deep)]",
-  info: "border-[var(--adm-info-line)] bg-[var(--adm-info-soft)] text-[var(--adm-info-text)]",
+  // 2026-10-20：原来 success 用浅绿底 + 亮绿字（1.82:1）、info 用浅蓝底（1.61:1），
+  // 在暗站上是一块"发光的浅色"。v8 的做法是玻璃底 + 左侧一条语义色，颜色只占 2px。
+  success: "border-[var(--adm-line-soft)] border-l-2 border-l-[var(--adm-text-soft)] bg-[var(--adm-surface)] text-[var(--adm-text)]",
+  error: "border-[var(--adm-line-soft)] border-l-2 border-l-[var(--adm-red)] bg-[var(--adm-surface)] text-[var(--adm-text)]",
+  info: "border-[var(--adm-line-soft)] border-l-2 border-l-[var(--adm-line)] bg-[var(--adm-surface)] text-[var(--adm-text)]",
 };
 
 export function AdminUIProvider({ children }: { children: ReactNode }) {

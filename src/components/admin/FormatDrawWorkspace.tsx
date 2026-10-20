@@ -967,7 +967,7 @@ function StageProgress({ stages, activeIndex, complete }: { stages: StageConfig[
         const label = finished ? "已完成" : active ? "当前阶段" : "未解锁";
         return (
           <div key={`${stage.name}-${index}`} className={`flex items-center gap-3 px-4 py-4 ${index > 0 ? "border-t border-[var(--adm-line-soft)] sm:border-l sm:border-t-0" : ""}`}>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center text-[length:var(--adm-fs-md)] font-medium ${finished ? "bg-[var(--adm-ok-text)] text-white" : active ? "bg-[var(--adm-red)] text-white" : "bg-[var(--adm-surface-3)] text-[var(--adm-text-mute)]"}`}>{String(index + 1).padStart(2, "0")}</span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center text-[length:var(--adm-fs-md)] font-medium ${finished ? "bg-[var(--adm-text-soft)] text-[var(--adm-surface-3)]" : active ? "bg-[var(--adm-red)] text-white" : "bg-[var(--adm-surface-3)] text-[var(--adm-text-mute)]"}`}>{String(index + 1).padStart(2, "0")}</span>
             <div className="min-w-0">
               <p className={`truncate text-[length:var(--adm-fs-lg)] font-semibold ${active ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text)]"}`}>{stage.name}</p>
               <p className="mt-0.5 text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text-mute)]">{label} · {stage.teamCount} 队 · {stage.boType}</p>

@@ -6,11 +6,10 @@ import type { ReactNode } from "react";
  * 管理端基础件（唯一来源）。
  *
  * 同一组样式在改造前有几十种写法手写在各页面里，这里收敛成一处。
- * 视觉遵守 `UI设计规格 v0.1` 第七节：白卡 + 结构线，不引入新配色。
+ * 2026-10-20 起形态来自 admin-theme.css：输入 44px 定值、面板玻璃卡 —— 页面只写类名。
  */
 
-export const adminInputClass =
-  "w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-md)] text-[var(--adm-text)] outline-none transition placeholder:text-[var(--adm-text-mute)] focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.2)]";
+export const adminInputClass = "adm-input";
 
 export const adminTextareaClass = `${adminInputClass} resize-y`;
 
@@ -61,12 +60,12 @@ export function Panel({
 }) {
   const hasHead = Boolean(eyebrow || title || actions);
   return (
-    <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+    <section className="adm-panel">
       {hasHead && (
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--adm-line-soft)] px-5 py-4">
           <div>
             {eyebrow && (
-              <p className="text-[length:var(--adm-fs-xs)] font-medium tracking-[0.14em] text-[var(--adm-text-mute)]">{eyebrow}</p>
+              <p className="adm-micro">{eyebrow}</p>
             )}
             {title && <h2 className="mt-1 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{title}</h2>}
             {description && <p className="mt-1 text-[length:var(--adm-fs-sm)] leading-relaxed text-[var(--adm-text-soft)]">{description}</p>}
@@ -126,7 +125,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 border border-dashed border-[var(--adm-line)] bg-[var(--adm-surface-2)] px-6 py-10 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 border border-dashed border-[var(--adm-line)] bg-white/[0.03] px-6 py-10 text-center">
       <p className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">{title}</p>
       {description && <p className="max-w-md text-[length:var(--adm-fs-sm)] leading-relaxed text-[var(--adm-text-soft)]">{description}</p>}
       {action}

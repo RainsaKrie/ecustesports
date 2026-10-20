@@ -172,7 +172,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <p className="ui-sub">{event.name} · 填写真实信息完成报名，提交后会生成你的参赛码。</p>
           <Link href={`/events/${id}/manage?recover=1`} className="mt-4 inline-flex min-h-[36px] items-center text-[13px] font-bold text-[var(--pub-red)] hover:underline">已经报过名？找回参赛信息</Link>
           {phase !== "open" && (
-            <div className={`mt-4 border-l-2 px-3 py-2 text-[12.5px] font-bold ${phase === "not-open" ? "border-l-[#fbbf24] bg-[rgba(251,191,36,0.10)] text-[#fbbf24]" : "border-l-[var(--pub-line)] bg-white/[0.04] text-[var(--pub-txt-soft)]"}`}>
+            <div className={`mt-4 border-l-2 px-3 py-2 text-[12.5px] font-bold ${phase === "not-open" ? "border-l-[var(--pub-red)] bg-[rgba(255,70,85,0.10)] text-[var(--pub-red)]" : "border-l-[var(--pub-line)] bg-white/[0.04] text-[var(--pub-txt-soft)]"}`}>
               {phase === "not-open"
                 ? `报名未开放，开始时间：${event.registrationStart || "待公布"}`
                 : `报名已截止（截止 ${event.registrationEnd || ""}）`}
