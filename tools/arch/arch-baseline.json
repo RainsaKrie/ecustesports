@@ -3,7 +3,7 @@
     "src/app/admin/events/[id]/schedule/page.tsx (896 行)",
     "src/app/bp/[id]/page.tsx (458 行)",
     "src/app/events/[id]/manage/page.tsx (390 行)",
-    "src/app/globals.css (1966 行)",
+    "src/app/globals.css (1513 行)",
     "src/app/referee/RefereeWorkbench.tsx (882 行)",
     "src/components/admin/EventSettingsWorkspace.tsx (610 行)",
     "src/components/admin/FormatDrawWorkspace.tsx (981 行)",

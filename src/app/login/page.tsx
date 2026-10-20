@@ -45,7 +45,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-[#0f1721] px-6 py-12">
+    <div className="flex min-h-screen items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 grid h-12 w-14 place-items-center bg-[#ff4655] font-mono text-sm font-black text-white [clip-path:polygon(0_0,100%_0,100%_72%,72%_100%,0_100%)]">

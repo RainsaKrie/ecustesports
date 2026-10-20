@@ -21,11 +21,19 @@
   background: var(--pub-bg);
   color: var(--pub-txt);
 }
-/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片 */
+/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片。
+   两个伪元素各 inset:0 铺满整个外壳 —— 必须沉到正文之下，否则整站被盖死。
+   用 isolation 给容器单开层叠上下文 + 伪元素 z-index:-1：
+   伪元素仍画在容器自身背景之上、正文之下，且不动 .site-header 的 sticky。 */
+.pub-dark .pub-poster {
+  position: relative;
+  isolation: isolate;
+}
 .pub-dark .pub-poster::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   background-image: var(--pub-bg-image),
     radial-gradient(circle at 12% -6%, rgba(255, 70, 85, 0.3), transparent 46%),
@@ -38,6 +46,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   background-image:
     linear-gradient(var(--pub-line-soft) 1px, transparent 1px),
@@ -45,53 +54,9 @@
   background-size: 56px 56px;
   opacity: 0.5;
 }
-/* 玻璃卡：窄屏与不支持模糊时降级为纯色，避免逐行模糊掉帧 */
-.pub-dark .pub-card {
-  background: var(--pub-card);
-  border: 1px solid var(--pub-line-soft);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-@media (max-width: 780px) {
-  .pub-dark .pub-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--pub-card-solid); }
-}
-@supports not (backdrop-filter: blur(1px)) {
-  .pub-dark .pub-card { background: rgba(255, 255, 255, 0.07); }
-}
-
-/* ===== 框线卡片（2026-10-20）=====
-   样板的卡片三件套：半透明底 + 1px 框线 + 转角折线。
-   折线是 VALORANT 海报的记号（像取景框），比圆角更能表达"结构"。 */
-.pub-dark .pub-frame {
-  position: relative;
-  background: var(--pub-card);
-  border: 1px solid var(--pub-line-soft);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-.pub-dark .pub-frame::before,
-.pub-dark .pub-frame::after {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
-}
-.pub-dark .pub-frame::before {
-  left: -1px;
-  top: -1px;
-  border-left: 1px solid var(--pub-red);
-  border-top: 1px solid var(--pub-red);
-}
-.pub-dark .pub-frame::after {
-  right: -1px;
-  bottom: -1px;
-  border-right: 1px solid var(--pub-line);
-  border-bottom: 1px solid var(--pub-line);
-}
-@media (max-width: 780px) {
-  .pub-dark .pub-frame { backdrop-filter: none; -webkit-backdrop-filter: none; }
-}
+/* 玻璃卡旧类 .pub-card / .pub-frame 已删除（0 处使用，且与新 .ui-frame 完全重复）。
+   按《全站UI改造方案》P1-4「不能两份都留」；令牌 --pub-card / --pub-card-solid 保留，
+   页面里的 bg-[var(--pub-card)] 照旧可用。玻璃底请改用 .ui-frame。 */
 
 /* ===== 公共层对齐（2026-10-20 第 0 批）=====
    站头本来就是深色的（浅色站身 + 深色站头），但用的是偏蓝的 rgba(15,25,35)。
@@ -166,4 +131,121 @@
   border-right: 1px solid var(--pub-line);
   border-bottom: 1px solid var(--pub-line);
   pointer-events: none;
+}
+/* 首页每张能力卡右下角原本是一块米色三角：globals 的 .capability-card::after
+   用 background:var(--paper) + clip-path 画的，上面的覆盖只改了宽高与边框，
+   三角形还在 —— 必须同时重置 background 与 clip-path 才消失。 */
+.pub-dark .capability-card::after {
+  background: none;
+  clip-path: none;
+}
+/* globals 给 .event-card 的 clip-path 会切掉右下角，把上面刚补的右下折线一起裁掉。
+   只有这张卡需要解除裁切，不能写进上面的共用规则（closing-cta 靠 clip-path 出形）。
+   注意还有第二道裁切：globals 同一条规则里的 overflow:hidden 会按 padding box 裁，
+   ::before 画在 -1px 处 —— 只解 clip-path，折线仍然看不见。
+   用 overflow:clip + 2px 外边距放行这 1px；老浏览器不支持时自动退回 hidden，与现状一致。 */
+.pub-dark .event-card {
+  clip-path: none;
+  overflow: clip;
+  overflow-clip-margin: 2px;
+}
+
+/* ===== v8 六范式（2026-10-20 第 2 批 · 地基）=====
+   唯一基准：.workbuddy/ui-samples/schedule-public-v8.html（265 行）。
+   六段结构：页头(.ui-top/.ui-nav) → 主标题(.ui-hero/.ui-eyebrow/.ui-sub) →
+   数字条(.ui-stats/.ui-stat) → 阶段(.ui-stages/.ui-stage) → 块标题(.ui-sec) →
+   表头与行(.ui-thead/.ui-row + .time/.ctx/.team/.score/.rel) → 标签(.ui-tag) →
+   开关(.ui-toggle) → 取景框(.ui-frame)。
+   全部带 .pub-dark 前缀（特异性 0,2,0），才压得过 globals.css 里未分层的同名规则。
+   只允许 --pub-* 令牌 + rgba(255,255,255,.x) / rgba(255,70,85,.x)，不引入新色值。 */
+
+/* ① 页头：品牌在左、导航在右，底部一条细分隔线 */
+.pub-dark .ui-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.pub-dark .ui-nav { display: flex; gap: 22px; font-size: 13.5px; color: var(--pub-txt-soft); }
+.pub-dark .ui-nav > a { color: inherit; text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid transparent; }
+.pub-dark .ui-nav > a:hover { color: var(--pub-txt); }
+/* 当前页的红下划线只认 aria-current —— 顺序放在 hover 之后，悬停当前页不会被盖掉 */
+.pub-dark .ui-nav > a[aria-current="page"] { color: var(--pub-txt); border-bottom-color: var(--pub-red); }
+
+/* ② 主标题：小字眉标 + 特大标题 + 一句副文 */
+.pub-dark .ui-hero { margin-top: 34px; }
+.pub-dark .ui-eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: 0.22em; color: var(--pub-red); text-transform: uppercase; }
+.pub-dark .ui-hero h1 { margin-top: 10px; font-size: clamp(34px, 5.2vw, 58px); font-weight: 900; line-height: 0.98; letter-spacing: -0.035em; }
+.pub-dark .ui-hero h1 em { font-style: normal; color: var(--pub-red); }
+.pub-dark .ui-sub { margin-top: 12px; font-size: 14.5px; color: var(--pub-txt-soft); max-width: 52ch; }
+
+/* ③ 数字条：上下细线 + 竖线分隔，不是一张张卡片 */
+.pub-dark .ui-stats { display: flex; margin-top: 30px; border-top: 1px solid var(--pub-line); border-bottom: 1px solid var(--pub-line); flex-wrap: wrap; }
+.pub-dark .ui-stat { flex: 1; min-width: 110px; padding: 16px 20px 17px; border-left: 1px solid var(--pub-line-soft); }
+.pub-dark .ui-stat:first-child { border-left: 0; padding-left: 0; }
+.pub-dark .ui-stat .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pub-dark .ui-stat .k { margin-top: 7px; font-size: 12px; color: var(--pub-txt-mute); letter-spacing: 0.04em; }
+.pub-dark .ui-stat.hot .v { color: var(--pub-red); }
+
+/* ④ 阶段：四格连体 + 左侧红条标「进行中」 */
+.pub-dark .ui-stages { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 26px; border: 1px solid var(--pub-line); position: relative; }
+.pub-dark .ui-stage { padding: 16px 18px 18px; border-left: 1px solid var(--pub-line); position: relative; background: var(--pub-card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.pub-dark .ui-stage:first-child { border-left: 0; }
+.pub-dark .ui-stage .n { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; color: var(--pub-txt-mute); }
+.pub-dark .ui-stage .t { margin-top: 8px; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.pub-dark .ui-stage .m { margin-top: 4px; font-size: 12.5px; color: var(--pub-txt-soft); }
+.pub-dark .ui-stage.done .n { color: var(--pub-red); }
+.pub-dark .ui-stage.done .t { color: var(--pub-txt-mute); }
+.pub-dark .ui-stage.now { background: linear-gradient(180deg, rgba(255, 70, 85, 0.15), rgba(255, 255, 255, 0.05)); }
+.pub-dark .ui-stage.now::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--pub-red); }
+.pub-dark .ui-stage.now .n { color: var(--pub-red); }
+.pub-dark .ui-stage.now .m { color: var(--pub-txt); }
+
+/* ⑤ 块标题：任务条标题 + 右侧等宽小注，红线收边 */
+.pub-dark .ui-sec { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 42px 0 0; padding-bottom: 10px; border-bottom: 2px solid var(--pub-red); }
+.pub-dark .ui-sec h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.pub-dark .ui-sec span { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; color: var(--pub-txt-mute); letter-spacing: 0.1em; }
+
+/* ⑥ 比赛行：六列网格，左红条 + 中缝竖线 + 玻璃底；行内子元素由 .time/.ctx/.team/.score/.rel 着色 */
+.pub-dark .ui-thead { display: grid; grid-template-columns: 84px 1fr 1fr 88px 1fr 92px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--pub-line-soft); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; letter-spacing: 0.14em; color: var(--pub-txt-mute); text-transform: uppercase; }
+.pub-dark .ui-row { display: grid; grid-template-columns: 84px 1fr 1fr 88px 1fr 92px; align-items: center; border: 1px solid var(--pub-line-soft); position: relative; cursor: pointer; background: var(--pub-card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: background 0.14s, border-color 0.14s; }
+.pub-dark .ui-row:hover { background: rgba(255, 255, 255, 0.085); border-color: rgba(255, 255, 255, 0.26); }
+.pub-dark .ui-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent; transition: background 0.14s; }
+.pub-dark .ui-row:hover::before { background: var(--pub-red); }
+.pub-dark .ui-row > * { padding: 12px 14px; }
+.pub-dark .ui-row .time { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--pub-txt-soft); font-variant-numeric: tabular-nums; padding-left: 18px; white-space: nowrap; }
+.pub-dark .ui-row .ctx { font-size: 11.5px; color: var(--pub-txt-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-dark .ui-row .team { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-dark .ui-row .team.r { text-align: right; border-right: 1px solid var(--pub-line-soft); }
+.pub-dark .ui-row .score { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 19px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; color: var(--pub-txt-soft); letter-spacing: 0.04em; }
+.pub-dark .ui-row .score.win { color: var(--pub-red); }
+.pub-dark .ui-row .rel { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--pub-txt-mute); text-align: right; padding-right: 18px; white-space: nowrap; }
+.pub-dark .ui-row .rel.live { color: var(--pub-red); }
+
+/* ⑦ 方标签 + 分段开关（客户端交互态用 aria 表达，不靠 JS 加 class） */
+.pub-dark .ui-tag { display: inline-flex; align-items: center; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 9px; border: 1px solid var(--pub-line-soft); color: var(--pub-txt-mute); }
+.pub-dark .ui-tag.live { border-color: var(--pub-red); color: var(--pub-red); }
+.pub-dark .ui-toggle { display: flex; border: 1px solid var(--pub-line-soft); width: fit-content; }
+.pub-dark .ui-toggle > button { font: inherit; font-size: 13px; font-weight: 700; padding: 7px 20px; background: none; border: 0; border-left: 1px solid var(--pub-line-soft); color: var(--pub-txt-soft); cursor: pointer; transition: color 0.14s, background 0.14s; }
+.pub-dark .ui-toggle > button:first-child { border-left: 0; }
+.pub-dark .ui-toggle > button:hover { color: var(--pub-txt); }
+.pub-dark .ui-toggle > button[aria-pressed="true"] { color: var(--pub-red); background: rgba(255, 70, 85, 0.08); box-shadow: inset 0 -2px 0 var(--pub-red); }
+
+/* ⑧ 取景框：玻璃底 + 左上红折线 / 右下灰折线，任何内容块都能套 */
+.pub-dark .ui-frame { position: relative; background: var(--pub-card); border: 1px solid var(--pub-line-soft); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.pub-dark .ui-frame::before { content: ""; position: absolute; left: -1px; top: -1px; width: 10px; height: 10px; border-left: 1px solid var(--pub-red); border-top: 1px solid var(--pub-red); pointer-events: none; }
+.pub-dark .ui-frame::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-right: 1px solid var(--pub-line); border-bottom: 1px solid var(--pub-line); pointer-events: none; }
+
+/* 窄屏渐变模糊会掉帧 —— 与 v8 一样降级为纯色半透明 */
+@media (max-width: 780px) {
+  .pub-dark .ui-stages { grid-template-columns: repeat(2, 1fr); }
+  .pub-dark .ui-stage,
+  .pub-dark .ui-row,
+  .pub-dark .ui-frame { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+/* 手机端行改成四列，去掉最右的方标签（.ui-tag 是新名，.tag 兼容 v8 写法） */
+@media (max-width: 760px) {
+  .pub-dark .ui-row { grid-template-columns: 74px 1fr 60px 1fr; gap: 10px; padding: 12px 14px; }
+  .pub-dark .ui-row .ui-tag,
+  .pub-dark .ui-row .tag { display: none; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .pub-dark .ui-stage,
+  .pub-dark .ui-row,
+  .pub-dark .ui-frame { background: rgba(255, 255, 255, 0.07); }
 }
