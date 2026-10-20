@@ -163,7 +163,7 @@ export default function StageChainEditor({
             type="button"
             disabled={readOnly}
             onClick={() => applyTemplate(tpl)}
-            className="border border-[var(--adm-line)] bg-[var(--adm-surface)] px-2.5 py-1 text-[length:var(--adm-fs-sm)] font-semibold text-[var(--adm-text)] transition-colors duration-150 hover:border-[var(--adm-text)] disabled:cursor-not-allowed disabled:text-[var(--adm-text-mute)]"
+            className="adm-panel px-2.5 py-1 text-[length:var(--adm-fs-sm)] font-semibold text-[var(--adm-text)] transition-colors duration-150 hover:border-[var(--adm-text)] disabled:cursor-not-allowed disabled:text-[var(--adm-text-mute)]"
           >
             {tpl.label}
           </button>
@@ -194,7 +194,7 @@ export default function StageChainEditor({
               </div>
 
               <div
-                className="border border-[var(--adm-line)] bg-[var(--adm-surface)]"
+                className="adm-panel"
                 style={{ width: widthOf(entrantsOfStage), marginInline: "auto" }}
               >
                 <div
@@ -205,8 +205,8 @@ export default function StageChainEditor({
                   className={`flex cursor-pointer items-center gap-2 px-3 py-2 ${open ? "border-b border-[var(--adm-line-soft)] bg-[var(--adm-surface-3)]" : "hover:bg-[var(--adm-surface-2)]"}`}
                 >
                   <span className={`${DENSE_TITLE} truncate font-bold text-[var(--adm-text)]`}>{stage.name}</span>
-                  <span className="shrink-0 border border-[var(--adm-line)] bg-[var(--adm-surface)] px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">{type?.name}</span>
-                  <span className="shrink-0 border border-[var(--adm-line)] bg-[var(--adm-surface)] px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">BO{stage.bo}</span>
+                  <span className="shrink-0 adm-panel px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">{type?.name}</span>
+                  <span className="shrink-0 adm-panel px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">BO{stage.bo}</span>
                   {stageIssues.length > 0 && (
                     <span className="shrink-0 border border-[var(--adm-red-line)] bg-[var(--adm-red-soft)] px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-red-text)]">不成立</span>
                   )}
@@ -234,7 +234,7 @@ export default function StageChainEditor({
                       value={stage.name}
                       readOnly={readOnly}
                       onChange={(event) => patch(i, { name: event.target.value })}
-                      className="mt-1 w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-2 py-1.5 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
+                      className="mt-1 w-full adm-panel px-2 py-1.5 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
                     />
 
                     <p className={`mt-3 ${DENSE_MICRO} font-bold text-[var(--adm-text-soft)]`}>类型</p>

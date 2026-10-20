@@ -162,7 +162,7 @@ function NavLinks({ eventId, modules }: { eventId: string; modules: ModuleWithSt
 export default function AdminSidebar({ event, stage, modules, guidance }: AdminSidebarProps) {
   return (
     <>
-      <aside className="hidden w-[240px] shrink-0 border-r border-[var(--adm-line-soft)] bg-[var(--pub-card)] lg:block">
+      <aside className="hidden w-[240px] shrink-0 border-r border-[var(--adm-line-soft)] bg-[var(--adm-surface)] lg:block">
         {/* top-16 是 rem，桌面 = 96px；而顶栏上一批已改成 64px 定值 —— 用 rem 会让侧边栏
             比顶栏矮 32px，顶部空一条。max-h 里的 4rem 同理。两处都改 px 定值。 */}
         <div className="sticky top-[64px] max-h-[calc(100vh-64px)] overflow-y-auto px-[12px] py-5">
@@ -186,7 +186,7 @@ export default function AdminSidebar({ event, stage, modules, guidance }: AdminS
         </div>
       </aside>
 
-      <div className="border-b border-[var(--adm-line-soft)] bg-[var(--pub-card)] px-4 py-3 lg:hidden">
+      <div className="border-b border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-4 py-3 lg:hidden">
         <details>
           <summary className="flex cursor-pointer list-none items-center justify-between text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text)]">
             <span>{event.name} · {guidance.label}</span>

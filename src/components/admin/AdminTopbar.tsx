@@ -10,7 +10,7 @@ export default function AdminTopbar() {
   // 改 px 定值后两边一致。导航项改用 `h-full`：可点区从 20px（只有文字高）撑到整条
   // 顶栏 64px，手机上是 3 倍差距。
   return (
-    <header className="sticky top-0 z-40 flex h-[64px] items-center justify-between border-b border-[var(--ink-soft)] bg-[var(--ink)] px-4 text-white sm:px-6">
+    <header className="sticky top-0 z-40 flex h-[64px] items-center justify-between border-b border-[var(--adm-line-soft)] bg-[var(--adm-surface-3)] px-4 text-white sm:px-6">
       <div className="flex min-w-0 items-center gap-4">
         <Link href="/admin" className="flex items-center gap-3 font-semibold">
           <span className="grid h-8 w-8 place-items-center bg-[var(--adm-red)] font-mono text-[length:var(--adm-fs-xs)]">SC</span>
@@ -18,9 +18,9 @@ export default function AdminTopbar() {
         </Link>
       </div>
       <nav className="flex h-full items-center gap-3 text-[length:var(--adm-fs-sm)] font-bold sm:gap-4" aria-label="工作台全局导航">
-        <Link href="/admin" className="inline-flex h-full items-center text-[#d8dde4] hover:text-white">全部赛事</Link>
-        <Link href="/admin/site-content" className="inline-flex h-full items-center text-[var(--pub-txt-mute)] hover:text-white">官网内容</Link>
-        <Link href="/" className="inline-flex h-full items-center text-[var(--pub-txt-mute)] hover:text-white">返回官网</Link>
+        <Link href="/admin" className="inline-flex h-full items-center text-[var(--adm-text-soft)] hover:text-white">全部赛事</Link>
+        <Link href="/admin/site-content" className="inline-flex h-full items-center text-[var(--adm-text-mute)] hover:text-white">官网内容</Link>
+        <Link href="/" className="inline-flex h-full items-center text-[var(--adm-text-mute)] hover:text-white">返回官网</Link>
         <button
           type="button"
           onClick={async () => {
@@ -28,7 +28,7 @@ export default function AdminTopbar() {
             router.push("/login");
             router.refresh();
           }}
-          className="inline-flex h-full items-center text-[var(--pub-txt-mute)] hover:text-white"
+          className="inline-flex h-full items-center text-[var(--adm-text-mute)] hover:text-white"
         >
           退出
         </button>

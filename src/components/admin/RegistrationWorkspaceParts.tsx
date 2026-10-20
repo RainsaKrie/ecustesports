@@ -56,7 +56,7 @@ export type Modal =
    */
   | { kind: "create-player"; team?: RegistrationTeam; role?: Role };
 
-export const inputClass = "w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]";
+export const inputClass = "w-full adm-panel px-3 py-2.5 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]";
 
 /**
  * 队伍视图分档。报名截止后的真实状态是「一批满编 + 几支还缺人」，
@@ -154,7 +154,7 @@ export const textActionClass = "inline-flex min-h-[32px] items-center whitespace
  * 它按下去会改自己的文案（复制 / 已复制 / 复制失败），
  * 没有边框的话这三个状态在同一行里看起来只是文字抖动。
  */
-export const copyActionClass = "inline-flex h-[22px] shrink-0 items-center border border-[var(--adm-line)] bg-[var(--adm-surface)] px-[6px] text-[length:var(--adm-fs-xs)] font-bold leading-none text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] hover:text-[var(--adm-text)]";
+export const copyActionClass = "inline-flex h-[22px] shrink-0 items-center adm-panel px-[6px] text-[length:var(--adm-fs-xs)] font-bold leading-none text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] hover:text-[var(--adm-text)]";
 export const subscribeStatic = () => () => {};
 
 /**
@@ -293,7 +293,7 @@ export function RosterMemberChip({
   const tone: AdminBadgeTone = reviewTone(player.reviewStatus);
 
   return (
-    <span className={`inline-flex ${CHIP_HEIGHT} max-w-full items-center border border-[var(--adm-line)] bg-[var(--adm-surface)]`} title={`${player.gameId}${isCaptain ? "（队长）" : ""}`}>
+    <span className={`inline-flex ${CHIP_HEIGHT} max-w-full items-center adm-panel`} title={`${player.gameId}${isCaptain ? "（队长）" : ""}`}>
       {/* 上限从 104px 放宽到 128px：实测 `ECUST004#1004` 这类 ID 内容宽 110px，
           卡在 104px 上被截成 `ECUST002#1…` —— 5 个首发看起来一模一样，分不出谁是谁。
           128px 给 18px 余量，同时仍能一行并排两个 chip（2×128+3 < 可用宽 380）。

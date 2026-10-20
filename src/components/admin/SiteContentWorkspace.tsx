@@ -75,7 +75,7 @@ export default function SiteContentWorkspace({
         </section>
       )}
 
-      <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+      <section className="adm-panel">
         <div className="border-b border-[var(--adm-line-soft)] px-5 py-4 sm:px-6">
           <p className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.15em] text-[var(--adm-text-mute)]">首页文案</p>
           <h2 className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold text-[var(--adm-text)]">首页赛事简介</h2>
@@ -90,12 +90,12 @@ export default function SiteContentWorkspace({
             rows={4}
             maxLength={280}
             aria-label="首页赛事简介"
-            className="w-full resize-y border border-[var(--adm-line)] bg-[var(--adm-surface)] px-4 py-3 text-[length:var(--adm-fs-lg)] font-medium leading-[1.85] text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
+            className="w-full resize-y adm-panel px-4 py-3 text-[length:var(--adm-fs-lg)] font-medium leading-[1.85] text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
           />
         </div>
       </section>
 
-      <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+      <section className="adm-panel">
         <div className="border-b border-[var(--adm-line-soft)] px-5 py-4 sm:px-6">
           <p className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.15em] text-[var(--adm-text-mute)]">站点页脚</p>
           <h2 className="mt-1 text-[length:var(--adm-fs-xl)] font-semibold text-[var(--adm-text)]">页脚状态</h2>
@@ -109,7 +109,7 @@ export default function SiteContentWorkspace({
             }}
             maxLength={100}
             aria-label="页脚状态"
-            className="h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-4 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
+            className="h-[44px] w-full adm-panel px-4 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
           />
         </div>
       </section>

@@ -7,7 +7,7 @@ export default function EventListSwitcher({ events }: { events: EditableEvent[] 
   const sorted = [...events].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return (
-    <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+    <section className="adm-panel">
       <div className="divide-y divide-[var(--adm-line-soft)]">
         {sorted.map((e) => {
           const statusLabel = getStatusInfo(e.status).label;
@@ -33,7 +33,7 @@ export default function EventListSwitcher({ events }: { events: EditableEvent[] 
               </div>
               {/* py-3 是 rem，桌面 = 上下各 18px，把这个按钮撑到 61px，
                   上面设的 min-h-[44px] 从来没生效过（体检实测 44→61）。改 px 定值。 */}
-              <span className="flex min-h-[44px] shrink-0 items-center gap-3 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-4 py-[8px] text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)] transition group-hover:border-[var(--adm-red)] group-hover:text-[var(--adm-red-text)] sm:min-w-40 sm:justify-between">
+              <span className="flex min-h-[44px] shrink-0 items-center gap-3 adm-panel px-4 py-[8px] text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)] transition group-hover:border-[var(--adm-red)] group-hover:text-[var(--adm-red-text)] sm:min-w-40 sm:justify-between">
                 <span className="hidden sm:inline">进入工作台</span>
                 <span className="text-[length:var(--adm-fs-lg)] leading-none" aria-hidden="true">→</span>
               </span>

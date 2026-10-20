@@ -205,7 +205,7 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
         ) : (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             {/* 左：异常列表 */}
-            <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <section className="adm-panel">
               <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
                 {/* 数字不在这里说第三遍：页头状态已经是「N 条待裁决」，
                     标签页徽标也有。这一栏只说它是什么。 */}
@@ -235,7 +235,7 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
 
             {/* 右：详情 + 裁决 */}
             {selected ? (
-              <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+              <section className="adm-panel">
                 <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
                   <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{selected.teamAName} vs {selected.teamBName}</h2>
                   <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">
@@ -310,7 +310,7 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="说明接受或驳回的依据"
                         rows={2}
-                        className="mt-2 w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
+                        className="mt-2 w-full adm-panel px-3 py-2.5 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]"
                       />
                     </label>
                     {actionError && <p className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">{actionError}</p>}
@@ -349,7 +349,7 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
       ) : (
         /* 受控更正：已生效赛果列表 */
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+          <section className="adm-panel">
             <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
               <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">已生效赛果 · {accepted.length}</h2>
             </div>
@@ -375,7 +375,7 @@ export default function ReviewWorkspace({ eventId }: { eventId: string }) {
           </section>
 
           {correctTarget ? (
-            <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+            <section className="adm-panel">
               <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
                 <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{correctTarget.teamAName} vs {correctTarget.teamBName}</h2>
                 <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">当前生效胜者：{correctTarget.winnerTeamName}</p>

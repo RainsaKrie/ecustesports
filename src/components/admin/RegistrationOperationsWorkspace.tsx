@@ -311,7 +311,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
   }
 
   if (!loaded) {
-    return <div className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-6 py-20 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">正在读取报名与队伍数据…</div>;
+    return <div className="adm-panel px-6 py-20 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">正在读取报名与队伍数据…</div>;
   }
 
   return (
@@ -372,9 +372,9 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         ]}
       />
 
-      <section className="mb-5 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+      <section className="mb-5 adm-panel">
         <div className="grid gap-5 p-5 md:grid-cols-[auto_1fr] md:items-center">
-          <div className="w-fit border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-2">
+          <div className="w-fit adm-panel p-2">
             {registerUrl ? <QRCodeSVG value={registerUrl} size={92} /> : <div className="h-[92px] w-[92px] bg-[var(--adm-surface-2)]" />}
           </div>
           <div className="min-w-0">
@@ -385,7 +385,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
         </div>
       </section>
 
-      <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+      <section className="adm-panel">
         <div className="flex flex-col justify-between gap-3 border-b border-[var(--adm-line-soft)] md:flex-row md:items-center">
           <div className="flex overflow-x-auto">
             {([
@@ -404,7 +404,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
               {/* data-search-input 是 Cmd/Ctrl+K 的约定（见 AdminUIProvider）：
                   全站任何搜索框只要带上这个属性，那个快捷键就会聚焦到它。 */}
               <input data-search-input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名、学号或队名" className="min-h-[32px] min-w-0 border border-[var(--adm-line-soft)] px-[10px] text-[length:var(--adm-fs-sm)] leading-tight outline-none focus:border-[var(--adm-red)] md:w-56" />
-              <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] leading-tight outline-none">
+              <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] adm-panel px-[8px] text-[length:var(--adm-fs-sm)] leading-tight outline-none">
                 {(["全部", "已通过", "需修改", "已拒绝"] as const).map((status) => <option key={status}>{status}</option>)}
               </select>
             </div>
@@ -429,7 +429,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 onChange={(event) => setTeamFilter(event.target.value as TeamFilter)}
                 aria-label="按队伍状态筛选"
                 title="按队伍状态筛选；括号里是该状态下的队伍数"
-                className="min-h-[32px] shrink-0 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] outline-none"
+                className="min-h-[32px] shrink-0 adm-panel px-[8px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] outline-none"
               >
                 {TEAM_FILTERS.map((bucket) => (
                   <option key={bucket} value={bucket}>{bucket}（{teamBuckets[bucket]}）</option>
@@ -440,7 +440,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 onChange={(event) => setTeamSort(event.target.value as TeamSort)}
                 aria-label="队伍排序方式"
                 title="待办优先：缺人、待确认的队伍排在前面；平均段位：按首发 5 人的段位均值，强 → 弱（替补与教练不计）"
-                className="min-h-[32px] shrink-0 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-[8px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] outline-none"
+                className="min-h-[32px] shrink-0 adm-panel px-[8px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] outline-none"
               >
                 {TEAM_SORTS.map((mode) => (
                   <option key={mode} value={mode}>排序：{mode}</option>
@@ -455,7 +455,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 label={`复制队长联系方式（${visibleTeams.length} 队）`}
                 copiedLabel={`已复制（${visibleTeams.length} 队）`}
                 title="按当前筛选与排序复制：队名 / 队长游戏 ID / 联系方式，制表符分隔，可直接粘进表格或聊天窗口"
-                className="inline-flex min-h-[32px] shrink-0 items-center border border-[var(--adm-line)] bg-[var(--adm-surface)] px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] disabled:cursor-not-allowed disabled:text-[var(--adm-text-mute)]"
+                className="inline-flex min-h-[32px] shrink-0 items-center adm-panel px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] disabled:cursor-not-allowed disabled:text-[var(--adm-text-mute)]"
               />
             </div>
           )}
