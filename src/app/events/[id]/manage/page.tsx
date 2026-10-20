@@ -203,21 +203,21 @@ export default function ParticipantManagePage({
                     {roleOpen ? (
                       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                         <select value={myRole} onChange={(e) => setMyRole(e.target.value as RosterRole)} className={inputClass}><option>首发</option><option>替补</option><option>教练</option></select>
-                        <button type="button" onClick={() => setRoleOpen(false)} disabled={busy} className="h-[44px] border border-[var(--pub-line)] bg-[var(--pub-card)] px-4 text-xs font-bold">取消</button>
-                        <button type="button" onClick={() => run(() => participant.setMyRole(myRole), "角色已更新。").then(() => setRoleOpen(false))} disabled={busy} className="h-[44px] bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">确认改角色</button>
+                        <Button type="button" onClick={() => setRoleOpen(false)} disabled={busy} variant="secondary" size="md">取消</Button>
+                        <Button type="button" onClick={() => run(() => participant.setMyRole(myRole), "角色已更新。").then(() => setRoleOpen(false))} disabled={busy} variant="primary" size="md">确认改角色</Button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => { setMyRole(data.player.role ?? "首发"); setRoleOpen(true); setRenameOpen(false); }} className="border border-[var(--pub-line)] px-3 py-2 text-xs font-bold text-[var(--pub-txt-soft)] hover:bg-white/[0.06]">调整我的角色</button>
+                      <Button type="button" onClick={() => { setMyRole(data.player.role ?? "首发"); setRoleOpen(true); setRenameOpen(false); }} variant="secondary" size="sm">调整我的角色</Button>
                     )}
 
                     {data.isCaptain && (renameOpen ? (
                       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                         <input value={editingTeamName} onChange={(e) => setEditingTeamName(e.target.value)} placeholder="新队名（≤40 字）" className={inputClass} />
-                        <button type="button" onClick={() => setRenameOpen(false)} disabled={busy} className="h-[44px] border border-[var(--pub-line)] bg-[var(--pub-card)] px-4 text-xs font-bold">取消</button>
-                        <button type="button" onClick={() => run(() => participant.renameTeam(editingTeamName), "队名已更新。").then(() => setRenameOpen(false))} disabled={busy || !editingTeamName.trim()} className="h-[44px] bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">确认改名</button>
+                        <Button type="button" onClick={() => setRenameOpen(false)} disabled={busy} variant="secondary" size="md">取消</Button>
+                        <Button type="button" onClick={() => run(() => participant.renameTeam(editingTeamName), "队名已更新。").then(() => setRenameOpen(false))} disabled={busy || !editingTeamName.trim()} variant="primary" size="md">确认改名</Button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => { setEditingTeamName(data.team!.name); setRenameOpen(true); setRoleOpen(false); }} className="border border-[var(--pub-line)] px-3 py-2 text-xs font-bold text-[var(--pub-txt-soft)] hover:bg-white/[0.06]">修改队名</button>
+                      <Button type="button" onClick={() => { setEditingTeamName(data.team!.name); setRenameOpen(true); setRoleOpen(false); }} variant="secondary" size="sm">修改队名</Button>
                     ))}
 
                     {confirmTeamAction ? (
@@ -259,7 +259,7 @@ export default function ParticipantManagePage({
                     <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_7rem_auto]">
                       <input value={inviteGameId} onChange={(e) => setInviteGameId(e.target.value)} placeholder="完整游戏 ID" className={inputClass} />
                       <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as RosterRole)} className={inputClass}><option>首发</option><option>替补</option><option>教练</option></select>
-                      <button onClick={() => run(() => participant.sendTeamRequest({ type: "invitation", teamId: data.team!.id, targetGameId: inviteGameId, role: inviteRole }), "邀请已发送。") } disabled={busy || !inviteGameId.trim()} className="h-[44px] bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">发送邀请</button>
+                      <Button onClick={() => run(() => participant.sendTeamRequest({ type: "invitation", teamId: data.team!.id, targetGameId: inviteGameId, role: inviteRole }), "邀请已发送。") } disabled={busy || !inviteGameId.trim()} variant="primary" size="md">发送邀请</Button>
                     </div>
                   </div>
                 )}
