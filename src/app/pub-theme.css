@@ -128,3 +128,42 @@
 .pub-dark footer a:hover {
   color: var(--pub-txt);
 }
+
+/* ===== 卡片记号统一（2026-10-20 第 1 批）=====
+   基准的卡片 = 半透明 + 1px 框线 + 左上红折线 / 右下灰折线。
+   这些卡片用的是 globals.css 里的类（capability-card / event-card / closing-cta 等），
+   所以在这里统一补折线与框线，不改任何组件文件。 */
+.pub-dark .capability-card,
+.pub-dark .event-card,
+.pub-dark .closing-cta,
+.pub-dark .signal-strip {
+  position: relative;
+  background: var(--pub-card);
+  border-color: var(--pub-line-soft);
+}
+.pub-dark .capability-card::before,
+.pub-dark .event-card::before,
+.pub-dark .closing-cta::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid var(--pub-red);
+  border-top: 1px solid var(--pub-red);
+  pointer-events: none;
+}
+.pub-dark .capability-card::after,
+.pub-dark .event-card::after,
+.pub-dark .closing-cta::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid var(--pub-line);
+  border-bottom: 1px solid var(--pub-line);
+  pointer-events: none;
+}
