@@ -14,6 +14,7 @@
 // =====================
 
 import { useMemo, useRef, useState } from "react";
+import Button from "@/components/ui/Button";
 import { getGameConfig } from "@/lib/games";
 
 /** 当前游戏的地图目录（数据在 `@/lib/games`）。用于手工录入时的地图下拉。 */
@@ -455,12 +456,9 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
             />
           </label>
           {error && <p className="text-sm text-[#ff4655]">{error}</p>}
-          <button
-            type="submit"
-            className="btn-cut mt-2 h-13 w-full bg-[#ff4655] text-base font-bold text-white hover:bg-[#d83b48]"
-          >
+          <Button type="submit" variant="primary" size="lg" className="mt-2 w-full">
             进入工作台
-          </button>
+          </Button>
         </form>
         <p className="mt-6 text-xs leading-relaxed text-[var(--pub-txt-soft)]">凭证只保存在当前页面内存中，刷新或关闭页面后需要重新输入。</p>
       </div>
@@ -477,13 +475,13 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
         <section className="mb-6">
           <div className="flex items-center justify-between border-b-2 border-[var(--pub-red)]/40 px-1 pb-2">
             <h2 className="mono-label text-[var(--pub-txt)]">我的比赛 · {matches.length}</h2>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="md"
               onClick={() => void Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())])}
-              className="inline-flex min-h-[44px] items-center px-2 text-sm text-[var(--pub-txt-soft)] hover:text-[#ff4655]"
             >
               刷新
-            </button>
+            </Button>
           </div>
           {matches.length === 0 ? (
             <EmptyState text="还没有你要裁的比赛，从下面挑一场认领" />
@@ -514,22 +512,18 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                       <span className="text-sm text-[var(--pub-txt-soft)]">{m.status}</span>
                       <div className="flex items-center gap-2">
                         {m.selfClaimed && m.status !== "已完成" && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="secondary"
+                            size="md"
                             onClick={() => void claimAction(m.matchId, "release")}
                             disabled={claimingId === m.matchId}
-                            className="inline-flex min-h-[44px] items-center border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-sm text-[var(--pub-txt-soft)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
                           >
                             {claimingId === m.matchId ? "处理中…" : "释放这场"}
-                          </button>
+                          </Button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => openMatch(m)}
-                          className="min-h-[44px] bg-[#ff4655] px-4 text-sm font-bold text-white hover:bg-[#d83b48]"
-                        >
+                        <Button variant="primary" size="md" onClick={() => openMatch(m)}>
                           进入报分 →
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     {!m.selfClaimed && (
