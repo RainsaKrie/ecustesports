@@ -163,7 +163,14 @@ function PhaseBracket({ matches, renderMatch }: TournamentBracketCanvasProps) {
 }
 
 export default function TournamentBracketCanvas({ matches, renderMatch }: TournamentBracketCanvasProps) {
-  const phases = [...new Set(matches.map((match) => match.phase))];
+  // 阶段顺序（2026-10-20 负责人指定）：小组赛 → 入围赛 → 资格赛。
+  // 不按生成顺序 —— 生成是"资格赛在前"，但那是流程顺序，不是阅读顺序。
+  const PHASE_ORDER = ["小组赛", "入围赛", "资格赛", "淘汰赛"];
+  const phaseRank = (phase: string) => {
+    const index = PHASE_ORDER.findIndex((key) => phase.includes(key));
+    return index < 0 ? 99 : index;
+  };
+  const phases = [...new Set(matches.map((match) => match.phase))].sort((a, b) => phaseRank(a) - phaseRank(b));
   return (
     <div className="min-w-0 space-y-5 overflow-x-auto">
       {phases.map((phase) => {

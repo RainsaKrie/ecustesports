@@ -29,8 +29,30 @@ function isGroupPhase(phase: string): boolean {
   return GROUP_PHASE_HINTS.some((hint) => phase.includes(hint));
 }
 
-/** 并查集：把小组赛里互相交手的队伍并到一起 */
+/**
+ * 从比赛轮次里解析组名：GSL 的轮次形如「A 组 胜者组出线战」。
+ * **这是权威来源**：从对阵反推只看谁跟谁打过，未开赛的轮次会让同组被拆成两人小组
+ * （实测 4 人组显示成 2 人组）。
+ */
+function groupOfRound(round: string | undefined): string | null {
+  const matched = (round ?? "").match(/^([A-Z一-龥]{1,2})\s*组/);
+  return matched ? matched[1] + " 组" : null;
+}
+
+/** 并查集：把小组赛里互相交手的队伍并到一起（仅在没有轮次信息时兜底） */
 function buildGroups(matches: ScheduleMatch[]): Map<string, Set<string>> {
+  // 先试权威来源：轮次里写了组名
+  const byRound = new Map<string, Set<string>>();
+  for (const m of matches) {
+    if (!isGroupPhase(m.phase)) continue;
+    const name = groupOfRound(m.round);
+    if (!name) continue;
+    if (!byRound.has(name)) byRound.set(name, new Set());
+    if (m.teamAId) byRound.get(name)!.add(m.teamAId);
+    if (m.teamBId) byRound.get(name)!.add(m.teamBId);
+  }
+  if (byRound.size > 0) return byRound;
+
   const parent = new Map<string, string>();
   const find = (x: string): string => {
     let cur = x;

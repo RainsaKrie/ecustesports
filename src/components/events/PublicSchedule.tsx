@@ -106,7 +106,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
             </h2>
           </div>
           <span className="font-mono text-[11.5px] tracking-[0.06em] text-[var(--pub-txt-mute)]">
-            {currentDone} / {currentMatches.length} 场已完成 · {currentTeams} 队
+            {currentDone} / {currentMatches.length} 场已完成
             {nextTeams ? ` · ${nextTeams} 队晋级` : ""}
           </span>
         </div>
@@ -166,63 +166,6 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
             </div>
           </div>
           <GroupStandings matches={matches} />
-        </section>
-      )}
-
-      {completed.length > 0 && (
-        <section>
-          <div className="mb-2 flex items-end justify-between gap-4">
-            <div>
-              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">MATCH RESULTS</p>
-              <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">比赛结果</h3>
-            </div>
-            <span className="font-mono text-[0.6875rem] font-black text-[var(--pub-txt-soft)]">{completed.length} MATCHES</span>
-          </div>
-          <div className="space-y-2">
-            {completedPhases.map((phase) => {
-              const phaseMatches = completed.filter((match) => match.phase === phase);
-              return (
-                <details key={phase} open={phase === latestCompletedPhase} className="group border border-[var(--pub-line-soft)] bg-[var(--pub-card)]">
-                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-4 bg-white/[0.06] px-4 py-2.5 transition hover:bg-[var(--pub-line-soft)]">
-                    <span className="text-sm font-black text-[var(--pub-txt)]">{phase}</span>
-                    <span className="flex items-center gap-4">
-                      <span className="font-mono text-[0.625rem] font-black text-[var(--pub-txt-soft)]">{phaseMatches.length} 场</span>
-                      <span aria-hidden className="text-lg font-black text-[var(--pub-red)] transition group-open:rotate-45">＋</span>
-                    </span>
-                  </summary>
-                  <div className="divide-y divide-[var(--pub-line-soft)] border-t border-[var(--pub-line-soft)]">
-                    {phaseMatches.map((m) => {
-                      const a = winCount(m.gameResults, "A");
-                      const b = winCount(m.gameResults, "B");
-                      const aWon = a > b;
-                      return (
-                        <div key={m.id} className="px-3 py-2.5 transition hover:bg-white/[0.03]">
-                          {/* 与未开赛列表同一套列顺序，赢家加亮、输家压暗 */}
-                          <div className="grid items-center gap-x-3 gap-y-0.5 sm:grid-cols-[84px_1fr_1fr_88px_1fr_92px] sm:gap-0">
-                            <span className="font-mono text-[0.6875rem] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:px-1">{fmt(m.startTime) || "—"}</span>
-                            <span className="truncate text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1.5">{m.round || m.boType}</span>
-                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 sm:text-right ${aWon ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-mute)]"}`}>{m.teamAName}</span>
-                            <span className={`text-center font-mono text-base font-black tabular-nums ${aWon ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-soft)]"}`}>{a} : {b}</span>
-                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 ${aWon ? "text-[var(--pub-txt-mute)]" : "text-[var(--pub-txt)]"}`}>{m.teamBName}</span>
-                            <span className="justify-self-end font-mono text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1 sm:text-right">{relTime(m.startTime)}</span>
-                          </div>
-                          {m.gameResults && m.gameResults.length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {m.gameResults.map((g, i) => (
-                                <span key={i} className="border border-[var(--pub-line-soft)] px-1.5 py-0.5 font-mono text-[0.625rem] font-bold text-[var(--pub-txt-mute)]">
-                                  {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </details>
-              );
-            })}
-          </div>
         </section>
       )}
 
@@ -295,6 +238,64 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               ))}
             </div>
           )}
+        </section>
+      )}
+
+
+      {completed.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-end justify-between gap-4">
+            <div>
+              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">MATCH RESULTS</p>
+              <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">比赛结果</h3>
+            </div>
+            <span className="font-mono text-[0.6875rem] font-black text-[var(--pub-txt-soft)]">{completed.length} MATCHES</span>
+          </div>
+          <div className="space-y-2">
+            {completedPhases.map((phase) => {
+              const phaseMatches = completed.filter((match) => match.phase === phase);
+              return (
+                <details key={phase} open={phase === latestCompletedPhase} className="group border border-[var(--pub-line-soft)] bg-[var(--pub-card)]">
+                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-4 bg-white/[0.06] px-4 py-2.5 transition hover:bg-[var(--pub-line-soft)]">
+                    <span className="text-sm font-black text-[var(--pub-txt)]">{phase}</span>
+                    <span className="flex items-center gap-4">
+                      <span className="font-mono text-[0.625rem] font-black text-[var(--pub-txt-soft)]">{phaseMatches.length} 场</span>
+                      <span aria-hidden className="text-lg font-black text-[var(--pub-red)] transition group-open:rotate-45">＋</span>
+                    </span>
+                  </summary>
+                  <div className="divide-y divide-[var(--pub-line-soft)] border-t border-[var(--pub-line-soft)]">
+                    {phaseMatches.map((m) => {
+                      const a = winCount(m.gameResults, "A");
+                      const b = winCount(m.gameResults, "B");
+                      const aWon = a > b;
+                      return (
+                        <div key={m.id} className="px-3 py-2.5 transition hover:bg-white/[0.03]">
+                          {/* 与未开赛列表同一套列顺序，赢家加亮、输家压暗 */}
+                          <div className="grid items-center gap-x-3 gap-y-0.5 sm:grid-cols-[84px_1fr_1fr_88px_1fr_92px] sm:gap-0">
+                            <span className="font-mono text-[0.6875rem] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:px-1">{fmt(m.startTime) || "—"}</span>
+                            <span className="truncate text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1.5">{m.round || m.boType}</span>
+                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 sm:text-right ${aWon ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-mute)]"}`}>{m.teamAName}</span>
+                            <span className={`text-center font-mono text-base font-black tabular-nums ${aWon ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-soft)]"}`}>{a} : {b}</span>
+                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 ${aWon ? "text-[var(--pub-txt-mute)]" : "text-[var(--pub-txt)]"}`}>{m.teamBName}</span>
+                            <span className="justify-self-end font-mono text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1 sm:text-right">{relTime(m.startTime)}</span>
+                          </div>
+                          {m.gameResults && m.gameResults.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {m.gameResults.map((g, i) => (
+                                <span key={i} className="border border-[var(--pub-line-soft)] px-1.5 py-0.5 font-mono text-[0.625rem] font-bold text-[var(--pub-txt-mute)]">
+                                  {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
         </section>
       )}
     </div>
