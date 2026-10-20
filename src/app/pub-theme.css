@@ -298,6 +298,9 @@
    而 tsx 里又不允许手写 `pt-[34px]`（ui-guards 的手写尺寸规则会红）。
    所以页面留白必须落在类里，页面只负责结构。 */
 .pub-dark .ui-page { padding-top: 34px; padding-bottom: 64px; }
+/* 首页把内容拆成多段（每段自己一个 Container）：段与段之间统一 64px，末段收尾 64px */
+.pub-dark .ui-section { padding-top: 64px; }
+.pub-dark .ui-page-end { padding-bottom: 64px; }
 .pub-dark .ui-stack { display: flex; flex-direction: column; gap: 8px; }
 .pub-dark .ui-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
 .pub-dark .ui-pad { padding: 16px 20px; }
@@ -352,6 +355,10 @@
 @media (max-width: 640px) {
   .pub-dark .ui-listrow { grid-template-columns: minmax(0, 1fr) auto; }
   .pub-dark .ui-listrow time { grid-column: 1 / -1; }
+  /* 数字条在手机上要能三个并排：min-width:110px 会让第三个掉到下一行 */
+  .pub-dark .ui-stat { flex: 1 1 30%; min-width: 0; padding: 12px 12px 13px; }
+  .pub-dark .ui-stat:first-child { padding-left: 0; }
+  .pub-dark .ui-stat .v { font-size: 22px; }
 }
 
 
