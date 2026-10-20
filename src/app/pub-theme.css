@@ -92,3 +92,39 @@
 @media (max-width: 780px) {
   .pub-dark .pub-frame { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* ===== 公共层对齐（2026-10-20 第 0 批）=====
+   站头本来就是深色的（浅色站身 + 深色站头），但用的是偏蓝的 rgba(15,25,35)。
+   这里只做覆盖，不改组件文件 —— Navbar / Footer 用的是 CSS 类，改这里就全站生效。 */
+.pub-dark .site-header {
+  background: rgba(10, 11, 13, 0.72);
+  border-bottom-color: var(--pub-line);
+}
+.pub-dark .site-header__inner {
+  max-width: 1100px;
+  padding-inline: 28px;
+}
+.pub-dark .site-nav > a {
+  color: var(--pub-txt-soft);
+}
+.pub-dark .site-nav > a:hover,
+.pub-dark .site-nav > a[aria-current="page"] {
+  color: var(--pub-txt);
+}
+.pub-dark .site-brand__text strong {
+  color: var(--pub-txt);
+}
+.pub-dark .site-brand__text small {
+  color: var(--pub-txt-mute);
+}
+.pub-dark footer {
+  background: transparent;
+  border-top: 1px solid var(--pub-line);
+  color: var(--pub-txt-mute);
+}
+.pub-dark footer a {
+  color: var(--pub-txt-soft);
+}
+.pub-dark footer a:hover {
+  color: var(--pub-txt);
+}
