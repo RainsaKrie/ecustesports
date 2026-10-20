@@ -78,7 +78,7 @@ export function Section({
       }`}
     >
       <div className="mx-auto max-w-7xl">
-        <header className="grid gap-2 border-t-2 border-[var(--pub-txt)] pt-4 md:grid-cols-[10rem_1fr] md:items-start">
+        <header className="grid gap-2 border-t-2 border-[var(--pub-red)] pt-4 md:grid-cols-[10rem_1fr] md:items-start">
           <p className="font-mono text-[10px] font-black tracking-[0.18em] text-[#ff4655]">
             {index} / {eyebrow}
           </p>

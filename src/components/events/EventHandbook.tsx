@@ -168,7 +168,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
           </div>
         )}
 
-        <div className="mt-7 border-t-2 border-[var(--pub-txt)] pt-4">
+        <div className="mt-7 border-t-2 border-[var(--pub-red)] pt-4">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[10px] font-black tracking-[0.18em] text-[#ff4655]">ACTIVE MAP POOL</p>
