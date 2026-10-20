@@ -31,7 +31,10 @@
 }
 .pub-dark .pub-poster::before {
   content: "";
-  position: absolute;
+  /* fixed：背景钉在视口上，按屏幕尺寸铺图。
+     之前是 absolute + cover —— cover 是相对**整页高度**算的，页面两三千像素高时
+     一张 1080×600 的图会被放大 2–3 倍，糊成一团（负责人 2026-10-20 截图指出）。 */
+  position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
