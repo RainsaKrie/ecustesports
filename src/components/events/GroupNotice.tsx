@@ -26,18 +26,18 @@ export default function GroupNotice({ group, compact = false }: { group: string;
   }
 
   return (
-    <div className={`border border-[#ff4655]/35 bg-[#fff1f2] ${compact ? "p-4" : "p-4 sm:p-5"}`}>
-      <p className="text-sm font-black text-[#171a1f]">请加入赛事 QQ 群</p>
-      <p className="mt-1 text-xs font-medium leading-5 text-[#5b626c]">
+    <div className={`border border-[#ff4655]/35 bg-[rgba(255,70,85,0.12)] ${compact ? "p-4" : "p-4 sm:p-5"}`}>
+      <p className="text-sm font-black text-[var(--pub-txt)]">请加入赛事 QQ 群</p>
+      <p className="mt-1 text-xs font-medium leading-5 text-[var(--pub-txt-soft)]">
         赛程、分组、改期与开赛提醒都在群内发布。
-        <span className="font-bold text-[#c83242]">未进群可能错过自己的比赛时间。</span>
+        <span className="font-bold text-[var(--pub-red)]">未进群可能错过自己的比赛时间。</span>
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="font-mono text-xl font-black tracking-wider text-[#c83242]">{group}</span>
+        <span className="font-mono text-xl font-black tracking-wider text-[var(--pub-red)]">{group}</span>
         <button
           type="button"
           onClick={copy}
-          className="inline-flex min-h-11 items-center border border-[#ff4655] bg-white px-4 text-xs font-black text-[#c83242] transition hover:bg-[#ff4655] hover:text-white"
+          className="inline-flex min-h-11 items-center border border-[#ff4655] bg-[var(--pub-card)] px-4 text-xs font-black text-[var(--pub-red)] transition hover:bg-[#ff4655] hover:text-white"
         >
           {copied ? "已复制" : failed ? "请手动记下" : "复制群号"}
         </button>

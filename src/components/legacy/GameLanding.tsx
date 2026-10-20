@@ -82,7 +82,7 @@ export default function GameLanding({ game }: { game: LegacyGame }) {
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid gap-8 md:grid-cols-2">
             {/* 当前赛事 */}
-            <div className="rounded-2xl border border-black/10 bg-[#fffdf8] p-8 shadow-sm">
+            <div className="rounded-2xl border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-8 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-2xl font-black" style={{ color: game.accent }}>
                   {game.tournament}
@@ -109,7 +109,7 @@ export default function GameLanding({ game }: { game: LegacyGame }) {
             </div>
 
             {/* 社群信息 */}
-            <div className="rounded-2xl border border-black/10 bg-[#fffdf8] p-8 shadow-sm">
+            <div className="rounded-2xl border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-8 shadow-sm">
               <h2 className="mb-4 text-2xl font-black text-[var(--ink)]">
                 加入社群
               </h2>
@@ -143,7 +143,7 @@ export default function GameLanding({ game }: { game: LegacyGame }) {
           <div className="grid gap-4 md:grid-cols-3">
             {game.news.map((item, idx) => (
               <div key={idx}
-                   className="group rounded-xl border border-black/10 bg-[#fffdf8] p-6 transition-all hover:shadow-lg">
+                   className="group rounded-xl border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-6 transition-all hover:shadow-lg">
                 <div className="mb-3 h-1 w-12 rounded-full"
                      style={{ backgroundColor: game.accent }} />
                 <h3 className="font-bold leading-snug text-[var(--ink)] group-hover:underline">

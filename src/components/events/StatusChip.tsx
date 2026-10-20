@@ -15,13 +15,13 @@ export type StatusTone = "accent" | "live" | "neutral" | "muted";
 
 const TONE_CLASS: Record<StatusTone, string> = {
   // 品牌红：需要被看见的状态（待处理、先手、裁判模式）
-  accent: "border-[#ffd9dd] bg-[#fff1f2] text-[#c83242]",
+  accent: "border-[#ffd9dd] bg-[rgba(255,70,85,0.12)] text-[var(--pub-red)]",
   // 进行中：唯一带点的红色
   live: "border-[#ff4655] bg-[#ff4655] text-white",
   // 中性：已确认、已完成这类"没事"的状态
-  neutral: "border-[#d8d1c6] bg-[#fffdf8] text-[#5b626c]",
+  neutral: "border-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt-soft)]",
   // 更弱：场次号、BO 这类纯信息
-  muted: "border-[#e7e1d7] bg-[#f2eee6] text-[#8b929c]",
+  muted: "border-[var(--pub-line-soft)] bg-white/[0.06] text-[var(--pub-txt-mute)]",
 };
 
 export default function StatusChip({
@@ -43,7 +43,7 @@ export default function StatusChip({
       {dot && (
         <span
           aria-hidden="true"
-          className={`inline-block h-1.5 w-1.5 ${tone === "live" ? "bg-white" : "bg-current"}`}
+          className={`inline-block h-1.5 w-1.5 ${tone === "live" ? "bg-[var(--pub-card)]" : "bg-current"}`}
         />
       )}
       {children}

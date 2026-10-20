@@ -18,7 +18,7 @@ const variantClasses = {
   primary: "bg-[#ff4655] text-white hover:bg-[#d83b48]",
   secondary: "bg-[#0f1923] text-white hover:bg-[#25313b]",
   outline: "border border-[#0f1923]/35 text-[#0f1923] hover:bg-[#0f1923] hover:text-white",
-  "dark-outline": "border border-white/35 bg-black/15 text-white hover:border-white hover:bg-white hover:text-[#0f1923]",
+  "dark-outline": "border border-white/35 bg-black/15 text-white hover:border-white hover:bg-[var(--pub-card)] hover:text-[#0f1923]",
   ghost: "text-[#25313b] hover:bg-[#0f1923]/8",
 };
 
