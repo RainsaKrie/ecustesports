@@ -88,13 +88,13 @@ const CASES: Case[] = [
     name: "④ 对比度不足（ui-guards）",
     script: "test:ui-guards",
     expect: "所有正文级文字令牌在三种底色上都 ≥4.5:1",
-    apply: () => patchFile("src/app/globals.css", "--adm-text-mute: #5f656b;", "--adm-text-mute: #a0a0a0;"),
+    apply: () => patchFile("src/app/globals.css", "--adm-text: #f2f3f5;", "--adm-text: #3a3a3a;"),
   },
   {
     name: "⑤ Button 焦点轮廓缺失（ui-guards）",
     script: "test:ui-guards",
     expect: "Button 组件带完整的焦点轮廓",
-    apply: () => patchFile("src/components/ui/Button.tsx", "focus-visible:outline focus-visible:outline-2 ", ""),
+    apply: () => patchFile("src/components/ui/Button.tsx", "focus-visible:outline-2 focus-visible:outline-offset-2", "outline-none"),
   },
   {
     name: "⑥ 过渡动画重排属性（ui-guards）",
@@ -120,13 +120,21 @@ const CASES: Case[] = [
     name: "⑧ 色板外十六进制（color-guard）",
     script: "test:color-guard",
     expect: "没有新增或加重的「色板外颜色」",
-    apply: () => patchFile("src/components/events/StatusChip.tsx", "text-[#c83242]", "text-[#abcdef]"),
+    apply: () => {
+      const p = `${ROOT}/src/components/__mutation_hex.tsx`;
+      writeFileSync(p, 'export const X = () => <div className="text-[#abcdef]" />;\n', "utf8");
+      return () => rmSync(p, { force: true });
+    },
   },
   {
     name: "⑨ Tailwind 命名色（color-guard）",
     script: "test:color-guard",
     expect: "命名色（Tailwind 色板）已清零",
-    apply: () => patchFile("src/components/events/StatusChip.tsx", "text-[#8b929c]", "text-slate-500"),
+    apply: () => {
+      const p = `${ROOT}/src/components/__mutation_named.tsx`;
+      writeFileSync(p, 'export const X = () => <div className="text-slate-500" />;\n', "utf8");
+      return () => rmSync(p, { force: true });
+    },
   },
 ];
 
