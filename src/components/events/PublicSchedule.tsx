@@ -79,8 +79,47 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
   const runnerUpScore = finalMatch?.winnerTeamId === finalMatch?.teamAId ? finalWinsB : finalWinsA;
 
 
+  // 当前阶段与四个数字（标题区用）
+  const allPhases = Array.from(new Set(matches.map((m) => m.phase)));
+  const currentPhase = [...allPhases].reverse().find((phase) => matches.some((m) => m.phase === phase && m.status !== "已完成")) ?? allPhases[allPhases.length - 1] ?? "";
+  const currentMatches = matches.filter((m) => m.phase === currentPhase);
+  const currentDone = currentMatches.filter((m) => m.status === "已完成").length;
+  const teamSet = (list: typeof matches) => new Set(list.flatMap((m) => [m.teamAId, m.teamBId]).filter(Boolean)).size;
+  const currentTeams = teamSet(currentMatches);
+  const nextPhase = allPhases[allPhases.indexOf(currentPhase) + 1];
+  const nextTeams = nextPhase ? teamSet(matches.filter((m) => m.phase === nextPhase)) : 0;
+  const heroStats = [
+    { v: String(teamSet(matches)), k: "参赛队伍" },
+    { v: String(currentTeams), k: "当前阶段" },
+    { v: nextTeams ? String(nextTeams).padStart(2, "0") : "—", k: "晋级名额", hot: true },
+    { v: String(currentMatches.length), k: "本阶段场次" },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* 标题区：对照预览的「Stage 03 / 小组赛. / 四个数字」 */}
+      <section className="pb-2">
+        <p className="flex items-center gap-2.5 font-mono text-[0.6875rem] font-bold uppercase tracking-[0.24em] text-[var(--pub-red)]">
+          <span aria-hidden className="h-px w-6 bg-[var(--pub-red)]" />
+          Stage {String(allPhases.indexOf(currentPhase) + 1).padStart(2, "0")} / {currentPhase || "赛程"}
+        </p>
+        <h2 className="mt-3 text-[clamp(2.2rem,5.4vw,3.9rem)] font-black leading-[0.94] tracking-[-0.04em] text-[var(--pub-txt)]">
+          {currentPhase || "赛程"}
+          <span className="text-[var(--pub-red)]">.</span>
+        </h2>
+        <p className="mt-3 max-w-[46ch] border-l-2 border-[var(--pub-red)] pl-3.5 text-sm text-[var(--pub-txt-soft)]">
+          {currentDone} / {currentMatches.length} 场已打完
+        </p>
+        <div className="mt-7 flex border-y border-[var(--pub-line)]">
+          {heroStats.map((item) => (
+            <div key={item.k} className="flex-1 border-l border-[var(--pub-line-soft)] px-4 py-3.5 first:border-l-0 first:pl-0">
+              <p className={`font-mono text-[1.75rem] font-black leading-none tracking-[-0.03em] tabular-nums ${item.hot ? "text-[var(--pub-red)]" : "text-[var(--pub-txt)]"}`}>{item.v}</p>
+              <p className="mt-1.5 text-[0.6875rem] font-bold tracking-[0.04em] text-[var(--pub-txt-mute)]">{item.k}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {allCompleted && finalMatch && champion && runnerUp && (
         <section className="overflow-hidden border border-[var(--pub-line)] bg-[var(--pub-card)]">
           <header className="flex items-center justify-between gap-4 border-b border-[var(--pub-line-soft)] px-5 py-4 sm:px-7">
