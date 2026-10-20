@@ -441,7 +441,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               onChange={(e) => setCredential(e.target.value)}
               placeholder="粘贴凭证"
               autoComplete="off"
-              className="h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
+              className="h-[48px] border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
             />
           </label>
           <label className="flex flex-col gap-2">
@@ -451,7 +451,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               onChange={(e) => setEventId(e.target.value)}
               placeholder="例如 event-1"
               autoComplete="off"
-              className="h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
+              className="h-[48px] border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
             />
           </label>
           {error && <p className="text-sm text-[#ff4655]">{error}</p>}
@@ -475,12 +475,12 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
         {/* ---- 我的比赛：已认领或被指派的场次 ---- */}
         <section className="mb-6">
-          <div className="flex items-center justify-between px-1 pb-2">
+          <div className="flex items-center justify-between border-b-2 border-[var(--pub-red)]/40 px-1 pb-2">
             <h2 className="mono-label text-[var(--pub-txt)]">我的比赛 · {matches.length}</h2>
             <button
               type="button"
               onClick={() => void Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())])}
-              className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--pub-txt-soft)] hover:text-[#ff4655]"
+              className="inline-flex min-h-[44px] items-center px-2 text-sm text-[var(--pub-txt-soft)] hover:text-[#ff4655]"
             >
               刷新
             </button>
@@ -518,7 +518,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                             type="button"
                             onClick={() => void claimAction(m.matchId, "release")}
                             disabled={claimingId === m.matchId}
-                            className="inline-flex min-h-11 items-center border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-sm text-[var(--pub-txt-soft)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                            className="inline-flex min-h-[44px] items-center border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-sm text-[var(--pub-txt-soft)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
                           >
                             {claimingId === m.matchId ? "处理中…" : "释放这场"}
                           </button>
@@ -526,7 +526,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                         <button
                           type="button"
                           onClick={() => openMatch(m)}
-                          className="min-h-11 bg-[#ff4655] px-4 text-sm font-bold text-white hover:bg-[#d83b48]"
+                          className="min-h-[44px] bg-[#ff4655] px-4 text-sm font-bold text-white hover:bg-[#d83b48]"
                         >
                           进入报分 →
                         </button>
@@ -547,7 +547,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
         {/* ---- 可认领的比赛：已约好时间、还没人认领的场次 ---- */}
         <section className="pb-8">
-          <h2 className="mono-label px-1 pb-2 text-[var(--pub-txt)]">可认领的比赛 · {openMatches.length}</h2>
+          <h2 className="mono-label block border-b-2 border-[var(--pub-red)]/40 px-1 pb-2 text-[var(--pub-txt)]">可认领的比赛 · {openMatches.length}</h2>
           {openMatches.length === 0 ? (
             <EmptyState text="暂时没有可认领的比赛。等队伍约好时间后会出现在这里。" />
           ) : (
@@ -575,7 +575,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                     type="button"
                     onClick={() => void claimAction(m.matchId, "claim")}
                     disabled={claimingId === m.matchId}
-                    className="mt-3 min-h-11 w-full border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-sm font-bold text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                    className="mt-3 min-h-[44px] w-full border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-sm font-bold text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
                   >
                     {claimingId === m.matchId ? "认领中…" : "我来裁这场"}
                   </button>
@@ -636,7 +636,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               </div>
               <button
                 onClick={() => removeGame(i)}
-                className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--pub-txt-soft)] hover:text-[#ff4655]"
+                className="inline-flex min-h-[44px] items-center px-2 text-sm text-[var(--pub-txt-soft)] hover:text-[#ff4655]"
               >
                 移除
               </button>
@@ -654,7 +654,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               <select
                 value={g.map}
                 onChange={(e) => updateGame(i, { map: e.target.value })}
-                className="mt-2 h-11 w-full border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
+                className="mt-2 h-[44px] w-full border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
               >
                 <option value="">选择地图</option>
                 {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -678,7 +678,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               <button
                 onClick={() => onPickEvidence(i)}
                 disabled={g.busy}
-                className="min-h-11 flex-1 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-sm text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                className="min-h-[44px] flex-1 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-sm text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
               >
                 {g.busy ? "识别中…" : g.previewUrl ? "重新上传" : "上传这一局截图"}
               </button>
@@ -698,7 +698,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                   inputMode="numeric"
                   value={g.teamAScore}
                   onChange={(e) => updateGame(i, { teamAScore: toScore(e.target.value) })}
-                  className="score-input h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
+                  className="score-input h-[48px] border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -708,7 +708,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                   inputMode="numeric"
                   value={g.teamBScore}
                   onChange={(e) => updateGame(i, { teamBScore: toScore(e.target.value) })}
-                  className="score-input h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
+                  className="score-input h-[48px] border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
                 />
               </label>
             </div>
@@ -813,7 +813,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           </button>
           <button
             onClick={() => setStage("report")}
-            className="h-12 w-full border border-[var(--pub-line-soft)] text-base text-[var(--pub-txt)] hover:bg-white/[0.04]"
+            className="h-[48px] w-full border border-[var(--pub-line-soft)] text-base text-[var(--pub-txt)] hover:bg-white/[0.04]"
           >
             返回修改比分
           </button>
@@ -854,13 +854,13 @@ function fmtTime(iso: string): string {
 function Shell({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
-      <div className="mb-5 flex items-center justify-between border-b border-[var(--pub-line-soft)] pb-4">
-        {/* min-h-11 = 44px：手机上可点。此前只有 text-base（约 24px 高），
+      <div className="mb-5 flex items-center justify-between border-b-2 border-[var(--pub-red)] pb-4">
+        {/* min-h-[44px] = 44px：手机上可点。此前只有 text-base（约 24px 高），
             是裁判端手机适配里最后一处未达标的触控目标。宽度 53px 本来就够，故不加横向 padding，
             以免按钮变宽把标题挤歪（右侧只有 w-8 的占位）。 */}
         <button
           onClick={onBack}
-          className="inline-flex min-h-11 items-center text-base text-[var(--pub-txt)] hover:text-[#ff4655]"
+          className="inline-flex min-h-[44px] items-center text-base text-[var(--pub-txt)] hover:text-[#ff4655]"
         >
           ← 返回
         </button>
@@ -874,7 +874,7 @@ function Shell({ title, onBack, children }: { title: string; onBack: () => void;
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="border border-dashed border-[var(--pub-line-soft)] p-10 text-center">
+    <div className="border border-dashed border-[var(--pub-line-soft)] bg-white/[0.03] p-10 text-center">
       <p className="text-base text-[var(--pub-txt-soft)]">{text}</p>
     </div>
   );
