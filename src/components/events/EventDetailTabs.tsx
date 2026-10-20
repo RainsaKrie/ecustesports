@@ -24,26 +24,26 @@ const TAB_LABELS: Record<Tab, string> = {
 
 function PlayerList({ players }: { players: PublicRegistrationSummary["players"] }) {
   return (
-    <section className="border border-black/10 bg-[#fffdf8]">
-      <header className="flex items-center justify-between border-b border-black/10 px-5 py-3">
-        <h2 className="text-base font-black text-[#171a1f]">参赛选手</h2>
-        <span className="font-mono text-[0.625rem] font-black text-[#c83242]">{players.length} PLAYERS</span>
+    <section className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)]">
+      <header className="flex items-center justify-between border-b border-[var(--pub-line-soft)] px-5 py-3">
+        <h2 className="text-base font-black text-[var(--pub-txt)]">参赛选手</h2>
+        <span className="font-mono text-[0.625rem] font-black text-[var(--pub-red)]">{players.length} PLAYERS</span>
       </header>
       {players.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm font-bold text-[#5b626c]">暂无参赛选手</p>
+        <p className="px-5 py-10 text-center text-sm font-bold text-[var(--pub-txt-soft)]">暂无参赛选手</p>
       ) : (
         <div>
-          <div className="hidden grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] gap-3 border-b border-black/10 bg-[#f2eee6] px-5 py-2 text-[0.625rem] font-black text-[#5b626c] md:grid">
+          <div className="hidden grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] gap-3 border-b border-[var(--pub-line-soft)] bg-white/[0.06] px-5 py-2 text-[0.625rem] font-black text-[var(--pub-txt-soft)] md:grid">
             <span>#</span><span>游戏 ID</span><span>段位</span><span>队伍</span><span>状态</span>
           </div>
           {players.map((player, index) => (
-            <div key={player.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-black/10 px-4 py-2 last:border-b-0 md:grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] md:px-5 md:gap-3">
-              <span className="hidden font-mono text-[0.625rem] font-black text-[#8b929c] md:block">{String(index + 1).padStart(2, "0")}</span>
-              <strong className="min-w-0 truncate text-xs text-[#171a1f]">{player.gameId}</strong>
+            <div key={player.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-[var(--pub-line-soft)] px-4 py-2 last:border-b-0 md:grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] md:px-5 md:gap-3">
+              <span className="hidden font-mono text-[0.625rem] font-black text-[var(--pub-txt-mute)] md:block">{String(index + 1).padStart(2, "0")}</span>
+              <strong className="min-w-0 truncate text-xs text-[var(--pub-txt)]">{player.gameId}</strong>
               <span className="hidden text-xs font-semibold text-[#2b3038] md:block">{player.rank}</span>
               <span className="hidden text-xs font-semibold text-[#2b3038] md:block">{player.teamName ?? "—"}{player.role ? ` · ${player.role}` : ""}</span>
               <StatusChip tone="accent">{player.status}</StatusChip>
-              <span className="col-span-2 min-w-0 truncate text-[0.6875rem] font-semibold text-[#5b626c] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
+              <span className="col-span-2 min-w-0 truncate text-[0.6875rem] font-semibold text-[var(--pub-txt-soft)] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
             </div>
           ))}
         </div>
@@ -57,16 +57,16 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
   const [picked, setPicked] = useState<PublicRegistrationSummary["teams"][number] | null>(null);
   return (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-4 border-b border-[#d8d1c6] pb-2">
+      <div className="mb-3 flex items-end justify-between gap-4 border-b border-[var(--pub-line)] pb-2">
         <div>
-          <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[#c83242]">Teams</p>
-          <h2 className="mt-1 text-[1.375rem] font-black tracking-[-0.01em] text-[#171a1f]">参赛队伍</h2>
+          <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Teams</p>
+          <h2 className="mt-1 text-[1.375rem] font-black tracking-[-0.01em] text-[var(--pub-txt)]">参赛队伍</h2>
         </div>
-        <span className="font-mono text-[0.6875rem] font-black text-[#8b929c]">{teams.length} 支</span>
+        <span className="font-mono text-[0.6875rem] font-black text-[var(--pub-txt-mute)]">{teams.length} 支</span>
       </div>
 
       {teams.length === 0 ? (
-        <p className="border border-dashed border-[#d8d1c6] px-5 py-12 text-center text-sm font-bold text-[#5b626c]">暂无参赛队伍</p>
+        <p className="border border-dashed border-[var(--pub-line)] px-5 py-12 text-center text-sm font-bold text-[var(--pub-txt-soft)]">暂无参赛队伍</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {teams.map((team, index) => {
@@ -85,16 +85,16 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                 key={team.id}
                 type="button"
                 onClick={() => setPicked(team)}
-                className="group relative block bg-[#fffdf8] p-4 ring-1 ring-[#d8d1c6] transition duration-150 hover:ring-[#171a1f]"
+                className="group relative block bg-[var(--pub-card)] p-4 ring-1 ring-[var(--pub-line)] transition duration-150 hover:ring-[var(--pub-txt)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="grid h-9 w-9 flex-none place-items-center bg-[#171a1f] font-mono text-sm font-black text-[#fffdf8]">
+                    <span className="grid h-9 w-9 flex-none place-items-center bg-[var(--pub-txt)] font-mono text-sm font-black text-[#fffdf8]">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[0.9375rem] font-black text-[#171a1f] group-hover:text-[#c83242]">{team.name}</p>
-                      <p className="mt-0.5 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-[#8b929c]">
+                      <p className="truncate text-[0.9375rem] font-black text-[var(--pub-txt)] group-hover:text-[var(--pub-red)]">{team.name}</p>
+                      <p className="mt-0.5 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-[var(--pub-txt-mute)]">
                         {complete ? "Roster complete" : `首发 ${starters.length}/5`}
                       </p>
                     </div>
@@ -107,11 +107,11 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                     {slots.map((filled, i) => (
                       <span
                         key={i}
-                        className={`h-1.5 w-4 ${filled ? (i < 5 ? "bg-[#171a1f]" : "bg-[#8b929c]") : "bg-[#e7e1d7]"}`}
+                        className={`h-1.5 w-4 ${filled ? (i < 5 ? "bg-[var(--pub-txt)]" : "bg-[var(--pub-txt-mute)]") : "bg-[#e7e1d7]"}`}
                       />
                     ))}
                   </div>
-                  <span className="font-mono text-[0.625rem] font-black tracking-[0.06em] text-[#8b929c]">
+                  <span className="font-mono text-[0.625rem] font-black tracking-[0.06em] text-[var(--pub-txt-mute)]">
                     {starters.length + (substitute ? 1 : 0) + (coach ? 1 : 0)} / 7
                   </span>
                 </div>
