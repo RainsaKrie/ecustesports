@@ -38,10 +38,15 @@
   /* 光晕必须给显式半径：外壳是一条很长的页面，`circle` 默认 farthest-corner
      会把 2400px 高的盒子算成巨大半径 → 整页均匀泛红（实测截图就是这个效果）。
      写死 1100px / 900px 后，红光只落在首屏，往下自然退到纯黑。 */
-  background-image: var(--pub-bg-image),
+  /* 四层：深色遮罩 → 海报图 → 两团红光。
+     遮罩必须在最上层，否则白字压不住彩色海报；海报本身是彩色的（青/橙/紫），
+     只有压到 80% 以上才能保证正文与强调红都还在。 */
+  background-image:
+    linear-gradient(180deg, rgba(10, 11, 13, 0.80) 0%, rgba(10, 11, 13, 0.90) 55%, rgba(10, 11, 13, 0.97) 100%),
+    var(--pub-bg-image),
     radial-gradient(circle 1100px at 10% -8%, rgba(255, 70, 85, 0.3), rgba(255, 70, 85, 0.06) 46%, transparent 70%),
     radial-gradient(circle 900px at 92% 104%, rgba(255, 70, 85, 0.16), transparent 68%);
-  background-size: cover, auto, auto;
+  background-size: cover, cover, auto, auto;
   background-position: center, center, center;
   background-repeat: no-repeat;
 }
@@ -345,3 +350,8 @@
   border-top: 1px solid var(--pub-red);
   pointer-events: none;
 }
+
+/* 背景海报（2026-10-20 负责人提供）。
+   四张：捷风 / 不死鸟 / 芮娜 / 猎枭+铁臂，放 public/posters/。
+   当前全站统一用捷风；首页轮换是下一步。 */
+.pub-dark { --pub-bg-image: url("/posters/jett.jpg"); }
