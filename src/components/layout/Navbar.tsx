@@ -22,7 +22,8 @@ export default function Navbar({ config }: { config: SiteConfig }) {
     <header className="site-header">
       <div className="site-header__inner">
         <Link href="/" className="site-brand" aria-label={`${config.brand.name}首页`}>
-          <span className="brand-mark mr-3" aria-hidden="true">{config.brand.mark}</span>
+          {/* 2026-10-20 负责人要求：站头换成瓦友社 logo（社团标识；场地标识的 ECUST 约束不受影响） */}
+          <img src="/brand-wa.png" alt="" aria-hidden="true" className="brand-logo mr-3" width={40} height={34} />
           <span className="site-brand__text">
             <strong>{config.brand.name}</strong>
             <small>{config.brand.englishName}</small>

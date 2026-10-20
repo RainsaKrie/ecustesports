@@ -358,3 +358,11 @@
    四张：捷风 / 不死鸟 / 芮娜 / 猎枭+铁臂，放 public/posters/。
    全站统一用不死鸟（负责人 2026-10-20 指定）。捷风/芮娜/猎枭仍留在 public/posters/ 备用。 */
 .pub-dark { --pub-bg-image: url("/posters/phoenix.jpg"); }
+
+/* 站头 logo（2026-10-20）：瓦友社标识，高度对齐原来 34px 的文字标记 */
+.pub-dark .brand-logo {
+  height: 34px;
+  width: auto;
+  display: block;
+  flex: none;
+}
