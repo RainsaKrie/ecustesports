@@ -27,23 +27,23 @@ function PlayerList({ players }: { players: PublicRegistrationSummary["players"]
     <section className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)]">
       <header className="flex items-center justify-between border-b border-[var(--pub-line-soft)] px-5 py-3">
         <h2 className="text-base font-black text-[var(--pub-txt)]">参赛选手</h2>
-        <span className="font-mono text-[0.625rem] font-black text-[var(--pub-red)]">{players.length} PLAYERS</span>
+        <span className="font-mono text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-red)]">{players.length} PLAYERS</span>
       </header>
       {players.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm font-bold text-[var(--pub-txt-soft)]">暂无参赛选手</p>
       ) : (
         <div>
-          <div className="hidden grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] gap-3 border-b border-[var(--pub-line-soft)] bg-white/[0.06] px-5 py-2 text-[0.625rem] font-black text-[var(--pub-txt-soft)] md:grid">
+          <div className="hidden grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] gap-3 border-b border-[var(--pub-line-soft)] bg-white/[0.06] px-5 py-2 text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-soft)] md:grid">
             <span>#</span><span>游戏 ID</span><span>段位</span><span>队伍</span><span>状态</span>
           </div>
           {players.map((player, index) => (
             <div key={player.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-[var(--pub-line-soft)] px-4 py-2 last:border-b-0 md:grid-cols-[2.5rem_minmax(0,1.3fr)_0.8fr_minmax(0,1fr)_0.7fr] md:px-5 md:gap-3">
-              <span className="hidden font-mono text-[0.625rem] font-black text-[var(--pub-txt-mute)] md:block">{String(index + 1).padStart(2, "0")}</span>
+              <span className="hidden font-mono text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-mute)] md:block">{String(index + 1).padStart(2, "0")}</span>
               <strong className="min-w-0 truncate text-xs text-[var(--pub-txt)]">{player.gameId}</strong>
               <span className="hidden text-xs font-semibold text-[var(--pub-txt-soft)] md:block">{player.rank}</span>
               <span className="hidden text-xs font-semibold text-[var(--pub-txt-soft)] md:block">{player.teamName ?? "—"}{player.role ? ` · ${player.role}` : ""}</span>
               <StatusChip tone="accent">{player.status}</StatusChip>
-              <span className="col-span-2 min-w-0 truncate text-[0.6875rem] font-semibold text-[var(--pub-txt-soft)] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
+              <span className="col-span-2 min-w-0 truncate text-[length:var(--pub-fs-xs)] font-semibold text-[var(--pub-txt-soft)] md:hidden">{player.rank} · {player.teamName ?? "未组队"}{player.role ? ` · ${player.role}` : ""}</span>
             </div>
           ))}
         </div>
@@ -90,8 +90,8 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[0.9375rem] font-black text-[var(--pub-txt)] group-hover:text-[var(--pub-red)]">{team.name}</p>
-                      <p className="mt-0.5 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-[var(--pub-txt-mute)]">
+                      <p className="truncate text-[length:var(--pub-fs-md)] font-black text-[var(--pub-txt)] group-hover:text-[var(--pub-red)]">{team.name}</p>
+                      <p className="mt-0.5 font-mono text-[length:var(--pub-fs-xs)] uppercase tracking-[0.12em] text-[var(--pub-txt-mute)]">
                         {complete ? "Roster complete" : `首发 ${starters.length}/5`}
                       </p>
                     </div>
@@ -108,7 +108,7 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                       />
                     ))}
                   </div>
-                  <span className="font-mono text-[0.625rem] font-black tracking-[0.06em] text-[var(--pub-txt-mute)]">
+                  <span className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.06em] text-[var(--pub-txt-mute)]">
                     {starters.length + (substitute ? 1 : 0) + (coach ? 1 : 0)} / 7
                   </span>
                 </div>

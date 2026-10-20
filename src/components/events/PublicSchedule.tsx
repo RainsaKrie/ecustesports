@@ -116,17 +116,17 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
         <section className="overflow-hidden border border-[var(--pub-line)] bg-[var(--pub-card)]">
           <header className="flex items-center justify-between gap-4 border-b border-[var(--pub-line-soft)] px-5 py-4 sm:px-7">
             <div>
-              <p className="font-mono text-[0.625rem] font-black tracking-[0.18em] text-[var(--pub-red)]">FINAL STANDINGS</p>
+              <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.18em] text-[var(--pub-red)]">FINAL STANDINGS</p>
               <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">最终排名</h3>
             </div>
-            <span className="shrink-0 whitespace-nowrap border border-[#ff4655]/35 bg-[rgba(255,70,85,0.12)] px-2.5 py-1 text-[0.6875rem] font-black text-[var(--pub-red)]">赛事已结束</span>
+            <span className="shrink-0 whitespace-nowrap border border-[#ff4655]/35 bg-[rgba(255,70,85,0.12)] px-2.5 py-1 text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-red)]">赛事已结束</span>
           </header>
 
           <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.8fr)]">
             <div className="relative overflow-hidden border-b border-[var(--pub-line-soft)] bg-white/[0.06] px-5 py-6 sm:px-7 sm:py-7 lg:border-b-0 lg:border-r">
               <span aria-hidden className="absolute -bottom-8 right-3 font-mono text-[7rem] font-black leading-none text-[#ff4655]/[0.08] sm:right-8">01</span>
               <div className="relative">
-                <p className="font-mono text-[0.625rem] font-black tracking-[0.18em] text-[var(--pub-red)]">CHAMPION / 冠军</p>
+                <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.18em] text-[var(--pub-red)]">CHAMPION / 冠军</p>
                 <h4 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[var(--pub-txt)] sm:text-4xl">{champion}</h4>
                 <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-black text-[var(--pub-txt-soft)]">
                   <span className="text-[var(--pub-txt-soft)]">总决赛</span>
@@ -141,14 +141,14 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               <div className="flex min-h-24 items-center gap-4 border-b border-[var(--pub-line-soft)] p-5 sm:min-h-28 sm:border-b-0 sm:border-r sm:p-6 lg:border-b lg:border-r-0">
                 <span className="font-mono text-2xl font-black text-[var(--pub-line)]">02</span>
                 <div>
-                  <dt className="text-[0.625rem] font-black tracking-[0.12em] text-[var(--pub-txt-soft)]">亚军</dt>
+                  <dt className="text-[length:var(--pub-fs-xs)] font-black tracking-[0.12em] text-[var(--pub-txt-soft)]">亚军</dt>
                   <dd className="mt-1.5 text-base font-black text-[var(--pub-txt)] sm:text-lg">{runnerUp}</dd>
                 </div>
               </div>
               <div className="flex min-h-28 items-center gap-4 p-5 sm:p-6">
                 <span className="font-mono text-2xl font-black text-[var(--pub-line)]">03</span>
                 <div>
-                  <dt className="text-[0.625rem] font-black tracking-[0.12em] text-[var(--pub-txt-soft)]">季军</dt>
+                  <dt className="text-[length:var(--pub-fs-xs)] font-black tracking-[0.12em] text-[var(--pub-txt-soft)]">季军</dt>
                   <dd className="mt-1.5 text-base font-black text-[var(--pub-txt)] sm:text-lg">{thirdPlace ?? "—"}</dd>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
         <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
-              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">GROUP STANDINGS</p>
+              <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.16em] text-[var(--pub-red)]">GROUP STANDINGS</p>
               <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">分组积分</h3>
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
         <section>
           <div className="mb-3 flex items-end justify-between gap-4">
             <div>
-              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">UPCOMING MATCHES</p>
+              <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.16em] text-[var(--pub-red)]">UPCOMING MATCHES</p>
               <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">赛事赛程</h3>
             </div>
             {/* 同一批比赛，两种看法：列表适合扫时间，卡片适合看对阵 */}
@@ -184,7 +184,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                   type="button"
                   onClick={() => setViewMode(mode)}
                   aria-pressed={viewMode === mode}
-                  className={`px-3 py-1 font-mono text-[0.6875rem] font-black tracking-[0.06em] transition ${
+                  className={`px-3 py-1 font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.06em] transition ${
                     viewMode === mode ? "bg-white/[0.12] text-[var(--pub-txt)]" : "bg-[var(--pub-card)] text-[var(--pub-txt-soft)] hover:text-[var(--pub-txt)]"
                   }`}
                 >
@@ -196,7 +196,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
           {viewMode === "list" ? (
           <div className="space-y-1.5">
             {/* 表头只给列名，不做强调 */}
-            <div className="hidden grid-cols-[84px_1fr_1fr_88px_1fr_92px] items-center px-1 pb-1 font-mono text-[0.625rem] font-black uppercase tracking-[0.14em] text-[var(--pub-txt-mute)] sm:grid">
+            <div className="hidden grid-cols-[84px_1fr_1fr_88px_1fr_92px] items-center px-1 pb-1 font-mono text-[length:var(--pub-fs-xs)] font-black uppercase tracking-[0.14em] text-[var(--pub-txt-mute)] sm:grid">
               <span>时间</span><span className="pl-3.5">阶段</span><span /><span className="text-center">比分</span><span /><span className="pr-4 text-right">距今</span>
             </div>
             {rest.map((m) => (
@@ -205,13 +205,13 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                 className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 py-2.5 transition hover:border-[var(--pub-line)] hover:bg-white/[0.08] sm:grid-cols-[84px_1fr_1fr_88px_1fr_92px] sm:gap-0 sm:px-0 sm:py-0"
               >
                 <span className="font-mono text-xs font-bold tabular-nums text-[var(--pub-txt-soft)] sm:px-3.5 sm:py-3">{fmt(m.startTime)}</span>
-                <span className="col-span-2 order-3 truncate text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:order-none sm:col-span-1 sm:px-3.5 sm:py-3 sm:text-xs">
+                <span className="col-span-2 order-3 truncate text-[length:var(--pub-fs-xs)] font-bold text-[var(--pub-txt-mute)] sm:order-none sm:col-span-1 sm:px-3.5 sm:py-3 sm:text-xs">
                   {m.phase}{m.round ? ` · ${m.round}` : ""}
                 </span>
-                <span className="order-1 text-[0.9375rem] font-black text-[var(--pub-txt)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-3.5 sm:py-3 sm:text-right">{m.teamAName}</span>
+                <span className="order-1 text-[length:var(--pub-fs-md)] font-black text-[var(--pub-txt)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-3.5 sm:py-3 sm:text-right">{m.teamAName}</span>
                 <span className="order-2 font-mono text-base font-black tabular-nums text-[var(--pub-txt-soft)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-2 sm:py-3 sm:text-center">— : —</span>
-                <span className="order-4 text-[0.9375rem] font-black text-[var(--pub-txt)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-3.5 sm:py-3">{m.teamBName}</span>
-                <span className="order-5 justify-self-end font-mono text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:order-none sm:px-4 sm:py-3 sm:text-right">{relTime(m.startTime) || "待定"}</span>
+                <span className="order-4 text-[length:var(--pub-fs-md)] font-black text-[var(--pub-txt)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-3.5 sm:py-3">{m.teamBName}</span>
+                <span className="order-5 justify-self-end font-mono text-[length:var(--pub-fs-xs)] font-bold text-[var(--pub-txt-mute)] sm:order-none sm:px-4 sm:py-3 sm:text-right">{relTime(m.startTime) || "待定"}</span>
               </div>
             ))}
           </div>
@@ -220,17 +220,17 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
               {rest.map((m) => (
                 <div key={m.id} className="border border-[var(--pub-line)] bg-[var(--pub-card)] p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="font-mono text-[0.625rem] font-black text-[var(--pub-txt-mute)]">{m.id}</span>
+                    <span className="font-mono text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-mute)]">{m.id}</span>
                     <StatusChip tone={m.status === "待排期" ? "accent" : "neutral"}>
                       {m.status === "已排期" ? "待开始" : m.status}
                     </StatusChip>
                   </div>
-                  <p className="mt-3 text-[0.9375rem] font-black leading-snug text-[var(--pub-txt)]">
+                  <p className="mt-3 text-[length:var(--pub-fs-md)] font-black leading-snug text-[var(--pub-txt)]">
                     {m.teamAName}
-                    <span className="mx-1.5 font-mono text-[0.625rem] font-normal text-[var(--pub-txt-mute)]">VS</span>
+                    <span className="mx-1.5 font-mono text-[length:var(--pub-fs-xs)] font-normal text-[var(--pub-txt-mute)]">VS</span>
                     {m.teamBName}
                   </p>
-                  <p className="mt-2 flex items-center justify-between font-mono text-[0.625rem] tracking-[0.06em] text-[var(--pub-txt-mute)]">
+                  <p className="mt-2 flex items-center justify-between font-mono text-[length:var(--pub-fs-xs)] tracking-[0.06em] text-[var(--pub-txt-mute)]">
                     <span>{m.boType} · {m.phase}</span>
                     <span>{fmt(m.startTime)}</span>
                   </p>
@@ -246,10 +246,10 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
         <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
-              <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">MATCH RESULTS</p>
+              <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.16em] text-[var(--pub-red)]">MATCH RESULTS</p>
               <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">比赛结果</h3>
             </div>
-            <span className="font-mono text-[0.6875rem] font-black text-[var(--pub-txt-soft)]">{completed.length} MATCHES</span>
+            <span className="font-mono text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-soft)]">{completed.length} MATCHES</span>
           </div>
           <div className="space-y-2">
             {completedPhases.map((phase) => {
@@ -259,7 +259,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                   <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-4 bg-white/[0.06] px-4 py-2.5 transition hover:bg-[var(--pub-line-soft)]">
                     <span className="text-sm font-black text-[var(--pub-txt)]">{phase}</span>
                     <span className="flex items-center gap-4">
-                      <span className="font-mono text-[0.625rem] font-black text-[var(--pub-txt-soft)]">{phaseMatches.length} 场</span>
+                      <span className="font-mono text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-soft)]">{phaseMatches.length} 场</span>
                       <span aria-hidden className="text-lg font-black text-[var(--pub-red)] transition group-open:rotate-45">＋</span>
                     </span>
                   </summary>
@@ -272,17 +272,17 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                         <div key={m.id} className="px-3 py-2.5 transition hover:bg-white/[0.03]">
                           {/* 与未开赛列表同一套列顺序，赢家加亮、输家压暗 */}
                           <div className="grid items-center gap-x-3 gap-y-0.5 sm:grid-cols-[84px_1fr_1fr_88px_1fr_92px] sm:gap-0">
-                            <span className="font-mono text-[0.6875rem] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:px-1">{fmt(m.startTime) || "—"}</span>
-                            <span className="truncate text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1.5">{m.round || m.boType}</span>
-                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 sm:text-right ${aWon ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-mute)]"}`}>{m.teamAName}</span>
+                            <span className="font-mono text-[length:var(--pub-fs-xs)] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:px-1">{fmt(m.startTime) || "—"}</span>
+                            <span className="truncate text-[length:var(--pub-fs-xs)] font-bold text-[var(--pub-txt-mute)] sm:px-1.5">{m.round || m.boType}</span>
+                            <span className={`truncate text-[length:var(--pub-fs-md)] font-black sm:px-1.5 sm:text-right ${aWon ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-mute)]"}`}>{m.teamAName}</span>
                             <span className={`text-center font-mono text-base font-black tabular-nums ${aWon ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-soft)]"}`}>{a} : {b}</span>
-                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 ${aWon ? "text-[var(--pub-txt-mute)]" : "text-[var(--pub-txt)]"}`}>{m.teamBName}</span>
-                            <span className="justify-self-end font-mono text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1 sm:text-right">{relTime(m.startTime)}</span>
+                            <span className={`truncate text-[length:var(--pub-fs-md)] font-black sm:px-1.5 ${aWon ? "text-[var(--pub-txt-mute)]" : "text-[var(--pub-txt)]"}`}>{m.teamBName}</span>
+                            <span className="justify-self-end font-mono text-[length:var(--pub-fs-xs)] font-bold text-[var(--pub-txt-mute)] sm:px-1 sm:text-right">{relTime(m.startTime)}</span>
                           </div>
                           {m.gameResults && m.gameResults.length > 0 && (
                             <div className="mt-1 flex flex-wrap gap-1">
                               {m.gameResults.map((g, i) => (
-                                <span key={i} className="border border-[var(--pub-line-soft)] px-1.5 py-0.5 font-mono text-[0.625rem] font-bold text-[var(--pub-txt-mute)]">
+                                <span key={i} className="border border-[var(--pub-line-soft)] px-1.5 py-0.5 font-mono text-[length:var(--pub-fs-xs)] font-bold text-[var(--pub-txt-mute)]">
                                   {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
                                 </span>
                               ))}

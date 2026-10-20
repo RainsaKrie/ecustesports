@@ -75,7 +75,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
             </span>
             <div className="min-w-0">
               <h2 className="truncate text-[1.375rem] font-black leading-tight tracking-[-0.01em] text-[var(--pub-txt)]">{team.name}</h2>
-              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[0.6875rem] tracking-[0.06em] text-[var(--pub-txt-soft)]">
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[length:var(--pub-fs-xs)] tracking-[0.06em] text-[var(--pub-txt-soft)]">
                 <span>首发 {team.starterCount}/5</span>
                 <span>{finished.length} 场 · {wins} 胜</span>
               </p>
@@ -90,17 +90,17 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
         <div className="overflow-y-auto">
           {/* 阵容：一行一个角色，名字连排不换行堆砌 */}
           <div className="px-5 pt-4">
-            <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Roster</p>
+            <p className="font-mono text-[length:var(--pub-fs-xs)] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Roster</p>
             {ROLE_ROWS.map(({ role, label, range }) => {
               const members = team.members.filter((m) => m.role === role);
               return (
                 <div key={role} className="mt-2 flex items-baseline gap-3 border-b border-[var(--pub-line-soft)] pb-2">
-                  <span className="w-11 flex-none font-mono text-[0.625rem] font-black text-[var(--pub-txt-mute)]">{range}</span>
-                  <span className="w-8 flex-none text-[0.6875rem] font-black text-[var(--pub-txt-mute)]">{label}</span>
-                  <span className="flex min-w-0 flex-1 flex-wrap gap-x-3 gap-y-1 text-[0.8125rem] font-bold text-[var(--pub-txt)]">
+                  <span className="w-11 flex-none font-mono text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-mute)]">{range}</span>
+                  <span className="w-8 flex-none text-[length:var(--pub-fs-xs)] font-black text-[var(--pub-txt-mute)]">{label}</span>
+                  <span className="flex min-w-0 flex-1 flex-wrap gap-x-3 gap-y-1 text-[length:var(--pub-fs-sm)] font-bold text-[var(--pub-txt)]">
                     {members.length > 0 ? members.map((m) => <span key={m.gameId}>{m.gameId}</span>) : <span className="font-normal text-[var(--pub-txt-mute)]">未提交</span>}
                   </span>
-                  <span className="flex-none font-mono text-[0.625rem] text-[var(--pub-txt-mute)]">{members.length}</span>
+                  <span className="flex-none font-mono text-[length:var(--pub-fs-xs)] text-[var(--pub-txt-mute)]">{members.length}</span>
                 </div>
               );
             })}
@@ -108,15 +108,15 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
 
           {/* 比赛记录：紧凑行 */}
           <div className="px-5 pb-5 pt-4">
-            <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Matches</p>
+            <p className="font-mono text-[length:var(--pub-fs-xs)] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Matches</p>
             {next && (
               <div className="mt-2 border-l-2 border-[var(--pub-red)] bg-[var(--pub-card)] px-2.5 py-2">
                 <p className="font-mono text-[0.5625rem] font-black tracking-[0.12em] text-[var(--pub-red)]">NEXT</p>
-                <p className="mt-0.5 text-[0.8125rem] font-bold text-[var(--pub-txt)]">
-                  <span className="mr-1.5 text-[0.6875rem] font-normal text-[var(--pub-txt-mute)]">VS</span>
+                <p className="mt-0.5 text-[length:var(--pub-fs-sm)] font-bold text-[var(--pub-txt)]">
+                  <span className="mr-1.5 text-[length:var(--pub-fs-xs)] font-normal text-[var(--pub-txt-mute)]">VS</span>
                   {next.teamAId === team.id ? next.teamBName : next.teamAName}
                 </p>
-                <p className="mt-0.5 font-mono text-[0.625rem] tracking-[0.06em] text-[var(--pub-txt-soft)]">
+                <p className="mt-0.5 font-mono text-[length:var(--pub-fs-xs)] tracking-[0.06em] text-[var(--pub-txt-soft)]">
                   {next.startTime ? next.startTime.slice(5, 16).replace("T", " ") : next.status}
                   <span className="ml-2">{next.phase} · {next.boType}</span>
                 </p>
@@ -129,7 +129,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
               </div>
             )}
             {matches.length === 0 ? (
-              <p className="mt-2 text-[0.8125rem] text-[var(--pub-txt-mute)]">还没有安排到这支队伍的比赛</p>
+              <p className="mt-2 text-[length:var(--pub-fs-sm)] text-[var(--pub-txt-mute)]">还没有安排到这支队伍的比赛</p>
             ) : (
               <div className="mt-2">
                 {matches.map((m) => {
@@ -138,15 +138,15 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
                   const done = m.status === "已完成";
                   return (
                     <div key={m.id} className="flex items-center justify-between gap-3 border-b border-[var(--pub-line-soft)] py-2 last:border-b-0">
-                      <span className="w-10 flex-none font-mono text-[0.625rem] text-[var(--pub-txt-mute)]">{m.id}</span>
-                      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-[var(--pub-txt)]">
-                        <span className="mr-1.5 text-[0.6875rem] font-normal text-[var(--pub-txt-mute)]">VS</span>
+                      <span className="w-10 flex-none font-mono text-[length:var(--pub-fs-xs)] text-[var(--pub-txt-mute)]">{m.id}</span>
+                      <span className="min-w-0 flex-1 truncate text-[length:var(--pub-fs-sm)] font-bold text-[var(--pub-txt)]">
+                        <span className="mr-1.5 text-[length:var(--pub-fs-xs)] font-normal text-[var(--pub-txt-mute)]">VS</span>
                         {opponent}
                       </span>
-                      <span className="flex-none font-mono text-[0.625rem] text-[var(--pub-txt-mute)]">
+                      <span className="flex-none font-mono text-[length:var(--pub-fs-xs)] text-[var(--pub-txt-mute)]">
                         {m.startTime ? m.startTime.slice(5, 16).replace("T", " ") : "待安排"}
                       </span>
-                      <span className={`w-6 flex-none text-right font-mono text-[0.8125rem] font-black ${done ? (won ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]") : "text-[var(--pub-txt-mute)]"}`}>
+                      <span className={`w-6 flex-none text-right font-mono text-[length:var(--pub-fs-sm)] font-black ${done ? (won ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]") : "text-[var(--pub-txt-mute)]"}`}>
                         {done ? (won ? "胜" : "负") : "—"}
                       </span>
                     </div>

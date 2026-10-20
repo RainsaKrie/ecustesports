@@ -38,7 +38,7 @@ export default function StatusChip({
 }) {
   return (
     <span
-      className={`inline-flex flex-none items-center gap-1.5 whitespace-nowrap border px-1.5 py-0.5 text-[0.625rem] font-black leading-none tracking-[0.02em] ${TONE_CLASS[tone]} ${className}`}
+      className={`inline-flex flex-none items-center gap-1.5 whitespace-nowrap border px-1.5 py-0.5 text-[length:var(--pub-fs-xs)] font-black leading-none tracking-[0.02em] ${TONE_CLASS[tone]} ${className}`}
     >
       {dot && (
         <span

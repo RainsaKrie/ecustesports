@@ -31,6 +31,15 @@ interface ButtonProps {
   loading?: boolean;
 }
 
+/** 调用点兼容层（2026-10-20 视觉规范统一）：
+ *  变体从 5 收敛到 3 —— outline / dark-outline 都并入 secondary。
+ *  调用点不用改，这里做映射；新代码请只用 primary / secondary / ghost。 */
+const variantAlias: Record<string, "primary" | "secondary" | "ghost"> = {
+  outline: "secondary",
+  "dark-outline": "secondary",
+};
+const sizeAlias: Record<string, "md" | "lg"> = { sm: "md", xl: "lg" };
+
 const variantClasses = {
   primary: "bg-[#ff4655] text-white hover:bg-[#d83b48]",
   secondary: "border border-white/35 text-[var(--pub-txt)] hover:border-white hover:bg-white/[0.06]",
@@ -63,7 +72,7 @@ export default function Button({
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--red)]",
     "active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50",
     loading ? "cursor-progress" : "",
-    variantClasses[variant], sizeClasses[size], className,
+    variantClasses[variantAlias[variant] ?? variant], sizeClasses[sizeAlias[size] ?? size], className,
   ].filter(Boolean).join(" ");
 
   const content = loading ? (

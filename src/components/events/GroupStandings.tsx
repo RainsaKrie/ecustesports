@@ -145,12 +145,12 @@ export default function GroupStandings({ matches, advancePerGroup = 2 }: { match
           <section key={index}>
             <div className="mb-2 flex items-end justify-between gap-4 border-b border-[var(--pub-line)] pb-2">
               <h3 className="text-base font-black text-[var(--pub-txt)]">{labels[index] ?? index + 1} 组</h3>
-              <span className="font-mono text-[0.6875rem] font-bold tracking-[0.1em] text-[var(--pub-txt-soft)]">
+              <span className="font-mono text-[length:var(--pub-fs-xs)] font-bold tracking-[0.1em] text-[var(--pub-txt-soft)]">
                 {rows.length} 队 · 前 {advancePerGroup} 出线
               </span>
             </div>
             <div className="space-y-1">
-              <div className="hidden grid-cols-[2rem_1fr_5rem_4.5rem_5rem] items-center px-1 pb-1 font-mono text-[0.625rem] font-black uppercase tracking-[0.14em] text-[var(--pub-txt-mute)] sm:grid">
+              <div className="hidden grid-cols-[2rem_1fr_5rem_4.5rem_5rem] items-center px-1 pb-1 font-mono text-[length:var(--pub-fs-xs)] font-black uppercase tracking-[0.14em] text-[var(--pub-txt-mute)] sm:grid">
                 <span /><span className="pl-2">队伍</span><span className="text-right">胜-负</span><span className="text-right">局差</span><span className="pr-2 text-right">状态</span>
               </div>
               {rows.map((row, rank) => {
@@ -164,12 +164,12 @@ export default function GroupStandings({ matches, advancePerGroup = 2 }: { match
                       aria-hidden
                       className={`h-full min-h-8 w-0.5 justify-self-start sm:mx-auto sm:w-full sm:max-w-[2px] ${out ? "bg-[var(--pub-red)]" : "bg-transparent"}`}
                     />
-                    <span className={`pl-2 text-sm font-black sm:text-[0.9375rem] ${out ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{row.name}</span>
+                    <span className={`pl-2 text-sm font-black sm:text-[length:var(--pub-fs-md)] ${out ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{row.name}</span>
                     <span className="justify-self-end font-mono text-xs font-bold tabular-nums text-[var(--pub-txt-soft)] sm:justify-self-end sm:pr-0 sm:text-right">{row.wins} - {row.losses}</span>
-                    <span className="col-start-2 justify-self-start font-mono text-[0.625rem] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:col-start-auto sm:justify-self-end sm:text-xs sm:text-right">
+                    <span className="col-start-2 justify-self-start font-mono text-[length:var(--pub-fs-xs)] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:col-start-auto sm:justify-self-end sm:text-xs sm:text-right">
                       {row.diff > 0 ? `+${row.diff}` : row.diff}
                     </span>
-                    <span className={`col-start-3 row-start-1 justify-self-end font-mono text-[0.625rem] font-bold tracking-[0.08em] sm:col-start-auto sm:row-start-auto sm:pr-2 sm:text-right ${out ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>
+                    <span className={`col-start-3 row-start-1 justify-self-end font-mono text-[length:var(--pub-fs-xs)] font-bold tracking-[0.08em] sm:col-start-auto sm:row-start-auto sm:pr-2 sm:text-right ${out ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>
                       {out ? "出线" : row.played === 0 ? "未赛" : "—"}
                     </span>
                   </div>

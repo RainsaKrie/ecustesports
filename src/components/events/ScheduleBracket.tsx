@@ -15,7 +15,7 @@ function StatusBadge({ status }: { status: string }) {
     status === "已完成"
       ? "border border-[var(--pub-line-soft)] text-[var(--pub-txt-soft)]"
       : "bg-white/[0.06] text-[var(--pub-txt-soft)] border border-[var(--pub-line)]";
-  return <span className={`inline-block px-1 py-0 text-[0.5rem] font-bold ${style}`}>{status === "已排期" ? "待开始" : status === "待排期" ? "待排期" : status}</span>;
+  return <span className={`inline-block px-1 py-0 text-[length:var(--pub-fs-xs)] font-bold ${style}`}>{status === "已排期" ? "待开始" : status === "待排期" ? "待排期" : status}</span>;
 }
 
 function MatchCell({ m, onOpen }: { m: ScheduleMatch; onOpen: () => void }) {
@@ -36,13 +36,13 @@ function MatchCell({ m, onOpen }: { m: ScheduleMatch; onOpen: () => void }) {
       </div>
       <div className="space-y-0.5">
         <div className="flex items-center justify-between gap-1">
-          <span className={`truncate text-[0.6875rem] ${aWin ? "font-bold text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{m.teamAName}</span>
-          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${aWin ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "A")}</span>}
+          <span className={`truncate text-[length:var(--pub-fs-xs)] ${aWin ? "font-bold text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{m.teamAName}</span>
+          {completed && <span className={`font-mono text-[length:var(--pub-fs-xs)] font-bold ${aWin ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "A")}</span>}
         </div>
         {!completed && <div className="text-center text-[0.5625rem] leading-3 text-[var(--pub-txt-mute)]">VS</div>}
         <div className="flex items-center justify-between gap-1">
-          <span className={`truncate text-[0.6875rem] ${bWin ? "font-bold text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{m.teamBName}</span>
-          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "B")}</span>}
+          <span className={`truncate text-[length:var(--pub-fs-xs)] ${bWin ? "font-bold text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{m.teamBName}</span>
+          {completed && <span className={`font-mono text-[length:var(--pub-fs-xs)] font-bold ${bWin ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "B")}</span>}
         </div>
       </div>
       {advancement && <div className="mt-1 border-t border-[var(--pub-line-soft)] pt-1 font-mono text-[0.45rem] text-[var(--pub-txt-mute)]">{advancement}</div>}
@@ -63,13 +63,13 @@ function MatchDetailModal({ m, onClose }: { m: ScheduleMatch; onClose: () => voi
       <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-[var(--pub-line)] px-4 py-3">
           <div className="min-w-0">
-            <p className="font-mono text-[0.625rem] font-black tracking-[0.12em] text-[var(--pub-red)]">{m.id} · {m.phase}</p>
+            <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.12em] text-[var(--pub-red)]">{m.id} · {m.phase}</p>
             <h3 className="mt-1 truncate text-base font-black text-[var(--pub-txt)]">{m.teamAName} VS {m.teamBName}</h3>
           </div>
           <button type="button" onClick={onClose} aria-label="关闭" className="grid h-8 w-8 flex-none place-items-center text-lg leading-none text-[var(--pub-txt-soft)] hover:text-[var(--pub-txt)]">×</button>
         </div>
         <div className="px-4 py-3">
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[0.625rem] tracking-[0.06em] text-[var(--pub-txt-soft)]">
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[length:var(--pub-fs-xs)] tracking-[0.06em] text-[var(--pub-txt-soft)]">
             <span>{m.boType}</span>
             <span>{m.status}</span>
             <span>{m.startTime ? m.startTime.slice(5, 16).replace("T", " ") : "待安排"}</span>

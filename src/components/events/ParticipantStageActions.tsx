@@ -9,7 +9,7 @@ function ActionLink({ href, children, emphasis = false }: { href: string; childr
   return (
     <Link
       href={href}
-      className={`group flex min-h-12 w-full items-center justify-between gap-2 border px-3 py-3 text-left text-[0.6875rem] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff4655] focus-visible:ring-offset-2 ${emphasis
+      className={`group flex min-h-12 w-full items-center justify-between gap-2 border px-3 py-3 text-left text-[length:var(--pub-fs-xs)] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff4655] focus-visible:ring-offset-2 ${emphasis
         ? "border-[#ff4655] bg-[#ff4655] text-white hover:border-[var(--pub-red)] hover:bg-[var(--pub-red)]"
         : "border-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt)] hover:border-[#ff4655] hover:bg-white/[0.08] hover:text-[var(--pub-red)]"
       }`}
