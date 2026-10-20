@@ -1,9 +1,4 @@
-/* =====================
-   公开面暗色主题（2026-10-19 起，负责人决定全站换暗）
-   对齐 VLR.gg 的信息设计 + VALORANT 海报的硬边几何。
-   与后台的 --adm-* 浅色令牌**互不干扰**：公开面用 --pub-*，后台仍用 --adm-*。
-   三项硬指标：文字对比度 AA（灰字 ≥4.5:1）、卡片玻璃底在窄屏降级为纯色、只用一种强调色。
-   ===================== */
+/* ===================== 公开面暗色主题（2026-10-19 起，负责人决定全站换暗） 对齐 VLR.gg 的信息设计 + VALORANT 海报的硬边几何。 与后台的 --adm-* 浅色令牌**互不干扰**：公开面用 --pub-*，后台仍用 --adm-*。 三项硬指标：文字对比度 AA（灰字 ≥4.5:1）、卡片玻璃底在窄屏降级为 */
 .pub-dark {
   --pub-bg: #0a0b0d;
   --pub-card: rgba(255, 255, 255, 0.05);
@@ -21,10 +16,7 @@
   background: var(--pub-bg);
   color: var(--pub-txt);
 }
-/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片。
-   两个伪元素各 inset:0 铺满整个外壳 —— 必须沉到正文之下，否则整站被盖死。
-   用 isolation 给容器单开层叠上下文 + 伪元素 z-index:-1：
-   伪元素仍画在容器自身背景之上、正文之下，且不动 .site-header 的 sticky。 */
+/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片。 两个伪元素各 inset:0 铺满整个外壳 —— 必须沉到正文之下，否则整站被盖死。 用 isolation 给容器单开层叠上下文 + 伪元素 z-index:-1： 伪元素仍画在容器自身背景之上、正文之下，且不动 .site-header 的 sticky。 */
 .pub-dark .pub-poster {
   position: relative;
   isolation: isolate;
@@ -94,14 +86,7 @@
   color: var(--pub-txt);
 }
 
-/* ===== v8 六范式（2026-10-20 第 2 批 · 地基）=====
-   唯一基准：.workbuddy/ui-samples/schedule-public-v8.html（265 行）。
-   六段结构：页头(.ui-top/.ui-nav) → 主标题(.ui-hero/.ui-eyebrow/.ui-sub) →
-   数字条(.ui-stats/.ui-stat) → 阶段(.ui-stages/.ui-stage) → 块标题(.ui-sec) →
-   表头与行(.ui-thead/.ui-row + .time/.ctx/.team/.score/.rel) → 标签(.ui-tag) →
-   开关(.ui-toggle) → 取景框(.ui-frame)。
-   全部带 .pub-dark 前缀（特异性 0,2,0），才压得过 globals.css 里未分层的同名规则。
-   只允许 --pub-* 令牌 + rgba(255,255,255,.x) / rgba(255,70,85,.x)，不引入新色值。 */
+/* ===== v8 六范式（2026-10-20 第 2 批 · 地基）===== 唯一基准：.workbuddy/ui-samples/schedule-public-v8.html（265 行）。 六段结构：页头(.ui-top/.ui-nav) → 主标题(.ui-hero/.ui-eyebrow/.ui-sub) → 数字条(.ui-stats/.ui */
 
 /* ① 页头：品牌在左、导航在右，底部一条细分隔线 */
 .pub-dark .ui-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
@@ -202,11 +187,7 @@
   .pub-dark .ui-frame { background: rgba(255, 255, 255, 0.07); }
 }
 
-/* ===== 站头收敛（2026-10-20 真机验收后修）=====
-   根字号桌面 150%，globals 里的站头用的是 rem：品牌名 1.375rem = 33px、导航 1.0833rem = 26px，
-   再叠上每个链接 28px 的左右内边距 —— 内容宽度 1100 时 flex 项被压缩，导航每项竖排成两行、
-   品牌名折行，整条站头是坏的（截图见 .workbuddy/ui-shots-v8/01-home.png）。
-   按 v8 收敛：品牌 16px、导航 13.5px / 22px 间距、工作台入口 32px 高，全部用 px 定值。 */
+/* ===== 站头收敛（2026-10-20 真机验收后修）===== 根字号桌面 150%，globals 里的站头用的是 rem：品牌名 1.375rem = 33px、导航 1.0833rem = 26px， 再叠上每个链接 28px 的左右内边距 —— 内容宽度 1100 时 flex 项被压缩，导航每项竖排成两行、 品牌名折行，整条站头是坏的（截图见 */
 .pub-dark .site-header__inner {
   height: 72px;
   gap: 24px;
@@ -234,10 +215,7 @@
   clip-path: none;
 }
 
-/* ===== P2 页面骨架通用类（2026-10-20）=====
-   为什么留白写在这里而不是 tsx 里：桌面根字号 150%，rem 间距会被放大 1.5 倍；
-   而 tsx 里又不允许手写 `pt-[34px]`（ui-guards 的手写尺寸规则会红）。
-   所以页面留白必须落在类里，页面只负责结构。 */
+/* ===== P2 页面骨架通用类（2026-10-20）===== 为什么留白写在这里而不是 tsx 里：桌面根字号 150%，rem 间距会被放大 1.5 倍； 而 tsx 里又不允许手写 `pt-[34px]`（ui-guards 的手写尺寸规则会红）。 所以页面留白必须落在类里，页面只负责结构。 */
 .pub-dark .ui-page { padding-top: 34px; padding-bottom: 64px; }
 /* 首页把内容拆成多段（每段自己一个 Container）：段与段之间统一 64px，末段收尾 64px */
 .pub-dark .ui-section { padding-top: 64px; }
@@ -302,10 +280,7 @@
   .pub-dark .ui-stat .v { font-size: 22px; }
 }
 
-/* ===== 打印 / 投屏（2026-10-20，P6）=====
-   全站是深底 + 半透明玻璃 + 1px 低对比线，直接打印或投到会议室屏幕上会糊成一片黑。
-   比赛现场用纸打赛程、或者把赛程投到屏幕上都是真实场景，所以这里给一份兜底：
-   白底黑字、去掉背景/模糊/动效、隐藏导航与操作控件。 */
+/* ===== 打印 / 投屏（2026-10-20，P6）===== 全站是深底 + 半透明玻璃 + 1px 低对比线，直接打印或投到会议室屏幕上会糊成一片黑。 比赛现场用纸打赛程、或者把赛程投到屏幕上都是真实场景，所以这里给一份兜底： 白底黑字、去掉背景/模糊/动效、隐藏导航与操作控件。 */
 @media print {
   html, body { background: #fff !important; color: #111 !important; }
   .pub-dark, .pub-dark .pub-poster, .adm-scope { background: #fff !important; color: #111 !important; }
@@ -332,10 +307,7 @@
   * { animation: none !important; transition: none !important; }
 }
 
-/* 弹窗面板（2026-10-20 P6）：**必须不透明**。
-   玻璃卡是 5% 白，叠在内容页上会把背后的标题、数字条、阶段卡全透出来 ——
-   实测开队伍弹窗时"第三届瓦理杯"和 32/50/50 直接压在弹窗内容上，完全没法读。
-   这里用页面底色（全站唯一近黑）+ 1px 14% 线 + 左上红折线，与取景框同一套记号。 */
+/* 弹窗面板（2026-10-20 P6）：**必须不透明**。 玻璃卡是 5% 白，叠在内容页上会把背后的标题、数字条、阶段卡全透出来 —— 实测开队伍弹窗时"第三届瓦理杯"和 32/50/50 直接压在弹窗内容上，完全没法读。 这里用页面底色（全站唯一近黑）+ 1px 14% 线 + 左上红折线，与取景框同一套记号。 */
 .pub-dark .ui-modal-panel {
   position: relative;
   background: var(--pub-bg);
@@ -367,10 +339,29 @@
   flex: none;
 }
 
-/* ===== 站头尺寸与对齐（2026-10-20 负责人反馈）=====
-   ①「顶栏太窄太小」：高度 92 → 104px，logo 34 → 44px；
-   ②「工作台按钮应该在最右侧」：原来 `justify-content: flex-start` + 固定 gap，
-      按钮紧跟在导航后面。改成给按钮 `margin-left: auto`，把它推到最右。 */
+/* ===== 站头尺寸与对齐（2026-10-20 负责人反馈）===== ①「顶栏太窄太小」：高度 92 → 104px，logo 34 → 44px； ②「工作台按钮应该在最右侧」：原来 `justify-content: flex-start` + 固定 gap， 按钮紧跟在导航后面。改成给按钮 `margin-left: auto`，把它推到最右。 */
+.pub-dark .site-header__inner {
+  height: 104px;
+  gap: 44px;
+}
+.pub-dark .site-header__admin {
+  margin-left: auto;
+}
+.pub-dark .brand-logo {
+  height: 44px;
+}
+.pub-dark .site-brand__text strong {
+  font-size: 1.5rem;
+}
+.pub-dark .site-brand__text small {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+}
+.pub-dark .site-nav > a {
+  font-size: 0.9375rem;
+}
+
+/* ===== 站头尺寸与对齐（2026-10-20 负责人反馈）===== ①「顶栏太窄太小」：高度 92 → 104px，logo 34 → 44px； ②「工作台按钮应该在最右侧」：原来 `justify-content: flex-start` + 固定 gap， 按钮紧跟在导航后面。改成给按钮 `margin-left: auto`，把它推到最右。 */
 .pub-dark .site-header__inner {
   height: 104px;
   gap: 44px;
