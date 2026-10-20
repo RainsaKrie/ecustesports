@@ -13,24 +13,24 @@
 
   /* ---- 管理端派生阶（全部来自上面 9 个令牌的同一色相，不新增色相）----
      后台 24 个散落色值收敛到这套命名阶上；改主题只改这里。 */
-  --adm-surface: #fffdf8;      /* 白卡 */
-  --adm-surface-2: #f8f6f1;    /* 次一级底 */
-  --adm-surface-3: #f2eee6;    /* 三级底 */
-  --adm-line: #d8d1c6;         /* 结构线 */
-  --adm-line-soft: #e7e1d7;    /* 弱结构线 */
-  --adm-text: #171a1f;         /* 正文 */
-  --adm-text-soft: #575c62;    /* 次要文字 */
-  --adm-text-mute: #5f656b;    /* 更弱文字（原 #8a9199 对比度 3.13:1 不合格，已提到 ≈4.6:1） */
+  --adm-surface: #14161a;      /* 卡片（暗） */
+  --adm-surface-2: #0f1114;    /* 次一级底（暗） */
+  --adm-surface-3: #1a1d22;    /* 三级底（暗） */
+  --adm-line: rgba(255,255,255,0.16);   /* 结构线 */
+  --adm-line-soft: rgba(255,255,255,0.09); /* 弱结构线 */
+  --adm-text: #f2f3f5;         /* 正文 */
+  --adm-text-soft: rgba(242,243,245,0.74); /* 次要文字 */
+  --adm-text-mute: rgba(242,243,245,0.62); /* 更弱文字（暗底下 5.3:1，过 AA） */
   --adm-red: #ff4655;          /* 品牌红（= --red） */
   --adm-red-hover: #d83b48;    /* 红 hover（= --red-dark） */
-  --adm-red-text: #c83242;     /* 浅底上的红字 */
+  --adm-red-text: #ff4655;     /* 暗底上的红字（#c83242 在暗底只有 3.4:1） */
   --adm-red-deep: #9f2431;     /* 更深一档红字 */
-  --adm-red-soft: #fff1f2;     /* 浅底红 */
-  --adm-red-line: #ffd9dd;     /* 红细边 */
-  --adm-ok-text: #047857;      /* 成功文字 */
+  --adm-red-soft: rgba(255,70,85,0.12); /* 暗底红 */
+  --adm-red-line: rgba(255,70,85,0.35); /* 红细边 */
+  --adm-ok-text: #34d399;      /* 成功文字 */
   --adm-ok-soft: #ecfdf5;      /* 成功浅底 */
   --adm-ok-line: #a7f3d0;
-  --adm-warn-text: #9a4808;    /* 警告文字 */
+  --adm-warn-text: #fbbf24;    /* 警告文字 */
   --adm-warn-soft: #fffbeb;
   --adm-warn-line: #fde68a;
   --adm-info-text: #1d4ed8;    /* 信息文字 */

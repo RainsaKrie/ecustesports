@@ -52,7 +52,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="pub-dark min-h-full flex flex-col">
         <AppChrome config={config}>{children}</AppChrome>
       </body>
     </html>
