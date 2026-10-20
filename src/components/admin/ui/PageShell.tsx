@@ -22,7 +22,7 @@ export interface ContextItem {
 
 export function ContextBar({ items }: { items: ContextItem[] }) {
   return (
-    <div className="grid grid-cols-2 border border-[var(--adm-line)] bg-[var(--adm-surface)] md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 adm-panel md:grid-cols-3 xl:grid-cols-6">
       {/* 上限 6 格（超过只取前 6）：一行数字太多就变成"数字汤"。只允许一个 tone="alert"。 */}
       {items.slice(0, 6).map((item, index) => (
         <div
@@ -64,7 +64,7 @@ export default function PageShell({ eyebrow, title, description, actions, contex
     <div className="space-y-[var(--sp-6)]">
       <header
         className={`flex flex-wrap items-end justify-between gap-[var(--sp-6)] ${
-          context ? "border border-b-0 border-[var(--adm-line)] bg-[var(--adm-surface)] p-[var(--sp-6)]" : ""
+          context ? "adm-panel border-b-0 p-[var(--sp-6)]" : ""
         }`}
       >
         <div className="min-w-0">

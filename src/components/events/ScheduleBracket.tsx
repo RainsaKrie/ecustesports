@@ -13,7 +13,7 @@ function winCount(m: ScheduleMatch, side: "A" | "B"): number {
 function StatusBadge({ status }: { status: string }) {
   const style =
     status === "已完成"
-      ? "bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]"
+      ? "border border-[var(--pub-line-soft)] text-[var(--pub-txt-soft)]"
       : "bg-white/[0.06] text-[var(--pub-txt-soft)] border border-[var(--pub-line)]";
   return <span className={`inline-block px-1 py-0 text-[0.5rem] font-bold ${style}`}>{status === "已排期" ? "待开始" : status === "待排期" ? "待排期" : status}</span>;
 }
@@ -28,7 +28,7 @@ function MatchCell({ m, onOpen }: { m: ScheduleMatch; onOpen: () => void }) {
       type="button"
       onClick={onOpen}
       aria-label={`${m.teamAName} 对 ${m.teamBName}：查看详情`}
-      className="w-full min-w-0 border border-[var(--pub-line)] bg-[var(--pub-card)] p-1.5 text-left transition-colors duration-150 hover:border-[var(--pub-txt)] focus-visible:border-[var(--pub-txt)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4655]"
+      className="w-full min-w-0 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-1.5 text-left transition-colors duration-150 hover:border-[var(--pub-line)] hover:bg-white/[0.07] focus-visible:border-[var(--pub-red)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pub-red)]"
     >
       <div className="mb-0.5 flex items-center justify-between gap-1">
         <span className="text-[0.5625rem] text-[var(--pub-txt-mute)]">{m.boType}</span>
@@ -37,12 +37,12 @@ function MatchCell({ m, onOpen }: { m: ScheduleMatch; onOpen: () => void }) {
       <div className="space-y-0.5">
         <div className="flex items-center justify-between gap-1">
           <span className={`truncate text-[0.6875rem] ${aWin ? "font-bold text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{m.teamAName}</span>
-          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${aWin ? "text-[#ff4655]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "A")}</span>}
+          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${aWin ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "A")}</span>}
         </div>
         {!completed && <div className="text-center text-[0.5625rem] leading-3 text-[var(--pub-txt-mute)]">VS</div>}
         <div className="flex items-center justify-between gap-1">
           <span className={`truncate text-[0.6875rem] ${bWin ? "font-bold text-[var(--pub-txt)]" : "text-[var(--pub-txt-soft)]"}`}>{m.teamBName}</span>
-          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[#ff4655]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "B")}</span>}
+          {completed && <span className={`font-mono text-[0.6875rem] font-bold ${bWin ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-mute)]"}`}>{winCount(m, "B")}</span>}
         </div>
       </div>
       {advancement && <div className="mt-1 border-t border-[var(--pub-line-soft)] pt-1 font-mono text-[0.45rem] text-[var(--pub-txt-mute)]">{advancement}</div>}
@@ -59,8 +59,8 @@ function MatchDetailModal({ m, onClose }: { m: ScheduleMatch; onClose: () => voi
   }, [onClose]);
   const games = m.gameResults ?? [];
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(15,25,35,0.55)] p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label="比赛详情">
-      <div className="w-full max-w-md bg-[var(--pub-card)] ring-1 ring-[var(--pub-txt)]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label="比赛详情">
+      <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-[var(--pub-line)] px-4 py-3">
           <div className="min-w-0">
             <p className="font-mono text-[0.625rem] font-black tracking-[0.12em] text-[var(--pub-red)]">{m.id} · {m.phase}</p>
@@ -99,7 +99,7 @@ export default function ScheduleBracket({ eventId, preview = false }: { eventId:
 
   if (matches.length === 0) {
     return (
-      <div className="border border-[var(--pub-line)] bg-[var(--pub-card)] p-10 text-center text-sm text-[var(--pub-txt-mute)]">
+      <div className="ui-empty">
         对阵尚未生成，请等待抽签分组后发布赛程。
       </div>
     );

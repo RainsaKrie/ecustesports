@@ -59,8 +59,8 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
               </h2>
             </div>
             <div className="border-l-2 border-[#ff4655] pl-5">
-              <p className="max-w-2xl text-sm font-medium leading-7 text-[#34383e]">{event.description}</p>
-              <p className="mt-3 font-mono text-[10px] font-bold tracking-[0.12em] text-[#575c62]">
+              <p className="max-w-2xl text-sm font-medium leading-7 text-[var(--pub-txt-soft)]">{event.description}</p>
+              <p className="mt-3 font-mono text-[10px] font-bold tracking-[0.12em] text-[var(--pub-txt-mute)]">
                 赛事主办 / {event.organizer}
               </p>
             </div>
@@ -69,7 +69,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
           <dl className="mt-7 grid border-l border-t border-[var(--pub-line)] sm:grid-cols-2 lg:grid-cols-4">
             {facts.map((fact) => (
               <div key={fact.label} className="border-b border-r border-[var(--pub-line)] bg-[var(--pub-card)]/70 px-5 py-4">
-                <dt className="text-[10px] font-black tracking-wider text-[#686d73]">{fact.label}</dt>
+                <dt className="text-[10px] font-black tracking-wider text-[var(--pub-txt-mute)]">{fact.label}</dt>
                 <dd className="mt-2 text-sm font-black leading-6 text-[var(--pub-txt)]">{fact.value}</dd>
               </div>
             ))}
@@ -83,7 +83,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
             <a
               key={href}
               href={href}
-              className="group flex min-h-14 min-w-0 items-center gap-3 border-b border-r border-[var(--pub-line-soft)] px-4 transition hover:bg-[var(--pub-txt)] hover:text-white sm:border-b-0 sm:px-5"
+              className="group flex min-h-14 min-w-0 items-center gap-3 border-b border-r border-[var(--pub-line-soft)] px-4 transition hover:bg-[var(--pub-line-soft)] hover:text-[var(--pub-txt)] sm:border-b-0 sm:px-5"
             >
               <span className="font-mono text-[10px] font-black text-[#ff4655]">{index}</span>
               <span className="text-xs font-black">{label}</span>
@@ -104,7 +104,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
                   {step.number || String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
-                  <p className="font-mono text-[9px] font-black tracking-[0.16em] text-[#777b80]">ENTRY STEP</p>
+                  <p className="font-mono text-[9px] font-black tracking-[0.16em] text-[var(--pub-txt-mute)]">ENTRY STEP</p>
                   <h4 className="mt-2 text-base font-black text-[var(--pub-txt)]">{step.title}</h4>
                   <p className="mt-3 text-xs font-medium leading-6 text-[var(--pub-txt-soft)]">{step.detail}</p>
                 </div>
@@ -136,7 +136,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
                   </div>
                   <h4 className="mt-4 text-2xl font-black tracking-[-0.03em]">{stage.name}</h4>
                   <p className="mt-3 text-sm font-black">{stage.teamCount} 支队伍 · {stage.boType}</p>
-                  <p className="mt-1 text-xs font-bold text-[#565b61]">
+                  <p className="mt-1 text-xs font-bold text-[var(--pub-txt-soft)]">
                     {STAGE_TYPE_LABELS[stage.type] ?? stage.type}
                     {stage.groupCount ? ` · ${stage.groupCount} 个小组` : ""}
                   </p>
@@ -168,13 +168,13 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
           </div>
         )}
 
-        <div className="mt-7 border-t-2 border-[var(--pub-txt)] pt-4">
+        <div className="mt-7 border-t-2 border-[var(--pub-red)] pt-4">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[10px] font-black tracking-[0.18em] text-[#ff4655]">ACTIVE MAP POOL</p>
               <h4 className="mt-2 text-xl font-black">赛事地图池</h4>
             </div>
-            <p className="font-mono text-[10px] font-black tracking-widest text-[#777b80]">
+            <p className="font-mono text-[10px] font-black tracking-widest text-[var(--pub-txt-mute)]">
               {String(event.mapPool?.length ?? 0).padStart(2, "0")} MAPS
             </p>
           </div>
@@ -212,7 +212,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
               <li
                 key={`${rule.title}-${index}`}
                 className={`grid gap-2 border-b border-r border-[var(--pub-line)] px-5 py-4 sm:px-6 md:grid-cols-[3.5rem_13rem_1fr] md:gap-5 md:py-5 ${
-                  rule.emphasis === "important" ? "bg-[#faf6f0]" : "bg-[var(--pub-card)]"
+                  rule.emphasis === "important" ? "border-l-2 border-l-[var(--pub-red)] bg-[var(--pub-card)]" : "bg-[var(--pub-card)]"
                 }`}
               >
                 <span className="font-mono text-xs font-black text-[#ff4655]">{String(index + 1).padStart(2, "0")}</span>

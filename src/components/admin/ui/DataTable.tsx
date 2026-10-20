@@ -50,7 +50,7 @@ export default function DataTable<T>({
 }: DataTableProps<T>) {
   const cellPad = density === "compact" ? "px-[var(--sp-3)] py-[var(--sp-2)]" : "px-[var(--sp-4)] py-[var(--sp-3)]";
 
-  const frame = "border border-[var(--adm-line)] bg-[var(--adm-surface)]";
+  const frame = "adm-panel";
 
   function body() {
     if (state === "loading") {
@@ -93,7 +93,7 @@ export default function DataTable<T>({
                   <th
                     key={column.key}
                     style={column.width ? { width: column.width } : undefined}
-                    className={`border-b border-[var(--adm-line)] text-[length:var(--fs-xs)] font-normal text-[var(--adm-text-mute)] ${cellPad} ${
+                    className={`adm-micro border-b border-[var(--adm-line)] ${cellPad} ${
                       column.align === "right" ? "text-right" : "text-left"
                     }`}
                   >
@@ -118,9 +118,9 @@ export default function DataTable<T>({
                           }
                         },
                         className:
-                          "cursor-pointer transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] hover:bg-[var(--adm-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--adm-red)]",
+                          "cursor-pointer transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--adm-red)]",
                       }
-                    : { className: "transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] hover:bg-[var(--adm-surface-2)]" })}
+                    : { className: "transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] hover:bg-white/[0.06]" })}
                 >
                   {columns.map((column) => (
                     <td

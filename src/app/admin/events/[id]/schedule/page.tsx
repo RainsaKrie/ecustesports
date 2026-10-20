@@ -75,7 +75,7 @@ function BracketCard({ m, bp, onClick }: { m: ScheduleMatch; bp?: BPSession; onC
     <button
       type="button"
       onClick={onClick}
-      className="w-full border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-2.5 text-left transition hover:border-[var(--adm-text)]"
+      className="w-full adm-panel p-2.5 text-left transition hover:border-[var(--adm-text)]"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="truncate text-[length:var(--adm-fs-xs)] tabular-nums text-[var(--adm-text-mute)]">{m.id} · {m.boType}</span>
@@ -518,7 +518,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       )}
 
       {eventLocked ? (
-        <section className="mb-5 flex min-h-20 items-center justify-between gap-4 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-5 py-4 sm:px-6">
+        <section className="mb-5 flex min-h-20 items-center justify-between gap-4 adm-panel px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
             <span aria-hidden className="h-10 w-1 shrink-0 bg-[var(--adm-red)]" />
             <div className="min-w-0">
@@ -532,7 +532,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           <span className="shrink-0 border border-[var(--adm-line)] bg-[var(--adm-surface-2)] px-2 py-1 text-[length:var(--adm-fs-xs)] font-semibold text-[var(--adm-text-soft)]">已锁定</span>
         </section>
       ) : (
-      <details className="mb-5 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+      <details className="mb-5 adm-panel">
         <summary className="flex min-h-20 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
             <span aria-hidden className="h-10 w-1 shrink-0 bg-[var(--adm-red)]" />
@@ -550,9 +550,9 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           </div>
         </summary>
         <div className="grid gap-4 border-t border-[var(--adm-line-soft)] bg-[var(--adm-surface-3)] p-5 sm:p-6 md:grid-cols-[1fr_1fr_10rem]">
-          <label className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">允许开始时间<input type="datetime-local" value={state.config.stageStart.slice(0, 16)} onChange={(event) => updateConfig({ stageStart: `${event.target.value}:00` })} className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]" /></label>
-          <label className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">允许结束时间<input type="datetime-local" value={state.config.stageEnd.slice(0, 16)} onChange={(event) => updateConfig({ stageEnd: `${event.target.value}:00` })} className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]" /></label>
-          <label className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">最大同时比赛数<input type="number" min="1" max="12" value={state.config.maxConcurrentMatches} onChange={(event) => updateConfig({ maxConcurrentMatches: Math.max(1, Number(event.target.value) || 1) })} className="mt-2 h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]" /></label>
+          <label className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">允许开始时间<input type="datetime-local" value={state.config.stageStart.slice(0, 16)} onChange={(event) => updateConfig({ stageStart: `${event.target.value}:00` })} className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]" /></label>
+          <label className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">允许结束时间<input type="datetime-local" value={state.config.stageEnd.slice(0, 16)} onChange={(event) => updateConfig({ stageEnd: `${event.target.value}:00` })} className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]" /></label>
+          <label className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">最大同时比赛数<input type="number" min="1" max="12" value={state.config.maxConcurrentMatches} onChange={(event) => updateConfig({ maxConcurrentMatches: Math.max(1, Number(event.target.value) || 1) })} className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)] focus:ring-2 focus:ring-[rgba(255,70,85,0.15)]" /></label>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-5 py-4 sm:px-6">
           <p className="flex items-center gap-2 text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]"><span aria-hidden className="h-1.5 w-1.5 bg-[var(--adm-red)]" />修改约束后须重新确认，确认前暂停队长约赛。</p>
@@ -562,7 +562,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       )}
 
       {!eventLocked && activeRequests.length > 0 && (
-        <section className="mb-5 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+        <section className="mb-5 adm-panel">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--adm-line-soft)] px-5 py-4">
             <div>
               <p className="text-[length:var(--adm-fs-sm)] font-semibold tracking-[0.14em] text-[var(--adm-text-mute)]">约赛协调</p>
@@ -630,7 +630,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           </button>
         </section>
       ) : state.matches.length === 0 ? (
-        <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-5">
+        <section className="adm-panel p-5">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[var(--adm-line-soft)] pb-4">
             <div>
               <p className="text-[length:var(--adm-fs-sm)] font-semibold tracking-[0.14em] text-[var(--adm-text-mute)]">对阵骨架</p>
@@ -651,7 +651,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
           )}
         </section>
       ) : (
-        <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-5">
+        <section className="adm-panel p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">对阵图</h2>
           </div>

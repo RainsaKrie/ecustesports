@@ -36,6 +36,9 @@ yarn-error.log*
 /.playwright-cli/
 /.workbuddy/
 /output/
+# 临时工作区（审查底稿、一次性脚本）。必须忽略：Tailwind v4 的自动内容检测会扫描
+# 未被 gitignore 的目录，笔记里出现的 `bg-[#fff1f2]` 之类字样会被当成候选类名编进生产 CSS。
+/tmp/
 
 # local acceptance credentials and one-off state mutation scripts
 /docs/09-测试与复盘/本地参赛身份.md

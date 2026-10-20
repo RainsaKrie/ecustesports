@@ -192,7 +192,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
 
         {/* 身份提示条 */}
         {!admin && (
-          <div className={`mb-4 px-4 py-3 text-sm font-bold ${isCaptain && inMatch ? "bg-[#22a06b]/15 text-[#4ade80]" : "bg-[#f5b544]/15 text-[#f5b544]"}`}>
+          <div className={`mb-4 px-4 py-3 text-sm font-bold ${isCaptain && inMatch ? "bg-[#1e2228]/15 text-[#e2e6ec]" : "bg-[#ff4655]/15 text-[#ff4655]"}`}>
             {isCaptain && inMatch
               ? `你是 ${myTeam?.name} 的队长${myTurn ? "，现在轮到本方操作" : "，等待本方回合"}` 
               : me && inMatch
@@ -213,19 +213,19 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
           const firstName = aFirst ? match.teamAName : match.teamBName;
           const tie = roll.teamA === roll.teamB;
           return (
-            <div className="mb-4 border border-[#f5b544]/40 bg-[#f5b544]/10 px-4 py-3">
+            <div className="mb-4 border border-[#ff4655]/40 bg-[#ff4655]/10 px-4 py-3">
               <div className="flex flex-wrap items-center gap-4">
-                <span className="text-xs font-bold text-[#f5b544]">掷骰子定先手</span>
+                <span className="text-xs font-bold text-[#ff4655]">掷骰子定先手</span>
                 <span className="flex items-center gap-2 text-sm">
                   <span className="text-[#e2e6ec]">A 侧 {match.teamAName}</span>
-                  <span className={`text-xl font-semibold ${aFirst && !tie ? "text-[#f5b544]" : "text-[#c3c9d2]"}`}>{roll.teamA}</span>
+                  <span className={`text-xl font-semibold ${aFirst && !tie ? "text-[#ff4655]" : "text-[#c3c9d2]"}`}>{roll.teamA}</span>
                 </span>
                 <span className="text-xs text-[#98a1ad]">比</span>
                 <span className="flex items-center gap-2 text-sm">
-                  <span className={`text-xl font-semibold ${!aFirst && !tie ? "text-[#f5b544]" : "text-[#c3c9d2]"}`}>{roll.teamB}</span>
+                  <span className={`text-xl font-semibold ${!aFirst && !tie ? "text-[#ff4655]" : "text-[#c3c9d2]"}`}>{roll.teamB}</span>
                   <span className="text-[#e2e6ec]">B 侧 {match.teamBName}</span>
                 </span>
-                <span className="text-sm font-bold text-[#f5b544]">
+                <span className="text-sm font-bold text-[#ff4655]">
                   {tie ? "点数相同，先手保持不变" : `${roll.teamA > roll.teamB ? "A" : "B"} 侧点数大，由 ${firstName} 先手`}
                 </span>
                 {attempts > 1 && <span className="text-xs text-[#c3c9d2]">（平局重掷 {attempts} 轮）</span>}
@@ -272,7 +272,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                 </button>
               )}
               {((isCaptain && inMatch) || admin) && (
-                <button onClick={handleRoll} disabled={busy} className="border border-[#f5b544] px-6 py-3 text-sm font-bold text-[#f5b544] hover:bg-[#f5b544]/10 disabled:opacity-50">
+                <button onClick={handleRoll} disabled={busy} className="border border-[#ff4655] px-6 py-3 text-sm font-bold text-[#ff4655] hover:bg-[#ff4655]/10 disabled:opacity-50">
                   掷骰子比大小决定先手
                 </button>
               )}
@@ -281,8 +281,8 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
         )}
 
         {session && session.status === "已完成" && (
-          <div className="bg-[#22a06b]/10 p-6 text-center">
-            <p className="text-[#4ade80] font-bold">BP 完成！</p>
+          <div className="bg-[#1e2228]/10 p-6 text-center">
+            <p className="text-[#e2e6ec] font-bold">BP 完成！</p>
             <p className="mt-3 text-xl font-semibold">
               比赛地图：{session.finalMaps?.join("、") ?? "—"}
             </p>
@@ -301,14 +301,14 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
               <div className="mb-6 text-center">
                 {step ? (
                   <div className="inline-flex items-center gap-2 bg-[#ff4655]/20 px-5 py-2.5">
-                    <span className="font-bold text-[#ff6572]">
+                    <span className="font-bold text-[#ff8177]">
                       {stepLabel(step.side, step.action)} 一张地图
                     </span>
                     <span className="text-sm text-[#c3c9d2]">（第 {session.actions.length + 1}/{session.order.length} 步）</span>
                   </div>
                 ) : null}
                 {session.boType !== "BO5" && session.order.length - session.actions.length === 1 && (
-                  <p className="mt-2 text-xs text-[#f5b544]">剩余地图为{session.boType === "BO1" ? "比赛地图" : "决胜图"}</p>
+                  <p className="mt-2 text-xs text-[#ff4655]">剩余地图为{session.boType === "BO1" ? "比赛地图" : "决胜图"}</p>
                 )}
               </div>
             )}
@@ -330,7 +330,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                       isBanned
                         ? "border-[#ff4655]/50 opacity-40"
                         : isPicked
-                          ? "border-[#4ade80]"
+                          ? "border-[#e2e6ec]"
                           : clickable
                             ? "border-[#3a4048] hover:border-[#ff4655] hover:bg-[#ff4655]/10 cursor-pointer"
                             : "border-[#3a4048]"
@@ -358,7 +358,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                     )}
                     {isPicked && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xl font-bold text-[#047857]">✓ PICK{pickIndex >= 0 ? ` #${pickIndex + 1}` : ""}</span>
+                        <span className="text-xl font-bold text-[#e2e6ec]">✓ PICK{pickIndex >= 0 ? ` #${pickIndex + 1}` : ""}</span>
                       </div>
                     )}
                     {record && (
@@ -389,7 +389,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                             : done
                               ? s.action === "ban"
                                 ? "bg-[#ff4655]/25 text-[#ff8177]"
-                                : "bg-[#22a06b]/25 text-[#4ade80]"
+                                : "bg-[#1e2228]/25 text-[#e2e6ec]"
                               : "bg-[#2a2f36] text-[#98a1ad]"
                         }`}
                         title={act ? act.mapId : undefined}
@@ -403,7 +403,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                 {session.boType !== "BO5" && (
                   <div className="flex items-center gap-2">
                     <span className="text-[#98a1ad]">→</span>
-                    <span className={`px-3 py-1.5 text-xs font-bold ${session.finalMaps ? "bg-[#f5b544]/25 text-[#f5b544]" : "bg-[#2a2f36] text-[#98a1ad]"}`}>
+                    <span className={`px-3 py-1.5 text-xs font-bold ${session.finalMaps ? "bg-[#ff4655]/25 text-[#ff4655]" : "bg-[#2a2f36] text-[#98a1ad]"}`}>
                       {session.boType === "BO1" ? "唯一图" : "决胜图"}{session.finalMaps ? `（${session.finalMaps[session.finalMaps.length - 1]}）` : ""}
                     </span>
                   </div>
@@ -424,8 +424,8 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                         <span className="w-6 text-[#98a1ad]">{idx + 1}.</span>
                         <span className="font-medium">{(a.side === "first" ? session.firstTeamName : session.secondTeamName)}</span>
                         <span className="text-[#c3c9d2]">{a.action === "ban" ? "禁用" : "选择"}</span>
-                        <span className={`font-bold ${a.action === "ban" ? "text-[#ff8177]" : "text-[#4ade80]"}`}>{a.mapId}</span>
-                        {a.operatorRole === "referee" && <span className="text-xs text-[#f5b544]">裁判代操作</span>}
+                        <span className={`font-bold ${a.action === "ban" ? "text-[#ff8177]" : "text-[#e2e6ec]"}`}>{a.mapId}</span>
+                        {a.operatorRole === "referee" && <span className="text-xs text-[#ff4655]">裁判代操作</span>}
                       </div>
                     ))}
                   </div>
@@ -437,7 +437,7 @@ export default function BPPage({ params, searchParams }: BPPageProps) {
                     <button onClick={handleUndo} disabled={busy} className="border border-[#3a4048] px-5 py-2.5 text-xs font-bold text-[#e2e6ec] hover:bg-[#1e2228] disabled:opacity-50">回退上一步</button>
                   )}
                   {(admin || (isCaptain && inMatch && session.actions.length === 0)) && (
-                    <button onClick={handleRoll} disabled={busy} className="border border-[#f5b544] px-5 py-2.5 text-xs font-bold text-[#f5b544] hover:bg-[#f5b544]/10 disabled:opacity-50">掷骰子比大小</button>
+                    <button onClick={handleRoll} disabled={busy} className="border border-[#ff4655] px-5 py-2.5 text-xs font-bold text-[#ff4655] hover:bg-[#ff4655]/10 disabled:opacity-50">掷骰子比大小</button>
                   )}
                   {admin && (
                     <>

@@ -57,20 +57,20 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(15,25,35,0.55)] p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${team.name} 的队伍信息`}
     >
       <div
-        className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden bg-[var(--pub-card)] ring-1 ring-[var(--pub-txt)]"
+        className="ui-modal-panel flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头：编号方块 + 队名 + 状态 */}
         <div className="flex items-start justify-between gap-4 border-b border-[var(--pub-line)] px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 flex-none place-items-center bg-[var(--pub-txt)] font-mono text-sm font-black text-[var(--pub-txt)]">
+            <span className="grid h-10 w-10 flex-none place-items-center bg-white/[0.12] font-mono text-sm font-black text-[var(--pub-txt)]">
               {team.name.slice(0, 1)}
             </span>
             <div className="min-w-0">
@@ -110,7 +110,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
           <div className="px-5 pb-5 pt-4">
             <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Matches</p>
             {next && (
-              <div className="mt-2 border-l-2 border-[#ff4655] bg-[#fff1f2] px-2.5 py-2">
+              <div className="mt-2 border-l-2 border-[var(--pub-red)] bg-[var(--pub-card)] px-2.5 py-2">
                 <p className="font-mono text-[0.5625rem] font-black tracking-[0.12em] text-[var(--pub-red)]">NEXT</p>
                 <p className="mt-0.5 text-[0.8125rem] font-bold text-[var(--pub-txt)]">
                   <span className="mr-1.5 text-[0.6875rem] font-normal text-[var(--pub-txt-mute)]">VS</span>
@@ -122,7 +122,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
                 </p>
                 {/* 晋级路径：方案里点名"有晋级路径、我们没有"。复用对阵图同一个纯函数，避免两处口径走偏。 */}
                 {advancementPath(next) && (
-                  <p className="mt-1 border-t border-[#ffd9dd] pt-1 font-mono text-[0.5625rem] text-[var(--pub-red)]">
+                  <p className="mt-1 border-t border-[var(--pub-line-soft)] pt-1 font-mono text-[0.5625rem] text-[var(--pub-red)]">
                     {advancementPath(next)}
                   </p>
                 )}

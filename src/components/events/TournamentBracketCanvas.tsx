@@ -46,7 +46,7 @@ function genericRounds(matches: ScheduleMatch[]) {
 
 function SingleRoundGrid({ title, matches, renderMatch }: { title: string; matches: ScheduleMatch[]; renderMatch: (match: ScheduleMatch) => ReactNode }) {
   return (
-    <section className="border border-[var(--pub-line)] bg-white/[0.06]/50 p-2.5">
+    <section className="border border-[var(--pub-line)] bg-white/[0.03] p-2.5">
       <div className="mb-2 flex items-end justify-between gap-2 border-b border-[var(--pub-line)] pb-1.5">
         <div>
           <p className="font-mono text-[0.5rem] font-black tracking-[0.12em] text-[var(--pub-red)]">SINGLE ROUND MATCHUPS</p>
@@ -99,14 +99,14 @@ function GroupStageBracket({ matches, renderMatch }: TournamentBracketCanvasProp
         ];
         const decider = roundMatches(matches, `${group} 最终出线战`);
         return (
-          <section key={group} className="min-w-0 overflow-hidden border border-[var(--pub-line)] bg-white/[0.06]/60 p-2.5">
+          <section key={group} className="min-w-0 overflow-hidden border border-[var(--pub-line)] bg-white/[0.06] p-2.5">
             <div className="mb-2 flex items-center justify-between border-b border-[var(--pub-line)] pb-1.5">
               <h4 className="text-xs font-black text-[var(--pub-txt)]">{group}</h4>
               <span className="font-mono text-[0.5rem] font-bold text-[var(--pub-txt-mute)]">两胜晋级 · 两败淘汰</span>
             </div>
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_0.75rem_minmax(0,1fr)_1rem_minmax(0,1fr)] items-stretch gap-1">
                 <RoundColumn title="揭幕战" matches={openers} renderMatch={renderMatch} />
-                <div className="flex items-center justify-center font-mono text-sm font-black text-[#c3c9d2]" aria-hidden>→</div>
+                <div className="flex items-center justify-center font-mono text-sm font-black text-[var(--pub-txt-soft)]" aria-hidden>→</div>
                 <RoundColumn title="胜者 / 败者战" matches={middle} renderMatch={renderMatch} />
                 <div className="flex flex-col items-center justify-center text-center font-mono text-[0.5rem] font-bold leading-4 text-[var(--pub-txt-mute)]" aria-hidden>
                   <span>败者</span><span>＋</span><span>胜者 →</span>
@@ -165,7 +165,7 @@ function PhaseBracket({ matches, renderMatch }: TournamentBracketCanvasProps) {
 export default function TournamentBracketCanvas({ matches, renderMatch }: TournamentBracketCanvasProps) {
   const phases = [...new Set(matches.map((match) => match.phase))];
   return (
-    <div className="min-w-0 space-y-5 overflow-x-hidden">
+    <div className="min-w-0 space-y-5 overflow-x-auto">
       {phases.map((phase) => {
         const phaseMatches = matches.filter((match) => match.phase === phase);
         return (

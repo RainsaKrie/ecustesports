@@ -21,15 +21,26 @@
   background: var(--pub-bg);
   color: var(--pub-txt);
 }
-/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片 */
+/* 海报底：径向光晕 + 斜切红条 + 细网格，纯几何、无图片。
+   两个伪元素各 inset:0 铺满整个外壳 —— 必须沉到正文之下，否则整站被盖死。
+   用 isolation 给容器单开层叠上下文 + 伪元素 z-index:-1：
+   伪元素仍画在容器自身背景之上、正文之下，且不动 .site-header 的 sticky。 */
+.pub-dark .pub-poster {
+  position: relative;
+  isolation: isolate;
+}
 .pub-dark .pub-poster::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
+  /* 光晕必须给显式半径：外壳是一条很长的页面，`circle` 默认 farthest-corner
+     会把 2400px 高的盒子算成巨大半径 → 整页均匀泛红（实测截图就是这个效果）。
+     写死 1100px / 900px 后，红光只落在首屏，往下自然退到纯黑。 */
   background-image: var(--pub-bg-image),
-    radial-gradient(circle at 12% -6%, rgba(255, 70, 85, 0.3), transparent 46%),
-    radial-gradient(circle at 92% 104%, rgba(255, 70, 85, 0.18), transparent 52%);
+    radial-gradient(circle 1100px at 10% -8%, rgba(255, 70, 85, 0.3), rgba(255, 70, 85, 0.06) 46%, transparent 70%),
+    radial-gradient(circle 900px at 92% 104%, rgba(255, 70, 85, 0.16), transparent 68%);
   background-size: cover, auto, auto;
   background-position: center, center, center;
   background-repeat: no-repeat;
@@ -38,6 +49,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   background-image:
     linear-gradient(var(--pub-line-soft) 1px, transparent 1px),
@@ -45,53 +57,9 @@
   background-size: 56px 56px;
   opacity: 0.5;
 }
-/* 玻璃卡：窄屏与不支持模糊时降级为纯色，避免逐行模糊掉帧 */
-.pub-dark .pub-card {
-  background: var(--pub-card);
-  border: 1px solid var(--pub-line-soft);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-@media (max-width: 780px) {
-  .pub-dark .pub-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--pub-card-solid); }
-}
-@supports not (backdrop-filter: blur(1px)) {
-  .pub-dark .pub-card { background: rgba(255, 255, 255, 0.07); }
-}
-
-/* ===== 框线卡片（2026-10-20）=====
-   样板的卡片三件套：半透明底 + 1px 框线 + 转角折线。
-   折线是 VALORANT 海报的记号（像取景框），比圆角更能表达"结构"。 */
-.pub-dark .pub-frame {
-  position: relative;
-  background: var(--pub-card);
-  border: 1px solid var(--pub-line-soft);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-.pub-dark .pub-frame::before,
-.pub-dark .pub-frame::after {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
-}
-.pub-dark .pub-frame::before {
-  left: -1px;
-  top: -1px;
-  border-left: 1px solid var(--pub-red);
-  border-top: 1px solid var(--pub-red);
-}
-.pub-dark .pub-frame::after {
-  right: -1px;
-  bottom: -1px;
-  border-right: 1px solid var(--pub-line);
-  border-bottom: 1px solid var(--pub-line);
-}
-@media (max-width: 780px) {
-  .pub-dark .pub-frame { backdrop-filter: none; -webkit-backdrop-filter: none; }
-}
+/* 玻璃卡旧类 .pub-card / .pub-frame 已删除（0 处使用，且与新 .ui-frame 完全重复）。
+   按《全站UI改造方案》P1-4「不能两份都留」；令牌 --pub-card / --pub-card-solid 保留，
+   页面里的 bg-[var(--pub-card)] 照旧可用。玻璃底请改用 .ui-frame。 */
 
 /* ===== 公共层对齐（2026-10-20 第 0 批）=====
    站头本来就是深色的（浅色站身 + 深色站头），但用的是偏蓝的 rgba(15,25,35)。
@@ -129,21 +97,255 @@
   color: var(--pub-txt);
 }
 
-/* ===== 卡片记号统一（2026-10-20 第 1 批）=====
-   基准的卡片 = 半透明 + 1px 框线 + 左上红折线 / 右下灰折线。
-   这些卡片用的是 globals.css 里的类（capability-card / event-card / closing-cta 等），
-   所以在这里统一补折线与框线，不改任何组件文件。 */
-.pub-dark .capability-card,
-.pub-dark .event-card,
-.pub-dark .closing-cta,
-.pub-dark .signal-strip {
-  position: relative;
-  background: var(--pub-card);
-  border-color: var(--pub-line-soft);
+/* ===== v8 六范式（2026-10-20 第 2 批 · 地基）=====
+   唯一基准：.workbuddy/ui-samples/schedule-public-v8.html（265 行）。
+   六段结构：页头(.ui-top/.ui-nav) → 主标题(.ui-hero/.ui-eyebrow/.ui-sub) →
+   数字条(.ui-stats/.ui-stat) → 阶段(.ui-stages/.ui-stage) → 块标题(.ui-sec) →
+   表头与行(.ui-thead/.ui-row + .time/.ctx/.team/.score/.rel) → 标签(.ui-tag) →
+   开关(.ui-toggle) → 取景框(.ui-frame)。
+   全部带 .pub-dark 前缀（特异性 0,2,0），才压得过 globals.css 里未分层的同名规则。
+   只允许 --pub-* 令牌 + rgba(255,255,255,.x) / rgba(255,70,85,.x)，不引入新色值。 */
+
+/* ① 页头：品牌在左、导航在右，底部一条细分隔线 */
+.pub-dark .ui-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.pub-dark .ui-nav { display: flex; gap: 22px; font-size: 13.5px; color: var(--pub-txt-soft); }
+.pub-dark .ui-nav > a { color: inherit; text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid transparent; }
+.pub-dark .ui-nav > a:hover { color: var(--pub-txt); }
+/* 当前页的红下划线只认 aria-current —— 顺序放在 hover 之后，悬停当前页不会被盖掉 */
+.pub-dark .ui-nav > a[aria-current="page"] { color: var(--pub-txt); border-bottom-color: var(--pub-red); }
+
+/* ② 主标题：小字眉标 + 特大标题 + 一句副文 */
+.pub-dark .ui-hero { margin-top: 34px; }
+.pub-dark .ui-eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; font-weight: 700; letter-spacing: 0.22em; color: var(--pub-red); text-transform: uppercase; }
+.pub-dark .ui-hero h1 { margin-top: 10px; font-size: clamp(34px, 5.2vw, 58px); font-weight: 900; line-height: 0.98; letter-spacing: -0.035em; }
+.pub-dark .ui-hero h1 em { font-style: normal; color: var(--pub-red); }
+.pub-dark .ui-sub { margin-top: 12px; font-size: 14.5px; color: var(--pub-txt-soft); max-width: 52ch; }
+
+/* ③ 数字条：上下细线 + 竖线分隔，不是一张张卡片 */
+.pub-dark .ui-stats { display: flex; margin-top: 30px; border-top: 1px solid var(--pub-line); border-bottom: 1px solid var(--pub-line); flex-wrap: wrap; }
+.pub-dark .ui-stat { flex: 1; min-width: 110px; padding: 16px 20px 17px; border-left: 1px solid var(--pub-line-soft); }
+.pub-dark .ui-stat:first-child { border-left: 0; padding-left: 0; }
+.pub-dark .ui-stat .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pub-dark .ui-stat .k { margin-top: 7px; font-size: 12px; color: var(--pub-txt-mute); letter-spacing: 0.04em; }
+.pub-dark .ui-stat.hot .v { color: var(--pub-red); }
+
+/* ④ 阶段：四格连体 + 左侧红条标「进行中」 */
+/* ④ 阶段条：列数由使用方给 --stage-cols（3 段赛事不该排出空列），底部一条进度线 */
+.pub-dark .ui-stages { display: grid; grid-template-columns: repeat(var(--stage-cols, 4), minmax(0, 1fr)); margin-top: 26px; border: 1px solid var(--pub-line); position: relative; }
+.pub-dark .ui-stages .ui-stage-progress { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--pub-red); z-index: 2; pointer-events: none; }
+.pub-dark .ui-stage { padding: 16px 18px 18px; border-left: 1px solid var(--pub-line); position: relative; background: var(--pub-card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.pub-dark .ui-stage:first-child { border-left: 0; }
+.pub-dark .ui-stage .n { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; color: var(--pub-txt-mute); }
+.pub-dark .ui-stage .t { margin-top: 8px; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.pub-dark .ui-stage .m { margin-top: 4px; font-size: 12.5px; color: var(--pub-txt-soft); }
+.pub-dark .ui-stage.done .n { color: var(--pub-red); }
+.pub-dark .ui-stage.done .t { color: var(--pub-txt-mute); }
+.pub-dark .ui-stage.now { background: linear-gradient(180deg, rgba(255, 70, 85, 0.15), rgba(255, 255, 255, 0.05)); }
+.pub-dark .ui-stage.now::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--pub-red); }
+.pub-dark .ui-stage.now .n { color: var(--pub-red); }
+.pub-dark .ui-stage.now .m { color: var(--pub-txt); }
+
+/* ⑤ 块标题：任务条标题 + 右侧等宽小注，红线收边 */
+.pub-dark .ui-sec { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 42px 0 0; padding-bottom: 10px; border-bottom: 2px solid var(--pub-red); }
+.pub-dark .ui-sec h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.pub-dark .ui-sec span { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; color: var(--pub-txt-mute); letter-spacing: 0.1em; }
+/* 紧凑变体：标签页内容里的分区头，不要 42px 的上边距 */
+.pub-dark .ui-sec--tight { margin-top: 0; margin-bottom: 12px; }
+
+/* ⑥ 比赛行：六列网格，左红条 + 中缝竖线 + 玻璃底；行内子元素由 .time/.ctx/.team/.score/.rel 着色 */
+.pub-dark .ui-thead { display: grid; grid-template-columns: 84px 1fr 1fr 88px 1fr 92px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--pub-line-soft); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; letter-spacing: 0.14em; color: var(--pub-txt-mute); text-transform: uppercase; }
+.pub-dark .ui-row { display: grid; grid-template-columns: 84px 1fr 1fr 88px 1fr 92px; align-items: center; border: 1px solid var(--pub-line-soft); position: relative; cursor: pointer; background: var(--pub-card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: background 0.14s, border-color 0.14s; }
+.pub-dark .ui-row:hover { background: rgba(255, 255, 255, 0.085); border-color: rgba(255, 255, 255, 0.26); }
+.pub-dark .ui-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent; transition: background 0.14s; }
+.pub-dark .ui-row:hover::before { background: var(--pub-red); }
+.pub-dark .ui-row > * { padding: 12px 14px; }
+.pub-dark .ui-row .time { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--pub-txt-soft); font-variant-numeric: tabular-nums; padding-left: 18px; white-space: nowrap; }
+.pub-dark .ui-row .ctx { font-size: 11.5px; color: var(--pub-txt-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-dark .ui-row .team { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-dark .ui-row .team.r { text-align: right; border-right: 1px solid var(--pub-line-soft); }
+.pub-dark .ui-row .score { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 19px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; color: var(--pub-txt-soft); letter-spacing: 0.04em; }
+.pub-dark .ui-row .score.win { color: var(--pub-red); }
+.pub-dark .ui-row .rel { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--pub-txt-mute); text-align: right; padding-right: 18px; white-space: nowrap; }
+.pub-dark .ui-row .rel.live { color: var(--pub-red); }
+
+/* ⑦ 方标签 + 分段开关（客户端交互态用 aria 表达，不靠 JS 加 class） */
+.pub-dark .ui-tag { display: inline-flex; align-items: center; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 9px; border: 1px solid var(--pub-line-soft); color: var(--pub-txt-mute); }
+.pub-dark .ui-tag.live { border-color: var(--pub-red); color: var(--pub-red); }
+.pub-dark .ui-toggle { display: flex; border: 1px solid var(--pub-line-soft); width: fit-content; }
+.pub-dark .ui-toggle > button { font: inherit; font-size: 13px; font-weight: 700; padding: 7px 20px; background: none; border: 0; border-left: 1px solid var(--pub-line-soft); color: var(--pub-txt-soft); cursor: pointer; transition: color 0.14s, background 0.14s; }
+.pub-dark .ui-toggle > button:first-child { border-left: 0; }
+.pub-dark .ui-toggle > button:hover { color: var(--pub-txt); }
+.pub-dark .ui-toggle > button[aria-pressed="true"],
+.pub-dark .ui-toggle > button[aria-selected="true"] { color: var(--pub-red); background: rgba(255, 70, 85, 0.08); box-shadow: inset 0 -2px 0 var(--pub-red); }
+/* 满宽变体：5 个 tab 横铺整行（赛事详情的资料标签页） */
+.pub-dark .ui-toggle--full { width: 100%; }
+.pub-dark .ui-toggle--full > button { flex: 1; white-space: nowrap; }
+
+/* ⑧ 取景框：玻璃底 + 左上红折线 / 右下灰折线，任何内容块都能套 */
+.pub-dark .ui-frame { position: relative; background: var(--pub-card); border: 1px solid var(--pub-line-soft); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.pub-dark .ui-frame::before { content: ""; position: absolute; left: -1px; top: -1px; width: 10px; height: 10px; border-left: 1px solid var(--pub-red); border-top: 1px solid var(--pub-red); pointer-events: none; }
+.pub-dark .ui-frame::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-right: 1px solid var(--pub-line); border-bottom: 1px solid var(--pub-line); pointer-events: none; }
+
+/* 窄屏渐变模糊会掉帧 —— 与 v8 一样降级为纯色半透明 */
+@media (max-width: 780px) {
+  .pub-dark .ui-stages { grid-template-columns: repeat(2, 1fr); }
+  .pub-dark .ui-stage,
+  .pub-dark .ui-row,
+  .pub-dark .ui-frame { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
-.pub-dark .capability-card::before,
-.pub-dark .event-card::before,
-.pub-dark .closing-cta::before {
+/* 手机端行改成四列，去掉最右的方标签（.ui-tag 是新名，.tag 兼容 v8 写法） */
+@media (max-width: 760px) {
+  .pub-dark .ui-row { grid-template-columns: 74px 1fr 60px 1fr; gap: 10px; padding: 12px 14px; }
+  .pub-dark .ui-row .ui-tag,
+  .pub-dark .ui-row .tag { display: none; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .pub-dark .ui-stage,
+  .pub-dark .ui-row,
+  .pub-dark .ui-frame { background: rgba(255, 255, 255, 0.07); }
+}
+
+/* ===== 站头收敛（2026-10-20 真机验收后修）=====
+   根字号桌面 150%，globals 里的站头用的是 rem：品牌名 1.375rem = 33px、导航 1.0833rem = 26px，
+   再叠上每个链接 28px 的左右内边距 —— 内容宽度 1100 时 flex 项被压缩，导航每项竖排成两行、
+   品牌名折行，整条站头是坏的（截图见 .workbuddy/ui-shots-v8/01-home.png）。
+   按 v8 收敛：品牌 16px、导航 13.5px / 22px 间距、工作台入口 32px 高，全部用 px 定值。 */
+.pub-dark .site-header__inner {
+  height: 72px;
+  gap: 24px;
+}
+.pub-dark .site-brand { flex: none; gap: 12px; white-space: nowrap; }
+.pub-dark .site-brand__text { white-space: nowrap; }
+.pub-dark .brand-mark { width: 34px; height: 34px; font-size: 12px; letter-spacing: 0; }
+.pub-dark .site-brand__text strong { font-size: 16px; font-weight: 760; letter-spacing: 0.02em; }
+.pub-dark .site-brand__text small { margin-top: 4px; font-size: 10px; letter-spacing: 0.14em; }
+.pub-dark .site-nav { flex: none; gap: 22px; border-left: 0; padding-left: 0; }
+.pub-dark .site-nav > a {
+  padding: 0;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.pub-dark .site-nav > a::after { right: 0; left: 0; }
+.pub-dark .site-header__admin {
+  height: 32px;
+  margin-left: auto;
+  padding: 0 14px;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  clip-path: none;
+}
+
+/* ===== P2 页面骨架通用类（2026-10-20）=====
+   为什么留白写在这里而不是 tsx 里：桌面根字号 150%，rem 间距会被放大 1.5 倍；
+   而 tsx 里又不允许手写 `pt-[34px]`（ui-guards 的手写尺寸规则会红）。
+   所以页面留白必须落在类里，页面只负责结构。 */
+.pub-dark .ui-page { padding-top: 34px; padding-bottom: 64px; }
+/* 首页把内容拆成多段（每段自己一个 Container）：段与段之间统一 64px，末段收尾 64px */
+.pub-dark .ui-section { padding-top: 64px; }
+.pub-dark .ui-page-end { padding-bottom: 64px; }
+.pub-dark .ui-stack { display: flex; flex-direction: column; gap: 8px; }
+.pub-dark .ui-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.pub-dark .ui-pad { padding: 16px 20px; }
+.pub-dark .ui-article { max-width: 760px; }
+.pub-dark .ui-empty {
+  border: 1px dashed var(--pub-line-soft);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--pub-txt-soft);
+}
+.pub-dark .ui-note {
+  border-left: 2px solid var(--pub-line-soft);
+  padding-left: 14px;
+  color: var(--pub-txt-soft);
+}
+/* 列表行：日期 / 标题 / 箭头（v8 的行语言，不用卡片墙） */
+.pub-dark .ui-listrow {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--pub-line-soft);
+  background: var(--pub-card);
+  transition: border-color var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard);
+}
+.pub-dark .ui-listrow:hover {
+  border-color: var(--pub-line);
+  background: rgba(255, 255, 255, 0.07);
+}
+.pub-dark .ui-listrow time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--pub-txt-mute);
+  font-variant-numeric: tabular-nums;
+}
+.pub-dark .ui-listrow h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pub-txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pub-dark .ui-listrow .ui-arrow { color: var(--pub-red); font-weight: 700; }
+@media (min-width: 760px) {
+  .pub-dark .ui-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pub-dark .ui-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .pub-dark .ui-listrow { grid-template-columns: minmax(0, 1fr) auto; }
+  .pub-dark .ui-listrow time { grid-column: 1 / -1; }
+  /* 数字条在手机上要能三个并排：min-width:110px 会让第三个掉到下一行 */
+  .pub-dark .ui-stat { flex: 1 1 30%; min-width: 0; padding: 12px 12px 13px; }
+  .pub-dark .ui-stat:first-child { padding-left: 0; }
+  .pub-dark .ui-stat .v { font-size: 22px; }
+}
+
+/* ===== 打印 / 投屏（2026-10-20，P6）=====
+   全站是深底 + 半透明玻璃 + 1px 低对比线，直接打印或投到会议室屏幕上会糊成一片黑。
+   比赛现场用纸打赛程、或者把赛程投到屏幕上都是真实场景，所以这里给一份兜底：
+   白底黑字、去掉背景/模糊/动效、隐藏导航与操作控件。 */
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  .pub-dark, .pub-dark .pub-poster, .adm-scope { background: #fff !important; color: #111 !important; }
+  .pub-dark .pub-poster::before,
+  .pub-dark .pub-poster::after { display: none !important; }
+  .site-header, .site-footer, footer, nav[aria-label="主导航"], .mobile-nav,
+  .ui-toggle, .ui-bulkbar, .adm-bulkbar, .ui-empty { display: none !important; }
+  .pub-dark .ui-frame, .pub-dark .ui-row, .pub-dark .ui-stage, .pub-dark .ui-card,
+  .adm-scope .adm-panel, .adm-scope .adm-modal-panel {
+    background: #fff !important;
+    border-color: #bbb !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .pub-dark .ui-frame::before, .pub-dark .ui-frame::after,
+  .pub-dark .ui-stage.now::before, .adm-scope .adm-modal-panel::before { display: none !important; }
+  .pub-dark .ui-eyebrow, .pub-dark .ui-sec span, .pub-dark .ui-row .rel,
+  .pub-dark .ui-row .ctx, .pub-dark .ui-stat .k, .adm-scope .adm-micro { color: #555 !important; }
+  .pub-dark .ui-red, .pub-dark .ui-row .score.win, .pub-dark .ui-stat.hot .v { color: #b3212c !important; }
+  .pub-dark .ui-row, .pub-dark .ui-listrow { break-inside: avoid; }
+  .pub-dark .ui-sec { border-bottom-color: #b3212c !important; }
+  a { color: inherit !important; text-decoration: underline; }
+  * { animation: none !important; transition: none !important; }
+}
+
+/* 弹窗面板（2026-10-20 P6）：**必须不透明**。
+   玻璃卡是 5% 白，叠在内容页上会把背后的标题、数字条、阶段卡全透出来 ——
+   实测开队伍弹窗时"第三届瓦理杯"和 32/50/50 直接压在弹窗内容上，完全没法读。
+   这里用页面底色（全站唯一近黑）+ 1px 14% 线 + 左上红折线，与取景框同一套记号。 */
+.pub-dark .ui-modal-panel {
+  position: relative;
+  background: var(--pub-bg);
+  border: 1px solid var(--pub-line-soft);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.66);
+}
+.pub-dark .ui-modal-panel::before {
   content: "";
   position: absolute;
   left: -1px;
@@ -152,18 +354,5 @@
   height: 10px;
   border-left: 1px solid var(--pub-red);
   border-top: 1px solid var(--pub-red);
-  pointer-events: none;
-}
-.pub-dark .capability-card::after,
-.pub-dark .event-card::after,
-.pub-dark .closing-cta::after {
-  content: "";
-  position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 10px;
-  height: 10px;
-  border-right: 1px solid var(--pub-line);
-  border-bottom: 1px solid var(--pub-line);
   pointer-events: none;
 }

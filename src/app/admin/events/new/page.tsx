@@ -6,7 +6,7 @@ import { FORMAT_TEMPLATES, STAGE_TYPE_LABELS, STAGE_TYPE_DEFAULT_BO, estimateSta
 import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
 import { getGameConfig } from "@/lib/games";
 
-const inputClass = "h-[44px] w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] px-3 text-[length:var(--adm-fs-lg)] font-normal text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)]";
+const inputClass = "h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] font-normal text-[var(--adm-text)] outline-none transition focus:border-[var(--adm-red)]";
 
 function StepHeader({ step, title }: { step: number; title: string }) {
   return (
@@ -98,7 +98,7 @@ export default function NewEventPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
-      <div className="mb-8 flex items-center border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+      <div className="mb-8 flex items-center adm-panel">
         {steps.map((s, i) => (
           <div key={s.n} className="flex flex-1 items-center">
             <button
@@ -122,7 +122,7 @@ export default function NewEventPage() {
       {step === 1 && (
         <div>
           <StepHeader step={1} title="基础信息" />
-          <div className="grid gap-4 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-5 md:grid-cols-2">
+          <div className="grid gap-4 adm-panel p-5 md:grid-cols-2">
             <label className="block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)] md:col-span-2">
               赛事名称 <span className="text-[var(--adm-red)]">*</span>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：第三届华理瓦理杯" className={inputClass} />
@@ -165,7 +165,7 @@ export default function NewEventPage() {
           <StepHeader step={2} title="赛制配置" />
           <div className="space-y-3">
             {stages.map((st, index) => (
-              <div key={index} className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-4">
+              <div key={index} className="adm-panel p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[length:var(--adm-fs-sm)] font-medium text-[var(--adm-text-mute)]">阶段 {index + 1}</p>
                   {stages.length > 1 && (
@@ -217,7 +217,7 @@ export default function NewEventPage() {
               ＋ 添加阶段
             </button>
           </div>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-5 py-4">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 adm-panel px-5 py-4">
             <p className="text-[length:var(--adm-fs-lg)] font-bold text-[var(--adm-text-soft)]">
               预估：<span className="font-semibold text-[var(--adm-text)]">{estimate.matchCount} 场</span> · 约 {estimate.hourEstimate} 比赛小时
             </p>

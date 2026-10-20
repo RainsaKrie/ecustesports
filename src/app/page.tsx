@@ -1,13 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Fragment } from "react";
 import { getConfiguredEvents } from "@/lib/configured-events";
 import { getEvent } from "@/lib/site-config";
 import { getEventStage, STAGE_CONFIGS } from "@/lib/domains/schedule/stage";
-import {
-  getPublicSchedule,
-  getPublicSiteConfig,
-} from "@/lib/public-data-cache";
-import EventsCarousel from "@/components/events/EventsCarousel";
+import { getPublicSchedule, getPublicSiteConfig } from "@/lib/public-data-cache";
 import EventCard from "@/components/events/EventCard";
 import Container from "@/components/layout/Container";
 import Button from "@/components/ui/Button";
@@ -15,6 +11,19 @@ import GameDirectory from "@/components/legacy/GameDirectory";
 
 export const revalidate = 5;
 
+/**
+ * 首页（2026-10-20 按 v8 基准改版）
+ *
+ * 旧版主视觉是全屏海报轮播（EventsCarousel，80vh），下面是红底信息条、能力卡、
+ * 游戏目录、红底收尾 CTA —— 一屏里三种底色、四种游戏强调色、两块大面积红。
+ *
+ * v8 的首页只有一种底色、一种强调色：
+ *   Hero（海报做底 + mono 眉标 + clamp 大标题 + 红句号 + 数字条 + 两个 CTA）
+ *   → 资料直达（标签行）
+ *   → 参赛路径（大编排标题 + 四张取景框卡）
+ *   → 游戏社群（取景框卡）
+ *   → 收尾（一块取景框 + 主按钮）
+ */
 export default async function Home() {
   const config = await getPublicSiteConfig();
   const events = getConfiguredEvents(config);
@@ -43,93 +52,149 @@ export default async function Home() {
       : `/events/${cfgEvent.id}`
     : "/events";
 
+  const matches = Array.isArray(schedule.matches) ? schedule.matches : [];
+  const totalMatches = matches.length;
+  const doneMatches = matches.filter((match) => match.status === "已完成").length;
+  const primaryHref = cfgEvent ? stageConfig.ctaHref.replace("{id}", cfgEvent.id) : "/events";
+  const quickLinks = ["赛事手册", "选手名单", "队伍名单", "赛程", "对阵图"];
+
   return (
-    <div className="home-shell">
-      {/* 主视觉：当前赛事海报作底板（替代原 hero-stage + live-panel）*/}
-      {current ? (
-        <EventsCarousel events={events} height="min-h-[80vh]" stage={stage} />
-      ) : (
-        <section className="grid min-h-[70vh] place-items-center bg-[#09111a] px-6 text-center text-white">
-          <div className="max-w-2xl">
-            <p className="font-mono text-xs font-black tracking-[0.18em] text-[#ff4655]">ECUST ESPORTS</p>
-            <h1 className="mt-5 text-4xl font-black sm:text-6xl">下一场校内赛，正在筹备</h1>
-            <Link href="/events" className="mt-8 inline-flex bg-[#ff4655] px-6 py-3 text-sm font-black">查看赛事</Link>
+    <div>
+      {/* 主视觉：当前赛事海报做底（有图用图，没图退回几何海报底）*/}
+      <section className="relative overflow-hidden border-b border-[var(--pub-line-soft)]">
+        {current?.posterImage && (
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <Image
+              src={current.posterImage}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center opacity-45"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,11,13,0.95)_0%,rgba(10,11,13,0.72)_52%,rgba(10,11,13,0.96)_100%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.25)_0%,transparent_30%,rgba(10,11,13,0.92)_100%)]" />
           </div>
-        </section>
-      )}
+        )}
+        <Container className="ui-page relative">
+          <header className="ui-hero">
+            <p className="ui-eyebrow">{config.home.kicker}</p>
+            <h1>
+              {config.home.headlineTop}
+              <br />
+              {config.home.headlineBottom}
+              <em>.</em>
+            </h1>
+            <p className="ui-sub">{config.home.description}</p>
 
-      <div className="signal-strip" aria-label="赛事信息导航">
-        <Container className="signal-strip__inner">
-          {["赛事手册", "选手名单", "队伍名单", "赛程", "对阵图"].map((item, index) => (
-            <Fragment key={`${item}-${index}`}>
-              {index > 0 && <i />}
-              <Link href={current ? `/events/${current.id}?tab=${encodeURIComponent(item)}` : "/events"} className="transition-opacity hover:opacity-75">
-                {item}
-              </Link>
-            </Fragment>
-          ))}
-        </Container>
-      </div>
-
-      <section className="capability-section">
-        <Container>
-          <div className="section-heading">
-            <div>
-              <p className="section-kicker"><span /> {journeyKicker}</p>
-              <h2>{journeyTitleTop}<br />{journeyTitleBottom}</h2>
+            <div className="ui-stats">
+              <div className="ui-stat">
+                <div className="v">{current?.teamCount ?? 0}</div>
+                <div className="k">参赛队伍</div>
+              </div>
+              <div className="ui-stat">
+                <div className="v">{totalMatches}</div>
+                <div className="k">赛事场次</div>
+              </div>
+              <div className="ui-stat hot">
+                <div className="v">{doneMatches}</div>
+                <div className="k">已完成</div>
+              </div>
             </div>
-          </div>
 
-          <div className="capability-grid">
-            {config.home.cards.map((capability) => (
-              <article key={capability.index} className="capability-card">
-                <div className="capability-card__top">
-                  <span className="capability-card__index">{capability.index}</span>
-                  <span className="capability-card__cross" aria-hidden="true">＋</span>
-                </div>
-                <p className="capability-card__meta">{capability.meta}</p>
-                <h3>{capability.title}</h3>
-              </article>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button href={primaryHref} size="lg">{config.home.primaryCta}</Button>
+              <Button href="/events" variant="secondary" size="lg">{config.home.secondaryCta}</Button>
+            </div>
+          </header>
+        </Container>
+      </section>
+
+      {/* 资料直达：v8 的 .ui-tag 行，替掉原来的红底 signal-strip */}
+      <Container className="ui-section">
+        <nav aria-label="赛事资料直达" className="flex flex-wrap items-center gap-2">
+          {quickLinks.map((item) => (
+            <Link
+              key={item}
+              href={current ? `/events/${current.id}?tab=${encodeURIComponent(item)}` : "/events"}
+              className="ui-tag hover:border-[var(--pub-red)] hover:text-[var(--pub-red)]"
+            >
+              {item}
+            </Link>
+          ))}
+        </nav>
+      </Container>
+
+      {/* 参赛路径 */}
+      <Container className="ui-section">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="ui-eyebrow">{journeyKicker}</p>
+            <h2 className="mt-2 text-[clamp(26px,3.4vw,40px)] font-black leading-[1.08] tracking-[-0.03em] text-[var(--pub-txt)]">
+              {journeyTitleTop}
+              <br />
+              {journeyTitleBottom}
+            </h2>
+          </div>
+          <p className="max-w-[42ch] text-[13.5px] leading-6 text-[var(--pub-txt-soft)]">{config.home.journeyAside}</p>
+        </div>
+
+        <div className="ui-grid ui-grid-2 mt-6">
+          {config.home.cards.map((capability) => (
+            <article key={capability.index} className="ui-frame ui-pad">
+              <div className="flex items-start justify-between gap-3">
+                <span className="font-mono text-[11px] font-bold tracking-[0.18em] text-[var(--pub-red)]">{capability.index}</span>
+                <span aria-hidden className="text-[var(--pub-txt-mute)]">＋</span>
+              </div>
+              <p className="mt-6 font-mono text-[10.5px] font-bold tracking-[0.16em] text-[var(--pub-txt-mute)]">{capability.meta}</p>
+              <h3 className="mt-2 text-[20px] font-black tracking-[-0.01em] text-[var(--pub-txt)]">{capability.title}</h3>
+              <p className="mt-2 text-[13px] leading-6 text-[var(--pub-txt-soft)]">{capability.description}</p>
+            </article>
+          ))}
+        </div>
+      </Container>
+
+      {/* 游戏社群 */}
+      <Container className="ui-section">
+        <GameDirectory />
+      </Container>
+
+      {/* 历史赛事（只有一个赛事时不渲染）*/}
+      {events.length > 1 && (
+        <Container className="ui-section">
+          <div className="ui-sec ui-sec--tight">
+            <h2>{config.home.historyTitle}</h2>
+            <span>{config.home.historyKicker}</span>
+          </div>
+          <div className="ui-grid ui-grid-2 mt-6">
+            {events.slice(1).map((event) => (
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
+          <div className="mt-5">
+            <Link href="/events" className="text-[13px] font-bold text-[var(--pub-red)] hover:underline">
+              {config.home.historyLink} →
+            </Link>
+          </div>
         </Container>
-      </section>
-
-      <GameDirectory />
-
-      {events.length > 1 && (
-        <section className="event-section">
-          <Container>
-            <div className="section-heading section-heading--events">
-              <div>
-                <p className="section-kicker"><span /> {config.home.historyKicker}</p>
-                <h2>{config.home.historyTitle}</h2>
-              </div>
-              <Link href="/events" className="text-link">
-                {config.home.historyLink} <span aria-hidden="true">↗</span>
-              </Link>
-            </div>
-
-            <div className="event-grid">
-              {events.slice(1).map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
-          </Container>
-        </section>
       )}
 
-      <section className="closing-cta">
-        <Container className="closing-cta__inner">
-          <div>
-            <p className="section-kicker section-kicker--light"><span /> {closingKicker}</p>
-            <h2>{closingTitle}</h2>
+      {/* 收尾：一块取景框 + 主按钮（原来的整块红底） */}
+      <Container className="ui-section ui-page-end">
+        <div className="ui-frame ui-pad">
+          <div className="flex flex-wrap items-center justify-between gap-5">
+            <div>
+              <p className="ui-eyebrow">{closingKicker}</p>
+              <h2 className="mt-2 text-[clamp(22px,3vw,32px)] font-black tracking-[-0.02em] text-[var(--pub-txt)]">
+                {closingTitle}
+              </h2>
+            </div>
+            <Button href={closingHref} size="lg">
+              {closingCta} <span aria-hidden>↗</span>
+            </Button>
           </div>
-          <Button href={closingHref} size="lg">
-            {closingCta} <span aria-hidden="true">↗</span>
-          </Button>
-        </Container>
-      </section>
+        </div>
+      </Container>
     </div>
   );
 }

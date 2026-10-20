@@ -1,5 +1,5 @@
 // =====================
-// UI 守卫（U1，2026-10-18）
+// UI 守卫（U1，2026-10-18；2026-10-20 抽到 tools/guards/kit.ts 公共骨架）
 // 运行：npm run test:ui-guards ｜ 生成基线：--write-baseline
 //
 // 四条：
@@ -9,19 +9,18 @@
 //   ④ 裸间距：页面里手写的 size 值（`p-[13px]` 这类）—— 存量记基线，只减不增
 // =====================
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  ROOT, relPath, walkSources, isTestFile, createReport, writeBaseline, readBaseline,
+} from "../guards/kit";
 
-const ROOT = process.cwd();
-const BASELINE = join(ROOT, "tools/ui/ui-baseline.json");
+const BASELINE = "tools/ui/ui-baseline.json";
 const CSS = readFileSync(join(ROOT, "src/app/globals.css"), "utf8");
 
-let pass = 0, fail = 0;
-const check = (name: string, ok: boolean, detail = "") => {
-  if (ok) { pass++; console.log(`  ✓ ${name}`); }
-  else { fail++; console.log(`  ✗ ${name}${detail ? `\n${detail}` : ""}`); }
-};
+const { check, finish, failCount } = createReport();
 
+// 判据用的对比度工具留在本文件：色值解析口径（6 位 hex）本身就是这条守卫的知识
 const token = (name: string): string | null => {
   const m = CSS.match(new RegExp(`${name}\\s*:\\s*(#[0-9a-fA-F]{6})`));
   return m ? m[1] : null;
@@ -36,20 +35,20 @@ const ratio = (a: string, b: string) => {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 };
 
-function walk(dir: string): string[] {
-  const out: string[] = [];
-  if (!existsSync(dir)) return out;
-  for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name.startsWith(".")) continue;
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) out.push(...walk(full));
-    else if (/\.(ts|tsx|css)$/.test(name)) out.push(full);
-  }
-  return out;
-}
+const files = walkSources(join(ROOT, "src"), /\.(ts|tsx|css)$/);
 
 // ——— ① 对比度 ———
+//
+// ⚠️ 本条的**前提**：下面这几个令牌必须是 6 位 hex。一旦有人把它们改成 `var(--ui-x)`
+// 或 `rgba(...)`，token() 就返回 null、列表被 filter 掉 —— 检查不会报错，而是**静默不再检查**
+// （2026-10-20 P4 就发生过：--adm-text-soft / --adm-text-mute 改成 var() 后本条从 6×3 掉到 4×3）。
+// 所以紧跟着补一条「前提检查」，把这种静默失效变成红。
+// 注：rgba / var() 令牌（text-soft / text-mute / line / red-soft）由 `npm run test:contrast` 覆盖，
+// 那个脚本会解析 var() 别名并按底色合成 rgba。
 console.log("== ① 对比度（正文 ≥4.5:1，大字/非文本 ≥3:1）==");
+const HEX_REQUIRED = ["--adm-surface", "--adm-surface-2", "--adm-surface-3", "--adm-text", "--adm-red-text"];
+const notHex = HEX_REQUIRED.filter((n) => token(n) === null);
+check("对比度检查的前提成立：底色与文字令牌仍是 6 位 hex", notHex.length === 0, notHex.map((n) => `    ${n} 不再是 hex（本条会静默失效）`).join("\n"));
 const surfaces = ["--adm-surface", "--adm-surface-2", "--adm-surface-3"].map((n) => ({ n, v: token(n) })).filter((x) => x.v);
 const texts = ["--adm-text", "--adm-text-soft", "--adm-text-mute", "--adm-red-text", "--adm-ok-text", "--adm-warn-text"]
   .map((n) => ({ n, v: token(n) })).filter((x) => x.v);
@@ -63,7 +62,6 @@ check("所有正文级文字令牌在三种底色上都 ≥4.5:1", failures.leng
 // ——— ② 非 transform 动画 ———
 console.log("");
 console.log("== ② 过渡只动 transform / opacity / 颜色 ==");
-const files = [...walk(join(ROOT, "src"))];
 const hardTransition = files.filter((f) => {
   const src = readFileSync(f, "utf8");
   // 只认「显式把布局属性写进过渡」的写法：
@@ -71,19 +69,23 @@ const hardTransition = files.filter((f) => {
   // 不看 `transition` 同行的定位类名（top-1/2、left-10 之类），那是误判（踩过）。
   return /transition\s*:\s*[^;}]*\b(height|width|top|left|margin|padding)\b/i.test(src)
     || /transition-\[[^\]]*\b(height|width|top|left|margin|padding)\b[^\]]*\]/i.test(src);
-}).map((f) => relative(ROOT, f).replace(/\\/g, "/"));
+}).map(relPath);
 check("没有对 height/width/top/left/margin/padding 做过渡（硬拦）", hardTransition.length === 0, hardTransition.map((f) => "    " + f).join("\n"));
 
 // transition-all 属"宽泛但可接受"的存量：记基线，只减不增
 const looseTransition = files
   .filter((f) => /transition-all\b/.test(readFileSync(f, "utf8")))
-  .map((f) => relative(ROOT, f).replace(/\\/g, "/"))
+  .map(relPath)
   .sort();
 
 // ——— ③ 焦点样式 ———
 console.log("");
 console.log("== ③ 焦点样式 ==");
-const buttonSrc = readFileSync(join(ROOT, "src/components/ui/Button.tsx"), "utf8");
+// ⚠️ 断言前必须剥掉注释 —— 这个文件的注释里写着"必须含 focus-visible:outline-2"，
+// 不剥的话**删掉真正的类名检查照样绿**（2026-10-20 变异检查当场抓到的：注入违规后没变红）。
+const buttonSrc = readFileSync(join(ROOT, "src/components/ui/Button.tsx"), "utf8")
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/\/\/[^\n]*/g, "");
 check("Button 组件带完整的焦点轮廓（outline-2 + outline-offset）", buttonSrc.includes("focus-visible:outline-2") && buttonSrc.includes("focus-visible:outline-offset"));
 check("管理端按钮有 :focus-visible 规则", CSS.includes(".adm-btn:focus-visible"));
 check("输入控件有全局 :focus-visible 规则", /input:focus-visible[\s\S]*?outline/.test(CSS));
@@ -93,18 +95,17 @@ check("存在减少动效兜底（prefers-reduced-motion）", CSS.includes("pref
 console.log("");
 console.log("== ④ 页面里手写的尺寸值（基线：只减不增）==");
 const handwritten = files
-  .filter((f) => /\.(tsx|ts)$/.test(f) && !/\.test\./.test(f))
+  .filter((f) => /\.(tsx|ts)$/.test(f) && !isTestFile(f))
   .filter((f) => /(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr)-\[\d+px\]/.test(readFileSync(f, "utf8")))
-  .map((f) => relative(ROOT, f).replace(/\\/g, "/"))
+  .map(relPath)
   .sort();
 
 if (process.argv.includes("--write-baseline")) {
-  writeFileSync(BASELINE, JSON.stringify({ handwritten, looseTransition }, null, 2) + "\n", "utf8");
+  writeBaseline(BASELINE, { handwritten, looseTransition });
   console.log(`基线已写入（手写尺寸 ${handwritten.length} 个文件 / transition-all ${looseTransition.length} 个文件）`);
   process.exit(0);
 }
-if (!existsSync(BASELINE)) { console.error("缺少基线，先跑 --write-baseline"); process.exit(1); }
-const baseline = JSON.parse(readFileSync(BASELINE, "utf8")) as { handwritten: string[]; looseTransition?: string[] };
+const baseline = readBaseline<{ handwritten: string[]; looseTransition?: string[] }>(BASELINE, "npm run test:ui-guards -- --write-baseline");
 const added = handwritten.filter((f) => !baseline.handwritten.includes(f));
 const removed = baseline.handwritten.filter((f) => !handwritten.includes(f));
 check("没有新增手写尺寸的文件", added.length === 0, added.map((f) => "    + " + f).join("\n"));
@@ -114,6 +115,4 @@ const addedLoose = looseTransition.filter((f) => !baseLoose.includes(f));
 check("没有新增 transition-all 的文件（宽泛过渡，基线只减不增）", addedLoose.length === 0, addedLoose.map((f) => "    + " + f).join("\n"));
 if (removed.length) console.log(`    ↓ 已清理：${removed.join("、")}`);
 
-console.log("");
-console.log(`结果：通过 ${pass} / ${pass + fail}`);
-if (fail > 0) { console.error(`${fail} 项未通过`); process.exit(1); }
+finish(`${failCount()} 项未通过`);

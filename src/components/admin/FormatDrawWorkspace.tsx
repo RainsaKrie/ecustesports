@@ -674,7 +674,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
   );
 
   if (!loaded) {
-    return <div className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-16 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">加载抽签数据…</div>;
+    return <div className="adm-panel p-16 text-center text-[length:var(--adm-fs-lg)] text-[var(--adm-text-soft)]">加载抽签数据…</div>;
   }
 
   if (error && (!format || format.kind === "unsupported" || totalSlots === 0)) {
@@ -718,7 +718,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
           }
         />
         <StageProgress stages={stageList} activeIndex={progressIndex(stagedGate.stageIndex)} complete={isComplete} />
-        <div className={`p-8 text-center ${stagedGate.status === "blocked" ? "adm-note adm-note--warn" : "border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]"}`}>
+        <div className={`p-8 text-center ${stagedGate.status === "blocked" ? "adm-note adm-note--warn" : "adm-panel"}`}>
           <p className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{isComplete ? "全部阶段均已完成" : "下一阶段尚未解锁"}</p>
           <p className="mx-auto mt-2 max-w-2xl text-[length:var(--adm-fs-lg)] leading-[1.75] text-[var(--adm-text-soft)]">{stagedGate.message}</p>
         </div>
@@ -780,7 +780,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
 
       {drawMode === "slot" ? (
         <div className="grid gap-5 xl:grid-cols-[280px_1fr]">
-          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+          <section className="adm-panel">
             <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
               <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{activeStageIndex === 2 ? "小组赛晋级队伍" : "待抽队伍"}</h2>
             </div>
@@ -798,7 +798,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
             </div>
           </section>
 
-          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+          <section className="adm-panel">
             <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
               <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">{activeStageIndex === 2 ? "胜者组第一轮签位" : "首轮对阵签位"}</h2>
             </div>
@@ -819,7 +819,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
         </div>
       ) : drawMode === "groups" ? (
         <div className="grid gap-5 xl:grid-cols-[280px_1fr]">
-          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+          <section className="adm-panel">
             <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
               <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">种子池</h2>
               <p className="mt-1 text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">按首发平均段位分为四档</p>
@@ -836,7 +836,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
             </div>
           </section>
 
-          <section className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)]">
+          <section className="adm-panel">
             <div className="border-b border-[var(--adm-line-soft)] px-5 py-4">
               <h2 className="text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">小组签位</h2>
             </div>
@@ -902,7 +902,7 @@ function FormatChangeModal({
     >
       <>
         <div className="space-y-3 p-5">
-          {hint && <p className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-3 py-2.5 text-[length:var(--adm-fs-md)] font-bold leading-[1.65] text-[var(--adm-text-soft)]">{hint}</p>}
+          {hint && <p className="border border-[var(--adm-line-soft)] bg-white/[0.03] px-3 py-2.5 text-[length:var(--adm-fs-md)] font-bold leading-[1.65] text-[var(--adm-text-soft)]">{hint}</p>}
           {FORMAT_TEMPLATES.filter((template) => template.teamCount >= 8).map((template) => (
             <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)]" : "border-[var(--adm-line-soft)] bg-[var(--adm-surface)] hover:border-[var(--adm-text)]"}`}>
               <input type="radio" name="template" value={template.id} checked={targetTemplate === template.id} onChange={() => onSelect(template.id)} className="mt-0.5" />
@@ -960,14 +960,14 @@ function DrawActions({
 
 function StageProgress({ stages, activeIndex, complete }: { stages: StageConfig[]; activeIndex: number; complete: boolean }) {
   return (
-    <div className="mb-5 grid border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] sm:grid-cols-3">
+    <div className="mb-5 grid adm-panel sm:grid-cols-3">
       {stages.map((stage, index) => {
         const finished = complete || index < activeIndex;
         const active = !complete && index === activeIndex;
         const label = finished ? "已完成" : active ? "当前阶段" : "未解锁";
         return (
           <div key={`${stage.name}-${index}`} className={`flex items-center gap-3 px-4 py-4 ${index > 0 ? "border-t border-[var(--adm-line-soft)] sm:border-l sm:border-t-0" : ""}`}>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center text-[length:var(--adm-fs-md)] font-medium ${finished ? "bg-[var(--adm-ok-text)] text-white" : active ? "bg-[var(--adm-red)] text-white" : "bg-[var(--adm-surface-3)] text-[var(--adm-text-mute)]"}`}>{String(index + 1).padStart(2, "0")}</span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center text-[length:var(--adm-fs-md)] font-medium ${finished ? "border border-[var(--adm-text-soft)] bg-transparent text-[var(--adm-text)]" : active ? "bg-[var(--adm-red)] text-white" : "bg-[var(--adm-surface-3)] text-[var(--adm-text-mute)]"}`}>{String(index + 1).padStart(2, "0")}</span>
             <div className="min-w-0">
               <p className={`truncate text-[length:var(--adm-fs-lg)] font-semibold ${active ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text)]"}`}>{stage.name}</p>
               <p className="mt-0.5 text-[length:var(--adm-fs-sm)] font-bold text-[var(--adm-text-mute)]">{label} · {stage.teamCount} 队 · {stage.boType}</p>

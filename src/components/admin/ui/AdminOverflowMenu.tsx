@@ -91,7 +91,7 @@ export default function AdminOverflowMenu({
         <div
           role="menu"
           aria-label={label}
-          className={`absolute top-full z-40 mt-[2px] min-w-[180px] border border-[var(--adm-line)] bg-[var(--adm-surface)] py-[3px] ${align === "right" ? "right-0" : "left-0"}`}
+          className={`absolute top-full z-40 mt-[2px] min-w-[180px] adm-panel py-[3px] ${align === "right" ? "right-0" : "left-0"}`}
         >
           {items.map((item, index) => (
             <button

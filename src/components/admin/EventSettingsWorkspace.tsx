@@ -326,7 +326,7 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
           写成 rem 会按 24px 换算，跟顶栏的 h-16（4rem＝96px）对不上。 */}
       <nav
         aria-label="赛事设置分区"
-        className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] lg:sticky lg:top-[104px]"
+        className="adm-panel lg:sticky lg:top-[104px]"
       >
         {VIEWS.map((item) => (
           <button
@@ -349,7 +349,7 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
           左侧导航第一项就是发布概览，同一动作不留两个入口（设计文档 5.1 / 5.2）。
           左侧写当前分组名，替代原来「返回」按钮占的位置。 */}
       {view !== "overview" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 adm-panel px-5 py-3">
           <span className="text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text-soft)]">
             {VIEWS.find((item) => item.key === view)?.index} · {VIEWS.find((item) => item.key === view)?.label}
           </span>
@@ -598,7 +598,7 @@ export default function EventSettingsWorkspace({ initialEvent, initialCommonRule
             <div className="md:col-span-2"><Field label="赛事简介"><textarea rows={4} value={event.description} onChange={(change) => patchEvent({ description: change.target.value })} className={textareaClass} /></Field></div>
             <div className="md:col-span-2"><Field label="奖项说明"><textarea rows={3} value={event.prizePool} onChange={(change) => patchEvent({ prizePool: change.target.value })} className={textareaClass} /></Field></div>
             <Field label="赛事主题色"><input type="color" value={event.coverColor} onChange={(change) => patchEvent({ coverColor: change.target.value })} className={`${inputClass} h-[44px] p-1`} /></Field>
-            <Field label="赛事海报"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPoster} className="block w-full border border-[var(--adm-line)] bg-[var(--adm-surface)] text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)] file:mr-3 file:border-0 file:bg-[var(--adm-red)] file:px-3 file:py-2.5 file:text-[length:var(--adm-fs-md)] file:font-bold file:text-white" /></Field>
+            <Field label="赛事海报"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPoster} className="block w-full adm-panel text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)] file:mr-3 file:border-0 file:bg-[var(--adm-red)] file:px-3 file:py-2.5 file:text-[length:var(--adm-fs-md)] file:font-bold file:text-white" /></Field>
             {event.posterImage && <div className="md:col-span-2 flex items-start gap-4 border border-[var(--adm-line-soft)] p-4"><Image src={event.posterImage} alt="赛事海报预览" width={96} height={128} className="h-32 w-24 object-cover" /><div><p className="text-[length:var(--adm-fs-md)] font-bold">当前海报</p><button type="button" onClick={() => patchEvent({ posterImage: "" })} className="adm-btn adm-btn--danger adm-btn--md mt-3">移除海报</button></div></div>}
           </div>
         </Panel>

@@ -5,8 +5,7 @@
     "src/components/admin/EventSettingsWorkspace.tsx",
     "src/components/admin/RegistrationOperationsWorkspace.tsx",
     "src/components/admin/RegistrationWorkspaceParts.tsx",
-    "src/components/admin/ui/AdminOverflowMenu.tsx",
-    "src/components/events/EventDetailTabs.tsx"
+    "src/components/admin/ui/AdminOverflowMenu.tsx"
   ],
   "looseTransition": [
     "src/app/bp/[id]/page.tsx",

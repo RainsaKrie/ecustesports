@@ -88,35 +88,27 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
   const currentTeams = teamSet(currentMatches);
   const nextPhase = allPhases[allPhases.indexOf(currentPhase) + 1];
   const nextTeams = nextPhase ? teamSet(matches.filter((m) => m.phase === nextPhase)) : 0;
-  const heroStats = [
-    { v: String(teamSet(matches)), k: "参赛队伍" },
-    { v: String(currentTeams), k: "当前阶段" },
-    { v: nextTeams ? String(nextTeams).padStart(2, "0") : "—", k: "晋级名额", hot: true },
-    { v: String(currentMatches.length), k: "本阶段场次" },
-  ];
 
   return (
     <div className="space-y-4">
-      {/* 标题区：对照预览的「Stage 03 / 小组赛. / 四个数字」 */}
-      <section className="pb-2">
-        <p className="flex items-center gap-2.5 font-mono text-[0.6875rem] font-bold uppercase tracking-[0.24em] text-[var(--pub-red)]">
-          <span aria-hidden className="h-px w-6 bg-[var(--pub-red)]" />
-          Stage {String(allPhases.indexOf(currentPhase) + 1).padStart(2, "0")} / {currentPhase || "赛程"}
-        </p>
-        <h2 className="mt-3 text-[clamp(2.2rem,5.4vw,3.9rem)] font-black leading-[0.94] tracking-[-0.04em] text-[var(--pub-txt)]">
-          {currentPhase || "赛程"}
-          <span className="text-[var(--pub-red)]">.</span>
-        </h2>
-        <p className="mt-3 max-w-[46ch] border-l-2 border-[var(--pub-red)] pl-3.5 text-sm text-[var(--pub-txt-soft)]">
-          {currentDone} / {currentMatches.length} 场已打完
-        </p>
-        <div className="mt-7 flex border-y border-[var(--pub-line)]">
-          {heroStats.map((item) => (
-            <div key={item.k} className="flex-1 border-l border-[var(--pub-line-soft)] px-4 py-3.5 first:border-l-0 first:pl-0">
-              <p className={`font-mono text-[1.75rem] font-black leading-none tracking-[-0.03em] tabular-nums ${item.hot ? "text-[var(--pub-red)]" : "text-[var(--pub-txt)]"}`}>{item.v}</p>
-              <p className="mt-1.5 text-[0.6875rem] font-bold tracking-[0.04em] text-[var(--pub-txt-mute)]">{item.k}</p>
-            </div>
-          ))}
+      {/* 阶段标题（2026-10-20）：页面级已经有 Hero（赛事名 + 数字条），
+          这一段只交代"你现在看的是哪一段"，所以压成一条带 2px 红底线的分区头，
+          不再重复大标题和四个数字 —— 否则同一页会出现两级同样大的标题。 */}
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b-2 border-[var(--pub-red)] pb-2.5">
+          <div>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--pub-red)]">
+              Stage {String(allPhases.indexOf(currentPhase) + 1).padStart(2, "0")} / {currentPhase || "赛程"}
+            </p>
+            <h2 className="mt-1.5 text-[clamp(22px,2.8vw,30px)] font-black leading-[1.1] tracking-[-0.02em] text-[var(--pub-txt)]">
+              {currentPhase || "赛程"}
+              <span className="text-[var(--pub-red)]">.</span>
+            </h2>
+          </div>
+          <span className="font-mono text-[11.5px] tracking-[0.06em] text-[var(--pub-txt-mute)]">
+            {currentDone} / {currentMatches.length} 场已完成 · {currentTeams} 队
+            {nextTeams ? ` · ${nextTeams} 队晋级` : ""}
+          </span>
         </div>
       </section>
 
@@ -250,7 +242,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                   onClick={() => setViewMode(mode)}
                   aria-pressed={viewMode === mode}
                   className={`px-3 py-1 font-mono text-[0.6875rem] font-black tracking-[0.06em] transition ${
-                    viewMode === mode ? "bg-[var(--pub-txt)] text-[var(--pub-txt)]" : "bg-[var(--pub-card)] text-[var(--pub-txt-soft)] hover:text-[var(--pub-txt)]"
+                    viewMode === mode ? "bg-white/[0.12] text-[var(--pub-txt)]" : "bg-[var(--pub-card)] text-[var(--pub-txt-soft)] hover:text-[var(--pub-txt)]"
                   }`}
                 >
                   {label}
