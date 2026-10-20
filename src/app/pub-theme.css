@@ -45,18 +45,7 @@
   background-position: center, center, center;
   background-repeat: no-repeat;
 }
-.pub-dark .pub-poster::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--pub-line-soft) 1px, transparent 1px),
-    linear-gradient(90deg, var(--pub-line-soft) 1px, transparent 1px);
-  background-size: 56px 56px;
-  opacity: 0.5;
-}
+/* 背景网格已移除（2026-10-20 负责人：不需要了）*/
 /* 玻璃卡旧类 .pub-card / .pub-frame 已删除（0 处使用，且与新 .ui-frame 完全重复）。
    按《全站UI改造方案》P1-4「不能两份都留」；令牌 --pub-card / --pub-card-solid 保留，
    页面里的 bg-[var(--pub-card)] 照旧可用。玻璃底请改用 .ui-frame。 */
