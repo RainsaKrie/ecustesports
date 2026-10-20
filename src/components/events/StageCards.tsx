@@ -30,7 +30,14 @@ export interface StageCardsProps {
 export default function StageCards({ items, currentIndex, className = "" }: StageCardsProps) {
   if (items.length === 0) return null;
   return (
-    <div className={`grid grid-cols-2 border border-[var(--pub-line)] md:grid-cols-4 ${className}`}>
+    <div className={`relative grid grid-cols-2 border border-[var(--pub-line)] md:grid-cols-4 ${className}`}>
+      {/* 进度线（2026-10-20）：已走过的阶段用红实线，未走的用灰线。
+          它比"当前阶段红框"更早被看到 —— 一眼知道赛事走到哪了。 */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-px left-0 h-0.5 bg-[var(--pub-red)]"
+        style={{ width: `${Math.min(100, Math.max(0, ((currentIndex ?? 0) / Math.max(1, items.length)) * 100))}%` }}
+      />
       {items.map((item, index) => {
         const isActive = index === currentIndex;
         const isDone = typeof item.total === "number" && typeof item.done === "number" && item.total > 0 && item.done >= item.total;
