@@ -146,27 +146,34 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                       <span aria-hidden className="text-lg font-black text-[var(--pub-red)] transition group-open:rotate-45">＋</span>
                     </span>
                   </summary>
-                  <div className="divide-y divide-black/10 border-t border-[var(--pub-line-soft)]">
-                    {phaseMatches.map((m) => (
-                      <div key={m.id} className="px-4 py-2 transition hover:bg-white/[0.03]">
-                        <div className="grid gap-1.5 sm:grid-cols-[6rem_minmax(0,1fr)_minmax(8rem,1.1fr)_auto] sm:items-center sm:gap-3">
-                          <p className="font-mono text-[0.625rem] font-black text-[var(--pub-txt-mute)]">{m.id} · {m.round || m.boType}</p>
-                          <p className="text-xs font-bold text-[var(--pub-txt)]">
-                            {m.teamAName} <span className="mx-1.5 text-[var(--pub-txt-mute)]">VS</span> {m.teamBName}
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {m.gameResults?.map((g, i) => (
-                              <span key={i} className="border border-[var(--pub-line-soft)] bg-white/[0.06] px-1.5 py-0.5 text-[0.625rem] font-bold text-[var(--pub-txt-soft)]">
-                                {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
-                              </span>
-                            ))}
+                  <div className="divide-y divide-[var(--pub-line-soft)] border-t border-[var(--pub-line-soft)]">
+                    {phaseMatches.map((m) => {
+                      const a = winCount(m.gameResults, "A");
+                      const b = winCount(m.gameResults, "B");
+                      const aWon = a > b;
+                      return (
+                        <div key={m.id} className="px-3 py-2.5 transition hover:bg-white/[0.03]">
+                          {/* 与未开赛列表同一套列顺序，赢家加亮、输家压暗 */}
+                          <div className="grid items-center gap-x-3 gap-y-0.5 sm:grid-cols-[84px_1fr_1fr_88px_1fr_92px] sm:gap-0">
+                            <span className="font-mono text-[0.6875rem] font-bold tabular-nums text-[var(--pub-txt-mute)] sm:px-1">{fmt(m.startTime) || "—"}</span>
+                            <span className="truncate text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1.5">{m.round || m.boType}</span>
+                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 sm:text-right ${aWon ? "text-[var(--pub-txt)]" : "text-[var(--pub-txt-mute)]"}`}>{m.teamAName}</span>
+                            <span className={`text-center font-mono text-base font-black tabular-nums ${aWon ? "text-[var(--pub-red)]" : "text-[var(--pub-txt-soft)]"}`}>{a} : {b}</span>
+                            <span className={`truncate text-[0.9375rem] font-black sm:px-1.5 ${aWon ? "text-[var(--pub-txt-mute)]" : "text-[var(--pub-txt)]"}`}>{m.teamBName}</span>
+                            <span className="justify-self-end font-mono text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:px-1 sm:text-right">{relTime(m.startTime)}</span>
                           </div>
-                          <span className="font-mono text-base font-black text-[var(--pub-txt)]">
-                            {winCount(m.gameResults, "A")} : {winCount(m.gameResults, "B")}
-                          </span>
+                          {m.gameResults && m.gameResults.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {m.gameResults.map((g, i) => (
+                                <span key={i} className="border border-[var(--pub-line-soft)] px-1.5 py-0.5 font-mono text-[0.625rem] font-bold text-[var(--pub-txt-mute)]">
+                                  {g.map || `第${i + 1}局`} {g.teamAScore}:{g.teamBScore}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </details>
               );
