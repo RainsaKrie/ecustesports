@@ -12,8 +12,10 @@ import { getGameConfig } from "@/lib/games";
 /** 段位阶梯与擅长位置取自游戏配置层（原先本文件里各写了一遍段位表与位置表）。 */
 const GAME = getGameConfig();
 
+/** 表单控件统一规格（2026-10-20 v8）：深底 + 1px 14% 线 + 44px 高 + 聚焦红框。
+ *  高度用 px 定值 —— 桌面根字号 150%，rem 会把控件撑到 66px。 */
 const inputClass =
-  "min-h-11 w-full border border-[var(--pub-line)] px-2.5 py-2.5 text-sm placeholder:text-xs placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#ff4655] focus:border-transparent";
+  "min-h-[44px] w-full border border-[var(--pub-line-soft)] bg-white/[0.04] px-3 py-2 text-[14px] text-[var(--pub-txt)] placeholder:text-[13px] placeholder:text-[var(--pub-txt-mute)] focus:border-[var(--pub-red)] focus:outline-none focus:ring-2 focus:ring-[var(--pub-red)]";
 
 export default function RegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -90,10 +92,10 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
 
   if (participant.data && !done) {
     return (
-      <Container className="py-10">
-        <div className="mx-auto max-w-lg border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-7 text-center sm:p-9">
-          <p className="font-mono text-[0.625rem] font-black tracking-[0.16em] text-[var(--pub-red)]">REGISTRATION COMPLETE</p>
-          <h1 className="mt-3 text-2xl font-black text-[var(--pub-txt)]">已完成参赛报名</h1>
+      <Container className="ui-page">
+        <div className="ui-frame ui-pad mx-auto max-w-lg text-center">
+          <p className="ui-eyebrow">REGISTRATION COMPLETE</p>
+          <h1 className="mt-2 text-[24px] font-black tracking-[-0.02em] text-[var(--pub-txt)]">已完成参赛报名</h1>
           <p className="mt-2 text-sm font-bold text-[var(--pub-txt-soft)]">{participant.data.player.gameId}</p>
           {/* 原来这里没有群号——换设备找回参赛信息的人就永远看不到群公告。
               这类人恰好最需要它（换了设备，群里消息可能也没了）。 */}
@@ -115,8 +117,8 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
 
   if (done) {
     return (
-      <Container className="py-8">
-        <div className="mx-auto max-w-lg border border-[var(--pub-line)] bg-[var(--pub-card)] p-8 text-center shadow-sm">
+      <Container className="ui-page">
+        <div className="ui-frame ui-pad mx-auto max-w-lg text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border-l-2 border-l-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt)]">
             <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -160,30 +162,34 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <Container className="py-6 md:py-8">
+    <Container className="ui-page">
       <div className="mx-auto max-w-xl">
-        <div className="mb-4 text-center md:mb-6">
-          <h1 className="text-xl font-bold text-[var(--pub-txt)] md:text-2xl">{event.name} · 选手报名</h1>
-          <Link href={`/events/${id}/manage?recover=1`} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-[var(--pub-red)]">已经报过名？找回参赛信息</Link>
+        <header className="ui-hero">
+          <p className="ui-eyebrow">REGISTRATION / 选手报名</p>
+          <h1>
+            选手报名<em>.</em>
+          </h1>
+          <p className="ui-sub">{event.name} · 填写真实信息完成报名，提交后会生成你的参赛码。</p>
+          <Link href={`/events/${id}/manage?recover=1`} className="mt-4 inline-flex min-h-[36px] items-center text-[13px] font-bold text-[var(--pub-red)] hover:underline">已经报过名？找回参赛信息</Link>
           {phase !== "open" && (
-            <div className={`mx-auto mt-3 max-w-md px-4 py-2.5 text-xs font-bold md:mt-4 md:py-3 md:text-sm ${phase === "not-open" ? "bg-[rgba(251,191,36,0.10)] text-[#fbbf24]" : "bg-white/[0.06] text-[var(--pub-txt-soft)]"}`}>
+            <div className={`mt-4 border-l-2 px-3 py-2 text-[12.5px] font-bold ${phase === "not-open" ? "border-l-[#fbbf24] bg-[rgba(251,191,36,0.10)] text-[#fbbf24]" : "border-l-[var(--pub-line)] bg-white/[0.04] text-[var(--pub-txt-soft)]"}`}>
               {phase === "not-open"
                 ? `报名未开放，开始时间：${event.registrationStart || "待公布"}`
                 : `报名已截止（截止 ${event.registrationEnd || ""}）`}
             </div>
           )}
-        </div>
+        </header>
 
         {/* 群公告放**表单之前**：一进页面就能看到，也方便先加群问清楚再报名。
             原先放在表单最底部（自我介绍之后），等于填完才看到——
             和「报完名才知道」是同一个问题，只提前了一步。 */}
         {event.eventQqGroup && (
-          <div className="mb-4 md:mb-5">
+          <div className="mt-5">
             <GroupNotice group={event.eventQqGroup} />
           </div>
         )}
 
-        <div className="border border-[var(--pub-line)] bg-[var(--pub-card)] p-5 shadow-sm md:p-6">
+        <div className="ui-frame ui-pad mt-5">
           <div className="space-y-3 md:space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-[var(--pub-txt-soft)]">姓名 <span className="text-[var(--pub-red)]">*</span></label>
@@ -230,7 +236,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
                       key={pos}
                       type="button"
                       onClick={() => togglePosition(pos)}
-                      className={`inline-flex min-h-11 items-center border px-4 text-sm transition ${active ? "border-[#ff4655] bg-[#ff4655] text-white" : "border-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt-soft)] hover:border-[#ff4655]"}`}
+                      className={`inline-flex h-[38px] items-center border px-4 text-[13.5px] font-bold transition-colors ${active ? "border-[var(--pub-red)] bg-[rgba(255,70,85,0.12)] text-[var(--pub-red)]" : "border-[var(--pub-line-soft)] bg-transparent text-[var(--pub-txt-soft)] hover:border-[var(--pub-line)] hover:text-[var(--pub-txt)]"}`}
                     >
                       {pos}
                     </button>
@@ -245,13 +251,13 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
             </div>
 
             {error && (
-              <div className="bg-[rgba(255,70,85,0.12)] p-3 text-sm text-[var(--pub-red)]">{error}</div>
+              <div className="border-l-2 border-l-[var(--pub-red)] bg-[rgba(255,70,85,0.08)] px-3 py-2 text-[13px] font-bold text-[var(--pub-red)]">{error}</div>
             )}
 
             <button
               onClick={handleSubmit}
               disabled={phase !== "open"}
-              className={`w-full py-3 text-sm font-bold text-white transition ${phase === "open" ? "bg-[#ff4655] hover:bg-[#d83b48]" : "cursor-not-allowed bg-[var(--pub-line)]"}`}
+              className={`h-[48px] w-full text-[14px] font-black text-white transition-colors ${phase === "open" ? "bg-[#ff4655] hover:bg-[#d83b48]" : "cursor-not-allowed bg-[var(--pub-line-soft)] text-[var(--pub-txt-mute)]"}`}
             >
               {phase === "not-open" ? "报名未开放" : phase === "closed" ? "报名已截止" : "提交报名"}
             </button>
