@@ -11,6 +11,17 @@ function fmt(iso: string): string {
   return iso.slice(5, 16).replace("T", " ");
 }
 
+/** 相对时间：VLR 的做法是"绝对时刻 + 相对倒计时"双份，降低"什么时候打"的认知成本 */
+function relTime(iso?: string): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = t - Date.now();
+  const minutes = Math.round(Math.abs(diff) / 60000);
+  const label = minutes < 60 ? `${minutes} 分钟` : minutes < 1440 ? `${Math.round(minutes / 60)} 小时` : `${Math.round(minutes / 1440)} 天`;
+  return diff >= 0 ? `${label}后` : `${label}前`;
+}
+
 function winCount(games: GameResult[] | undefined, side: "A" | "B"): number {
   if (!games) return 0;
   return games.filter((g) => (side === "A" ? g.teamAScore > g.teamBScore : g.teamBScore > g.teamAScore)).length;
@@ -189,22 +200,26 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
             </div>
           </div>
           {viewMode === "list" ? (
-          <div className="overflow-hidden border border-[var(--pub-line)] bg-[var(--pub-card)]">
-            <div className="divide-y divide-[var(--pub-line-soft)]">
-              {rest.map((m) => (
-                <div key={m.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
-                  <div>
-                    <p className="text-sm font-bold text-[var(--pub-txt)]">
-                      {m.teamAName} vs {m.teamBName}
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-[var(--pub-txt-soft)]">
-                      {m.boType} · {fmt(m.startTime)}
-                    </p>
-                  </div>
-                  <StatusChip tone={m.status === "已完成" ? "neutral" : "muted"}>{m.status === "已排期" ? "待开始" : m.status}</StatusChip>
-                </div>
-              ))}
+          <div className="space-y-1.5">
+            {/* 表头只给列名，不做强调 */}
+            <div className="hidden grid-cols-[84px_1fr_1fr_88px_1fr_92px] items-center px-1 pb-1 font-mono text-[0.625rem] font-black uppercase tracking-[0.14em] text-[var(--pub-txt-mute)] sm:grid">
+              <span>时间</span><span className="pl-3.5">阶段</span><span /><span className="text-center">比分</span><span /><span className="pr-4 text-right">距今</span>
             </div>
+            {rest.map((m) => (
+              <div
+                key={m.id}
+                className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 py-2.5 transition hover:border-[var(--pub-line)] hover:bg-white/[0.08] sm:grid-cols-[84px_1fr_1fr_88px_1fr_92px] sm:gap-0 sm:px-0 sm:py-0"
+              >
+                <span className="font-mono text-xs font-bold tabular-nums text-[var(--pub-txt-soft)] sm:px-3.5 sm:py-3">{fmt(m.startTime)}</span>
+                <span className="col-span-2 order-3 truncate text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:order-none sm:col-span-1 sm:px-3.5 sm:py-3 sm:text-xs">
+                  {m.phase}{m.round ? ` · ${m.round}` : ""}
+                </span>
+                <span className="order-1 text-[0.9375rem] font-black text-[var(--pub-txt)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-3.5 sm:py-3 sm:text-right">{m.teamAName}</span>
+                <span className="order-2 font-mono text-base font-black tabular-nums text-[var(--pub-txt-soft)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-2 sm:py-3 sm:text-center">— : —</span>
+                <span className="order-4 text-[0.9375rem] font-black text-[var(--pub-txt)] sm:order-none sm:border-l sm:border-[var(--pub-line-soft)] sm:px-3.5 sm:py-3">{m.teamBName}</span>
+                <span className="order-5 justify-self-end font-mono text-[0.6875rem] font-bold text-[var(--pub-txt-mute)] sm:order-none sm:px-4 sm:py-3 sm:text-right">{relTime(m.startTime) || "待定"}</span>
+              </div>
+            ))}
           </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
