@@ -20,7 +20,7 @@ import { ReactNode } from "react";
  */
 interface ButtonProps {
   children: ReactNode;
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "dark-outline";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "dark-outline" | "danger";
   size?: "sm" | "md" | "lg" | "xl";
   href?: string;
   onClick?: () => void;
@@ -34,7 +34,7 @@ interface ButtonProps {
 /** 调用点兼容层（2026-10-20 视觉规范统一）：
  *  变体从 5 收敛到 3 —— outline / dark-outline 都并入 secondary。
  *  调用点不用改，这里做映射；新代码请只用 primary / secondary / ghost。 */
-const variantAlias: Record<string, "primary" | "secondary" | "ghost"> = {
+const variantAlias: Record<string, "primary" | "secondary" | "ghost" | "danger"> = {
   outline: "secondary",
   "dark-outline": "secondary",
 };
@@ -46,6 +46,8 @@ const variantClasses = {
   outline: "border border-[var(--pub-line-soft)] text-[var(--pub-txt)] hover:border-[var(--pub-line)] hover:bg-white/[0.04]",
   "dark-outline": "border border-white/35 bg-white/[0.04] text-white hover:border-white hover:bg-white/[0.10]",
   ghost: "text-[var(--pub-txt-soft)] hover:bg-white/[0.06] hover:text-[var(--pub-txt)]",
+  /* 破坏性动作（离队 / 解散 / 删除）：红描边不填充 —— 与主按钮区分，又不至于像主按钮那么强 */
+  danger: "border border-[#ff4655] text-[#ff4655] hover:bg-[#ff4655]/12",
 };
 
 const sizeClasses = {

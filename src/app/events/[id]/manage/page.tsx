@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import Button from "@/components/ui/Button";
 import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
@@ -224,8 +225,8 @@ export default function ParticipantManagePage({
                         <p className="text-sm font-bold text-[var(--pub-txt)]">{confirmTeamAction === "leave" ? "确定退出这支队伍吗？" : "确定解散这支队伍吗？"}</p>
                         <p className="mt-1 text-xs text-[var(--pub-txt)]">{confirmTeamAction === "leave" ? "你将回到未组队状态，之后可以重新申请其他队伍。" : "整支队伍会被删除，所有成员回到未组队状态，此操作不可撤销。"}</p>
                         <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
-                          <button type="button" onClick={() => setConfirmTeamAction(null)} disabled={busy} className="h-[40px] border border-[var(--pub-line)] bg-[var(--pub-card)] px-4 text-xs font-bold">取消</button>
-                          <button type="button" onClick={() => run(() => (confirmTeamAction === "leave" ? participant.leaveTeam() : participant.dissolveTeam()), confirmTeamAction === "leave" ? "已退出队伍。" : "队伍已解散。").then(() => setConfirmTeamAction(null))} disabled={busy} className="h-[40px] bg-[#ff4655] px-4 text-xs font-black text-white disabled:opacity-50">{confirmTeamAction === "leave" ? "确认退出" : "确认解散"}</button>
+                          <Button variant="secondary" size="md" onClick={() => setConfirmTeamAction(null)} disabled={busy}>取消</Button>
+                          <Button variant="danger" size="md" onClick={() => run(() => (confirmTeamAction === "leave" ? participant.leaveTeam() : participant.dissolveTeam()), confirmTeamAction === "leave" ? "已退出队伍。" : "队伍已解散。").then(() => setConfirmTeamAction(null))} disabled={busy}>{confirmTeamAction === "leave" ? "确认退出" : "确认解散"}</Button>
                         </div>
                       </div>
                     ) : (
