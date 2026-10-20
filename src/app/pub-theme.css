@@ -282,3 +282,65 @@
   clip-path: none;
 }
 
+/* ===== P2 页面骨架通用类（2026-10-20）=====
+   为什么留白写在这里而不是 tsx 里：桌面根字号 150%，rem 间距会被放大 1.5 倍；
+   而 tsx 里又不允许手写 `pt-[34px]`（ui-guards 的手写尺寸规则会红）。
+   所以页面留白必须落在类里，页面只负责结构。 */
+.pub-dark .ui-page { padding-top: 34px; padding-bottom: 64px; }
+.pub-dark .ui-stack { display: flex; flex-direction: column; gap: 8px; }
+.pub-dark .ui-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.pub-dark .ui-pad { padding: 16px 20px; }
+.pub-dark .ui-article { max-width: 760px; }
+.pub-dark .ui-empty {
+  border: 1px dashed var(--pub-line-soft);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--pub-txt-soft);
+}
+.pub-dark .ui-note {
+  border-left: 2px solid var(--pub-line-soft);
+  padding-left: 14px;
+  color: var(--pub-txt-soft);
+}
+/* 列表行：日期 / 标题 / 箭头（v8 的行语言，不用卡片墙） */
+.pub-dark .ui-listrow {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--pub-line-soft);
+  background: var(--pub-card);
+  transition: border-color var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard);
+}
+.pub-dark .ui-listrow:hover {
+  border-color: var(--pub-line);
+  background: rgba(255, 255, 255, 0.07);
+}
+.pub-dark .ui-listrow time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--pub-txt-mute);
+  font-variant-numeric: tabular-nums;
+}
+.pub-dark .ui-listrow h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pub-txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pub-dark .ui-listrow .ui-arrow { color: var(--pub-red); font-weight: 700; }
+@media (min-width: 760px) {
+  .pub-dark .ui-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pub-dark .ui-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .pub-dark .ui-listrow { grid-template-columns: minmax(0, 1fr) auto; }
+  .pub-dark .ui-listrow time { grid-column: 1 / -1; }
+}
+
+

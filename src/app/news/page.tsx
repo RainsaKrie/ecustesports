@@ -8,19 +8,33 @@ export const metadata: Metadata = {
   description: "查看华东理工大学电竞部最新公告、赛事通知和活动动态。",
 };
 
+/**
+ * 公告列表（2026-10-20 按 v8 基准改版）
+ * 结构：Hero（mono 眉标 + clamp 大标题 + 红句号）→ 分区标题（2px 红底线）→ 行列表。
+ * 不再用「卡片墙」：v8 的列表语言是行，日期在前、标题居中、箭头收尾。
+ */
 export default function NewsPage() {
   return (
-    <Container className="py-10 sm:py-16">
-      <header className="border-b border-[var(--pub-line)] pb-7">
-        <p className="section-kicker"><span /> NEWS</p>
-        <h1 className="text-3xl font-black text-[var(--pub-txt)] sm:text-5xl">公告</h1>
+    <Container className="ui-page">
+      <header className="ui-hero">
+        <p className="ui-eyebrow">NEWS</p>
+        <h1>
+          公告<em>.</em>
+        </h1>
+        <p className="ui-sub">电竞部公告、赛事通知与活动动态。</p>
       </header>
-      <div className="mt-6 grid gap-3">
+
+      <div className="ui-sec">
+        <h2>全部公告</h2>
+        <span>{String(LEGACY_ANNOUNCEMENTS.length).padStart(2, "0")} 条</span>
+      </div>
+
+      <div className="ui-stack mt-4">
         {LEGACY_ANNOUNCEMENTS.map((item) => (
-          <Link key={item.id} href={`/news/${item.id}`} className="group grid gap-3 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-5 transition hover:border-[#ff4655] sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
-            <time className="font-mono text-xs font-bold text-[var(--pub-txt-soft)]">{item.date}</time>
-            <h2 className="text-base font-black text-[var(--pub-txt)] sm:text-lg">{item.title}</h2>
-            <span className="text-[#ff4655] transition group-hover:translate-x-1" aria-hidden>→</span>
+          <Link key={item.id} href={`/news/${item.id}`} className="ui-listrow">
+            <time>{item.date}</time>
+            <h3>{item.title}</h3>
+            <span className="ui-arrow" aria-hidden>→</span>
           </Link>
         ))}
       </div>

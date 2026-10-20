@@ -3,25 +3,35 @@ import { getSiteConfig } from "@/lib/site-config";
 import Container from "@/components/layout/Container";
 import EventCard from "@/components/events/EventCard";
 
+/** 赛事列表（2026-10-20 按 v8 基准改版）：Hero → 分区标题 → 双列卡片（玻璃 + 折角）。 */
 export default async function EventsPage() {
   const config = await getSiteConfig();
   const events = getConfiguredEvents(config);
 
   return (
-    <Container className="py-12 sm:py-16">
-      <div className="mb-10 max-w-3xl">
-        <p className="font-mono text-xs font-black tracking-[0.16em] text-[var(--pub-red)]">{config.eventList.eyebrow}</p>
-        <h1 className="mt-3 text-4xl font-black text-[var(--pub-txt)]">{config.eventList.title}</h1>
-        <p className="mt-4 leading-7 text-[var(--pub-txt-soft)]">{config.eventList.description}</p>
+    <Container className="ui-page">
+      <header className="ui-hero">
+        <p className="ui-eyebrow">{config.eventList.eyebrow}</p>
+        <h1>
+          {config.eventList.title}
+          <em>.</em>
+        </h1>
+        <p className="ui-sub">{config.eventList.description}</p>
+      </header>
+
+      <div className="ui-sec">
+        <h2>赛事列表</h2>
+        <span>{String(events.length).padStart(2, "0")} 场</span>
       </div>
+
       {events.length > 0 ? (
-        <div className="event-grid">
-          {events.map((event) => <EventCard key={event.id} event={event} />)}
+        <div className="ui-grid ui-grid-2 mt-4">
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
         </div>
       ) : (
-        <div className="border border-[var(--pub-line)] bg-[var(--pub-card)] px-6 py-16 text-center">
-          <p className="text-lg font-bold text-[var(--pub-txt)]">暂无已发布赛事</p>
-        </div>
+        <div className="ui-empty mt-4">暂无已发布赛事</div>
       )}
     </Container>
   );
