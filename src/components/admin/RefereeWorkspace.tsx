@@ -220,7 +220,7 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
                   placeholder="例如：张三"
-                  className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
+                  className="mt-2 h-[44px] w-full adm-input px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
                 />
               </label>
               <label className="block">
@@ -229,7 +229,7 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
                   type="datetime-local"
                   value={createExpiry}
                   onChange={(e) => setCreateExpiry(e.target.value)}
-                  className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
+                  className="mt-2 h-[44px] w-full adm-input px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]"
                 />
               </label>
               {actionError && <p className="text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-red-text)]">{actionError}</p>}
@@ -289,14 +289,14 @@ export default function RefereeWorkspace({ eventId }: { eventId: string }) {
             <div className="space-y-3 p-5">
               <label className="block">
                 <span className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-soft)]">裁判</span>
-                <select value={assignRefereeId} onChange={(e) => setAssignRefereeId(e.target.value)} className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]">
+                <select value={assignRefereeId} onChange={(e) => setAssignRefereeId(e.target.value)} className="mt-2 h-[44px] w-full adm-input px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]">
                   <option value="">选择裁判</option>
                   {referees.filter((r) => r.status === "active").map((r) => <option key={r.id} value={r.id}>{r.displayName}</option>)}
                 </select>
               </label>
               <label className="block">
                 <span className="text-[length:var(--adm-fs-sm)] font-medium tracking-[0.14em] text-[var(--adm-text-soft)]">比赛</span>
-                <select value={assignMatchId} onChange={(e) => setAssignMatchId(e.target.value)} className="mt-2 h-[44px] w-full adm-panel px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]">
+                <select value={assignMatchId} onChange={(e) => setAssignMatchId(e.target.value)} className="mt-2 h-[44px] w-full adm-input px-3 text-[length:var(--adm-fs-lg)] text-[var(--adm-text)] outline-none focus:border-[var(--adm-red)]">
                   <option value="">选择比赛</option>
                   {matches.map((m) => <option key={m.matchId} value={m.matchId}>{m.teamAName} vs {m.teamBName} · {m.boType}</option>)}
                 </select>

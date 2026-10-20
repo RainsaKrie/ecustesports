@@ -205,8 +205,8 @@ export default function StageChainEditor({
                   className={`flex cursor-pointer items-center gap-2 px-3 py-2 ${open ? "border-b border-[var(--adm-line-soft)] bg-[var(--adm-surface-3)]" : "hover:bg-[var(--adm-surface-2)]"}`}
                 >
                   <span className={`${DENSE_TITLE} truncate font-bold text-[var(--adm-text)]`}>{stage.name}</span>
-                  <span className="shrink-0 adm-panel px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">{type?.name}</span>
-                  <span className="shrink-0 adm-panel px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">BO{stage.bo}</span>
+                  <span className="shrink-0 border border-[var(--adm-line-soft)] bg-white/[0.04] px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">{type?.name}</span>
+                  <span className="shrink-0 border border-[var(--adm-line-soft)] bg-white/[0.04] px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-text-soft)]">BO{stage.bo}</span>
                   {stageIssues.length > 0 && (
                     <span className="shrink-0 border border-[var(--adm-red-line)] bg-[var(--adm-red-soft)] px-1.5 py-0.5 text-[length:var(--adm-fs-xs)] font-bold text-[var(--adm-red-text)]">不成立</span>
                   )}

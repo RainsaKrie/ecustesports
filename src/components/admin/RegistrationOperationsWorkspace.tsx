@@ -404,7 +404,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
               {/* data-search-input 是 Cmd/Ctrl+K 的约定（见 AdminUIProvider）：
                   全站任何搜索框只要带上这个属性，那个快捷键就会聚焦到它。 */}
               <input data-search-input value={query} onChange={(event) => { setQuery(event.target.value); setPlayerPage(1); }} placeholder="搜索游戏 ID、姓名、学号或队名" className="min-h-[32px] min-w-0 border border-[var(--adm-line-soft)] px-[10px] text-[length:var(--adm-fs-sm)] leading-tight outline-none focus:border-[var(--adm-red)] md:w-56" />
-              <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] adm-panel px-[8px] text-[length:var(--adm-fs-sm)] leading-tight outline-none">
+              <select value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setPlayerPage(1); }} className="min-h-[32px] border border-[var(--adm-line-soft)] bg-white/[0.04] px-[8px] text-[length:var(--adm-fs-sm)] leading-tight outline-none">
                 {(["全部", "已通过", "需修改", "已拒绝"] as const).map((status) => <option key={status}>{status}</option>)}
               </select>
             </div>

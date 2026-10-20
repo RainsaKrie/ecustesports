@@ -902,7 +902,7 @@ function FormatChangeModal({
     >
       <>
         <div className="space-y-3 p-5">
-          {hint && <p className="adm-panel px-3 py-2.5 text-[length:var(--adm-fs-md)] font-bold leading-[1.65] text-[var(--adm-text-soft)]">{hint}</p>}
+          {hint && <p className="border border-[var(--adm-line-soft)] bg-white/[0.03] px-3 py-2.5 text-[length:var(--adm-fs-md)] font-bold leading-[1.65] text-[var(--adm-text-soft)]">{hint}</p>}
           {FORMAT_TEMPLATES.filter((template) => template.teamCount >= 8).map((template) => (
             <label key={template.id} className={`flex cursor-pointer items-start gap-3 border p-4 transition ${targetTemplate === template.id ? "border-[var(--adm-red)] bg-[var(--adm-red-soft)]" : "border-[var(--adm-line-soft)] bg-[var(--adm-surface)] hover:border-[var(--adm-text)]"}`}>
               <input type="radio" name="template" value={template.id} checked={targetTemplate === template.id} onChange={() => onSelect(template.id)} className="mt-0.5" />
