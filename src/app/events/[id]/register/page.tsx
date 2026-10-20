@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/Container";
+import Button from "@/components/ui/Button";
 import GroupNotice from "@/components/events/GroupNotice";
 import { useCurrentEventConfig } from "@/hooks/useCurrentEventConfig";
 import { participantTokenKey, usePublicRegistration } from "@/hooks/usePublicRegistration";
@@ -145,13 +146,14 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
           <details className="mt-5 border-t border-[var(--pub-line)] pt-4 text-left">
             <summary className="cursor-pointer text-xs font-bold text-[var(--pub-txt-soft)]">备用参赛码</summary>
             <code className="mt-3 block break-all bg-white/[0.06] p-3 text-xs text-[var(--pub-txt-soft)]">{manageToken}</code>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => navigator.clipboard.writeText(manageToken).then(() => setCopied(true))}
-              className="mt-2 w-full border border-[var(--pub-line)] px-3 py-2 text-xs font-bold text-[var(--pub-txt-soft)]"
+              className="mt-2 w-full"
             >
               {copied ? "已复制" : "复制参赛码"}
-            </button>
+            </Button>
           </details>
           <div className="mt-5 text-xs font-medium text-[var(--pub-txt-soft)]">
             换设备时可用学号和报名手机号找回
@@ -254,13 +256,16 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
               <div className="border-l-2 border-l-[var(--pub-red)] bg-[rgba(255,70,85,0.08)] px-3 py-2 text-[13px] font-bold text-[var(--pub-red)]">{error}</div>
             )}
 
-            <button
+            <Button
+              variant="primary"
+              size="lg"
+              type="submit"
               onClick={handleSubmit}
               disabled={phase !== "open"}
-              className={`h-[48px] w-full text-[14px] font-black text-white transition-colors ${phase === "open" ? "bg-[#ff4655] hover:bg-[#d83b48]" : "cursor-not-allowed bg-[var(--pub-line-soft)] text-[var(--pub-txt-mute)]"}`}
+              className="w-full"
             >
               {phase === "not-open" ? "报名未开放" : phase === "closed" ? "报名已截止" : "提交报名"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
