@@ -366,3 +366,28 @@
   display: block;
   flex: none;
 }
+
+/* ===== 站头尺寸与对齐（2026-10-20 负责人反馈）=====
+   ①「顶栏太窄太小」：高度 92 → 104px，logo 34 → 44px；
+   ②「工作台按钮应该在最右侧」：原来 `justify-content: flex-start` + 固定 gap，
+      按钮紧跟在导航后面。改成给按钮 `margin-left: auto`，把它推到最右。 */
+.pub-dark .site-header__inner {
+  height: 104px;
+  gap: 44px;
+}
+.pub-dark .site-header__admin {
+  margin-left: auto;
+}
+.pub-dark .brand-logo {
+  height: 44px;
+}
+.pub-dark .site-brand__text strong {
+  font-size: 1.5rem;
+}
+.pub-dark .site-brand__text small {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+}
+.pub-dark .site-nav > a {
+  font-size: 0.9375rem;
+}
