@@ -335,5 +335,24 @@
   * { animation: none !important; transition: none !important; }
 }
 
-
-
+/* 弹窗面板（2026-10-20 P6）：**必须不透明**。
+   玻璃卡是 5% 白，叠在内容页上会把背后的标题、数字条、阶段卡全透出来 ——
+   实测开队伍弹窗时"第三届瓦理杯"和 32/50/50 直接压在弹窗内容上，完全没法读。
+   这里用页面底色（全站唯一近黑）+ 1px 14% 线 + 左上红折线，与取景框同一套记号。 */
+.pub-dark .ui-modal-panel {
+  position: relative;
+  background: var(--pub-bg);
+  border: 1px solid var(--pub-line-soft);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.66);
+}
+.pub-dark .ui-modal-panel::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid var(--pub-red);
+  border-top: 1px solid var(--pub-red);
+  pointer-events: none;
+}

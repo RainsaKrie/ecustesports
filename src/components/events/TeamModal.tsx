@@ -57,14 +57,14 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(15,25,35,0.55)] p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${team.name} 的队伍信息`}
     >
       <div
-        className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden bg-[var(--pub-card)] ring-1 ring-[var(--pub-txt)]"
+        className="ui-modal-panel flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头：编号方块 + 队名 + 状态 */}
