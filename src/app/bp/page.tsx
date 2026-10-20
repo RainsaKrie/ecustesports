@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
@@ -26,6 +26,11 @@ interface BPEntryPageProps {
   searchParams: Promise<{ eventId?: string }>;
 }
 
+/**
+ * BP 工具入口（2026-10-20 按 v8 基准改版）
+ * 这一页是公开工具页（挂了公开导航），所以用公开面的 .ui-* 语言，
+ * 不再混用后台的 --adm-* 令牌与 .adm-chip。
+ */
 export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
   const { eventId: requestedEventId } = use(searchParams);
   const event = useCurrentEventConfig(requestedEventId);
@@ -67,47 +72,51 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
   const poolSize = (event.mapPool ?? []).length;
 
   return (
-    <Container className="py-8">
-      <div className="mb-6">
-        <h1 className="text-[length:var(--adm-fs-xl)] font-bold text-[var(--adm-text)]">BP 工具</h1>
-        <p className="mt-1 text-[length:var(--adm-fs-md)] text-[var(--adm-text-soft)]">{event.name}</p>
-      </div>
+    <Container className="ui-page">
+      <header className="ui-hero">
+        <p className="ui-eyebrow">BAN / PICK</p>
+        <h1>
+          BP 工具<em>.</em>
+        </h1>
+        <p className="ui-sub">{event.name} · 查看禁用/选用顺序，或进入房间完成选图。</p>
+      </header>
 
       {/* BP 规则 */}
-      <div className="mb-6 border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-6">
-        <h2 className="mb-3 text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">BP 规则</h2>
+      <div className="ui-sec">
+        <h2>BP 规则</h2>
+        <span>{BO_TYPES.length} 种 BO</span>
+      </div>
+      <div className="ui-frame ui-pad mt-4">
         {/*
           顺序由 `buildBPOrder` 生成，与 BP 房间实际使用的逻辑同源 ——
           原先这里写死了 BO3 的七步顺序却冠以「BP 规则」，
           对 BO1（6 个禁步）和 BO5（2 禁 + 5 选）都是错的，会误导用户。
         */}
-        <div className="space-y-2">
+        <div className="flex flex-col gap-3">
           {BO_TYPES.map((bo) => {
             const steps = buildBPOrder(bo, poolSize);
             return (
               <div key={bo} className="flex flex-wrap items-center gap-2">
-                <span className="w-12 shrink-0 text-[length:var(--adm-fs-sm)] font-semibold tabular-nums text-[var(--adm-text)]">{bo}</span>
+                <span className="w-10 shrink-0 font-mono text-[12px] font-bold tabular-nums text-[var(--pub-txt)]">{bo}</span>
                 {steps.length === 0 ? (
-                  <span className="adm-chip" data-tone="attention">
+                  <span className="ui-tag live">
                     地图池不足（需至少 {MIN_POOL[bo]} 张，当前 {poolSize} 张）
                   </span>
                 ) : (
                   <>
                     {steps.map((s, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <span className="adm-chip" data-tone={s.action === "ban" ? "attention" : "done"}>
+                        <span className={`ui-tag${s.action === "ban" ? " live" : ""}`}>
                           {idx % 2 === 0 ? "A" : "B"}
                           {s.action === "ban" ? "禁" : "选"}
                         </span>
-                        {idx < steps.length - 1 && <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">→</span>}
+                        {idx < steps.length - 1 && <span className="text-[12px] text-[var(--pub-txt-mute)]">→</span>}
                       </div>
                     ))}
                     {bo !== "BO5" && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">→</span>
-                        <span className="adm-chip" data-dot="off">
-                          {bo === "BO1" ? "唯一图" : "决胜图"}
-                        </span>
+                        <span className="text-[12px] text-[var(--pub-txt-mute)]">→</span>
+                        <span className="ui-tag">{bo === "BO1" ? "唯一图" : "决胜图"}</span>
                       </div>
                     )}
                   </>
@@ -116,66 +125,63 @@ export default function BPEntryPage({ searchParams }: BPEntryPageProps) {
             );
           })}
         </div>
-        <p className="mt-3 text-[length:var(--adm-fs-sm)] leading-[1.7] text-[var(--adm-text-mute)]">
+        <p className="mt-4 border-t border-[var(--pub-line-soft)] pt-3 text-[12px] leading-[1.7] text-[var(--pub-txt-mute)]">
           A 为先手方。BO1 剩最后一张即比赛地图；BO3 剩余那张为决胜图；BO5 全部由 Pick 决定，无决胜图。
         </p>
       </div>
 
       {/* 比赛 */}
-      <h2 className="mb-1 text-[length:var(--adm-fs-lg)] font-semibold text-[var(--adm-text)]">BP 比赛</h2>
-      <p className="mb-4 text-[length:var(--adm-fs-sm)] text-[var(--adm-text-soft)]">
-        待 BP {pendingCount} 场 · 已有记录 {doneCount} 场（已完成的可点进去回溯选图过程）
-      </p>
+      <div className="ui-sec">
+        <h2>BP 比赛</h2>
+        <span>待 BP {pendingCount} 场 · 已有记录 {doneCount} 场</span>
+      </div>
+
       {bpMatches.length === 0 ? (
-        <div className="border border-dashed border-[var(--adm-line)] bg-[var(--adm-surface-2)] p-8 text-center text-[length:var(--adm-fs-md)] text-[var(--adm-text-mute)]">
-          暂无待 BP 的比赛
-        </div>
+        <div className="ui-empty mt-4">暂无待 BP 的比赛</div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="ui-grid ui-grid-2 mt-4">
           {bpMatches.map((match) => {
             const session = sessions[match.id];
             return (
               <Link
                 key={match.id}
                 href={`/bp/${match.id}?eventId=${encodeURIComponent(eventId)}`}
-                className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface)] p-5 transition hover:border-[var(--adm-text)]"
+                className="ui-frame ui-pad block transition-colors hover:border-[var(--pub-line)]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-[length:var(--adm-fs-sm)] tabular-nums text-[var(--adm-text-mute)]">
+                  <p className="truncate font-mono text-[11.5px] tabular-nums text-[var(--pub-txt-mute)]">
                     {match.phase} · {match.id} · {match.boType}
                   </p>
                   {session?.status === "已完成" ? (
-                    <span className="adm-chip" data-tone="done">已完成</span>
+                    <span className="ui-tag">已完成</span>
                   ) : session?.status === "进行中" ? (
-                    <span className="adm-chip" data-tone="active">
+                    <span className="ui-tag live">
                       进行中 {session.actions.length}/{session.order.length}
                     </span>
                   ) : (
-                    <span className="adm-chip" data-tone="neutral">待定先手</span>
+                    <span className="ui-tag">待定先手</span>
                   )}
                 </div>
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span aria-hidden className="h-3 w-3 shrink-0 bg-[var(--adm-red)]" />
-                    <span className="truncate text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">{match.teamAName}</span>
+                    <span aria-hidden className="h-3 w-3 shrink-0 bg-[var(--pub-red)]" />
+                    <span className="truncate text-[15px] font-bold text-[var(--pub-txt)]">{match.teamAName}</span>
                   </div>
-                  <span className="shrink-0 px-2 text-[length:var(--adm-fs-sm)] text-[var(--adm-text-mute)]">vs</span>
+                  <span className="shrink-0 px-2 font-mono text-[11.5px] text-[var(--pub-txt-mute)]">vs</span>
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[length:var(--adm-fs-md)] font-semibold text-[var(--adm-text)]">{match.teamBName}</span>
-                    {/* B 侧用 --ink-soft（深墨）而非令牌外的蓝色，与房间页点位一致 */}
-                    <span aria-hidden className="h-3 w-3 shrink-0 bg-[var(--ink-soft)]" />
+                    <span className="truncate text-[15px] font-bold text-[var(--pub-txt)]">{match.teamBName}</span>
+                    <span aria-hidden className="h-3 w-3 shrink-0 bg-[var(--pub-line)]" />
                   </div>
                 </div>
-                <p className="mt-3 text-[length:var(--adm-fs-sm)] tabular-nums text-[var(--adm-text-mute)]">开赛时间：{fmt(match.startTime)}</p>
+                <p className="mt-3 font-mono text-[11.5px] tabular-nums text-[var(--pub-txt-mute)]">开赛时间：{fmt(match.startTime)}</p>
                 {session?.status === "已完成" && session.finalMaps && (
-                  <p className="mt-2 text-[length:var(--adm-fs-sm)] text-[var(--adm-text-soft)]">地图：{session.finalMaps.join("、")}</p>
+                  <p className="mt-2 text-[12px] text-[var(--pub-txt-soft)]">地图：{session.finalMaps.join("、")}</p>
                 )}
               </Link>
             );
           })}
         </div>
       )}
-
     </Container>
   );
 }
