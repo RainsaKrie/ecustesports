@@ -9,7 +9,6 @@ import StageCards, { stageCardsFromMatches } from "@/components/events/StageCard
 import GroupNotice from "@/components/events/GroupNotice";
 import ParticipantStageActions from "@/components/events/ParticipantStageActions";
 import Container from "@/components/layout/Container";
-import Badge from "@/components/ui/Badge";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -20,6 +19,16 @@ interface EventDetailPageProps {
   searchParams: Promise<{ tab?: string; preview?: string }>;
 }
 
+/**
+ * 赛事详情（2026-10-20 按 v8 基准改版）
+ *
+ * 改动要点：
+ *   1. 页面级 Hero 接管标题 —— 以前标题只在 PublicSchedule 的赛程 tab 里，
+ *      页面本身只有一个 24–30px 的 h1，等于"进赛事页没有主视觉"。
+ *   2. 去掉按赛事的 coverColor 渐变（v8 只允许一种强调色），状态改 .ui-tag。
+ *   3. 新增数字条：参赛队伍 / 赛事场次 / 已完成（真实数据推导，不是手填）。
+ *   4. 「当前阶段任务」改成玻璃取景框卡 + 左侧红条说明（v8 的框线语言）。
+ */
 export default async function EventDetailPage({ params, searchParams }: EventDetailPageProps) {
   const { id } = await params;
   const { tab, preview } = await searchParams;
@@ -44,6 +53,9 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
     hasSchedule,
   });
   const stageConfig = STAGE_CONFIGS[stage];
+
+  const totalMatches = schedule.matches.length;
+  const doneMatches = schedule.matches.filter((match) => match.status === "已完成").length;
 
   const nextMatch = [...schedule.matches]
     .filter((match) => match.status !== "已完成" && Boolean(match.startTime))
@@ -86,8 +98,9 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   })();
 
   const isPreparing = event.status === "draft";
+
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative">
       {previewMode && (
         <div className="border-b border-[var(--pub-red)] bg-[var(--pub-card)] px-4 py-3 text-[var(--pub-red)]">
           <Container className="flex flex-wrap items-center justify-between gap-3">
@@ -96,60 +109,67 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
           </Container>
         </div>
       )}
-      {/* Event Header */}
-      <div
-        className="px-4 sm:px-6 lg:px-8 pt-8 pb-6"
-        style={{ background: `linear-gradient(135deg, ${event.coverColor}22, ${event.coverColor}05)` }}
-      >
-        <Container>
-          <div>
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
-                <span className="text-sm font-bold text-[var(--pub-txt-soft)]">{event.game}</span>
-              </div>
-              <h1 className="text-2xl font-bold text-[var(--pub-txt)] sm:text-3xl">{event.name}</h1>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--pub-txt)]">{event.description}</p>
-            </div>
 
-            <div className="mt-7 border border-[var(--pub-line)] bg-[var(--pub-card)] shadow-[0_16px_45px_rgba(15,25,35,0.08)]">
-              <div className="grid lg:grid-cols-[1fr_auto]">
-                <div className="border-b border-[var(--pub-line)] p-5 sm:p-7 lg:border-b-0 lg:border-r">
-                  <p className="font-mono text-[11px] font-black tracking-[0.18em] text-[#ff4655]">当前阶段任务 · {stage}</p>
-                  <h2 className="mt-3 text-xl font-black text-[var(--pub-txt)] sm:text-2xl">{stageConfig.title}</h2>
-                  <div className="mt-5 border-l-2 border-[#ff4655] bg-white/[0.06] px-4 py-3">
-                    <p className="text-sm font-bold leading-6 text-[var(--pub-txt)]">{stageContext}</p>
-                  </div>
-                </div>
-
-                <div className="flex min-w-0 flex-col justify-center gap-4 p-5 sm:p-7 lg:w-72">
-                  <ParticipantStageActions
-                    eventId={event.id}
-                    stage={stage}
-                    isPreparing={isPreparing}
-                    isOngoing={event.status === "ongoing"}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 群公告放在阶段卡之后、标签页之前：
-                玩家看完「当前该做什么」，紧接着看到「去哪接收后续通知」。
-                非报名期也同样显示——赛后仍要通知领奖等事宜。 */}
-            {event.eventQqGroup && (
-              <div className="mt-5">
-                <GroupNotice group={event.eventQqGroup} />
-              </div>
-            )}
+      <Container className="ui-page">
+        <header className="ui-hero">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`ui-tag${event.status === "ongoing" ? " live" : ""}`}>{statusInfo.label}</span>
+            <span className="font-mono text-[11.5px] tracking-[0.14em] text-[var(--pub-txt-mute)]">{event.game} / ECUST</span>
           </div>
-        </Container>
-      </div>
+          <h1>
+            {event.name}
+            <em>.</em>
+          </h1>
+          <p className="ui-sub">{event.description}</p>
 
-      {/* Tabs / Content */}
-      <Container className="py-8">
-        {/* 阶段进度：一进赛事页就知道打到第几阶段（与赛程页顶部同一组件、同一数据推导） */}
-        <StageCards className="mb-6" items={stageCards.items} currentIndex={stageCards.currentIndex} />
-        <EventDetailTabs key={`${stage}-${tab ?? "default"}`} eventId={id} stage={stage} event={event} initialTab={tab} preview={previewMode} />
+          <div className="ui-stats">
+            <div className="ui-stat">
+              <div className="v">{event.teamCount}</div>
+              <div className="k">参赛队伍</div>
+            </div>
+            <div className="ui-stat">
+              <div className="v">{totalMatches}</div>
+              <div className="k">赛事场次</div>
+            </div>
+            <div className="ui-stat hot">
+              <div className="v">{doneMatches}</div>
+              <div className="k">已完成</div>
+            </div>
+          </div>
+        </header>
+
+        {/* 当前阶段任务：一进页面就知道现在该做什么、卡在哪 */}
+        <div className="ui-frame ui-pad mt-6">
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+            <div>
+              <p className="ui-eyebrow">当前阶段任务 · {stage}</p>
+              <h2 className="mt-2 text-[22px] font-black tracking-[-0.01em] text-[var(--pub-txt)]">{stageConfig.title}</h2>
+              <p className="ui-note mt-3 text-[13.5px] font-bold leading-6 text-[var(--pub-txt)]">{stageContext}</p>
+            </div>
+            <div className="flex min-w-0 flex-col justify-center gap-3 lg:w-64">
+              <ParticipantStageActions
+                eventId={event.id}
+                stage={stage}
+                isPreparing={isPreparing}
+                isOngoing={event.status === "ongoing"}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 群公告放在阶段卡之后、标签页之前：看完「该做什么」，紧接着「去哪收通知」 */}
+        {event.eventQqGroup && (
+          <div className="mt-4">
+            <GroupNotice group={event.eventQqGroup} />
+          </div>
+        )}
+
+        {/* 阶段进度：一进赛事页就知道打到第几阶段（与赛程页同一组件、同一数据推导） */}
+        <StageCards className="mt-10" items={stageCards.items} currentIndex={stageCards.currentIndex} />
+
+        <div className="mt-8">
+          <EventDetailTabs key={`${stage}-${tab ?? "default"}`} eventId={id} stage={stage} event={event} initialTab={tab} preview={previewMode} />
+        </div>
       </Container>
     </div>
   );

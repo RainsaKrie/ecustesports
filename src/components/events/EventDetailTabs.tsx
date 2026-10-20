@@ -57,12 +57,9 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
   const [picked, setPicked] = useState<PublicRegistrationSummary["teams"][number] | null>(null);
   return (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-4 border-b border-[var(--pub-line)] pb-2">
-        <div>
-          <p className="font-mono text-[0.625rem] font-black uppercase tracking-[0.18em] text-[var(--pub-red)]">Teams</p>
-          <h2 className="mt-1 text-[1.375rem] font-black tracking-[-0.01em] text-[var(--pub-txt)]">参赛队伍</h2>
-        </div>
-        <span className="font-mono text-[0.6875rem] font-black text-[var(--pub-txt-mute)]">{teams.length} 支</span>
+      <div className="ui-sec ui-sec--tight">
+        <h2>参赛队伍</h2>
+        <span>{teams.length} 支</span>
       </div>
 
       {teams.length === 0 ? (
@@ -147,8 +144,8 @@ export default function EventDetailTabs({
 
   return (
     <div id="event-content" className="scroll-mt-24">
-      <div className="mb-0 overflow-hidden border-y border-[var(--pub-line)] bg-black/30 sm:overflow-x-auto">
-        <div role="tablist" aria-label="赛事资料" className="mx-auto grid w-full grid-cols-5 sm:flex sm:min-w-max sm:justify-center">
+      <div className="overflow-x-auto">
+        <div role="tablist" aria-label="赛事资料" className="ui-toggle ui-toggle--full min-w-max">
           {TABS.map((item) => {
             const isActive = tab === item;
             return (
@@ -158,11 +155,6 @@ export default function EventDetailTabs({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setTab(item)}
-                className={`relative min-h-14 min-w-0 border-b-[3px] px-1.5 py-4 text-[0.6875rem] font-black transition sm:shrink-0 sm:px-8 sm:text-xs ${
-                  isActive
-                    ? "border-[#ff4655] bg-white/[0.07] text-[var(--pub-txt)]"
-                    : "border-transparent text-[var(--pub-txt-soft)] hover:bg-white/[0.04] hover:text-[var(--pub-txt)]"
-                }`}
               >
                 {TAB_LABELS[item]}
               </button>
