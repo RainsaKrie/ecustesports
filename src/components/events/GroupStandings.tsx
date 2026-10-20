@@ -25,6 +25,20 @@ type Row = {
 
 const GROUP_PHASE_HINTS = ["小组赛", "组内"];
 
+/**
+ * 占位队伍（2026-10-20 修）：抽签前/对手未定时，对阵里是 `TBD` / `待定` / `SLOT-01` 这类占位。
+ * **它们不是队伍**，混进积分表会出现「C 组 1 队：待定」这种假数据。
+ */
+const PLACEHOLDER_IDS = new Set(["TBD", "BYE", "PENDING"]);
+function isPlaceholder(match: ScheduleMatch): boolean {
+  const id = (value: string | undefined) => {
+    if (!value) return true;
+    if (PLACEHOLDER_IDS.has(value)) return true;
+    return value.startsWith("SLOT-");
+  };
+  return id(match.teamAId) || id(match.teamBId);
+}
+
 function isGroupPhase(phase: string): boolean {
   return GROUP_PHASE_HINTS.some((hint) => phase.includes(hint));
 }
@@ -45,6 +59,7 @@ function buildGroups(matches: ScheduleMatch[]): Map<string, Set<string>> {
   const byRound = new Map<string, Set<string>>();
   for (const m of matches) {
     if (!isGroupPhase(m.phase)) continue;
+    if (isPlaceholder(m)) continue;
     const name = groupOfRound(m.round);
     if (!name) continue;
     if (!byRound.has(name)) byRound.set(name, new Set());
@@ -67,7 +82,7 @@ function buildGroups(matches: ScheduleMatch[]): Map<string, Set<string>> {
 
   for (const m of matches) {
     if (!isGroupPhase(m.phase)) continue;
-    if (!m.teamAId || !m.teamBId) continue;
+    if (isPlaceholder(m)) continue;
     if (!parent.has(m.teamAId)) parent.set(m.teamAId, m.teamAId);
     if (!parent.has(m.teamBId)) parent.set(m.teamBId, m.teamBId);
     union(m.teamAId, m.teamBId);
@@ -88,6 +103,7 @@ function buildRows(matches: ScheduleMatch[], teamIds: Set<string>): Row[] {
 
   for (const m of matches) {
     if (!isGroupPhase(m.phase)) continue;
+    if (isPlaceholder(m)) continue;
     if (!teamIds.has(m.teamAId) || !teamIds.has(m.teamBId)) continue;
     const a = rows.get(m.teamAId)!;
     const b = rows.get(m.teamBId)!;
@@ -110,12 +126,20 @@ function buildRows(matches: ScheduleMatch[], teamIds: Set<string>): Row[] {
 
 export default function GroupStandings({ matches, advancePerGroup = 2 }: { matches: ScheduleMatch[]; advancePerGroup?: number }) {
   const groups = buildGroups(matches);
-  if (groups.size === 0) return null;
+  // 少于 2 支真实队伍的组没有意义（抽签还没落位），直接不显示
+  const usable = [...groups.entries()].filter(([, ids]) => ids.size >= 2);
+  if (usable.length === 0) {
+    return (
+      <div className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-5 py-8 text-center text-sm font-bold text-[var(--pub-txt-soft)]">
+        分组尚未抽签，抽签完成后这里会显示各组积分。
+      </div>
+    );
+  }
 
   const labels = "ABCDEFGH";
   return (
     <div className="space-y-6">
-      {[...groups.values()].map((teamIds, index) => {
+      {usable.map(([, teamIds], index) => {
         const rows = buildRows(matches, teamIds);
         return (
           <section key={index}>
