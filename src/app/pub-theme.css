@@ -353,5 +353,5 @@
 
 /* 背景海报（2026-10-20 负责人提供）。
    四张：捷风 / 不死鸟 / 芮娜 / 猎枭+铁臂，放 public/posters/。
-   当前全站统一用捷风；首页轮换是下一步。 */
-.pub-dark { --pub-bg-image: url("/posters/jett.jpg"); }
+   全站统一用不死鸟（负责人 2026-10-20 指定）。捷风/芮娜/猎枭仍留在 public/posters/ 备用。 */
+.pub-dark { --pub-bg-image: url("/posters/phoenix.jpg"); }
