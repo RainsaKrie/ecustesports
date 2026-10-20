@@ -93,7 +93,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   if (participant.data && !done) {
     return (
       <Container className="ui-page">
-        <div className="ui-frame ui-pad mx-auto max-w-lg text-center">
+        <div className="ui-frame ui-pad mx-auto max-w-[560px] text-center">
           <p className="ui-eyebrow">REGISTRATION COMPLETE</p>
           <h1 className="mt-2 text-[24px] font-black tracking-[-0.02em] text-[var(--pub-txt)]">已完成参赛报名</h1>
           <p className="mt-2 text-sm font-bold text-[var(--pub-txt-soft)]">{participant.data.player.gameId}</p>
@@ -118,7 +118,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
   if (done) {
     return (
       <Container className="ui-page">
-        <div className="ui-frame ui-pad mx-auto max-w-lg text-center">
+        <div className="ui-frame ui-pad mx-auto max-w-[560px] text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border-l-2 border-l-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt)]">
             <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -163,7 +163,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
 
   return (
     <Container className="ui-page">
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto max-w-[640px]">
         <header className="ui-hero">
           <p className="ui-eyebrow">REGISTRATION / 选手报名</p>
           <h1>
