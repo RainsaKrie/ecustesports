@@ -1383,14 +1383,14 @@ summary:focus-visible {
   width: 9px;
   height: 9px;
 }
-
+/* 滚动条对齐 v8：thumb 原为品牌红（整页右侧挂一条红竖条），改中性白；track 跟随 --ui-bg */
 ::-webkit-scrollbar-track {
-  background: var(--ink);
+  background: var(--ui-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  border: 2px solid var(--ink);
-  background: var(--red);
+  border: 2px solid var(--ui-bg);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* ==========================================================================

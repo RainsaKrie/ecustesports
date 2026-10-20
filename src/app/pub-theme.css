@@ -249,3 +249,36 @@
   .pub-dark .ui-row,
   .pub-dark .ui-frame { background: rgba(255, 255, 255, 0.07); }
 }
+
+/* ===== 站头收敛（2026-10-20 真机验收后修）=====
+   根字号桌面 150%，globals 里的站头用的是 rem：品牌名 1.375rem = 33px、导航 1.0833rem = 26px，
+   再叠上每个链接 28px 的左右内边距 —— 内容宽度 1100 时 flex 项被压缩，导航每项竖排成两行、
+   品牌名折行，整条站头是坏的（截图见 .workbuddy/ui-shots-v8/01-home.png）。
+   按 v8 收敛：品牌 16px、导航 13.5px / 22px 间距、工作台入口 32px 高，全部用 px 定值。 */
+.pub-dark .site-header__inner {
+  height: 72px;
+  gap: 24px;
+}
+.pub-dark .site-brand { flex: none; gap: 12px; white-space: nowrap; }
+.pub-dark .site-brand__text { white-space: nowrap; }
+.pub-dark .brand-mark { width: 34px; height: 34px; font-size: 12px; letter-spacing: 0; }
+.pub-dark .site-brand__text strong { font-size: 16px; font-weight: 760; letter-spacing: 0.02em; }
+.pub-dark .site-brand__text small { margin-top: 4px; font-size: 10px; letter-spacing: 0.14em; }
+.pub-dark .site-nav { flex: none; gap: 22px; border-left: 0; padding-left: 0; }
+.pub-dark .site-nav > a {
+  padding: 0;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.pub-dark .site-nav > a::after { right: 0; left: 0; }
+.pub-dark .site-header__admin {
+  height: 32px;
+  margin-left: auto;
+  padding: 0 14px;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  clip-path: none;
+}
+
