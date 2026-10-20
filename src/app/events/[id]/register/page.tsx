@@ -117,7 +117,7 @@ export default function RegisterPage({ params }: { params: Promise<{ id: string 
     return (
       <Container className="py-8">
         <div className="mx-auto max-w-lg border border-[var(--pub-line)] bg-[var(--pub-card)] p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center  bg-[#ecfdf5] text-[#34d399]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center border-l-2 border-l-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt)]">
             <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>

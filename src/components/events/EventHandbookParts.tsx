@@ -115,8 +115,8 @@ export function RuleGroup({
           {index} / {eyebrow}
         </p>
         <h4 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[var(--pub-txt)]">{title}</h4>
-        <p className="mt-3 text-xs font-medium leading-6 text-[#555a60]">{description}</p>
-        <p className="mt-6 font-mono text-[10px] font-black tracking-widest text-[#777b80]">
+        <p className="mt-3 text-xs font-medium leading-6 text-[var(--pub-txt-soft)]">{description}</p>
+        <p className="mt-6 font-mono text-[10px] font-black tracking-widest text-[var(--pub-txt-mute)]">
           {String(rules.length).padStart(2, "0")} ITEMS
         </p>
       </header>
@@ -130,7 +130,7 @@ export function RuleGroup({
             <article
               key={`${rule.title}-${ruleIndex}`}
               className={`grid gap-2 border-b border-r border-[var(--pub-line)] px-5 py-4 sm:px-6 md:grid-cols-[3.5rem_12rem_1fr] md:gap-5 md:py-5 ${
-                warning ? "bg-[#fff0ee]" : important ? "bg-[#faf6f0]" : "bg-[var(--pub-card)]"
+                warning ? "border-l-2 border-l-[var(--pub-red)] bg-white/[0.06]" : important ? "border-l-2 border-l-[var(--pub-line)] bg-white/[0.06]" : "bg-[var(--pub-card)]"
               }`}
             >
               <span className="font-mono text-[10px] font-black tracking-widest text-[#ff4655]">
@@ -143,7 +143,7 @@ export function RuleGroup({
                     className={`mt-1.5 inline-block border px-2 py-1 font-mono text-[9px] font-black tracking-wider ${
                       warning
                         ? "border-[#ff4655] bg-[#ff4655] text-white"
-                        : "border-[#ff4655] text-[#d93645]"
+                        : "border-[var(--pub-red)] text-[var(--pub-red)]"
                     }`}
                   >
                     {warning ? "赛事警示" : "重点条款"}

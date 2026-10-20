@@ -1,6 +1,23 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 
+/**
+ * 全站按钮（2026-10-20 对齐 v8 基准）
+ *
+ * 改造前：5 个变体里有 3 个在暗底上不可见 —— outline 用 `#0f1923` 字/框（对 #0a0b0d 仅 1.11:1），
+ * secondary 是深蓝底、ghost 是深蓝字。赛事对阵全屏页的「← 返回赛事详情」因此整颗按钮看不见。
+ *
+ * 现在只有四种语义 + 一个画在图上的透明变体：
+ *   primary       红底白字 —— 每屏只允许 1 个（主要动作）
+ *   secondary     1px 浅框 + 正文色 —— 常规动作
+ *   outline       1px 弱框 + 正文色 —— 与 secondary 同族，框更轻，用于并列的次级动作
+ *   ghost         无底无框，hover 才出现 —— 行内动作
+ *   dark-outline  画在海报/图片上的透明按钮（白框白字）
+ * 高度用 px 定值：桌面根字号 150%，rem 会被放大 1.5 倍。
+ *
+ * ⚠️ ui-guards 用字符串断言检查本文件必须含 `focus-visible:outline-2` 与
+ * `focus-visible:outline-offset`，改结构时不要删这两个类名。
+ */
 interface ButtonProps {
   children: ReactNode;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "dark-outline";
@@ -16,17 +33,17 @@ interface ButtonProps {
 
 const variantClasses = {
   primary: "bg-[#ff4655] text-white hover:bg-[#d83b48]",
-  secondary: "bg-[#0f1923] text-white hover:bg-[#25313b]",
-  outline: "border border-[#0f1923]/35 text-[#0f1923] hover:bg-[#0f1923] hover:text-white",
-  "dark-outline": "border border-white/35 bg-black/15 text-white hover:border-white hover:bg-[var(--pub-card)] hover:text-[#0f1923]",
-  ghost: "text-[#25313b] hover:bg-[#0f1923]/8",
+  secondary: "border border-white/35 text-[var(--pub-txt)] hover:border-white hover:bg-white/[0.06]",
+  outline: "border border-[var(--pub-line-soft)] text-[var(--pub-txt)] hover:border-[var(--pub-line)] hover:bg-white/[0.04]",
+  "dark-outline": "border border-white/35 bg-white/[0.04] text-white hover:border-white hover:bg-white/[0.10]",
+  ghost: "text-[var(--pub-txt-soft)] hover:bg-white/[0.06] hover:text-[var(--pub-txt)]",
 };
 
 const sizeClasses = {
-  sm: "px-4 py-2 text-xs",
-  md: "px-5 py-2.5 text-sm",
-  lg: "px-7 py-3.5 text-sm",
-  xl: "px-10 py-5 text-lg",
+  sm: "h-[32px] px-3 text-xs",
+  md: "h-[44px] px-5 text-sm",
+  lg: "h-[52px] px-7 text-sm",
+  xl: "h-[56px] px-8 text-base",
 };
 
 export default function Button({
@@ -41,9 +58,9 @@ export default function Button({
   loading = false,
 }: ButtonProps) {
   const baseClass = [
-    "btn-cut relative inline-flex items-center justify-center gap-3",
+    "btn-cut relative inline-flex items-center justify-center gap-3 font-bold",
     "transition-[background-color,border-color,color,transform,opacity] duration-[var(--dur-fast)] ease-[var(--ease-standard)]",
-    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--red)]",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--red)]",
     "active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50",
     loading ? "cursor-progress" : "",
     variantClasses[variant], sizeClasses[size], className,

@@ -12,7 +12,7 @@ export default function ContactPage() {
       </div>
       <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {GAME_COMMUNITIES.map(([name, id]) => (
-          <div key={`${name}-${id}`} className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-5 transition hover:-translate-y-1 hover:border-[#ff4655]/50 hover:shadow-[0_15px_30px_rgba(15,25,35,0.08)]">
+          <div key={`${name}-${id}`} className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-5 transition hover:border-[#ff4655]/50">
             <h2 className="font-black text-[var(--pub-txt)]">{name}</h2>
             <p className="mt-2 font-mono text-sm text-[var(--pub-red)]">{id}</p>
           </div>
@@ -24,7 +24,7 @@ export default function ContactPage() {
           <p className="section-kicker justify-center"><span /> CONTACT US</p>
           <h2 className="mt-3 text-3xl font-black text-[var(--pub-txt)]">联系电竞部</h2>
         </div>
-        <div className="space-y-4 rounded border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-6">
+        <div className="space-y-4 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-6">
           <div>
             <h3 className="font-bold text-[var(--pub-txt)]">微信公众号</h3>
             <p className="mt-1 text-[var(--pub-txt-soft)]">花梨电竞</p>

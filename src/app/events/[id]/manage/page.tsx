@@ -123,7 +123,7 @@ export default function ParticipantManagePage({
             <summary className="cursor-pointer text-sm font-bold text-[var(--pub-txt-soft)]">使用备用参赛码</summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="粘贴参赛码" className={`${inputClass} font-mono`} />
-              <button type="button" onClick={() => run(() => participant.connect(code), "已进入参赛管理。") } disabled={!code.trim() || busy} className="h-11 bg-[var(--pub-txt)] px-5 text-sm font-black text-white disabled:opacity-50">验证参赛码</button>
+              <button type="button" onClick={() => run(() => participant.connect(code), "已进入参赛管理。") } disabled={!code.trim() || busy} className="h-11 border border-[var(--pub-red)] bg-[var(--pub-card)] px-5 text-sm font-black text-[var(--pub-txt)] disabled:opacity-50">验证参赛码</button>
             </div>
           </details>
 
@@ -170,7 +170,7 @@ export default function ParticipantManagePage({
       </div>
 
       {(participant.error || message) && (
-        <div className={`mb-4 border p-3 text-sm ${participant.error ? "border-[#ffd9dd] bg-[rgba(255,70,85,0.12)] text-[var(--pub-red)]" : "border-[#a7f3d0] bg-[#ecfdf5] text-[#34d399]"}`}>{participant.error || message}</div>
+        <div className={`mb-4 border p-3 text-sm ${participant.error ? "border-[var(--pub-line-soft)] border-l-2 border-l-[var(--pub-red)] bg-[var(--pub-card)] text-[var(--pub-red)]" : "border-[var(--pub-line-soft)] border-l-2 border-l-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt)]"}`}>{participant.error || message}</div>
       )}
 
       <nav className="sticky top-16 z-20 mb-5 grid grid-cols-3 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] shadow-sm sm:static sm:mb-6 sm:shadow-none" aria-label="参赛管理导航">
@@ -345,7 +345,7 @@ export default function ParticipantManagePage({
             <div className="mt-4 space-y-4">
               <div className="grid gap-2 border border-[var(--pub-line)] bg-white/[0.06] p-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-base font-black text-[var(--pub-txt)]">{data.nextMatch.teamAName} vs {data.nextMatch.teamBName}</p><p className="mt-1 text-xs text-[var(--pub-txt-soft)]">{data.nextMatch.phase} · {formatMatchTime(data.nextMatch.startTime)}</p></div><span className="text-xs font-bold text-[var(--pub-txt-soft)]">赛程 v{data.scheduleVersion}</span></div>
               {data.scheduleRequests.map((request) => (
-                <div key={request.id} className={`border p-4 ${["待对手确认", "待审批"].includes(request.status) ? "border-[#ff4655]/40 bg-[#fff7f7]" : "border-[var(--pub-line)]"}`}>
+                <div key={request.id} className={`border p-4 ${["待对手确认", "待审批"].includes(request.status) ? "border-[var(--pub-line-soft)] border-l-2 border-l-[var(--pub-red)] bg-[var(--pub-card)]" : "border-[var(--pub-line)]"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-black text-[var(--pub-txt)]">{formatMatchTime(request.newStartTime)}</p><p className="mt-1 text-xs text-[var(--pub-txt-soft)]">{request.reason || "双方协商时间"}</p></div><span className="border border-current px-2 py-1 text-xs font-bold text-[var(--pub-red)]">{request.status}</span></div>
                   {request.conflicts.length > 0 && <ul className="mt-3 space-y-1 text-xs text-[var(--pub-red)]">{request.conflicts.map((conflict) => <li key={`${request.id}-${conflict.code}`}>[{conflict.code}] {conflict.message}</li>)}</ul>}
                   {request.canConfirm && <div className="mt-4 grid grid-cols-2 gap-2 sm:flex"><button disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "reject"), "已拒绝该时间。") } className="h-10 border border-[var(--pub-line)] px-4 text-xs font-bold">拒绝</button><button disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "accept"), "已确认时间，等待负责人审批。") } className="h-10 bg-[#ff4655] px-4 text-xs font-black text-white">确认时间</button></div>}
@@ -366,7 +366,7 @@ export default function ParticipantManagePage({
       {requestedSection === "profile" && (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4 sm:p-6">
-            <div className="flex items-center justify-between"><h2 className="text-lg font-black text-[var(--pub-txt)]">报名信息</h2><span className="bg-[#ecfdf5] px-2 py-1 text-xs font-bold text-[#34d399]">{data.player.status}</span></div>
+            <div className="flex items-center justify-between"><h2 className="text-lg font-black text-[var(--pub-txt)]">报名信息</h2><span className="border-l-2 border-l-[var(--pub-line)] bg-[var(--pub-card)] px-2 py-1 text-xs font-bold text-[var(--pub-txt)]">{data.player.status}</span></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-bold text-[var(--pub-txt-soft)]">游戏 ID<input value={profile.gameId} onChange={(e) => setProfileDraft({ ...profileDraft, gameId: e.target.value })} className={inputClass} /></label>
               <label className="text-xs font-bold text-[var(--pub-txt-soft)]">当前段位<select value={profile.rank} onChange={(e) => setProfileDraft({ ...profileDraft, rank: e.target.value })} className={inputClass}>{GAME.ranks.map((item) => <option key={item}>{item}</option>)}</select></label>

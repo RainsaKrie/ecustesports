@@ -15,7 +15,7 @@ export type StatusTone = "accent" | "live" | "neutral" | "muted";
 
 const TONE_CLASS: Record<StatusTone, string> = {
   // 品牌红：需要被看见的状态（待处理、先手、裁判模式）
-  accent: "border-[#ffd9dd] bg-[rgba(255,70,85,0.12)] text-[var(--pub-red)]",
+  accent: "border-[var(--pub-red)]/35 bg-[rgba(255,70,85,0.12)] text-[var(--pub-red)]",
   // 进行中：唯一带点的红色
   live: "border-[#ff4655] bg-[#ff4655] text-white",
   // 中性：已确认、已完成这类"没事"的状态

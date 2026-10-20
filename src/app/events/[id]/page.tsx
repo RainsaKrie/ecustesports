@@ -87,12 +87,12 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   const isPreparing = event.status === "draft";
   return (
-    <div className="pub-dark pub-poster relative overflow-hidden">
+    <div className="relative overflow-hidden">
       {previewMode && (
-        <div className="border-b border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-[#9a4808]">
+        <div className="border-b border-[var(--pub-red)] bg-[var(--pub-card)] px-4 py-3 text-[var(--pub-red)]">
           <Container className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs font-bold">负责人预览 · {configured?.visibility === "public" ? "已公开" : "未公开"}</p>
-            <Link href={`/admin/events/${id}/settings`} className="border border-[#fde68a] bg-[var(--pub-card)] px-3 py-2 text-xs font-black">返回赛事设置</Link>
+            <p className="font-mono text-xs font-bold">负责人预览 · {configured?.visibility === "public" ? "已公开" : "未公开"}</p>
+            <Link href={`/admin/events/${id}/settings`} className="border border-[var(--pub-red)] bg-[var(--pub-card)] px-3 py-2 text-xs font-black">返回赛事设置</Link>
           </Container>
         </div>
       )}

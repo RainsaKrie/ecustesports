@@ -18,7 +18,7 @@ export default async function BracketFullScreenPage({ params }: BracketFullScree
   const statusInfo = getStatusInfo(event.status);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white/[0.06] p-6">
+    <div className="min-h-[calc(100vh-4rem)] p-6">
       <div className="mx-auto max-w-[1600px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

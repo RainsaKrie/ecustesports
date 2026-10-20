@@ -427,31 +427,31 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     return (
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center px-5 py-10">
         <div className="mb-8">
-          <p className="mono-label text-[#d83b48]">REFEREE GATE</p>
-          <h1 className="display-type mt-2 text-[2.4rem] font-extrabold leading-none tracking-[-0.05em] text-[#0f1923]">
+          <p className="mono-label text-[var(--pub-red)]">REFEREE GATE</p>
+          <h1 className="display-type mt-2 text-[2.4rem] font-extrabold leading-none tracking-[-0.05em] text-[var(--pub-txt)]">
             裁判工作台
           </h1>
           <p className="mt-3 text-base text-[var(--pub-txt-soft)]">输入管理员发给你的裁判凭证，进入被分配的比赛。</p>
         </div>
         <form onSubmit={doLogin} className="flex flex-col gap-4">
           <label className="flex flex-col gap-2">
-            <span className="mono-label text-[#0f1923]">裁判凭证</span>
+            <span className="mono-label text-[var(--pub-txt)]">裁判凭证</span>
             <input
               value={credential}
               onChange={(e) => setCredential(e.target.value)}
               placeholder="粘贴凭证"
               autoComplete="off"
-              className="h-12 border border-[#0f1923]/25 bg-[var(--pub-card)] px-4 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
+              className="h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="mono-label text-[#0f1923]">赛事 ID</span>
+            <span className="mono-label text-[var(--pub-txt)]">赛事 ID</span>
             <input
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
               placeholder="例如 event-1"
               autoComplete="off"
-              className="h-12 border border-[#0f1923]/25 bg-[var(--pub-card)] px-4 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
+              className="h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
             />
           </label>
           {error && <p className="text-sm text-[#ff4655]">{error}</p>}
@@ -470,13 +470,13 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
   if (stage === "matches") {
     return (
       <Shell title="我的比赛" onBack={() => setStage("login")}>
-        {error && <p className="mb-4 border-l-4 border-[#ff4655] bg-[var(--pub-card)] px-4 py-3 text-sm text-[#d83b48]">{error}</p>}
-        {banner && <p className="mb-4 border-l-4 border-[#1a7f5a] bg-[var(--pub-card)] px-4 py-3 text-sm text-[#0f1923]">{banner}</p>}
+        {error && <p className="mb-4 border-l-4 border-[#ff4655] bg-[var(--pub-card)] px-4 py-3 text-sm text-[var(--pub-red)]">{error}</p>}
+        {banner && <p className="mb-4 border-l-4 border-[var(--pub-line)] bg-[var(--pub-card)] px-4 py-3 text-sm text-[var(--pub-txt)]">{banner}</p>}
 
         {/* ---- 我的比赛：已认领或被指派的场次 ---- */}
         <section className="mb-6">
           <div className="flex items-center justify-between px-1 pb-2">
-            <h2 className="mono-label text-[#0f1923]">我的比赛 · {matches.length}</h2>
+            <h2 className="mono-label text-[var(--pub-txt)]">我的比赛 · {matches.length}</h2>
             <button
               type="button"
               onClick={() => void Promise.all([loadMatches(credential.trim()), loadOpenMatches(credential.trim())])}
@@ -493,20 +493,20 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                 <li key={m.matchId}>
                   <div className="w-full border-l-4 border-transparent bg-[var(--pub-card)] px-5 py-5">
                     <div className="flex items-center justify-between">
-                      <span className="mono-label text-[#d83b48]">MATCH {String(i + 1).padStart(2, "0")}</span>
+                      <span className="mono-label text-[var(--pub-red)]">MATCH {String(i + 1).padStart(2, "0")}</span>
                       <span className="mono-label text-[var(--pub-txt-soft)]">
                         {m.boType}
                         {m.selfClaimed ? " · 我认领的" : " · 负责人指派"}
                       </span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-lg font-semibold text-[#0f1923]">{m.teamAName}</span>
+                      <span className="text-lg font-semibold text-[var(--pub-txt)]">{m.teamAName}</span>
                       <span className="mx-3 text-sm text-[var(--pub-txt-soft)]">VS</span>
-                      <span className="text-lg font-semibold text-[#0f1923]">{m.teamBName}</span>
+                      <span className="text-lg font-semibold text-[var(--pub-txt)]">{m.teamBName}</span>
                     </div>
                     {m.startTime && <p className="mt-1 text-sm text-[var(--pub-txt-soft)]">{fmtTime(m.startTime)}</p>}
                     {m.overlapsMyMatch && (
-                      <p className="mt-2 border-l-2 border-[#d83b48] pl-3 text-xs leading-5 text-[#d83b48]">
+                      <p className="mt-2 border-l-2 border-[var(--pub-red)] pl-3 text-xs leading-5 text-[var(--pub-red)]">
                         这场和你手上的另一场时间重叠了。若是改期造成的，请找负责人确认该怎么排。
                       </p>
                     )}
@@ -518,7 +518,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                             type="button"
                             onClick={() => void claimAction(m.matchId, "release")}
                             disabled={claimingId === m.matchId}
-                            className="inline-flex min-h-11 items-center border border-[#0f1923]/25 bg-[var(--pub-card)] px-3 text-sm text-[var(--pub-txt-soft)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                            className="inline-flex min-h-11 items-center border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-sm text-[var(--pub-txt-soft)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
                           >
                             {claimingId === m.matchId ? "处理中…" : "释放这场"}
                           </button>
@@ -538,7 +538,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                       </p>
                     )}
                   </div>
-                  {i < matches.length - 1 && <div className="ml-5 border-b border-[#0f1923]/15" />}
+                  {i < matches.length - 1 && <div className="ml-5 border-b border-[var(--pub-line-soft)]" />}
                 </li>
               ))}
             </ul>
@@ -547,7 +547,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
         {/* ---- 可认领的比赛：已约好时间、还没人认领的场次 ---- */}
         <section className="pb-8">
-          <h2 className="mono-label px-1 pb-2 text-[#0f1923]">可认领的比赛 · {openMatches.length}</h2>
+          <h2 className="mono-label px-1 pb-2 text-[var(--pub-txt)]">可认领的比赛 · {openMatches.length}</h2>
           {openMatches.length === 0 ? (
             <EmptyState text="暂时没有可认领的比赛。等队伍约好时间后会出现在这里。" />
           ) : (
@@ -555,19 +555,19 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               {openMatches.map((m) => (
                 <li key={m.matchId} className="border-l-4 border-transparent bg-[var(--pub-card)] px-5 py-5">
                   <div className="flex items-center justify-between">
-                    <span className="mono-label text-[#0f1923]">{fmtTime(m.startTime)}</span>
+                    <span className="mono-label text-[var(--pub-txt)]">{fmtTime(m.startTime)}</span>
                     <span className="mono-label text-[var(--pub-txt-soft)]">{m.boType}</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-base font-semibold text-[#0f1923]">{m.teamAName}</span>
+                    <span className="text-base font-semibold text-[var(--pub-txt)]">{m.teamAName}</span>
                     <span className="mx-3 text-sm text-[var(--pub-txt-soft)]">VS</span>
-                    <span className="text-base font-semibold text-[#0f1923]">{m.teamBName}</span>
+                    <span className="text-base font-semibold text-[var(--pub-txt)]">{m.teamBName}</span>
                   </div>
                   {(m.mapSequence?.length ?? 0) > 0 && (
                     <p className="mt-1 text-xs text-[var(--pub-txt-soft)]">地图：{m.mapSequence!.join("、")}</p>
                   )}
                   {m.overlapsMyMatch && (
-                    <p className="mt-2 border-l-2 border-[#d83b48] pl-3 text-xs leading-5 text-[#d83b48]">
+                    <p className="mt-2 border-l-2 border-[var(--pub-red)] pl-3 text-xs leading-5 text-[var(--pub-red)]">
                       这个时段和你手上的另一场（认领或指派的）重叠，一个人没法同时裁两场——请先确认。
                     </p>
                   )}
@@ -575,7 +575,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                     type="button"
                     onClick={() => void claimAction(m.matchId, "claim")}
                     disabled={claimingId === m.matchId}
-                    className="mt-3 min-h-11 w-full border border-[#0f1923]/25 bg-[var(--pub-card)] px-4 text-sm font-bold text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                    className="mt-3 min-h-11 w-full border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-sm font-bold text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
                   >
                     {claimingId === m.matchId ? "认领中…" : "我来裁这场"}
                   </button>
@@ -594,21 +594,21 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     const bpReady = (activeMatch.mapSequence?.length ?? 0) > 0;
     return (
       <Shell title="逐局传图与报分" onBack={() => setStage("matches")}>
-        <div className="border border-[#0f1923]/25 bg-[var(--pub-card)] p-5">
-          <p className="mono-label text-[#d83b48]">{activeMatch.boType} · {activeMatch.matchId}</p>
+        <div className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-5">
+          <p className="mono-label text-[var(--pub-red)]">{activeMatch.boType} · {activeMatch.matchId}</p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xl font-bold text-[#0f1923]">{activeMatch.teamAName}</span>
+            <span className="text-xl font-bold text-[var(--pub-txt)]">{activeMatch.teamAName}</span>
             <span className="mx-3 text-sm text-[var(--pub-txt-soft)]">VS</span>
-            <span className="text-xl font-bold text-[#0f1923]">{activeMatch.teamBName}</span>
+            <span className="text-xl font-bold text-[var(--pub-txt)]">{activeMatch.teamBName}</span>
           </div>
-          <div className="mt-3 grid grid-cols-2 border-t border-[#0f1923]/15 pt-3 text-center">
+          <div className="mt-3 grid grid-cols-2 border-t border-[var(--pub-line-soft)] pt-3 text-center">
             <div>
               <span className="mono-label text-[var(--pub-txt-soft)]">A 胜局</span>
-              <div className="display-type mt-1 text-3xl font-extrabold text-[#0f1923]">{winsOf(played, "A")}</div>
+              <div className="display-type mt-1 text-3xl font-extrabold text-[var(--pub-txt)]">{winsOf(played, "A")}</div>
             </div>
             <div>
               <span className="mono-label text-[var(--pub-txt-soft)]">B 胜局</span>
-              <div className="display-type mt-1 text-3xl font-extrabold text-[#0f1923]">{winsOf(played, "B")}</div>
+              <div className="display-type mt-1 text-3xl font-extrabold text-[var(--pub-txt)]">{winsOf(played, "B")}</div>
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-[var(--pub-txt-soft)]">
@@ -628,11 +628,11 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
         />
 
         {games.map((g, i) => (
-          <div key={i} className="mt-4 border border-[#0f1923]/25 bg-[var(--pub-card)] p-4">
+          <div key={i} className="mt-4 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="mono-label text-[#d83b48]">局 {i + 1}</span>
-                {g.recognized && <span className="mono-label text-[#1a7f5a]">已识别</span>}
+                <span className="mono-label text-[var(--pub-red)]">局 {i + 1}</span>
+                {g.recognized && <span className="mono-label text-[var(--pub-txt-soft)]">已识别</span>}
               </div>
               <button
                 onClick={() => removeGame(i)}
@@ -644,7 +644,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
             {/* 地图：BP 已确定时展示为文字（不让改，避免与 BP 记录不一致），未确定时才给下拉 */}
             {bpReady && activeMatch.mapSequence?.[i] ? (
-              <p className="mt-2 text-base font-bold text-[#0f1923]">
+              <p className="mt-2 text-base font-bold text-[var(--pub-txt)]">
                 {activeMatch.mapSequence[i]}
                 {g.map && g.map !== activeMatch.mapSequence[i] && (
                   <span className="ml-2 text-sm font-normal text-[#ff4655]">图上读到：{g.map}</span>
@@ -654,7 +654,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               <select
                 value={g.map}
                 onChange={(e) => updateGame(i, { map: e.target.value })}
-                className="mt-2 h-11 w-full border border-[#0f1923]/25 bg-[var(--pub-card)] px-3 text-base text-[#0f1923] outline-none focus:border-[#ff4655]"
+                className="mt-2 h-11 w-full border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-base text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
               >
                 <option value="">选择地图</option>
                 {currentMapOptions(i).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -668,17 +668,17 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                 <img
                   src={g.previewUrl}
                   alt={"第 " + (i + 1) + " 局截图"}
-                  className="h-24 w-40 shrink-0 border border-[#0f1923]/20 object-cover"
+                  className="h-24 w-40 shrink-0 border border-[var(--pub-line-soft)] object-cover"
                 />
               ) : (
-                <div className="flex h-24 w-40 shrink-0 items-center justify-center border border-dashed border-[#0f1923]/25 text-xs text-[var(--pub-txt-soft)]">
+                <div className="flex h-24 w-40 shrink-0 items-center justify-center border border-dashed border-[var(--pub-line-soft)] text-xs text-[var(--pub-txt-soft)]">
                   未上传
                 </div>
               )}
               <button
                 onClick={() => onPickEvidence(i)}
                 disabled={g.busy}
-                className="min-h-11 flex-1 border border-[#0f1923]/25 bg-[var(--pub-card)] px-4 text-sm text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
+                className="min-h-11 flex-1 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 text-sm text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655] disabled:opacity-50"
               >
                 {g.busy ? "识别中…" : g.previewUrl ? "重新上传" : "上传这一局截图"}
               </button>
@@ -698,7 +698,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                   inputMode="numeric"
                   value={g.teamAScore}
                   onChange={(e) => updateGame(i, { teamAScore: toScore(e.target.value) })}
-                  className="score-input h-12 border border-[#0f1923]/25 bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
+                  className="score-input h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -708,7 +708,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
                   inputMode="numeric"
                   value={g.teamBScore}
                   onChange={(e) => updateGame(i, { teamBScore: toScore(e.target.value) })}
-                  className="score-input h-12 border border-[#0f1923]/25 bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[#0f1923] outline-none focus:border-[#ff4655]"
+                  className="score-input h-12 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
                 />
               </label>
             </div>
@@ -718,7 +718,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
         {games.length < maxGames && maxGames > 1 && (
           <button
             onClick={addGame}
-            className="mt-4 w-full border border-dashed border-[#0f1923]/30 bg-transparent px-4 py-4 text-base text-[#0f1923] hover:border-[#ff4655] hover:text-[#ff4655]"
+            className="mt-4 w-full border border-dashed border-[var(--pub-line-soft)] bg-transparent px-4 py-4 text-base text-[var(--pub-txt)] hover:border-[#ff4655] hover:text-[#ff4655]"
           >
             + 添加一局（最多 {maxGames} 局）
           </button>
@@ -726,8 +726,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 
         {winner && (
           <div className="mt-4 border-l-4 border-[#ff4655] bg-[var(--pub-card)] p-4">
-            <p className="mono-label text-[#d83b48]">系统判定胜者</p>
-            <p className="mt-1 text-lg font-bold text-[#0f1923]">{winner.name}</p>
+            <p className="mono-label text-[var(--pub-red)]">系统判定胜者</p>
+            <p className="mt-1 text-lg font-bold text-[var(--pub-txt)]">{winner.name}</p>
           </div>
         )}
 
@@ -750,14 +750,14 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     const uploadedCount = games.filter((g) => g.evidenceId).length;
     return (
       <Shell title="确认提交" onBack={() => setStage("report")}>
-        <div className="border border-[#0f1923]/25 bg-[var(--pub-card)] p-5">
-          <p className="mono-label text-[#d83b48]">{activeMatch.boType} · {activeMatch.matchId}</p>
-          <div className="mt-2 text-xl font-bold text-[#0f1923]">
+        <div className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-5">
+          <p className="mono-label text-[var(--pub-red)]">{activeMatch.boType} · {activeMatch.matchId}</p>
+          <div className="mt-2 text-xl font-bold text-[var(--pub-txt)]">
             {activeMatch.teamAName} <span className="text-sm text-[var(--pub-txt-soft)]">VS</span> {activeMatch.teamBName}
           </div>
-          <div className="mt-4 space-y-2 border-t border-[#0f1923]/15 pt-4">
+          <div className="mt-4 space-y-2 border-t border-[var(--pub-line-soft)] pt-4">
             {confirmPayload.games.map((g, i) => (
-              <div key={i} className="flex items-center justify-between text-base text-[#0f1923]">
+              <div key={i} className="flex items-center justify-between text-base text-[var(--pub-txt)]">
                 <span className="mono-label text-[var(--pub-txt-soft)]">{g.map || `局 ${i + 1}`}</span>
                 <span className="font-semibold">{g.teamAScore} : {g.teamBScore}</span>
               </div>
@@ -766,16 +766,16 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
         </div>
 
         <div className="mt-4 border-l-4 border-[#ff4655] bg-[var(--pub-card)] p-5">
-          <p className="mono-label text-[#d83b48]">系统判定胜者（请对照截图确认）</p>
-          <p className="mt-1 text-2xl font-extrabold text-[#0f1923]">{confirmPayload.declaredWinnerTeamName}</p>
+          <p className="mono-label text-[var(--pub-red)]">系统判定胜者（请对照截图确认）</p>
+          <p className="mt-1 text-2xl font-extrabold text-[var(--pub-txt)]">{confirmPayload.declaredWinnerTeamName}</p>
           <p className="mt-2 text-sm leading-relaxed text-[var(--pub-txt-soft)]">
             提交后即生效，写入正式赛果并推进晋级。若胜者不符，请返回检查比分——胜负由比分自动判定，无单独填写项。
           </p>
         </div>
 
         {/* 凭证在上一屏已随图上传，这里只做核对展示，不再重复上传 */}
-        <div className="mt-4 border border-[#0f1923]/25 bg-[var(--pub-card)] p-5">
-          <p className="mono-label text-[#0f1923]">比赛凭证（截图）</p>
+        <div className="mt-4 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-5">
+          <p className="mono-label text-[var(--pub-txt)]">比赛凭证（截图）</p>
           {uploadedCount > 0 ? (
             <>
               <p className="mt-2 text-sm text-[var(--pub-txt-soft)]">
@@ -784,7 +784,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               <ul className="mt-3 flex flex-wrap gap-2">
                 {games.map((g, i) =>
                   g.previewUrl ? (
-                    <li key={i} className="border border-[#0f1923]/20">
+                    <li key={i} className="border border-[var(--pub-line-soft)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={g.previewUrl} alt={"第 " + (i + 1) + " 局截图"} className="h-20 w-32 object-cover" />
                       <p className="mono-label px-2 py-1 text-[var(--pub-txt-soft)]">局 {i + 1}</p>
@@ -798,7 +798,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
               这一场还没有上传截图。可以返回上一屏补传，也可以直接提交——凭证不是提交的必要条件。
             </p>
           )}
-          {banner && <p className="mt-2 text-sm text-[#0f1923]">{banner}</p>}
+          {banner && <p className="mt-2 text-sm text-[var(--pub-txt)]">{banner}</p>}
         </div>
 
         {error && <p className="mt-3 text-sm text-[#ff4655]">{error}</p>}
@@ -813,7 +813,7 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           </button>
           <button
             onClick={() => setStage("report")}
-            className="h-12 w-full border border-[#0f1923]/25 text-base text-[#0f1923] hover:bg-[#0f1923]/5"
+            className="h-12 w-full border border-[var(--pub-line-soft)] text-base text-[var(--pub-txt)] hover:bg-white/[0.04]"
           >
             返回修改比分
           </button>
@@ -826,15 +826,15 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     return (
       <Shell title="提交完成" onBack={() => { setStage("matches"); loadMatches(credential.trim()); }}>
         <div className="border-l-4 border-[#ff4655] bg-[var(--pub-card)] p-6">
-          <p className="mono-label text-[#d83b48]">SUBMITTED</p>
-          <h2 className="display-type mt-2 text-3xl font-extrabold text-[#0f1923]">比分已生效</h2>
+          <p className="mono-label text-[var(--pub-red)]">SUBMITTED</p>
+          <h2 className="display-type mt-2 text-3xl font-extrabold text-[var(--pub-txt)]">比分已生效</h2>
           <p className="mt-2 text-base leading-relaxed text-[var(--pub-txt-soft)]">
             提交已写入正式赛果。如需更正，请联系管理员走受控更正流程，不可在界面直接修改。
           </p>
         </div>
         <button
           onClick={() => { setStage("matches"); loadMatches(credential.trim()); }}
-          className="btn-cut mt-6 h-13 w-full bg-[#0f1923] text-base font-bold text-white hover:bg-[#25313b]"
+          className="btn-cut mt-6 h-13 w-full bg-[var(--pub-card)] text-base font-bold text-white hover:bg-white/[0.08]"
         >
           返回我的比赛
         </button>
@@ -854,17 +854,17 @@ function fmtTime(iso: string): string {
 function Shell({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
-      <div className="mb-5 flex items-center justify-between border-b border-[#0f1923]/20 pb-4">
+      <div className="mb-5 flex items-center justify-between border-b border-[var(--pub-line-soft)] pb-4">
         {/* min-h-11 = 44px：手机上可点。此前只有 text-base（约 24px 高），
             是裁判端手机适配里最后一处未达标的触控目标。宽度 53px 本来就够，故不加横向 padding，
             以免按钮变宽把标题挤歪（右侧只有 w-8 的占位）。 */}
         <button
           onClick={onBack}
-          className="inline-flex min-h-11 items-center text-base text-[#0f1923] hover:text-[#ff4655]"
+          className="inline-flex min-h-11 items-center text-base text-[var(--pub-txt)] hover:text-[#ff4655]"
         >
           ← 返回
         </button>
-        <h1 className="display-type text-xl font-extrabold tracking-[-0.04em] text-[#0f1923]">{title}</h1>
+        <h1 className="display-type text-xl font-extrabold tracking-[-0.04em] text-[var(--pub-txt)]">{title}</h1>
         <span className="w-8" />
       </div>
       {children}
@@ -874,7 +874,7 @@ function Shell({ title, onBack, children }: { title: string; onBack: () => void;
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="border border-dashed border-[#0f1923]/25 p-10 text-center">
+    <div className="border border-dashed border-[var(--pub-line-soft)] p-10 text-center">
       <p className="text-base text-[var(--pub-txt-soft)]">{text}</p>
     </div>
   );
