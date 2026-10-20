@@ -97,62 +97,6 @@
   color: var(--pub-txt);
 }
 
-/* ===== 卡片记号统一（2026-10-20 第 1 批）=====
-   基准的卡片 = 半透明 + 1px 框线 + 左上红折线 / 右下灰折线。
-   这些卡片用的是 globals.css 里的类（capability-card / event-card / closing-cta 等），
-   所以在这里统一补折线与框线，不改任何组件文件。 */
-.pub-dark .capability-card,
-.pub-dark .event-card,
-.pub-dark .closing-cta,
-.pub-dark .signal-strip {
-  position: relative;
-  background: var(--pub-card);
-  border-color: var(--pub-line-soft);
-}
-.pub-dark .capability-card::before,
-.pub-dark .event-card::before,
-.pub-dark .closing-cta::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: -1px;
-  width: 10px;
-  height: 10px;
-  border-left: 1px solid var(--pub-red);
-  border-top: 1px solid var(--pub-red);
-  pointer-events: none;
-}
-.pub-dark .capability-card::after,
-.pub-dark .event-card::after,
-.pub-dark .closing-cta::after {
-  content: "";
-  position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 10px;
-  height: 10px;
-  border-right: 1px solid var(--pub-line);
-  border-bottom: 1px solid var(--pub-line);
-  pointer-events: none;
-}
-/* 首页每张能力卡右下角原本是一块米色三角：globals 的 .capability-card::after
-   用 background:var(--paper) + clip-path 画的，上面的覆盖只改了宽高与边框，
-   三角形还在 —— 必须同时重置 background 与 clip-path 才消失。 */
-.pub-dark .capability-card::after {
-  background: none;
-  clip-path: none;
-}
-/* globals 给 .event-card 的 clip-path 会切掉右下角，把上面刚补的右下折线一起裁掉。
-   只有这张卡需要解除裁切，不能写进上面的共用规则（closing-cta 靠 clip-path 出形）。
-   注意还有第二道裁切：globals 同一条规则里的 overflow:hidden 会按 padding box 裁，
-   ::before 画在 -1px 处 —— 只解 clip-path，折线仍然看不见。
-   用 overflow:clip + 2px 外边距放行这 1px；老浏览器不支持时自动退回 hidden，与现状一致。 */
-.pub-dark .event-card {
-  clip-path: none;
-  overflow: clip;
-  overflow-clip-margin: 2px;
-}
-
 /* ===== v8 六范式（2026-10-20 第 2 批 · 地基）=====
    唯一基准：.workbuddy/ui-samples/schedule-public-v8.html（265 行）。
    六段结构：页头(.ui-top/.ui-nav) → 主标题(.ui-hero/.ui-eyebrow/.ui-sub) →

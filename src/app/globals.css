@@ -516,30 +516,6 @@ summary:focus-visible {
   display: none;
 }
 
-.section-kicker {
-  display: flex;
-  margin: 0 0 24px;
-  align-items: center;
-  gap: 12px;
-  color: var(--red-dark);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.7083rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.section-kicker > span {
-  display: block;
-  width: 30px;
-  height: 2px;
-  background: currentColor;
-}
-
-.section-kicker--light {
-  color: var(--red);
-}
-
 .btn-cut {
   position: relative;
   min-width: 132px;
@@ -573,71 +549,15 @@ summary:focus-visible {
   color: white;
 }
 
-.signal-strip__inner {
-  display: flex;
-  min-height: 64px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.7083rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
 /* 触控区：这几个链接原先只有文字行高 —— 实测桌面 26px、**手机 390 宽下 17px**
    （字号是 rem，手机根字号降到 16px 后更小），手机上基本点不中。
    外面这条 .signal-strip__inner 本身有 64px，让链接自己撑起来即可，视觉不变。 */
-.signal-strip__inner a {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-}
 
 .signal-strip i {
   width: 7px;
   height: 7px;
   border: 1px solid rgba(255, 255, 255, 0.8);
   transform: rotate(45deg);
-}
-
-.capability-section,
-.event-section {
-  position: relative;
-  padding: 120px 0;
-}
-
-.capability-section::before {
-  position: absolute;
-  top: 42px;
-  right: 0;
-  width: 16vw;
-  height: 1px;
-  background: var(--ink);
-  content: "";
-}
-
-.section-heading {
-  display: grid;
-  align-items: end;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 420px);
-  gap: 56px;
-}
-
-.section-heading h2 {
-  margin: 0;
-  font-size: clamp(2.625rem, 5.5vw, 5rem);
-  font-weight: 820;
-  letter-spacing: -0.07em;
-  line-height: 0.98;
-}
-
-.capability-grid {
-  display: grid;
-  margin-top: 72px;
-  border-top: 1px solid var(--ink);
-  border-left: 1px solid var(--ink);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .capability-card {
@@ -668,33 +588,6 @@ summary:focus-visible {
   content: "";
 }
 
-.capability-card__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.capability-card__index {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 2rem;
-  font-weight: 500;
-  letter-spacing: -0.08em;
-}
-
-.capability-card__cross {
-  color: var(--red);
-  font-size: 1.375rem;
-}
-
-.capability-card__meta {
-  margin: 78px 0 10px;
-  color: var(--red); /* 原 --red-dark 在暗底只有 4.35:1，14px 小字不过 AA；品牌红本体约 5.6:1 */
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.5833rem;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-}
-
 .capability-card h3 {
   margin: 0;
   font-size: 1.5rem;
@@ -714,185 +607,6 @@ summary:focus-visible {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.event-section {
-  overflow: hidden;
-  background: var(--ink);
-  color: white;
-}
-
-.event-section::before {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 70px 70px;
-  content: "";
-  mask-image: linear-gradient(90deg, black, transparent);
-}
-
-.event-section > * {
-  position: relative;
-}
-
-.section-heading--events {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-}
-
-.text-link {
-  display: inline-flex;
-  padding-bottom: 8px;
-  border-bottom: 1px solid currentColor;
-  align-items: center;
-  gap: 28px;
-  color: inherit;
-  font-size: 0.8333rem;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  transition: color 160ms ease, gap 160ms ease;
-}
-
-.text-link:hover {
-  gap: 36px;
-  color: var(--red);
-}
-
-.event-grid {
-  display: grid;
-  margin-top: 64px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.event-card {
-  position: relative;
-  display: grid;
-  min-height: 330px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: #17232d;
-  color: white;
-  text-decoration: none;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%);
-  grid-template-columns: 0.9fr 1.1fr;
-  transition: border-color 180ms ease, transform 180ms ease;
-}
-
-.event-card:hover {
-  border-color: var(--red);
-  transform: translateY(-5px);
-}
-
-.event-card__visual {
-  position: relative;
-  min-height: 220px;
-  overflow: hidden;
-  background: var(--event-color, var(--red));
-}
-
-.event-card__visual::before {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, transparent 0 46%, rgba(15, 25, 35, 0.72) 46% 58%, transparent 58%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.11) 0 1px, transparent 1px 34px);
-  content: "";
-}
-
-.event-card__visual::after {
-  position: absolute;
-  right: -48px;
-  bottom: -68px;
-  width: 180px;
-  height: 180px;
-  border: 28px solid rgba(255, 255, 255, 0.12);
-  transform: rotate(45deg);
-  content: "";
-}
-
-.event-card__serial {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.625rem;
-  letter-spacing: 0.12em;
-}
-
-.event-card__monogram {
-  position: absolute;
-  right: 16px;
-  bottom: -18px;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: clamp(4.875rem, 9vw, 7.875rem);
-  font-weight: 850;
-  letter-spacing: -0.12em;
-  line-height: 1;
-}
-
-.event-card__content {
-  display: flex;
-  min-width: 0;
-  padding: 24px;
-  flex-direction: column;
-}
-
-.event-card__status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.event-card__status > span:last-child {
-  color: rgba(255, 255, 255, 0.36);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.5833rem;
-  letter-spacing: 0.12em;
-}
-
-.event-card__game {
-  margin: auto 0 8px;
-  color: var(--red);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-.event-card h3 {
-  margin: 0;
-  font-size: clamp(1.375rem, 2.3vw, 2rem);
-  font-weight: 760;
-  letter-spacing: -0.05em;
-  line-height: 1.12;
-}
-
-.event-card__description {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 14px 0 22px;
-  color: rgba(255, 255, 255, 0.52);
-  font-size: 0.75rem;
-  line-height: 1.7;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.event-card__meta {
-  display: flex;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  justify-content: space-between;
-  color: rgba(255, 255, 255, 0.68);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.625rem;
-  letter-spacing: 0.04em;
-}
-
 .status-chip {
   display: inline-flex;
   padding: 5px 9px;
@@ -903,47 +617,6 @@ summary:focus-visible {
   font-size: 0.5833rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  line-height: 1;
-}
-
-.closing-cta {
-  position: relative;
-  overflow: hidden;
-  padding: 78px 0;
-  background: var(--red);
-  color: white;
-}
-
-.closing-cta::after {
-  position: absolute;
-  top: -160px;
-  right: 12%;
-  width: 240px;
-  height: 420px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  content: "";
-  transform: rotate(38deg);
-}
-
-.closing-cta__inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 40px;
-}
-
-.closing-cta .section-kicker {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.closing-cta h2 {
-  max-width: 850px;
-  margin: 0;
-  font-size: clamp(2.5rem, 5vw, 4.5rem);
-  font-weight: 840;
-  letter-spacing: -0.07em;
   line-height: 1;
 }
 
@@ -1021,57 +694,6 @@ summary:focus-visible {
   line-height: 1.8;
 }
 
-.legacy-directory {
-  position: relative;
-  overflow: hidden;
-  padding: 100px 0;
-  background: #171a1f;
-  color: white;
-}
-
-.legacy-directory::after {
-  position: absolute;
-  right: -80px;
-  bottom: -130px;
-  width: 320px;
-  height: 320px;
-  border: 1px solid rgba(255, 70, 85, 0.45);
-  content: "";
-  transform: rotate(45deg);
-}
-
-.legacy-directory__heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 32px;
-}
-
-.legacy-directory__heading h2 {
-  margin-top: 18px;
-  font-size: clamp(3rem, 7vw, 6rem);
-  font-weight: 900;
-  letter-spacing: -0.07em;
-  line-height: 0.88;
-}
-
-.legacy-directory__heading > p {
-  max-width: 340px;
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 0.875rem;
-  line-height: 1.8;
-}
-
-.legacy-directory__grid {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  margin-top: 56px;
-  grid-template-columns: repeat(4, 1fr);
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  border-left: 1px solid rgba(255, 255, 255, 0.18);
-}
-
 .legacy-game-card {
   position: relative;
   display: flex;
@@ -1090,32 +712,10 @@ summary:focus-visible {
   transform: translateY(-5px);
 }
 
-.legacy-game-card__index,
-.legacy-game-card__eyebrow {
-  color: rgba(255, 255, 255, 0.5);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-}
-
-.legacy-game-card__eyebrow {
-  margin-top: auto;
-  color: var(--game-accent);
-}
-
 .legacy-game-card strong {
   margin-top: 10px;
   font-size: 1.5rem;
   font-weight: 900;
-}
-
-.legacy-game-card__arrow {
-  position: absolute;
-  right: 20px;
-  bottom: 18px;
-  color: var(--game-accent);
-  font-size: 1.5rem;
 }
 
 @keyframes rise-in {
@@ -1125,16 +725,8 @@ summary:focus-visible {
 
 @media (max-width: 1024px) {
 
-  .capability-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .capability-card {
     min-height: 330px;
-  }
-
-  .event-card {
-    grid-template-columns: 0.75fr 1.25fr;
   }
 }
 
@@ -1258,100 +850,13 @@ summary:focus-visible {
     background: var(--red);
   }
 
-  .signal-strip__inner {
-    min-height: 54px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    justify-content: flex-start;
-    white-space: nowrap;
-    scrollbar-width: none;
-    gap: 14px;
-  }
-
-  .signal-strip__inner::-webkit-scrollbar {
-    display: none;
-  }
-
-  .signal-strip__inner i {
-    display: none;
-  }
-
-  .signal-strip__inner a {
-    flex-shrink: 0;
-  }
-
-  .capability-section,
-  .event-section {
-    padding: 86px 0;
-  }
-
-  .section-heading {
-    display: block;
-  }
-
-  .section-heading h2 {
-    font-size: clamp(2.625rem, 12vw, 3.875rem);
-  }
-
-  .capability-grid {
-    margin-top: 48px;
-    grid-template-columns: 1fr;
-  }
-
   .capability-card {
     min-height: 300px;
-  }
-
-  .section-heading--events {
-    display: flex;
-    align-items: end;
-  }
-
-  .section-heading--events .text-link {
-    gap: 12px;
-    white-space: nowrap;
-  }
-
-  .event-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .legacy-directory {
-    padding: 76px 0;
-  }
-
-  .legacy-directory__heading {
-    display: block;
-  }
-
-  .legacy-directory__heading > p {
-    margin-top: 28px;
-  }
-
-  .legacy-directory__grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .legacy-game-card {
     min-height: 180px;
     padding: 16px;
-  }
-
-  .event-card {
-    min-height: 0;
-    grid-template-columns: 1fr;
-  }
-
-  .event-card__visual {
-    min-height: 190px;
-  }
-
-  .event-card__content {
-    min-height: 260px;
-  }
-
-  .closing-cta__inner {
-    display: block;
   }
 
   .closing-cta .btn-cut {
