@@ -211,7 +211,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
                   onClick={() => setViewMode(mode)}
                   aria-pressed={viewMode === mode}
                   className={`px-3 py-1 font-mono text-[0.6875rem] font-black tracking-[0.06em] transition ${
-                    viewMode === mode ? "bg-[var(--pub-txt)] text-[#fffdf8]" : "bg-[var(--pub-card)] text-[var(--pub-txt-soft)] hover:text-[var(--pub-txt)]"
+                    viewMode === mode ? "bg-[var(--pub-txt)] text-[var(--pub-txt)]" : "bg-[var(--pub-card)] text-[var(--pub-txt-soft)] hover:text-[var(--pub-txt)]"
                   }`}
                 >
                   {label}

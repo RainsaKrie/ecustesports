@@ -70,7 +70,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
         {/* 头：编号方块 + 队名 + 状态 */}
         <div className="flex items-start justify-between gap-4 border-b border-[var(--pub-line)] px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 flex-none place-items-center bg-[var(--pub-txt)] font-mono text-sm font-black text-[#fffdf8]">
+            <span className="grid h-10 w-10 flex-none place-items-center bg-[var(--pub-txt)] font-mono text-sm font-black text-[var(--pub-txt)]">
               {team.name.slice(0, 1)}
             </span>
             <div className="min-w-0">
@@ -94,7 +94,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
             {ROLE_ROWS.map(({ role, label, range }) => {
               const members = team.members.filter((m) => m.role === role);
               return (
-                <div key={role} className="mt-2 flex items-baseline gap-3 border-b border-[#e7e1d7] pb-2">
+                <div key={role} className="mt-2 flex items-baseline gap-3 border-b border-[var(--pub-line-soft)] pb-2">
                   <span className="w-11 flex-none font-mono text-[0.625rem] font-black text-[var(--pub-txt-mute)]">{range}</span>
                   <span className="w-8 flex-none text-[0.6875rem] font-black text-[var(--pub-txt-mute)]">{label}</span>
                   <span className="flex min-w-0 flex-1 flex-wrap gap-x-3 gap-y-1 text-[0.8125rem] font-bold text-[var(--pub-txt)]">
@@ -137,7 +137,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
                   const won = m.winnerTeamId === team.id;
                   const done = m.status === "已完成";
                   return (
-                    <div key={m.id} className="flex items-center justify-between gap-3 border-b border-[#e7e1d7] py-2 last:border-b-0">
+                    <div key={m.id} className="flex items-center justify-between gap-3 border-b border-[var(--pub-line-soft)] py-2 last:border-b-0">
                       <span className="w-10 flex-none font-mono text-[0.625rem] text-[var(--pub-txt-mute)]">{m.id}</span>
                       <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-[var(--pub-txt)]">
                         <span className="mr-1.5 text-[0.6875rem] font-normal text-[var(--pub-txt-mute)]">VS</span>

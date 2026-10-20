@@ -28,7 +28,7 @@ function MatchCell({ m, onOpen }: { m: ScheduleMatch; onOpen: () => void }) {
       type="button"
       onClick={onOpen}
       aria-label={`${m.teamAName} 对 ${m.teamBName}：查看详情`}
-      className="w-full min-w-0 border border-[var(--pub-line)] bg-white p-1.5 text-left transition-colors duration-150 hover:border-[var(--pub-txt)] focus-visible:border-[var(--pub-txt)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4655]"
+      className="w-full min-w-0 border border-[var(--pub-line)] bg-[var(--pub-card)] p-1.5 text-left transition-colors duration-150 hover:border-[var(--pub-txt)] focus-visible:border-[var(--pub-txt)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4655]"
     >
       <div className="mb-0.5 flex items-center justify-between gap-1">
         <span className="text-[0.5625rem] text-[var(--pub-txt-mute)]">{m.boType}</span>
@@ -99,7 +99,7 @@ export default function ScheduleBracket({ eventId, preview = false }: { eventId:
 
   if (matches.length === 0) {
     return (
-      <div className="border border-[var(--pub-line)] bg-white p-10 text-center text-sm text-[var(--pub-txt-mute)]">
+      <div className="border border-[var(--pub-line)] bg-[var(--pub-card)] p-10 text-center text-sm text-[var(--pub-txt-mute)]">
         对阵尚未生成，请等待抽签分组后发布赛程。
       </div>
     );

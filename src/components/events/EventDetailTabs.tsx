@@ -89,7 +89,7 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="grid h-9 w-9 flex-none place-items-center bg-[var(--pub-txt)] font-mono text-sm font-black text-[#fffdf8]">
+                    <span className="grid h-9 w-9 flex-none place-items-center bg-[var(--pub-txt)] font-mono text-sm font-black text-[var(--pub-txt)]">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <div className="min-w-0">
@@ -107,7 +107,7 @@ function TeamList({ teams, eventId }: { teams: PublicRegistrationSummary["teams"
                     {slots.map((filled, i) => (
                       <span
                         key={i}
-                        className={`h-1.5 w-4 ${filled ? (i < 5 ? "bg-[var(--pub-txt)]" : "bg-[var(--pub-txt-mute)]") : "bg-[#e7e1d7]"}`}
+                        className={`h-1.5 w-4 ${filled ? (i < 5 ? "bg-[var(--pub-txt)]" : "bg-[var(--pub-txt-mute)]") : "bg-[var(--pub-line-soft)]"}`}
                       />
                     ))}
                   </div>
