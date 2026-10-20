@@ -40,9 +40,14 @@ jobs:
       # 这一步包含 4 道检查，按顺序执行，任何一道失败即整体失败：
       #   1. lint       eslint
       #   2. typecheck  tsc --noEmit
-      #   3. tests      15 个测试套件
+      #   3. tests      44 个测试套件（含 arch / ui / color 三条源码守卫 + 暗底对比度抽检）
       #   4. build      next build
       # 注意：本机构建需要 CODEBUDDY_SAFE_DELETE_ENABLED=0 绕过本地删除护栏，
       # 这是本机环境的限制，CI 里不需要，直接跑 npm run gate 即可。
+      #
+      # 不在本工作流里、发布前需要手动跑的验收：
+      #   npm run test:guard-mutation    守卫变异检查 12 条（逐条注入违规确认会红）
+      #   npm run test:rehearsal36:fast  36 队全流程演练（54 场）
+      #   npm run test:referee-http      裁判端真实 HTTP 链路（63 项）
       - name: 运行质量门禁
         run: npm run gate
