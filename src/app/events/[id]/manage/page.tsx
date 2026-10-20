@@ -113,9 +113,9 @@ export default function ParticipantManagePage({
           <div className="mt-6 grid gap-3">
             <input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="报名学号" autoComplete="username" className={inputClass} />
             <input type="tel" inputMode="tel" value={recoveryPhone} onChange={(e) => setRecoveryPhone(e.target.value)} placeholder="报名手机号" autoComplete="tel" className={inputClass} />
-            <button type="button" onClick={recover} disabled={!studentId.trim() || !recoveryPhone.trim() || busy} className="h-[44px] w-full bg-[#ff4655] px-4 text-sm font-black text-white disabled:opacity-50">
+            <Button variant="primary" size="md" onClick={recover} disabled={!studentId.trim() || !recoveryPhone.trim() || busy} className="w-full">
               {busy ? "正在验证…" : "找回并进入"}
-            </button>
+            </Button>
           </div>
 
           {(participant.error || message) && <p className={`mt-4 text-sm ${participant.error ? "text-[var(--pub-red)]" : "text-[var(--pub-txt)]"}`}>{participant.error || message}</p>}
@@ -270,7 +270,7 @@ export default function ParticipantManagePage({
                   <div className="grid gap-2 border-b border-[var(--pub-line-soft)] pb-5 sm:grid-cols-[1fr_8rem_auto]">
                     <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="输入队伍名称" autoFocus={query.mode === "create"} className={inputClass} />
                     <select value={createRole} onChange={(e) => setCreateRole(e.target.value as RosterRole)} className={inputClass}><option>首发</option><option>替补</option><option>教练</option></select>
-                    <button onClick={() => run(() => participant.createTeam(teamName, createRole), "队伍已创建，你已成为队长。") } disabled={busy || !teamName.trim()} className="h-[44px] bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50">创建队伍</button>
+                    <Button variant="primary" size="md" onClick={() => run(() => participant.createTeam(teamName, createRole), "队伍已创建，你已成为队长。") } disabled={busy || !teamName.trim()}>创建队伍</Button>
                   </div>
                 )}
                 <div className="mt-5">
@@ -325,7 +325,7 @@ export default function ParticipantManagePage({
                   return (
                     <div key={request.id} className="flex flex-col gap-3 border border-[var(--pub-line)] p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div><p className="text-sm font-bold text-[var(--pub-txt)]">{title}</p><p className="mt-1 text-xs text-[var(--pub-txt-soft)]">{request.canResolve ? "等待你处理" : "等待对方处理"} · {request.role}</p></div>
-                      {request.canResolve && <div className="grid grid-cols-2 gap-2 sm:flex"><button disabled={busy} onClick={() => run(() => participant.resolveTeamRequest(request.id, "reject"), "已拒绝请求。") } className="h-[36px] border border-[var(--pub-line)] px-3 text-xs font-bold">拒绝</button><button disabled={busy} onClick={() => run(() => participant.resolveTeamRequest(request.id, "accept"), "已确认入队。") } className="h-[36px] bg-[#ff4655] px-3 text-xs font-black text-white">同意</button></div>}
+                      {request.canResolve && <div className="grid grid-cols-2 gap-2 sm:flex"><Button variant="secondary" size="sm" disabled={busy} onClick={() => run(() => participant.resolveTeamRequest(request.id, "reject"), "已拒绝请求。") }>拒绝</Button><Button variant="primary" size="sm" disabled={busy} onClick={() => run(() => participant.resolveTeamRequest(request.id, "accept"), "已确认入队。") }>同意</Button></div>}
                     </div>
                   );
                 })}
@@ -349,13 +349,13 @@ export default function ParticipantManagePage({
                 <div key={request.id} className={`border p-4 ${["待对手确认", "待审批"].includes(request.status) ? "border-[var(--pub-line-soft)] border-l-2 border-l-[var(--pub-red)] bg-[var(--pub-card)]" : "border-[var(--pub-line)]"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-black text-[var(--pub-txt)]">{formatMatchTime(request.newStartTime)}</p><p className="mt-1 text-xs text-[var(--pub-txt-soft)]">{request.reason || "双方协商时间"}</p></div><span className="border border-current px-2 py-1 text-xs font-bold text-[var(--pub-red)]">{request.status}</span></div>
                   {request.conflicts.length > 0 && <ul className="mt-3 space-y-1 text-xs text-[var(--pub-red)]">{request.conflicts.map((conflict) => <li key={`${request.id}-${conflict.code}`}>[{conflict.code}] {conflict.message}</li>)}</ul>}
-                  {request.canConfirm && <div className="mt-4 grid grid-cols-2 gap-2 sm:flex"><button disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "reject"), "已拒绝该时间。") } className="h-[40px] border border-[var(--pub-line)] px-4 text-xs font-bold">拒绝</button><button disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "accept"), "已确认时间，等待负责人审批。") } className="h-[40px] bg-[#ff4655] px-4 text-xs font-black text-white">确认时间</button></div>}
+                  {request.canConfirm && <div className="mt-4 grid grid-cols-2 gap-2 sm:flex"><Button variant="secondary" size="sm" disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "reject"), "已拒绝该时间。") }>拒绝</Button><Button variant="primary" size="sm" disabled={busy} onClick={() => run(() => participant.resolveScheduleRequest(request.id, "accept"), "已确认时间，等待负责人审批。") }>确认时间</Button></div>}
                 </div>
               ))}
               {data.isCaptain && !data.scheduleRequests.some((request) => request.matchId === data.nextMatch!.id && ["待对手确认", "待审批"].includes(request.status)) && (
                 <div className="border-t border-[var(--pub-line-soft)] pt-5">
                   <h3 className="text-sm font-black text-[var(--pub-txt)]">队长约赛与改期</h3>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><input type="datetime-local" value={proposedTime} onChange={(e) => setProposedTime(e.target.value)} className={inputClass} /><input value={proposedReason} onChange={(e) => setProposedReason(e.target.value)} placeholder="备注" className={inputClass} /><button disabled={busy || !proposedTime || !data.scheduleConfigConfirmed} onClick={() => run(() => participant.createScheduleRequest(data.nextMatch!.id, proposedTime, proposedReason), "约赛时间已提交。") } className="h-[44px] bg-[#ff4655] px-5 text-xs font-black text-white disabled:opacity-50">提交时间</button></div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><input type="datetime-local" value={proposedTime} onChange={(e) => setProposedTime(e.target.value)} className={inputClass} /><input value={proposedReason} onChange={(e) => setProposedReason(e.target.value)} placeholder="备注" className={inputClass} /><Button variant="primary" size="md" disabled={busy || !proposedTime || !data.scheduleConfigConfirmed} onClick={() => run(() => participant.createScheduleRequest(data.nextMatch!.id, proposedTime, proposedReason), "约赛时间已提交。") }>提交时间</Button></div>
                   {!data.scheduleConfigConfirmed && <p className="mt-2 text-xs font-medium text-[var(--pub-txt)]">负责人尚未开放约赛时间</p>}
                 </div>
               )}
@@ -376,12 +376,12 @@ export default function ParticipantManagePage({
             </div>
             <div className="mt-4"><p className="text-xs font-bold text-[var(--pub-txt-soft)]">擅长位置</p><div className="mt-2 flex flex-wrap gap-2">{GAME.positions.map((pos) => { const active = profile.positions.includes(pos); return <button key={pos} type="button" onClick={() => setProfileDraft({ ...profileDraft, positions: active ? profile.positions.filter((item) => item !== pos) : [...profile.positions, pos] })} className={`inline-flex min-h-[44px] items-center border px-3 text-xs ${active ? "border-[var(--pub-red)] bg-[rgba(255,70,85,0.12)] text-[var(--pub-red)]" : "border-[var(--pub-line)] bg-[var(--pub-card)] text-[var(--pub-txt-soft)]"}`}>{pos}</button>; })}</div></div>
             <label className="mt-4 block text-xs font-bold text-[var(--pub-txt-soft)]">自我介绍<textarea value={profile.intro} onChange={(e) => setProfileDraft({ ...profileDraft, intro: e.target.value })} rows={3} className="mt-1 w-full border border-[var(--pub-line)] bg-[var(--pub-card)] px-3 py-2 text-sm font-semibold outline-none focus:border-[var(--pub-red)]" /></label>
-            <button onClick={() => run(() => participant.saveProfile(profile), "报名信息已更新。") } disabled={busy} className="mt-5 h-[44px] w-full bg-[#ff4655] px-5 text-sm font-black text-white disabled:opacity-50 sm:w-auto">保存修改</button>
+            <Button variant="primary" size="md" onClick={() => run(() => participant.saveProfile(profile), "报名信息已更新。") } disabled={busy} className="mt-5 w-full sm:w-auto">保存修改</Button>
           </section>
           <section className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4 sm:p-5">
             <h2 className="text-[18px] font-black text-[var(--pub-txt)]">备用参赛码</h2>
             <code className="mt-4 block min-h-[44px] break-all border border-[var(--pub-line-soft)] bg-white/[0.06] p-3 text-xs font-bold text-[var(--pub-txt-soft)]">{showCode ? participant.token : "••••••••••••••••••••••••"}</code>
-            <div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => setShowCode((value) => !value)} className="h-[44px] border border-[var(--pub-line)] px-3 text-xs font-black text-[var(--pub-txt-soft)]">{showCode ? "隐藏" : "显示"}</button><button onClick={() => navigator.clipboard.writeText(participant.token).then(() => setMessage("参赛码已复制。"))} className="h-[44px] bg-[#ff4655] px-3 text-xs font-black text-white">复制</button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" size="md" onClick={() => setShowCode((value) => !value)}>{showCode ? "隐藏" : "显示"}</Button><Button variant="primary" size="md" onClick={() => navigator.clipboard.writeText(participant.token).then(() => setMessage("参赛码已复制。"))}>复制</Button></div>
           </section>
         </div>
       )}
