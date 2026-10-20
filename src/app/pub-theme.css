@@ -245,7 +245,7 @@
 .pub-dark .ui-stack { display: flex; flex-direction: column; gap: 8px; }
 .pub-dark .ui-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
 .pub-dark .ui-pad { padding: 16px 20px; }
-.pub-dark .ui-article { max-width: 760px; }
+.pub-dark .ui-article { max-width: 900px; }
 .pub-dark .ui-empty {
   border: 1px dashed var(--pub-line-soft);
   background: rgba(255, 255, 255, 0.03);
