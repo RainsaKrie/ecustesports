@@ -16,6 +16,7 @@ import { readRefereeCredential } from "@/lib/domains/result/referee-auth";
 import { refereeReportingEnabled } from "@/lib/domains/result/feature-flag";
 import { refereeFailureResponse } from "@/lib/domains/result/failure-response";
 import { refereeClaimMatch, refereeOpenMatches, refereeReleaseMatch } from "@/lib/domains/result/reporting-data";
+import { withApiError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   // 读取不检查功能开关——开关只拦写操作（见 feature-flag 的语义说明），
   // 「我的比赛」等读取接口同理。否则关闭开关会让裁判连自己有什么活都看不到。
   const eventId = text(request.nextUrl.searchParams.get("eventId"), 60);
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
   return Response.json({ matches: result.matches, scheduleVersion: result.scheduleVersion });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   // 认领会写裁判台账，属于写操作 → 受功能开关约束
   if (!refereeReportingEnabled()) {
     return Response.json({ message: "裁判报分功能暂未开放" }, { status: 403 });
@@ -72,3 +73,6 @@ export async function POST(request: NextRequest) {
     message: result.reason ?? (action === "claim" ? "已认领该场" : "已释放该场"),
   });
 }
+
+export const POST = withApiError(handlePOST);
+export const GET = withApiError(handleGET);

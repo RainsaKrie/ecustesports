@@ -19,6 +19,7 @@ import { refereeFailureResponse } from "@/lib/domains/result/failure-response";
 import { refereeUploadEvidence } from "@/lib/domains/result/reporting-data";
 import { hashEvidenceBytes } from "@/lib/domains/schedule/evidence-ops";
 import { MAX_EVIDENCE_BYTES } from "@/lib/domains/schedule/evidence-domain";
+import { withApiError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   if (!refereeReportingEnabled()) {
     return Response.json({ message: "裁判报分功能暂未开放" }, { status: 403 });
   }
@@ -70,3 +71,5 @@ export async function POST(request: NextRequest) {
     expiresAt: registered.value.expiresAt,
   });
 }
+
+export const POST = withApiError(handlePOST);

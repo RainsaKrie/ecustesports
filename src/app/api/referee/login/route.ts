@@ -6,11 +6,12 @@ import type { NextRequest } from "next/server";
 import { readRefereeCredential } from "@/lib/domains/result/referee-auth";
 import { refereeFailureResponse } from "@/lib/domains/result/failure-response";
 import { refereeLogin } from "@/lib/domains/result/reporting-data";
+import { withApiError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   const credential = (typeof body.credential === "string" ? body.credential.trim() : "").slice(0, 200)
     || readRefereeCredential(request);
@@ -20,3 +21,5 @@ export async function POST(request: NextRequest) {
   if (!result.ok) return refereeFailureResponse(result);
   return Response.json({ ok: true });
 }
+
+export const POST = withApiError(handlePOST);

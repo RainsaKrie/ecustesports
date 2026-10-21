@@ -28,6 +28,7 @@ import { buildRecognizeSuggestion } from "@/lib/domains/result/recognize-result"
 import { hashEvidenceBytes } from "@/lib/domains/schedule/evidence-ops";
 import { MAX_EVIDENCE_BYTES } from "@/lib/domains/schedule/evidence-domain";
 import { getGameConfig } from "@/lib/games";
+import { withApiError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   if (!refereeReportingEnabled()) {
     return Response.json({ message: "裁判报分功能暂未开放" }, { status: 403 });
   }
@@ -149,3 +150,5 @@ export async function POST(request: NextRequest) {
     usage: outcome.usage,
   });
 }
+
+export const POST = withApiError(handlePOST);

@@ -59,8 +59,14 @@ const rel = (file: string) => path.relative(process.cwd(), file).replace(/\\/g, 
 /** 路由的 URL 路径，由文件位置推导（`src/app/api/a/b/route.ts` → `/api/a/b`） */
 const urlPathOf = (file: string) => path.dirname(rel(file)).replace(/^src\/app/, "");
 
+// 两种写法都要认得：
+//   export async function POST(   —— 直接导出
+//   export const POST = ...       —— 用 withApiError 包装后的写法（2026-10-21 起裁判端在用）
+// 只认第一种会让"套了异常包装器的路由"从守卫视野里消失。
 const methodsOf = (text: string): string[] =>
-  WRITE_METHODS.filter((m) => new RegExp(`export\\s+async\\s+function\\s+${m}\\s*\\(`).test(text));
+  WRITE_METHODS.filter((m) =>
+    new RegExp(`export\\s+async\\s+function\\s+${m}\\s*\\(`).test(text) ||
+    new RegExp(`export\\s+const\\s+${m}\\s*=`).test(text));
 
 /**
  * 判断路由是否**真的调用了**鉴权。

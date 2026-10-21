@@ -7,6 +7,7 @@ import { readRefereeCredential } from "@/lib/domains/result/referee-auth";
 import { refereeReportingEnabled } from "@/lib/domains/result/feature-flag";
 import { refereeFailureResponse } from "@/lib/domains/result/failure-response";
 import { refereeSubmit } from "@/lib/domains/result/reporting-data";
+import { withApiError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ function text(value: unknown, max: number): string | undefined {
   return trimmed ? trimmed.slice(0, max) : undefined;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   if (!refereeReportingEnabled()) {
     return Response.json({ message: "裁判报分功能暂未开放" }, { status: 403 });
   }
@@ -52,3 +53,5 @@ export async function POST(request: NextRequest) {
   }
   return Response.json(result.value);
 }
+
+export const POST = withApiError(handlePOST);
