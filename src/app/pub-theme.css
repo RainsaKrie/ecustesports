@@ -378,9 +378,6 @@
   font-size: 0.9375rem;
 }
 
-/* 站头推送（2026-10-21）：导航吃掉剩余宽度，工作台才真正靠右 */
-.pub-dark .site-nav { margin-right: auto; }
-.pub-dark .site-header__admin { margin-left: 0; }
 /* 首页海报：**两层都保留**（负责人 2026-10-21：要么缩小上面的，让下面的脸露出来）。
    做法不是关掉一层，而是把 Hero 压矮、并让 Hero 底部渐变到透明，
    这样上面那张自然收在上半屏，下面那张的脸在中段露出来。 */
@@ -390,3 +387,10 @@
 .pub-dark .home-shell section > div[aria-hidden] > div:last-child {
   background: linear-gradient(180deg, rgba(10,11,13,0.20) 0%, transparent 40%, transparent 100%);
 }
+
+/* 站头布局（2026-10-21 终版）：**只留一个 auto**。
+   之前同时给导航 margin-right:auto 和按钮 margin-left:0，两者互相抵消。
+   现在：导航不设 margin，按钮保留 globals.css 里的 margin-left:auto —— 单一推手。
+   max-width 与正文容器对齐（1360），否则站头比正文窄一截、按钮看着像没到边。 */
+.pub-dark .site-header__inner { max-width: 1360px; }
+.pub-dark .site-nav { margin-right: 0; }
