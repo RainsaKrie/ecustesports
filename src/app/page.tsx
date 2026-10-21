@@ -66,7 +66,9 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_52%,rgba(10,11,13,0.90)_100%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.30)_0%,transparent_40%,rgba(10,11,13,0.85)_100%)]" />
+          {/* 底部不再压暗：原来压到 85% 黑，在 Hero 与下方之间造出一条暗带，把上下切成两段。
+              只在最上沿留一点点，让标题与站头分开即可。 */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.35)_0%,transparent_22%)]" />
         </div>
         <Container className="ui-page relative">
           <header className="ui-hero">
