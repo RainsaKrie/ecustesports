@@ -77,7 +77,7 @@ export function Section({
         tone === "cream" ? "bg-white/[0.06]" : "bg-[var(--pub-card)]"
       }`}
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1360px]">
         <header className="grid gap-2 border-t-2 border-[var(--pub-red)] pt-4 md:grid-cols-[10rem_1fr] md:items-start">
           <p className="font-mono text-[10px] font-black tracking-[0.18em] text-[#ff4655]">
             {index} / {eyebrow}
@@ -108,7 +108,7 @@ export function RuleGroup({
   if (!rules.length) return null;
 
   return (
-    <section className="border-l border-t border-[var(--pub-line)] bg-[var(--pub-card)] lg:grid lg:grid-cols-[16rem_1fr]">
+    <section className="border-l border-t border-[var(--pub-line)] bg-[var(--pub-card)] lg:grid lg:grid-cols-[10rem_1fr]">
       <header className="border-b border-r border-[var(--pub-line)] bg-[var(--pub-line-soft)] p-5 lg:min-h-full lg:p-6">
         <div className="h-1 w-10 bg-[#ff4655]" />
         <p className="mt-4 font-mono text-[10px] font-black tracking-[0.18em] text-[#ff4655]">

@@ -48,7 +48,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
   return (
     <div className="bg-[var(--pub-card)] text-[var(--pub-txt)]">
       <section className="border-b border-[var(--pub-line-soft)] bg-white/[0.06] px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
-        <div className="mx-auto max-w-7xl border-t-4 border-[#ff4655] pt-5">
+        <div className="mx-auto max-w-[1360px] border-t-4 border-[#ff4655] pt-5">
           <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-12">
             <div>
               <p className="font-mono text-[10px] font-black tracking-[0.2em] text-[#ff4655]">
@@ -78,7 +78,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
       </section>
 
       <nav aria-label="参赛手册目录" className="border-b border-[var(--pub-line-soft)] bg-[var(--pub-card)]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 sm:grid-cols-4">
+        <div className="mx-auto grid max-w-[1360px] grid-cols-2 sm:grid-cols-4">
           {directory.map(([href, index, label]) => (
             <a
               key={href}
@@ -195,7 +195,7 @@ export default function EventHandbook({ event }: { event: HandbookEvent }) {
                   <span className="absolute left-4 top-4 font-mono text-[10px] font-black text-white/70">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <h5 className="absolute inset-x-4 bottom-4 text-base font-black text-white">{map.name}</h5>
+                  <h5 className="absolute inset-x-2 bottom-3 whitespace-nowrap text-[length:var(--pub-fs-sm)] font-black tracking-tight text-white">{map.name}</h5>
                 </article>
               ))}
             </div>
