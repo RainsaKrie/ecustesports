@@ -156,7 +156,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
         </section>
       )}
 
-      {matches.some((m) => m.phase.includes("小组赛") || m.phase.includes("组内")) && (
+      {matches.some((m) => m.phase.includes("小组赛") || m.phase.includes("组内") || m.phase.includes("GSL")) && (
         <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
