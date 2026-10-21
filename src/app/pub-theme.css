@@ -30,19 +30,13 @@
 }
 .pub-dark .pub-poster::before {
   content: "";
-  /* fixed：背景钉在视口上，按屏幕尺寸铺图。
-     之前是 absolute + cover —— cover 是相对**整页高度**算的，页面两三千像素高时
-     一张 1080×600 的图会被放大 2–3 倍，糊成一团（负责人 2026-10-20 截图指出）。 */
+/* fixed：背景钉在视口上，按屏幕尺寸铺图。 之前是 absolute + cover —— cover 是相对**整页高度**算的，页面两三千像素高时 一张 1080×600 的图会被放大 2–3 倍，糊成一团（负责人 2026-10-20 截图指出）。 */
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  /* 光晕必须给显式半径：外壳是一条很长的页面，`circle` 默认 farthest-corner
-     会把 2400px 高的盒子算成巨大半径 → 整页均匀泛红（实测截图就是这个效果）。
-     写死 1100px / 900px 后，红光只落在首屏，往下自然退到纯黑。 */
-  /* 四层：深色遮罩 → 海报图 → 两团红光。
-     遮罩必须在最上层，否则白字压不住彩色海报；海报本身是彩色的（青/橙/紫），
-     只有压到 80% 以上才能保证正文与强调红都还在。 */
+/* 光晕必须给显式半径：外壳是一条很长的页面，`circle` 默认 farthest-corner 会把 2400px 高的盒子算成巨大半径 → 整页均匀泛红（实测截图就是这个效果）。 写死 1100px / 900px 后，红光只落在首屏，往下自然退到纯黑。 */
+/* 四层：深色遮罩 → 海报图 → 两团红光。 遮罩必须在最上层，否则白字压不住彩色海报；海报本身是彩色的（青/橙/紫）， 只有压到 80% 以上才能保证正文与强调红都还在。 */
   background-image:
     linear-gradient(180deg, rgba(10, 11, 13, 0.80) 0%, rgba(10, 11, 13, 0.90) 55%, rgba(10, 11, 13, 0.97) 100%),
     var(--pub-bg-image),
@@ -53,13 +47,9 @@
   background-repeat: no-repeat;
 }
 /* 背景网格已移除（2026-10-20 负责人：不需要了）*/
-/* 玻璃卡旧类 .pub-card / .pub-frame 已删除（0 处使用，且与新 .ui-frame 完全重复）。
-   按《全站UI改造方案》P1-4「不能两份都留」；令牌 --pub-card / --pub-card-solid 保留，
-   页面里的 bg-[var(--pub-card)] 照旧可用。玻璃底请改用 .ui-frame。 */
+/* 玻璃卡旧类 .pub-card / .pub-frame 已删除（0 处使用，且与新 .ui-frame 完全重复）。 按《全站UI改造方案》P1-4「不能两份都留」；令牌 --pub-card / --pub-card-solid 保留， 页面里的 bg-[var(--pub-card)] 照旧可用。玻璃底请改用 .ui-frame。 */
 
-/* ===== 公共层对齐（2026-10-20 第 0 批）=====
-   站头本来就是深色的（浅色站身 + 深色站头），但用的是偏蓝的 rgba(15,25,35)。
-   这里只做覆盖，不改组件文件 —— Navbar / Footer 用的是 CSS 类，改这里就全站生效。 */
+/* ===== 公共层对齐（2026-10-20 第 0 批）===== 站头本来就是深色的（浅色站身 + 深色站头），但用的是偏蓝的 rgba(15,25,35)。 这里只做覆盖，不改组件文件 —— Navbar / Footer 用的是 CSS 类，改这里就全站生效。 */
 .pub-dark .site-header {
   background: rgba(10, 11, 13, 0.72);
   border-bottom-color: var(--pub-line);
@@ -161,7 +151,7 @@
 .pub-dark .ui-tag { display: inline-flex; align-items: center; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; padding: 4px 9px; border: 1px solid var(--pub-line-soft); color: var(--pub-txt-mute); }
 .pub-dark .ui-tag.live { border-color: var(--pub-red); color: var(--pub-red); }
 .pub-dark .ui-toggle { display: flex; border: 1px solid var(--pub-line-soft); width: fit-content; }
-.pub-dark .ui-toggle > button { font: inherit; font-size: 13px; font-weight: 700; padding: 7px 20px; background: none; border: 0; border-left: 1px solid var(--pub-line-soft); color: var(--pub-txt-soft); cursor: pointer; transition: color 0.14s, background 0.14s; }
+.pub-dark .ui-toggle > button { font: inherit; font-size: var(--pub-fs-sm); font-weight: 700; padding: 7px 20px; background: none; border: 0; border-left: 1px solid var(--pub-line-soft); color: var(--pub-txt-soft); cursor: pointer; transition: color 0.14s, background 0.14s; }
 .pub-dark .ui-toggle > button:first-child { border-left: 0; }
 .pub-dark .ui-toggle > button:hover { color: var(--pub-txt); }
 .pub-dark .ui-toggle > button[aria-pressed="true"],
@@ -333,9 +323,7 @@
   pointer-events: none;
 }
 
-/* 背景海报（2026-10-20 负责人提供）。
-   四张：捷风 / 不死鸟 / 芮娜 / 猎枭+铁臂，放 public/posters/。
-   全站统一用不死鸟（负责人 2026-10-20 指定）。捷风/芮娜/猎枭仍留在 public/posters/ 备用。 */
+/* 背景海报（2026-10-20 负责人提供）。 四张：捷风 / 不死鸟 / 芮娜 / 猎枭+铁臂，放 public/posters/。 全站统一用不死鸟（负责人 2026-10-20 指定）。捷风/芮娜/猎枭仍留在 public/posters/ 备用。 */
 .pub-dark { --pub-bg-image: url("/posters/phoenix.jpg"); }
 
 /* 站头 logo（2026-10-20）：瓦友社标识，高度对齐原来 34px 的文字标记 */
@@ -389,3 +377,23 @@
 .pub-dark .site-nav > a {
   font-size: 0.9375rem;
 }
+
+/* ===== 形态类：标签 chip（2026-10-21）===== 筛选条件、状态标签、地图标签共用。**只做标签，不做动作** —— 可点的动作一律用 <Button variant="ghost">，避免"chip 像按钮"的歧义。 */
+.pub-dark .ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pub-line-soft);
+  padding: 3px 9px;
+  font-size: var(--pub-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--pub-txt-mute);
+  white-space: nowrap;
+}
+.pub-dark .ui-chip--on {
+  border-color: var(--pub-red);
+  color: var(--pub-red);
+}
+.pub-dark button.ui-chip { cursor: pointer; transition: color 0.14s, border-color 0.14s; }
+.pub-dark button.ui-chip:hover { color: var(--pub-txt); border-color: var(--pub-line); }
