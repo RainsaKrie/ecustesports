@@ -43,18 +43,14 @@ const sizeAlias: Record<string, "md" | "lg"> = { sm: "md", xl: "lg" };
 const variantClasses = {
   primary: "bg-[#ff4655] text-white hover:bg-[#d83b48]",
   secondary: "border border-white/35 text-[var(--pub-txt)] hover:border-white hover:bg-white/[0.06]",
-  outline: "border border-[var(--pub-line-soft)] text-[var(--pub-txt)] hover:border-[var(--pub-line)] hover:bg-white/[0.04]",
-  "dark-outline": "border border-white/35 bg-white/[0.04] text-white hover:border-white hover:bg-white/[0.10]",
   ghost: "text-[var(--pub-txt-soft)] hover:bg-white/[0.06] hover:text-[var(--pub-txt)]",
   /* 破坏性动作（离队 / 解散 / 删除）：红描边不填充 —— 与主按钮区分，又不至于像主按钮那么强 */
   danger: "border border-[#ff4655] text-[#ff4655] hover:bg-[#ff4655]/12",
 };
 
 const sizeClasses = {
-  sm: "h-[32px] px-3 text-xs",
-  md: "h-[44px] px-5 text-sm",
-  lg: "h-[52px] px-7 text-sm",
-  xl: "h-[56px] px-8 text-base",
+  md: "h-[44px] px-5 text-[length:var(--pub-fs-sm)]",
+  lg: "h-[52px] px-7 text-[length:var(--pub-fs-md)]",
 };
 
 export default function Button({

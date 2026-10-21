@@ -158,8 +158,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
 
       {/* 分组积分：**不再在外层判断"该不该出现"** —— 组件内部有完整的空态与识别逻辑。
           外层再判一次，等于两处各持一份阶段名清单，任一处漏词整块就静默消失（2026-10-21 踩过）。 */}
-      {(
-        <section>
+      <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.16em] text-[var(--pub-red)]">GROUP STANDINGS</p>
@@ -168,7 +167,6 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
           </div>
           <GroupStandings matches={matches} />
         </section>
-      )}
 
       {rest.length > 0 && (
         <section>
