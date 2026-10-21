@@ -75,6 +75,8 @@ export default async function EventWorkspaceLayout({
     <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
       <AdminSidebar event={event} stage={stage} modules={modules} guidance={guidance} />
       <main className="min-w-0 flex-1 admin-content">
+        {/* 后台用 1500，公开面用 1360 —— **有意不一致**：后台是数据表与多列表单，需要更宽；
+        公开面是阅读与比赛行，1360 已够。改宽度时不要顺手把这两处统一。 */}
         <div className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
