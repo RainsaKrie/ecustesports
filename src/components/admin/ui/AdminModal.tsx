@@ -54,7 +54,7 @@ export function AdminModal({
 
   return (
     <div
-      className="adm-modal-backdrop fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4"
+      className="adm-modal-backdrop fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(4,5,7,0.55)] backdrop-blur-[6px] p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}

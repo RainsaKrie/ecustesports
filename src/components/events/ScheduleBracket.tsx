@@ -59,7 +59,7 @@ function MatchDetailModal({ m, onClose }: { m: ScheduleMatch; onClose: () => voi
   }, [onClose]);
   const games = m.gameResults ?? [];
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(0,0,0,0.6)] p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label="比赛详情">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(4,5,7,0.55)] backdrop-blur-[6px] p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label="比赛详情">
       <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-[var(--pub-line)] px-4 py-3">
           <div className="min-w-0">
