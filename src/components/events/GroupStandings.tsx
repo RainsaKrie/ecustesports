@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // =====================
 // 分组积分表（2026-10-20）
 //
@@ -128,6 +130,11 @@ export default function GroupStandings({ matches, advancePerGroup = 2 }: { match
   const groups = buildGroups(matches);
   // 少于 2 支真实队伍的组没有意义（抽签还没落位），直接不显示
   const usable = [...groups.entries()].filter(([, ids]) => ids.size >= 2);
+  // 一次只看一个组（2026-10-21）：四个组竖排会把页面拉得很长。
+  // Hooks 必须无条件调用，所以放在提前 return 之前。
+  const [active, setActive] = useState(0);
+  const safeActive = Math.min(active, Math.max(1, usable.length) - 1);
+
   if (usable.length === 0) {
     return (
       <div className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-5 py-8 text-center text-sm font-bold text-[var(--pub-txt-soft)]">
@@ -138,8 +145,24 @@ export default function GroupStandings({ matches, advancePerGroup = 2 }: { match
 
   const labels = "ABCDEFGH";
   return (
-    <div className="space-y-6">
+    <div>
+      {usable.length > 1 && (
+        <div className="ui-toggle mb-4" role="tablist" aria-label="分组">
+          {usable.map(([name], index) => (
+            <button
+              key={name}
+              type="button"
+              role="tab"
+              aria-selected={index === safeActive}
+              onClick={() => setActive(index)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
       {usable.map(([, teamIds], index) => {
+        if (index !== safeActive) return null;
         const rows = buildRows(matches, teamIds);
         return (
           <section key={index}>

@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SiteConfig } from "@/lib/site-config-schema";
@@ -23,7 +25,7 @@ export default function Navbar({ config }: { config: SiteConfig }) {
       <div className="site-header__inner">
         <Link href="/" className="site-brand" aria-label={`${config.brand.name}首页`}>
           {/* 2026-10-20 负责人要求：站头换成瓦友社 logo（社团标识；场地标识的 ECUST 约束不受影响） */}
-          <img src="/brand-wa.png" alt="" aria-hidden="true" className="brand-logo mr-3" width={40} height={34} />
+          <Image src="/brand-wa.png" alt="" aria-hidden="true" className="brand-logo mr-3" width={40} height={34} priority />
           <span className="site-brand__text">
             <strong>{config.brand.name}</strong>
             <small>{config.brand.englishName}</small>

@@ -85,7 +85,6 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
   const currentMatches = matches.filter((m) => m.phase === currentPhase);
   const currentDone = currentMatches.filter((m) => m.status === "已完成").length;
   const teamSet = (list: typeof matches) => new Set(list.flatMap((m) => [m.teamAId, m.teamBId]).filter(Boolean)).size;
-  const currentTeams = teamSet(currentMatches);
   const nextPhase = allPhases[allPhases.indexOf(currentPhase) + 1];
   const nextTeams = nextPhase ? teamSet(matches.filter((m) => m.phase === nextPhase)) : 0;
 
