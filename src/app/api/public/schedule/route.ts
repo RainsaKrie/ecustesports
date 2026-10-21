@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { isEventPublic } from "@/lib/configured-events";
+import { withApiError } from "@/lib/api-error";
 import {
   getPublicSchedule,
   getPublicSiteConfig,
@@ -9,7 +10,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const eventId = request.nextUrl.searchParams.get("eventId")?.trim() ?? "";
   const config = await getPublicSiteConfig();
   const event = config.events.find((item) => item.id === eventId && isEventPublic(item));
@@ -20,3 +21,5 @@ export async function GET(request: NextRequest) {
     { headers: { "Cache-Control": PUBLIC_CACHE_CONTROL } },
   );
 }
+
+export const GET = withApiError(handleGET);

@@ -3,6 +3,7 @@ import { getSiteConfig } from "@/lib/site-config";
 import { initialRegistration, normalizeRegistrationState } from "@/lib/domains/registration/data";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/domains/identity/admin-session";
 import type { NextRequest } from "next/server";
+import { withApiError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +23,11 @@ async function resolveEventId(request: NextRequest): Promise<string | null> {
   return config.events.some((event) => event.id === fromQuery) ? fromQuery : null;
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   const eventId = await resolveEventId(request);
   if (!eventId) return Response.json({ message: "未登录、赛事不存在或缺少赛事 ID。" }, { status: 401 });
   const stored = await readEventData(eventId, "registration", initialRegistration());
   return Response.json(normalizeRegistrationState(stored));
 }
+
+export const GET = withApiError(handleGET);

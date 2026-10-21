@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { readEventData } from "@/lib/data-store";
+import { withApiError } from "@/lib/api-error";
 import {
   initialRegistration,
   normalizeRegistrationState,
@@ -19,7 +20,7 @@ function csvEscape(value: string): string {
   return value;
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   if (!isAdminRequest(request)) {
     return Response.json({ message: "未登录或会话已过期" }, { status: 401 });
   }
@@ -64,3 +65,5 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+export const GET = withApiError(handleGET);
