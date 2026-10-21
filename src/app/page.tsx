@@ -70,7 +70,7 @@ export default async function Home() {
               只在最上沿留一点点，让标题与站头分开即可。 */}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.35)_0%,transparent_22%)]" />
         </div>
-        <Container className="ui-page relative">
+        <Container className="ui-page relative pb-10">
           <header className="ui-hero">
             <p className="ui-eyebrow">{config.home.kicker}</p>
             <h1>
@@ -105,7 +105,7 @@ export default async function Home() {
       </section>
 
       {/* 资料直达：v8 的 .ui-tag 行，替掉原来的红底 signal-strip */}
-      <Container className="ui-section">
+      <Container className="ui-section pt-8">
         <nav aria-label="赛事资料直达" className="flex flex-wrap items-center gap-2">
           {quickLinks.map((item) => (
             <Link
