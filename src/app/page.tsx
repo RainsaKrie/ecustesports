@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getConfiguredEvents } from "@/lib/configured-events";
 import { getEvent } from "@/lib/site-config";
@@ -61,21 +60,14 @@ export default async function Home() {
   return (
     <div>
       {/* 主视觉：当前赛事海报做底（有图用图，没图退回几何海报底）*/}
-      <section className="relative overflow-hidden border-b border-[var(--pub-line-soft)]">
-        {current?.posterImage && (
-          <div aria-hidden className="pointer-events-none absolute inset-0">
-            <Image
-              src={current.posterImage}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-center opacity-45"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,11,13,0.95)_0%,rgba(10,11,13,0.72)_52%,rgba(10,11,13,0.96)_100%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.25)_0%,transparent_30%,rgba(10,11,13,0.92)_100%)]" />
-          </div>
-        )}
+      {/* 首页只保留**一张**海报：全站统一的不死鸟（.pub-poster 那层），
+          这里不再叠赛事自带的旧海报 —— 两张不同图会互相挤占（负责人 2026-10-21）。
+          只留左侧与底部的文字遮罩，保证标题可读。 */}
+      <section className="relative overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_52%,rgba(10,11,13,0.90)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.30)_0%,transparent_40%,rgba(10,11,13,0.85)_100%)]" />
+        </div>
         <Container className="ui-page relative">
           <header className="ui-hero">
             <p className="ui-eyebrow">{config.home.kicker}</p>
