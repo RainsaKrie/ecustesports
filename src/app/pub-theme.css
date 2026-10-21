@@ -380,5 +380,7 @@
 
 /* 站头推送（2026-10-21）：导航吃掉剩余宽度，工作台才真正靠右 */
 .pub-dark .site-nav { margin-right: auto; }
-/* 首页 Hero 自带大图，页面级海报底会让同一张图出现两次 */
-.pub-dark .home-shell { --pub-bg-image: none; }
+/* 首页 Hero 自带大图，页面级海报底会让同一张图出现两次。
+   注意：海报底挂在 AppChrome 的外层（.pub-poster），home-shell 是它的**子元素** ——
+   在子元素上改变量传不上去，必须用 :has 匹配"包含首页的 poster 层"并直接关掉伪元素。 */
+.pub-dark .pub-poster:has(.home-shell)::before { display: none; }
