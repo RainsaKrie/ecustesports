@@ -37,7 +37,7 @@
     "ai:result-score": "tsx tools/ai-eval/result-vision/run-eval.ts score",
     "ai:result-selftest": "tsx tools/ai-eval/result-vision/run-eval.ts selftest",
     "ai:result-coverage": "tsx tools/ai-eval/result-vision/run-eval.ts coverage",
-    "test:all": "npm run test:scheduling && npm run test:loop && npm run test:bp && npm run test:registration-admin && npm run test:registration-ops && npm run test:public-roster && npm run test:participant-recovery && npm run test:qualifier-bye && npm run test:schedule-loss && npm run test:schedule-write-contract && npm run test:game-data && npm run test:playin-36 && npm run test:result && npm run test:referee && npm run test:evidence && npm run test:reporting && npm run test:identity-match && npm run test:recognize && npm run test:publication && npm run test:operations && npm run test:data-transaction && npm run test:data-store && npm run test:ai-eval && npm run test:ai-result-eval && npm run test:route-guards && npm run test:schedule-freshness && npm run test:referee-failure && npm run test:backup-format && npm run test:data-backend && npm run test:event-progress && npm run test:group-single-elim && npm run test:bulk-schedule && npm run test:stage-type-registry && npm run test:team-swap && npm run test:arch-guards && npm run test:ui-guards && npm run test:color-guard && npm run test:contrast && npm run test:verify-backup && npm run test:production-audit && npm run test:stage-chain-rules && npm run test:round-robin && npm run test:swiss && npm run test:format-swiss && npm run test:group-standings && npm run test:css && npm run test:doc-code && npm run test:api-error",
+    "test:all": "npm run test:scheduling && npm run test:loop && npm run test:bp && npm run test:registration-admin && npm run test:registration-ops && npm run test:public-roster && npm run test:participant-recovery && npm run test:qualifier-bye && npm run test:schedule-loss && npm run test:schedule-write-contract && npm run test:game-data && npm run test:playin-36 && npm run test:result && npm run test:referee && npm run test:evidence && npm run test:reporting && npm run test:identity-match && npm run test:recognize && npm run test:publication && npm run test:operations && npm run test:data-transaction && npm run test:data-store && npm run test:ai-eval && npm run test:ai-result-eval && npm run test:route-guards && npm run test:schedule-freshness && npm run test:referee-failure && npm run test:backup-format && npm run test:data-backend && npm run test:event-progress && npm run test:group-single-elim && npm run test:bulk-schedule && npm run test:stage-type-registry && npm run test:team-swap && npm run test:arch-guards && npm run test:ui-guards && npm run test:color-guard && npm run test:contrast && npm run test:verify-backup && npm run test:production-audit && npm run test:stage-chain-rules && npm run test:round-robin && npm run test:swiss && npm run test:format-swiss && npm run test:group-standings && npm run test:css && npm run test:doc-code && npm run test:api-error && npm run test:phase-stats",
     "test:contrast": "tsx tools/ui/contrast-audit.ts",
     "gate": "npm run lint && npm run typecheck && npm run test:all && npm run build",
     "gate:full": "npm run gate && npm run test:referee-http && npm run test:format-switch && npm run test:rehearsal36",
@@ -76,7 +76,8 @@
     "test:group-standings": "tsx tools/ui/group-standings.test.ts",
     "test:css": "tsx tools/ui/css-syntax.test.ts",
     "test:doc-code": "tsx tools/ui/doc-code-consistency.test.ts",
-    "test:api-error": "tsx tools/ui/api-error.test.ts"
+    "test:api-error": "tsx tools/ui/api-error.test.ts",
+    "test:phase-stats": "tsx tools/ui/phase-stats.test.ts"
   },
   "dependencies": {
     "geist": "^1.7.2",

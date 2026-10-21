@@ -6,6 +6,7 @@ import GroupStandings from "@/components/events/GroupStandings";
 
 import { useSchedule } from "@/hooks/useSchedule";
 import type { GameResult } from "@/lib/domains/schedule/schedule-data";
+import { currentPhaseStats } from "@/lib/domains/schedule/phase-stats";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
@@ -80,13 +81,8 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
 
 
   // 当前阶段与四个数字（标题区用）
-  const allPhases = Array.from(new Set(matches.map((m) => m.phase)));
-  const currentPhase = [...allPhases].reverse().find((phase) => matches.some((m) => m.phase === phase && m.status !== "已完成")) ?? allPhases[allPhases.length - 1] ?? "";
-  const currentMatches = matches.filter((m) => m.phase === currentPhase);
-  const currentDone = currentMatches.filter((m) => m.status === "已完成").length;
-  const teamSet = (list: typeof matches) => new Set(list.flatMap((m) => [m.teamAId, m.teamBId]).filter(Boolean)).size;
-  const nextPhase = allPhases[allPhases.indexOf(currentPhase) + 1];
-  const nextTeams = nextPhase ? teamSet(matches.filter((m) => m.phase === nextPhase)) : 0;
+  const { allPhases, currentPhase, currentMatches, currentDone, nextPhase, nextTeams } =
+    currentPhaseStats(matches);
 
   return (
     <div className="space-y-4">
