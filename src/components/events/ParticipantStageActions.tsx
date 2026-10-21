@@ -35,7 +35,7 @@ export default function ParticipantStageActions({
   const isConnected = Boolean(participant.data);
 
   if (participant.loading) {
-    return <div className="h-[7.5rem] w-full" aria-hidden />;
+    return <div className="h-[112px] w-full" aria-hidden />;
   }
 
   return (
