@@ -64,7 +64,7 @@ export default function TeamModal({ team, eventId, onClose }: { team: Team; even
       aria-label={`${team.name} 的队伍信息`}
     >
       <div
-        className="ui-modal-panel flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden"
+        className="ui-modal-panel flex max-h-[88vh] w-full max-w-[672px] flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头：编号方块 + 队名 + 状态 */}
