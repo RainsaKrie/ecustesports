@@ -378,22 +378,7 @@
   font-size: 0.9375rem;
 }
 
-/* ===== 形态类：标签 chip（2026-10-21）===== 筛选条件、状态标签、地图标签共用。**只做标签，不做动作** —— 可点的动作一律用 <Button variant="ghost">，避免"chip 像按钮"的歧义。 */
-.pub-dark .ui-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--pub-line-soft);
-  padding: 3px 9px;
-  font-size: var(--pub-fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--pub-txt-mute);
-  white-space: nowrap;
-}
-.pub-dark .ui-chip--on {
-  border-color: var(--pub-red);
-  color: var(--pub-red);
-}
-.pub-dark button.ui-chip { cursor: pointer; transition: color 0.14s, border-color 0.14s; }
-.pub-dark button.ui-chip:hover { color: var(--pub-txt); border-color: var(--pub-line); }
+/* 站头推送（2026-10-21）：导航吃掉剩余宽度，工作台才真正靠右 */
+.pub-dark .site-nav { margin-right: auto; }
+/* 首页 Hero 自带大图，页面级海报底会让同一张图出现两次 */
+.pub-dark .home-shell { --pub-bg-image: none; }
