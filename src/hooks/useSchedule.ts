@@ -43,6 +43,12 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
   /** 刚刚自动同步落地的版本；用于短暂提示一句「已自动同步」。 */
   const [autoSynced, setAutoSynced] = useState<{ version: number } | null>(null);
   const dirtyRef = useRef(false);
+  /** `state` 的同步镜像 —— 给需要"先算再改"的操作函数用（见 removeMatch）。
+   *  只能在 effect 里同步：渲染期间写 ref 会被规则拦下（Cannot update ref during render）。 */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   const persistedVersionRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   /** 在途保存数。后台同步必须等它归零，否则会用旧快照盖掉刚存好的结果。 */
@@ -241,16 +247,20 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     setState((s) => toggleFrozenOp(s, matchId));
   }, []);
 
-  /** 删除一场比赛（2026-10-22）：赛事中途取消某场时用。返回失败原因，成功返回 null。 */
+  /**
+   * 删除一场比赛（2026-10-22）：赛事中途取消某场时用。返回失败原因，成功返回 null。
+   *
+   * ★ 必须**先用当前 state 算出结果、再 setState**。
+   *   第一版把 `removeMatchOp` 放在 `setState` 的更新函数里，靠闭包给外层 `reason` 赋值 ——
+   *   更新函数是延迟执行的（且 StrictMode 下会跑两次），**函数返回时 `reason` 还是 null**，
+   *   于是界面上"点了没反应、也不报原因"。把纯计算提到更新函数外面就没这个问题。
+   */
   const removeMatch = useCallback((matchId: string): string | null => {
-    let reason: string | null = null;
-    setState((s) => {
-      const out = removeMatchOp(s, matchId);
-      if (!out.ok) { reason = out.message; return s; }
-      dirtyRef.current = true;
-      return out.state;
-    });
-    return reason;
+    const out = removeMatchOp(stateRef.current, matchId);
+    if (!out.ok) return out.message;
+    dirtyRef.current = true;
+    setState(out.state);
+    return null;
   }, []);
 
   /**
