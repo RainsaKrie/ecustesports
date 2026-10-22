@@ -5,7 +5,7 @@ import CustomFormatModal from "@/components/admin/CustomFormatModal";
 import { useRouter } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { AdminModal } from "@/components/admin/ui";
-import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, type Group, type SeedPot } from "@/lib/domains/registration/format";
+import { buildPlayInPairs, buildSeedPots, generateMatchups, rankTeamsByAvgRank, teamAvgRank, type Group, type SeedPot } from "@/lib/domains/registration/format";
 import {
   buildDoubleEliminationMatches,
   buildGslGroupMatches,
@@ -212,7 +212,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
       if (resolved.kind === "staged-32-gsl-double-elim" || resolved.kind === "staged-playin") {
         const stagedStages = resolved.stages;
         const stagedEntrants = stagedEntrantsOverride ?? frozenIds;
-        const gate = resolveStagedDrawGate(stagedStages, stagedEntrants, loadedSchedule.matches, loadedFormat.qualifierByes ?? []);
+        const gate = resolveStagedDrawGate(stagedStages, stagedEntrants, loadedSchedule.matches, loadedFormat.qualifierByes ?? [], (teamId) => { const t = registration.teams.find((x) => x.id === teamId); return t ? teamAvgRank(t, registration.players) : 0; });
         setStagedGate(gate);
         if (gate.status !== "ready") {
           setDrawMode("locked");
@@ -472,7 +472,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
             throw new Error("资格赛还没有抽签，请先完成资格赛抽签。");
           }
         }
-        const currentGate = resolveStagedDrawGate(format.stages, entrants, currentSchedule.matches, savedFormat.qualifierByes ?? []);
+        const currentGate = resolveStagedDrawGate(format.stages, entrants, currentSchedule.matches, savedFormat.qualifierByes ?? [], (teamId) => { const t = reg.teams.find((x) => x.id === teamId); return t ? teamAvgRank(t, reg.players) : 0; });
         if (currentGate.status !== "ready" || currentGate.stageIndex !== activeStageIndex) {
           throw new Error("赛事阶段已经变化，请刷新页面后再操作。");
         }

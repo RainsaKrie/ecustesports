@@ -64,9 +64,13 @@ function groupStageExpectedMatches(groupStage: StageConfig): number {
 }
 
 /** 小组赛晋级名单：两套小组赛制的名次判据不同，按阶段类型分流。 */
-function extractGroupQualifiers(groupStage: StageConfig, matches: ScheduleMatch[]): GroupQualifier[] {
+function extractGroupQualifiers(
+  groupStage: StageConfig,
+  matches: ScheduleMatch[],
+  rankOf?: (teamId: string) => number,
+): GroupQualifier[] {
   return groupStage.type === "single-elim-groups"
-    ? extractGroupSingleElimQualifiers(matches, groupStage.name)
+    ? extractGroupSingleElimQualifiers(matches, groupStage.name, rankOf)
     : extractGslQualifiers(matches, groupStage.name);
 }
 
@@ -185,17 +189,53 @@ export function extractGslQualifiers(matches: ScheduleMatch[], phase: string): G
  * ⚠️ 判据必须先排掉「半决赛」—— 「半决赛」也以「决赛」结尾，只判 `endsWith("决赛")`
  * 会把两场半决赛当成三个组的出线战（变异验证专门盯这一条）。
  */
-export function extractGroupSingleElimQualifiers(matches: ScheduleMatch[], phase: string): GroupQualifier[] {
+export function extractGroupSingleElimQualifiers(
+  matches: ScheduleMatch[],
+  phase: string,
+  /** 队伍平均段位（越高越强）。不传则不启用"无决赛"兜底。 */
+  rankOf?: (teamId: string) => number,
+): GroupQualifier[] {
   const qualifiers: GroupQualifier[] = [];
-  for (const match of stageMatches(matches, phase)) {
+  const phaseMatches = stageMatches(matches, phase);
+  const groupsWithFinal = new Set<string>();
+
+  // 路径一（主）：有「X 组 决赛」就用它定第一第二
+  for (const match of phaseMatches) {
     const round = match.round ?? "";
     if (!round.endsWith("决赛") || round.endsWith("半决赛")) continue;
     if (match.status !== "已完成" || !match.winnerTeamId || match.winnerTeamId === "TBD") continue;
     const group = round.replace(/\s*决赛$/, "").trim();
+    groupsWithFinal.add(group);
     const loser = match.winnerTeamId === match.teamAId ? match.teamBId : match.teamAId;
     qualifiers.push({ teamId: match.winnerTeamId, group, placement: 1 });
     if (loser && loser !== "TBD") qualifiers.push({ teamId: loser, group, placement: 2 });
   }
+
+  // 路径二（兜底）：取消组内决赛时，两场半决赛的**胜者**都进了"本该打的决赛"，
+  // 谁是第一在结果里没有区分 —— 按负责人 2026-10-22 的决定用**平均段位**排序定名次。
+  if (rankOf) {
+    const semiByGroup = new Map<string, ScheduleMatch[]>();
+    for (const match of phaseMatches) {
+      const round = match.round ?? "";
+      if (!round.endsWith("半决赛")) continue;
+      const group = round.replace(/\s*半决赛$/, "").trim();
+      if (groupsWithFinal.has(group)) continue; // 有决赛的组走路径一
+      if (match.status !== "已完成" || !match.winnerTeamId || match.winnerTeamId === "TBD") continue;
+      const list = semiByGroup.get(group) ?? [];
+      list.push(match);
+      semiByGroup.set(group, list);
+    }
+    for (const [group, semis] of semiByGroup) {
+      const winners = semis.map((m) => m.winnerTeamId as string).filter((id) => id && id !== "TBD");
+      if (winners.length === 0) continue;
+      // 段位高者列前；同段位按 teamId 稳定排序，保证每次结果一致
+      const ordered = [...winners].sort((x, y) => rankOf(y) - rankOf(x) || x.localeCompare(y));
+      ordered.forEach((teamId, index) => {
+        qualifiers.push({ teamId, group, placement: (index + 1) as 1 | 2 });
+      });
+    }
+  }
+
   return qualifiers.sort((a, b) => a.group.localeCompare(b.group, "zh-CN") || a.placement - b.placement);
 }
 
@@ -208,6 +248,7 @@ export function resolveStagedDrawGate(
   frozenTeamIds: string[],
   matches: ScheduleMatch[],
   qualifierByes: string[] = [],
+  rankOf?: (teamId: string) => number,
 ): StagedDrawGate {
   const [qualifierStage, groupStage, knockoutStage] = stages;
   const qualifierMatches = stageMatches(matches, qualifierStage.name);
@@ -267,7 +308,7 @@ export function resolveStagedDrawGate(
     };
   }
 
-  const qualifiers = extractGroupQualifiers(groupStage, matches);
+  const qualifiers = extractGroupQualifiers(groupStage, matches, rankOf);
   if (qualifiers.length !== knockoutStage.teamCount || new Set(qualifiers.map((item) => item.teamId)).size !== knockoutStage.teamCount) {
     return { status: "blocked", stageIndex: 2, stage: knockoutStage, message: "无法从小组赛结果中确认每组第一和第二，请核对胜者出线战与最终出线战赛果。" };
   }
