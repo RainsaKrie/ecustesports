@@ -39,7 +39,7 @@ function isPlaceholder(match: ScheduleMatch): boolean {
   return id(match.teamAId) || id(match.teamBId);
 }
 
-function isGroupPhase(phase: string): boolean {
+export function isGroupPhase(phase: string): boolean {
   return GROUP_PHASE_HINTS.some((hint) => phase.includes(hint));
 }
 

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import StatusChip from "@/components/events/StatusChip";
 import GroupStandings from "@/components/events/GroupStandings";
+import Button from "@/components/ui/Button";
 
 import { useSchedule } from "@/hooks/useSchedule";
 import type { GameResult } from "@/lib/domains/schedule/schedule-data";
 import { currentPhaseStats } from "@/lib/domains/schedule/phase-stats";
+import { isGroupPhase } from "@/lib/domains/schedule/group-standings";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
@@ -154,7 +156,10 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
 
       {/* 分组积分：**不再在外层判断"该不该出现"** —— 组件内部有完整的空态与识别逻辑。
           外层再判一次，等于两处各持一份阶段名清单，任一处漏词整块就静默消失（2026-10-21 踩过）。 */}
-      <section>
+      {/* 分组积分只在**赛程里确实有小组阶段**时出现 —— 否则进了淘汰赛后
+          标题换了、内容还是小组积分表（负责人 2026-10-22 截图指出）。 */}
+      {matches.some((m) => isGroupPhase(m.phase)) && (
+        <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
               <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.16em] text-[var(--pub-red)]">GROUP STANDINGS</p>
@@ -163,6 +168,21 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
           </div>
           <GroupStandings matches={matches} />
         </section>
+      )}
+
+      {/* 淘汰阶段：给出对阵图入口。对阵图在独立页面（/events/[id]/bracket），
+          赛程页放一条引导，避免"进了淘汰赛却看不到树"。 */}
+      {eventId && matches.some((m) => m.phase.includes("淘汰")) && (
+        <section className="border border-[var(--pub-line)] bg-[var(--pub-card)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-mono text-[length:var(--pub-fs-xs)] font-black tracking-[0.16em] text-[var(--pub-red)]">KNOCKOUT BRACKET</p>
+              <h3 className="mt-1 text-lg font-black text-[var(--pub-txt)]">淘汰赛对阵图</h3>
+            </div>
+            <Button href={`/events/${eventId}/bracket`} variant="secondary" size="md">查看对阵图</Button>
+          </div>
+        </section>
+      )}
 
       {rest.length > 0 && (
         <section>
