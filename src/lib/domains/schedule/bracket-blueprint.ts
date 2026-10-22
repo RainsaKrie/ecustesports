@@ -121,8 +121,12 @@ export function bracketDataIssue(matches: ScheduleMatch[], stages: StageConfig[]
     const phaseMatches = matches.filter((match) => match.phase === stage.name);
     if (phaseMatches.length === 0) continue;
     const expected = expectedStageMatches(stages, stageIndex);
-    if (expected !== null && phaseMatches.length !== expected) {
-      return `${stage.name}按当前赛制应有 ${expected} 场，现有数据为 ${phaseMatches.length} 场。`;
+    // `expected` 是"完整打完"的场次数。**实际少于它不算错误** ——
+    // 赛事中途取消某轮（例如取消小组决赛、直接进淘汰赛）是合法运营动作；
+    // 赛制模型（单败：每组 teamCount-1 场）表达不出"少打一场"，
+    // 所以这里只在**多于**预期时才判错（多出来通常是换了赛制却没清旧数据）。
+    if (expected !== null && phaseMatches.length > expected) {
+      return `${stage.name}按当前赛制最多 ${expected} 场，现有数据为 ${phaseMatches.length} 场，请检查是否混入了旧赛制数据。`;
     }
     if (phaseMatches.some((match) => match.boType !== stage.boType && !["败者组决赛", "总决赛"].includes(match.round ?? ""))) {
       return `${stage.name}的比赛局制与当前赛事配置不一致。`;
