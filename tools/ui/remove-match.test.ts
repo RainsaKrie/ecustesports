@@ -29,13 +29,24 @@ const s2 = removeMatchOp(state([m("M1", "已完成")]), "M1");
 check("已完成的拒绝删除", !s2.ok, s2.ok ? "竟然删掉了" : "");
 check("拒绝时给出原因", !s2.ok && s2.message.includes("已完成"), !s2.ok ? s2.message : "");
 
-// ③ 被后续比赛引用的不能删（悬空引用）
+// ③ 被后续比赛指向的**可以删**，但要把链接断开（不拒绝）
+//    —— 典型场景：取消小组决赛，半决赛的 nextMatchId 正指着它。
 const s3 = removeMatchOp(
   state([m("M1", "待排期"), m("M2", "待排期", { nextMatchId: "M1" } as Partial<ScheduleMatch>)]),
   "M1",
 );
-check("被引用的拒绝删除", !s3.ok, s3.ok ? "竟然删掉了" : "");
-check("拒绝时点名引用方", !s3.ok && s3.message.includes("M2"), !s3.ok ? s3.message : "");
+check("被指向的可以删（不能因此永远删不掉）", s3.ok, s3.ok ? "" : s3.message);
+if (s3.ok) {
+  const survivor = s3.state.matches.find((x) => x.id === "M2");
+  check("指向它的链接已断开", survivor?.nextMatchId === undefined, String(survivor?.nextMatchId));
+  check("其余比赛保留", s3.state.matches.length === 1, String(s3.state.matches.length));
+}
+// 败者路径的链接也要一并断开
+const s3b = removeMatchOp(
+  state([m("M1", "待排期"), m("M2", "待排期", { nextLoserMatchId: "M1" } as Partial<ScheduleMatch>)]),
+  "M1",
+);
+check("败者路径链接也断开", s3b.ok && s3b.state.matches[0].nextLoserMatchId === undefined);
 
 // ④ 不存在的 id 不抛异常
 const s4 = removeMatchOp(state([m("M1", "待排期")]), "NOPE");
