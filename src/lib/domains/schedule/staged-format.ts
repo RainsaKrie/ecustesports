@@ -126,12 +126,13 @@ export function resolvePlayInGate(
     return { status: "ready", stageIndex: 0, stage: playInStage, entrantIds: playInTeamIds };
   }
   const expected = playInStage.teamCount / 2;
-  if (playInMatches.length !== expected) {
+  // 只在"多于"预期时报错；少于预期说明比赛被取消过，属合法运营动作（同 bracketDataIssue）。
+  if (playInMatches.length > expected) {
     return {
       status: "blocked",
       stageIndex: 0,
       stage: playInStage,
-      message: `${playInStage.name}应有 ${expected} 场，当前赛程为 ${playInMatches.length} 场，请先核对赛程。`,
+      message: `${playInStage.name}最多 ${expected} 场，当前赛程为 ${playInMatches.length} 场，请先核对赛程。`,
     };
   }
   const winners = completedWinners(playInMatches);
@@ -225,8 +226,8 @@ export function resolveStagedDrawGate(
   }
 
   const expectedMatches = groupStage.teamCount - qualifierByes.length;
-  if (qualifierMatches.length !== expectedMatches) {
-    return { status: "blocked", stageIndex: 0, stage: qualifierStage, message: `入围赛应有 ${expectedMatches} 场，当前赛程为 ${qualifierMatches.length} 场，请先核对赛程。` };
+  if (qualifierMatches.length > expectedMatches) {
+    return { status: "blocked", stageIndex: 0, stage: qualifierStage, message: `入围赛最多 ${expectedMatches} 场，当前赛程为 ${qualifierMatches.length} 场，请先核对赛程。` };
   }
   const qualifierWinners = completedWinners(qualifierMatches);
   const qualifiedIds = [...qualifierWinners, ...qualifierByes];
@@ -249,11 +250,13 @@ export function resolveStagedDrawGate(
     return { status: "ready", stageIndex: 1, stage: groupStage, entrantIds: qualifiedIds };
   }
   const groupExpected = groupStageExpectedMatches(groupStage);
-  if (groupMatches.length !== groupExpected) {
-    return { status: "blocked", stageIndex: 1, stage: groupStage, message: `小组赛应有 ${groupExpected} 场，当前赛程为 ${groupMatches.length} 场，请先核对赛程。` };
+  if (groupMatches.length > groupExpected) {
+    return { status: "blocked", stageIndex: 1, stage: groupStage, message: `小组赛最多 ${groupExpected} 场，当前赛程为 ${groupMatches.length} 场，请先核对赛程。` };
   }
   const completedGroupMatches = groupMatches.filter((match) => match.status === "已完成").length;
-  if (completedGroupMatches < groupExpected) {
+  // 判"是否打完"要对照**赛程里实际存在的场次**，不是赛制预期 ——
+  // 取消过某轮时两者不等，拿预期去比会永远停在"还没打完"。
+  if (completedGroupMatches < groupMatches.length) {
     return {
       status: "waiting",
       stageIndex: 1,
