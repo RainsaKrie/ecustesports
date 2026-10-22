@@ -6,6 +6,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { removeMatchOp } from "@/lib/domains/schedule/remove-match";
 import type { ScheduleState, ScheduleMatch, GameResult } from "@/lib/domains/schedule/schedule-data";
 import { applyBulkAssignments, type BulkAssignment } from "@/lib/domains/schedule/bulk-schedule";
 import { teamSwapRefusal, type TeamSlot } from "@/lib/domains/schedule/team-swap";
@@ -240,6 +241,18 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     setState((s) => toggleFrozenOp(s, matchId));
   }, []);
 
+  /** 删除一场比赛（2026-10-22）：赛事中途取消某场时用。返回失败原因，成功返回 null。 */
+  const removeMatch = useCallback((matchId: string): string | null => {
+    let reason: string | null = null;
+    setState((s) => {
+      const out = removeMatchOp(s, matchId);
+      if (!out.ok) { reason = out.message; return s; }
+      dirtyRef.current = true;
+      return out.state;
+    });
+    return reason;
+  }, []);
+
   /**
    * 报分：录入逐局结果、校验比分、判定胜者、标记完成，
    * 并推进胜者（胜者路径）与败者（双败路径）进入后续场次。
@@ -344,6 +357,7 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     approveRequest,
     rejectRequest,
     toggleFrozen,
+    removeMatch,
     reportGameResults,
     setMatchTime,
     importMatches,
