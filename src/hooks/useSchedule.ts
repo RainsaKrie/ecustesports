@@ -130,10 +130,17 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
            * 服务端已加了内容级护栏，这里补上「重载」把页面救回一致状态。
            */
           await refresh().catch(() => undefined);
-          setSaveError(result.message ?? "赛程已被其他操作更新，已重新载入最新赛程");
+          // 冲突时本地改动**没有被保存**，必须让用户知道，而不是悄悄回滚。
+          dirtyRef.current = true;
+          setSaveError(
+            `${result.message ?? "赛程已被其他操作更新"}（你的改动没有保存，请确认最新数据后重做）`,
+          );
           return;
         }
         if (!response.ok || !result.schedule) {
+          // 保存失败必须把 dirty 置回 true —— 否则这次改动就永远丢了，
+          // 页面上还显示着"已改"的样子（2026-10-22 删 4 场决赛后线上又变回 12 场就是这条）。
+          dirtyRef.current = true;
           throw new Error(result.message ?? "赛程保存失败");
         }
         const saved = normalizeScheduleState(result.schedule);
@@ -144,7 +151,8 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
         setState((current) => current === snapshot ? saved : current);
       })
       .catch((error) => {
-        setSaveError(error instanceof Error ? error.message : "赛程保存失败");
+        dirtyRef.current = true; // 让人能重试，而不是把改动丢掉
+        setSaveError(`${error instanceof Error ? error.message : "赛程保存失败"}（改动尚未保存）`);
       })
       .finally(() => {
         inFlightRef.current = Math.max(0, inFlightRef.current - 1);
