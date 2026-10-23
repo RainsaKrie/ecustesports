@@ -318,11 +318,13 @@ export function resolveStagedDrawGate(
     return { status: "ready", stageIndex: 2, stage: knockoutStage, entrantIds: qualifiers.map((item) => item.teamId), qualifiers };
   }
   const knockoutExpected = knockoutStage.teamCount * 2 - 2;
-  if (knockoutMatches.length !== knockoutExpected) {
-    return { status: "blocked", stageIndex: 2, stage: knockoutStage, message: `淘汰赛应有 ${knockoutExpected} 场，当前赛程为 ${knockoutMatches.length} 场，请先核对赛程。` };
+  // 同小组赛：只在"多于"预期时报错，少于视为取消过某场（弃权/免赛）。
+  if (knockoutMatches.length > knockoutExpected) {
+    return { status: "blocked", stageIndex: 2, stage: knockoutStage, message: `淘汰赛最多 ${knockoutExpected} 场，当前赛程为 ${knockoutMatches.length} 场，请先核对赛程。` };
   }
   const completedKnockoutMatches = knockoutMatches.filter((match) => match.status === "已完成").length;
-  if (completedKnockoutMatches < knockoutExpected) {
+  // 判"是否打完"对照**赛程里实际存在的场次**（同小组赛，取消过某轮时两者不等）。
+  if (completedKnockoutMatches < knockoutMatches.length) {
     return {
       status: "waiting",
       stageIndex: 2,

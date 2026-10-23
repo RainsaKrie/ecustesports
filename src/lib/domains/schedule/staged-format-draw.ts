@@ -78,7 +78,8 @@ export function autoFillPendingSlots(
   // 资格赛必须全部打完，否则「胜者」还不完整，填了就是填错
   const qualifierMatches = matches.filter((match) => match.phase === options.qualifierPhase);
   const expectedQualifierMatches = options.qualifierTeamCount / 2;
-  if (qualifierMatches.length !== expectedQualifierMatches) return { matches, filled: 0 };
+  // 只在"多于"预期时放弃；少于预期（取消过某场）仍可用已完成的胜者补齐。
+  if (qualifierMatches.length > expectedQualifierMatches) return { matches, filled: 0 };
   if (qualifierMatches.some((match) => match.status !== "已完成")) return { matches, filled: 0 };
 
   const winners = qualifierMatches
