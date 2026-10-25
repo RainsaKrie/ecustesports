@@ -89,7 +89,9 @@ export function buildBracketBlueprint(stages: StageConfig[]): ScheduleMatch[] {
   });
 }
 
-function expectedStageMatches(stages: StageConfig[], stageIndex: number): number | null {
+const DEFAULT_GROUP_COUNT = 4;
+
+export function expectedStageMatches(stages: StageConfig[], stageIndex: number): number | null {
   const stage = stages[stageIndex];
   if (!stage) return null;
   if (stage.type === "single-elim") {
@@ -100,13 +102,17 @@ function expectedStageMatches(stages: StageConfig[], stageIndex: number): number
     if (nextStage.teamCount > stage.teamCount) return stage.teamCount / 2;
     return stage.teamCount - nextStage.teamCount;
   }
-  if (stage.type === "gsl-groups") return (stage.groupCount ?? 0) * 5;
+  // 缺省组数与 `staged-format.ts` 保持一致（原来这里 `?? 0` 会算成 0 场，
+  // 而门控那边用 `?? 4` 算成 20 场 —— 同一阶段两处提示互相矛盾）。
+  if (stage.type === "gsl-groups") return (stage.groupCount ?? DEFAULT_GROUP_COUNT) * 5;
   if (stage.type === "single-elim-groups") {
-    const groups = stage.groupCount ?? 1;
+    const groups = stage.groupCount ?? DEFAULT_GROUP_COUNT;
     const perGroup = Math.max(2, Math.floor(stage.teamCount / groups));
     return groups * (perGroup - 1);
   }
-  if (stage.type === "double-elim" && stage.teamCount === 8) return 14;
+  // 双败场次通用公式：胜者组 (n-1) + 败者组 (n-2) + 总决赛 1 = 2n-2。
+  // 8 队 = 14（与现有对阵结构一致）；原来只写死 8 队，16 队会返回 null 等于不校验。
+  if (stage.type === "double-elim") return Math.max(0, 2 * stage.teamCount - 2);
   return null;
 }
 
