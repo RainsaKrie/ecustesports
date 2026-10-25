@@ -82,7 +82,8 @@
     "test:expected-guard": "tsx tools/ui/expected-count-guard.test.ts",
     "test:match-count": "tsx tools/ui/stage-match-count.test.ts",
     "test:stage-role": "tsx tools/ui/stage-role.test.ts",
-    "test:bo-round": "tsx tools/ui/bo-by-round.test.ts"
+    "test:bo-round": "tsx tools/ui/bo-by-round.test.ts",
+    "ops:preflight": "tsx tools/gate6/bracket-preflight.ts"
   },
   "dependencies": {
     "geist": "^1.7.2",
