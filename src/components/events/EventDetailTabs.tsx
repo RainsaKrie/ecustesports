@@ -129,10 +129,13 @@ export default function EventDetailTabs({
   event,
   initialTab,
   preview = false,
+  stageConfigs,
 }: {
   eventId: string;
   stage: EventStage;
   event: HandbookEvent;
+  /** 赛制阶段配置（用于按类型判断小组/淘汰阶段，不依赖阶段名） */
+  stageConfigs?: { name: string; type: string; role?: string }[];
   initialTab?: string;
   preview?: boolean;
 }) {
@@ -166,7 +169,7 @@ export default function EventDetailTabs({
       {tab === "赛事手册" && <EventHandbook event={event} />}
       {tab === "选手名单" && <PlayerList players={state.players} />}
       {tab === "队伍名单" && <TeamList teams={state.teams} eventId={eventId} />}
-      {tab === "赛程" && <PublicSchedule eventId={eventId} preview={preview} />}
+      {tab === "赛程" && <PublicSchedule eventId={eventId} preview={preview} stageConfigs={stageConfigs} />}
       {tab === "对阵图" && <ScheduleBracket eventId={eventId} preview={preview} />}
     </div>
   );

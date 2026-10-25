@@ -10,7 +10,7 @@
 // 角色优先级：显式 `role` 字段 > 阶段类型 `type` > 名字兜底（兼容旧配置）。
 // =====================
 
-import type { StageConfig } from "./format-templates.ts";
+import type { StageType } from "./format-templates.ts";
 
 /** 阶段在赛制里的角色。界面与门控只看它，不看名字。 */
 export type StageRole = "qualifier" | "group" | "knockout";
@@ -22,8 +22,15 @@ export type StageRole = "qualifier" | "group" | "knockout";
  * 强行要求会让旧赛事全部失效。所以按 **role → type → 名字** 三级回退，
  * 旧配置行为不变，新配置可以显式声明。
  */
-export function roleOf(stage: Pick<StageConfig, "name" | "type"> & { role?: StageRole }): StageRole {
-  if (stage.role) return stage.role;
+type StageLike = { name: string; type: StageType | string; role?: StageRole | string };
+
+function normalizeRole(role: string | undefined): StageRole | undefined {
+  return role === "qualifier" || role === "group" || role === "knockout" ? role : undefined;
+}
+
+export function roleOf(stage: StageLike): StageRole {
+  const declared = normalizeRole(stage.role);
+  if (declared) return declared;
   // 类型本身就是强语义，优先于名字
   if (stage.type === "gsl-groups" || stage.type === "single-elim-groups" || stage.type === "round-robin") {
     return "group";
@@ -34,7 +41,7 @@ export function roleOf(stage: Pick<StageConfig, "name" | "type"> & { role?: Stag
 }
 
 /** 这个阶段是不是小组赛（含组内单败 / GSL / 单循环）。 */
-export function isGroupStage(stage: Pick<StageConfig, "name" | "type"> & { role?: StageRole }): boolean {
+export function isGroupStage(stage: StageLike): boolean {
   return roleOf(stage) === "group";
 }
 
@@ -44,7 +51,7 @@ export function isGroupStage(stage: Pick<StageConfig, "name" | "type"> & { role?
  */
 export function hasGroupPhase(
   matches: { phase: string }[],
-  stages: (Pick<StageConfig, "name" | "type"> & { role?: StageRole })[] | undefined,
+  stages: StageLike[] | undefined,
 ): boolean {
   if (stages && stages.length > 0) return stages.some(isGroupStage);
   const HINTS = ["小组赛", "组内", "GSL"];

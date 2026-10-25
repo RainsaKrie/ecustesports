@@ -44,6 +44,8 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   // 阶段判定（自动 + 手动覆盖）
   const schedule = await readEventData<ScheduleState>(cfgEvent.id, "schedule", emptySchedule());
+  // 赛制配置：界面判断"有没有小组阶段"用得到（按 type/role 判，不靠阶段名 —— 见 stage-role.ts）
+  const formatDoc = await readEventData<{ stageConfigs?: { name: string; type: string; role?: string }[] }>(cfgEvent.id, "format", {});
   const stageCards = stageCardsFromMatches(schedule.matches);
   const hasSchedule = Array.isArray(schedule.matches) && schedule.matches.length > 0;
   const stage = getEventStage({
@@ -168,7 +170,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
         <StageCards className="mt-10" items={stageCards.items} currentIndex={stageCards.currentIndex} />
 
         <div className="mt-8">
-          <EventDetailTabs key={`${stage}-${tab ?? "default"}`} eventId={id} stage={stage} event={event} initialTab={tab} preview={previewMode} />
+          <EventDetailTabs key={`${stage}-${tab ?? "default"}`} eventId={id} stage={stage} event={event} initialTab={tab} preview={previewMode} stageConfigs={formatDoc.stageConfigs ?? []} />
         </div>
       </Container>
     </div>

@@ -33,7 +33,16 @@ function winCount(games: GameResult[] | undefined, side: "A" | "B"): number {
 
 
 
-export default function PublicSchedule({ eventId, preview = false }: { eventId: string; preview?: boolean }) {
+export default function PublicSchedule({
+  eventId,
+  preview,
+  stageConfigs,
+}: {
+  eventId: string;
+  preview?: boolean;
+  /** 赛制阶段配置；不传则按阶段名兜底（见 stage-role.ts） */
+  stageConfigs?: { name: string; type: string; role?: string }[];
+}) {
   const { state } = useSchedule(eventId, preview ? "preview" : "public");
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const matches = state.matches;
@@ -160,7 +169,7 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
           标题换了、内容还是小组积分表（负责人 2026-10-22 截图指出）。 */}
       {/* 阶段配置目前没有传进这个组件，先用名字兜底（行为与之前一致）。
           等调用方把 stageConfigs 传下来，改这一行即可让"改阶段名"也不影响显示。 */}
-      {hasGroupPhase(matches, undefined) && (
+      {hasGroupPhase(matches, stageConfigs) && (
         <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
