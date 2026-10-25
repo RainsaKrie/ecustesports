@@ -169,8 +169,8 @@ export function buildDoubleEliminationMatches(
     [L2B, "败者组第二轮", options.boType],
     [WF, "胜者组决赛", options.boType],
     [L3, "败者组第三轮", options.boType],
-    [LF, "败者组决赛", "BO5"],
-    [GF, "总决赛", "BO5"],
+    [LF, "败者组决赛", DOUBLE_ELIM_BO["败者组决赛"]],
+    [GF, "总决赛", DOUBLE_ELIM_BO["总决赛"]],
   ];
   const matches = definitions.map(([id, round, boType]) =>
     createMatch(id, options.phase, round, boType),
@@ -392,7 +392,8 @@ export function buildTournamentMatches(  groups: Group[],
   return matches;
 }
 
-/** 无后续晋级的决赛，胜者即冠军。 */
+/** 双败按轮次局制（构建与校验共用）。无后续晋级的决赛，胜者即冠军。 */
+export const DOUBLE_ELIM_BO: Record<string, "BO1" | "BO3" | "BO5"> = { 败者组决赛: "BO5", 总决赛: "BO5" };
 export function isChampionMatch(match: ScheduleMatch): boolean {
   return match.round === "总决赛" || match.round === "决赛";
 }

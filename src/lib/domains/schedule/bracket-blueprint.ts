@@ -7,6 +7,7 @@ import {
   buildTournamentMatches,
 } from "./bracket-engine.ts";
 import type { Group, Matchup } from "@/lib/domains/registration/format";
+import { DOUBLE_ELIM_BO } from "./bracket-engine.ts";
 import { resolveSupportedFormat } from "./format-support.ts";
 import type { StageConfig } from "./format-templates.ts";
 import type { ScheduleMatch } from "./schedule-data.ts";
@@ -134,10 +135,10 @@ export function bracketDataIssue(matches: ScheduleMatch[], stages: StageConfig[]
     if (expected !== null && phaseMatches.length > expected) {
       return `${stage.name}按当前赛制最多 ${expected} 场，现有数据为 ${phaseMatches.length} 场，请检查是否混入了旧赛制数据。`;
     }
-    // 双败淘汰赛里，靠后的几轮会升到 BO5，与阶段默认的 BO3 不同 —— 这是赛制本意，不是数据错误。
-    // 例外名单要列全：胜者组决赛同样是 BO5（2026-10-22 漏了它，导致整个对阵图被判"局制不一致"）。
-    const BO_EXEMPT_ROUNDS = ["胜者组决赛", "败者组决赛", "总决赛"];
-    if (phaseMatches.some((match) => match.boType !== stage.boType && !BO_EXEMPT_ROUNDS.includes(match.round ?? ""))) {
+    // 局制：配置 boByRound > 双败固定约定 > 阶段 boType（原来是"例外名单"，漏一项就吞掉整块图）
+    const boByRound: Record<string, string> = stage.boByRound ?? (stage.type === "double-elim" ? DOUBLE_ELIM_BO : {});
+    const boOf = (round: string | undefined) => boByRound[round ?? ""] ?? stage.boType;
+    if (phaseMatches.some((match) => match.boType !== boOf(match.round))) {
       return `${stage.name}的比赛局制与当前赛事配置不一致。`;
     }
   }

@@ -19,8 +19,8 @@ export interface StageConfig {
   type: StageType;
   teamCount: number;
   boType: "BO1" | "BO3" | "BO5";
-  /** gsl-groups / single-elim-groups / round-robin 的分组数 */
-  groupCount?: number;
+  groupCount?: number; // gsl-groups / single-elim-groups / round-robin 的分组数
+  boByRound?: Record<string, "BO1" | "BO3" | "BO5">; // 按轮次覆盖局制，缺省 boType
 }
 
 export const STAGE_TYPE_LABELS: Record<StageType, string> = {
