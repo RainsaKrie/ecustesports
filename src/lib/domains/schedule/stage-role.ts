@@ -49,11 +49,13 @@ export function isGroupStage(stage: StageLike): boolean {
  * 赛程里是否存在小组阶段（按阶段配置判断，不看比赛数据的 phase 字符串）。
  * 找不到配置时退回"比赛数据的 phase 名字里含小组类关键词"。
  */
+/** 小组类阶段名的关键词。**唯一出处** —— 别在别处再写一份（2026-10-25 就重复过一次）。 */
+export const GROUP_PHASE_KEYWORDS = ["小组赛", "组内", "GSL"] as const;
+
 export function hasGroupPhase(
   matches: { phase: string }[],
   stages: StageLike[] | undefined,
 ): boolean {
   if (stages && stages.length > 0) return stages.some(isGroupStage);
-  const HINTS = ["小组赛", "组内", "GSL"];
-  return matches.some((m) => HINTS.some((hint) => m.phase.includes(hint)));
+  return matches.some((m) => GROUP_PHASE_KEYWORDS.some((hint) => m.phase.includes(hint)));
 }

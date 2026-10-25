@@ -10,6 +10,7 @@
 // =====================
 
 import type { ScheduleMatch } from "@/lib/domains/schedule/schedule-data";
+import { GROUP_PHASE_KEYWORDS } from "@/lib/domains/schedule/stage-role";
 
 type Row = {
   id: string;
@@ -23,9 +24,7 @@ type Row = {
 
 // 阶段名在不同赛事里写法不同：「小组赛」「组内」「GSL 小组」「GSL」都见过。
 // 少写一个词，整块积分表就静默消失 —— 2026-10-21 在 event-1 上踩过一次。
-// 保留这份关键词只用于"没有阶段配置时"的兜底；
-// 有配置时一律走 `stage-role.ts` 的 role 判定（名字改了也能认出来）。
-const GROUP_PHASE_HINTS = ["小组赛", "组内", "GSL"];
+// 关键词统一从 `stage-role.ts` 取（唯一出处），这里不再自建一份。
 
 /**
  * 占位队伍（2026-10-20 修）：抽签前/对手未定时，对阵里是 `TBD` / `待定` / `SLOT-01` 这类占位。
@@ -42,7 +41,7 @@ function isPlaceholder(match: ScheduleMatch): boolean {
 }
 
 export function isGroupPhase(phase: string): boolean {
-  return GROUP_PHASE_HINTS.some((hint) => phase.includes(hint));
+  return GROUP_PHASE_KEYWORDS.some((hint) => phase.includes(hint));
 }
 
 /**
