@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import { useSchedule } from "@/hooks/useSchedule";
 import type { GameResult } from "@/lib/domains/schedule/schedule-data";
 import { currentPhaseStats } from "@/lib/domains/schedule/phase-stats";
-import { isGroupPhase } from "@/lib/domains/schedule/group-standings";
+import { hasGroupPhase } from "@/lib/domains/schedule/stage-role";
 
 function fmt(iso: string): string {
   if (!iso) return "待安排";
@@ -158,7 +158,9 @@ export default function PublicSchedule({ eventId, preview = false }: { eventId: 
           外层再判一次，等于两处各持一份阶段名清单，任一处漏词整块就静默消失（2026-10-21 踩过）。 */}
       {/* 分组积分只在**赛程里确实有小组阶段**时出现 —— 否则进了淘汰赛后
           标题换了、内容还是小组积分表（负责人 2026-10-22 截图指出）。 */}
-      {matches.some((m) => isGroupPhase(m.phase)) && (
+      {/* 阶段配置目前没有传进这个组件，先用名字兜底（行为与之前一致）。
+          等调用方把 stageConfigs 传下来，改这一行即可让"改阶段名"也不影响显示。 */}
+      {hasGroupPhase(matches, undefined) && (
         <section>
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
