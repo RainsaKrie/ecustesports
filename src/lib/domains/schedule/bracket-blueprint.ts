@@ -133,7 +133,13 @@ export function bracketDataIssue(matches: ScheduleMatch[], stages: StageConfig[]
     // 赛制模型（单败：每组 teamCount-1 场）表达不出"少打一场"，
     // 所以这里只在**多于**预期时才判错（多出来通常是换了赛制却没清旧数据）。
     if (expected !== null && phaseMatches.length > expected) {
-      return `${stage.name}按当前赛制最多 ${expected} 场，现有数据为 ${phaseMatches.length} 场，请检查是否混入了旧赛制数据。`;
+      // 报错要说清"多了什么"，否则现场只知道数字不对、不知道该删哪几场（审查 4.4）
+      const extra = phaseMatches.length - expected;
+      const byRound = new Map<string, number>();
+      for (const m of phaseMatches) byRound.set(m.round ?? "(无轮次)", (byRound.get(m.round ?? "(无轮次)") ?? 0) + 1);
+      const dist = [...byRound.entries()].map(([r, n]) => `${r}×${n}`).join("、");
+      return `${stage.name}按当前赛制最多 ${expected} 场，现有 ${phaseMatches.length} 场（多 ${extra} 场）。`
+        + `当前轮次分布：${dist}。请检查是否混入了旧赛制数据。`;
     }
     // 局制：配置 boByRound > 双败固定约定 > 阶段 boType（原来是"例外名单"，漏一项就吞掉整块图）
     const boByRound: Record<string, string> = stage.boByRound ?? (stage.type === "double-elim" ? DOUBLE_ELIM_BO : {});
