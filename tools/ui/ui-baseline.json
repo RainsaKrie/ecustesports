@@ -4,11 +4,11 @@
     "src/components/admin/EventListSwitcher.tsx",
     "src/components/admin/EventSettingsWorkspace.tsx",
     "src/components/admin/RegistrationOperationsWorkspace.tsx",
+    "src/components/admin/RegistrationTeamGrid.tsx",
     "src/components/admin/RegistrationWorkspaceParts.tsx",
     "src/components/admin/ui/AdminOverflowMenu.tsx"
   ],
   "looseTransition": [
-    "src/app/bp/[id]/page.tsx",
-    "src/components/legacy/GameLanding.tsx"
+    "src/app/bp/[id]/page.tsx"
   ]
 }
