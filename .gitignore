@@ -63,3 +63,6 @@ next-env.d.ts
 #   · 演示赛事夹具 —— 由 seedDemoReporting 按需重新生成，提交了会变成会漂移的假数据
 /data/evidence/
 /data/events/demo-referee/
+
+# 截图基线要进版本库（供比对），当前截图不入库
+output/screenshots/current/

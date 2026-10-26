@@ -88,7 +88,9 @@
     "test:stage-gate": "tsx tools/ui/stage-gate-cancel.test.ts",
     "test:round-structure": "tsx tools/ui/round-structure.test.ts",
     "test:scrub": "tsx tools/ui/scrub-personal.test.ts",
-    "test:group-final": "tsx tools/ui/group-final-toggle.test.ts"
+    "test:group-final": "tsx tools/ui/group-final-toggle.test.ts",
+    "ops:screenshots": "tsx tools/e2e/screenshots.ts",
+    "ops:screenshots:capture": "tsx tools/e2e/screenshots.ts --capture"
   },
   "dependencies": {
     "geist": "^1.7.2",
