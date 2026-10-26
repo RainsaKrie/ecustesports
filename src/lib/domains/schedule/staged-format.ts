@@ -150,7 +150,8 @@ export function resolvePlayInGate(
       advancingTeamIds: winners,
       pendingCount,
       completedMatches: winners.length,
-      totalMatches: expected,
+      // 进度口径一律对照赛程里实际存在的场次，不用赛制预期（取消过某轮时两者不等）
+      totalMatches: playInMatches.length,
       message: `${playInStage.name}已决出 ${winners.length} / ${expected} 席。可以先抽入围赛：已决出的先进签位，其余 ${pendingCount} 席留作待定，等资格赛结果出来后补齐。`,
     };
   }
@@ -278,7 +279,7 @@ export function resolveStagedDrawGate(
       stageIndex: 0,
       stage: qualifierStage,
       completedMatches: qualifierWinners.length,
-      totalMatches: expectedMatches,
+      totalMatches: qualifierMatches.length,
       message: `完成全部 ${expectedMatches} 场入围赛并提交赛果后，才会开放小组赛抽签。`,
     };
   }
@@ -303,7 +304,7 @@ export function resolveStagedDrawGate(
       stageIndex: 1,
       stage: groupStage,
       completedMatches: completedGroupMatches,
-      totalMatches: groupExpected,
+      totalMatches: groupMatches.length,
       message: `完成全部 ${groupExpected} 场小组赛并提交赛果后，才会开放淘汰赛抽签。`,
     };
   }
@@ -330,7 +331,7 @@ export function resolveStagedDrawGate(
       stageIndex: 2,
       stage: knockoutStage,
       completedMatches: completedKnockoutMatches,
-      totalMatches: knockoutExpected,
+      totalMatches: knockoutMatches.length,
       message: `淘汰赛已发布，当前完成 ${completedKnockoutMatches} / ${knockoutExpected} 场。`,
     };
   }
