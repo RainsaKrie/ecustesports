@@ -449,12 +449,12 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
               {/* 汇总复制：队长群缺人时，一次拿到当前列表全部队长的号，
                   不用在 36 张卡里挨个点。复制的是**当前筛选与排序下的队伍**，
                   按钮上直接写出队数，避免「筛了一半却以为复制的是全部」。 */}
+              <button type="button" onClick={() => void runOperation("scrub-personal-data", {}, false)} title="清掉姓名/学号/QQ/手机/位置/自我介绍；保留队伍、游戏 ID、段位与赛果" className="inline-flex min-h-[32px] shrink-0 items-center adm-panel px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] hover:border-[var(--adm-red-text)] hover:text-[var(--adm-red-text)]">清理个人信息</button>
               <CopyButton
                 text={captainContactSheet(visibleTeams)}
                 disabled={visibleTeams.length === 0}
-                label={`复制队长联系方式（${visibleTeams.length} 队）`}
-                copiedLabel={`已复制（${visibleTeams.length} 队）`}
-                title="按当前筛选与排序复制：队名 / 队长游戏 ID / 联系方式，制表符分隔，可直接粘进表格或聊天窗口"
+                label={`复制队长联系方式（${visibleTeams.length} 队）`} copiedLabel={`已复制（${visibleTeams.length} 队）`}
+                title="按当前筛选与排序复制：队名 / 队长 GameID / 联系方式，制表符分隔"
                 className="inline-flex min-h-[32px] shrink-0 items-center adm-panel px-[10px] text-[length:var(--adm-fs-sm)] font-bold leading-tight text-[var(--adm-text-soft)] hover:border-[var(--adm-text)] disabled:cursor-not-allowed disabled:text-[var(--adm-text-mute)]"
               />
             </div>

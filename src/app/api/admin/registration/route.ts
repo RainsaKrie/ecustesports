@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { scrubPersonalDataOp } from "@/lib/domains/registration/scrub-personal";
 
 import { isAdminRequest } from "@/lib/domains/identity/admin-session";
 import { readEventData, updateEventData } from "@/lib/data-store";
@@ -105,6 +106,11 @@ function dispatch(
       });
     case "approve-all-players":
       return approveAllPlayersAdminOp(state);
+    case "scrub-personal-data": {
+      // 赛事结束后清理个人身份信息（计划 A1）。保留队伍、段位、游戏 ID、赛果。
+      const out = scrubPersonalDataOp(state);
+      return { ok: true, message: `已清理 ${out.scrubbedPlayers} 名选手的个人信息`, state: out.state };
+    }
     case "update-player":
       return updatePlayerAdminOp(state, {
         playerId: text(payload.playerId, 80),
