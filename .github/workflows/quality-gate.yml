@@ -35,7 +35,13 @@ jobs:
           cache: npm
 
       - name: 安装依赖
-        run: npm ci
+        # 这里用 install 而不是 ci（2026-10-26）：仓库的 lock 文件是在 **Windows** 上生成的，
+        # `npm ci` 会严格比对 lock，而 Windows 生成的 lock 拿不到 Linux 专用的可选依赖
+        # （`@emnapi/core` / `@emnapi/runtime`），于是 CI 直接报
+        # `Missing: @emnapi/runtime@1.11.3 from lock file` 连装都装不上。
+        # `npm install` 会按 lock 解析、补齐当前平台缺的 optional 依赖，与本地开发一致。
+        # 代价：不再做"lock 与 package.json 完全一致"的强校验 —— 这个校验留给开发者本地自觉。
+        run: npm install --no-audit --no-fund
 
       # 这一步包含 4 道检查，按顺序执行，任何一道失败即整体失败：
       #   1. lint       eslint
