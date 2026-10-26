@@ -203,9 +203,13 @@ export function extractGroupSingleElimQualifiers(
   // 路径一（主）：有「X 组 决赛」就用它定第一第二
   for (const match of phaseMatches) {
     const round = match.round ?? "";
-    if (!round.endsWith("决赛") || round.endsWith("半决赛")) continue;
+    // 优先用结构化字段判断；旧数据没有这两个字段时退回字符串匹配。
+    // 字符串匹配的天生缺陷：「半决赛」也以「决赛」结尾，必须显式排掉；
+    // 再加一个「季军决赛」就会被误认成小组决赛（2026-10-26 审查 P1-4）。
+    const isFinal = match.roundStage ? match.roundStage === "final" : round.endsWith("决赛") && !round.endsWith("半决赛");
+    if (!isFinal) continue;
     if (match.status !== "已完成" || !match.winnerTeamId || match.winnerTeamId === "TBD") continue;
-    const group = round.replace(/\s*决赛$/, "").trim();
+    const group = match.roundGroup ?? round.replace(/\s*决赛$/, "").trim();
     groupsWithFinal.add(group);
     const loser = match.winnerTeamId === match.teamAId ? match.teamBId : match.teamAId;
     qualifiers.push({ teamId: match.winnerTeamId, group, placement: 1 });
@@ -218,8 +222,9 @@ export function extractGroupSingleElimQualifiers(
     const semiByGroup = new Map<string, ScheduleMatch[]>();
     for (const match of phaseMatches) {
       const round = match.round ?? "";
-      if (!round.endsWith("半决赛")) continue;
-      const group = round.replace(/\s*半决赛$/, "").trim();
+      const isSemi = match.roundStage ? match.roundStage === "semi" : round.endsWith("半决赛");
+      if (!isSemi) continue;
+      const group = match.roundGroup ?? round.replace(/\s*半决赛$/, "").trim();
       if (groupsWithFinal.has(group)) continue; // 有决赛的组走路径一
       if (match.status !== "已完成" || !match.winnerTeamId || match.winnerTeamId === "TBD") continue;
       const list = semiByGroup.get(group) ?? [];

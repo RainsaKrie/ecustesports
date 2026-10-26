@@ -59,3 +59,10 @@ export function hasGroupPhase(
   if (stages && stages.length > 0) return stages.some(isGroupStage);
   return matches.some((m) => GROUP_PHASE_KEYWORDS.some((hint) => m.phase.includes(hint)));
 }
+
+/** 轮次名 → 结构化轮次。生成侧用它填 `roundStage`，避免逻辑层再去猜字符串。 */
+export function roundStageOf(round: string | undefined): "semi" | "final" | "other" {
+  if (round === "半决赛") return "semi";
+  if (round === "决赛") return "final";
+  return "other";
+}

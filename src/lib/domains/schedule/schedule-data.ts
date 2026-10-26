@@ -36,6 +36,13 @@ export interface ScheduleMatch {
   nextLoserMatchId?: string; // 败者进入的下一场比赛（双败淘汰）
   nextLoserSide?: "A" | "B"; // 败者填入下一场的哪一侧
   round?: string; // 轮次（首轮 / 次轮 / 决赛等）
+  /**
+   * 结构化轮次（2026-10-26）。`round` 是给人看的字符串，**不能用来判断逻辑** ——
+   * 「半决赛」也以「决赛」结尾，再加一个「季军决赛」就会被误认成小组决赛。
+   * 新数据会带上这两个字段；旧数据没有，调用方按 `round` 字符串兜底。
+   */
+  roundStage?: "semi" | "final" | "other";
+  roundGroup?: string;
 }
 
 /** 一条改期申请 */

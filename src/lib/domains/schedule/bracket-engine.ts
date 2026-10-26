@@ -5,12 +5,12 @@
 
 import type { Group, Matchup } from "@/lib/domains/registration/format";
 import type { ScheduleMatch } from "./schedule-data.ts";
+import { roundStageOf } from "./stage-role.ts";
 
 /** 待定占位（晋级推进后由真实队伍填充） */
-import { BYE, PENDING, TBD, createMatch, isPowerOfTwo, matchId, singleEliminationRoundName, slot } from "@/lib/domains/schedule/bracket-engine-core";
+import { BYE, PENDING, TBD, createMatch, isPowerOfTwo, matchId, singleEliminationRoundName, slot, type MatchFactoryOptions, type Slot } from "@/lib/domains/schedule/bracket-engine-core";
 import { pairSwissRound } from "@/lib/domains/schedule/swiss";
 import { buildRoundRobinRounds } from "@/lib/domains/schedule/round-robin";
-import type { MatchFactoryOptions, Slot } from "@/lib/domains/schedule/bracket-engine-core";
 
 // 保持对外的导出面不变：常量此前从本模块导出。
 export { BYE, PENDING, TBD };
@@ -341,7 +341,7 @@ export function buildGroupSingleElimMatches(
       boType,
     });
     for (const match of bracket) {
-      matches.push({ ...match, round: `${group.name} ${match.round ?? ""}`.trim() });
+      matches.push({ ...match, round: `${group.name} ${match.round ?? ""}`.trim(), roundGroup: group.name, roundStage: roundStageOf(match.round) });
     }
     cursor += bracket.length;
   }
