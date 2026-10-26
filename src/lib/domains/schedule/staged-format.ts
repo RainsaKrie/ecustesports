@@ -58,7 +58,7 @@ function groupStageExpectedMatches(groupStage: StageConfig): number {
   const groups = groupStage.groupCount ?? 4;
   if (groupStage.type === "single-elim-groups") {
     const perGroup = Math.max(2, Math.floor(groupStage.teamCount / groups));
-    return groups * (perGroup - 1);
+    return groups * (perGroup - 1 - (groupStage.groupFinalEnabled === false ? 1 : 0));
   }
   return groups * 5;
 }

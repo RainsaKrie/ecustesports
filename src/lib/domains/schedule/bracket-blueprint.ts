@@ -109,7 +109,8 @@ export function expectedStageMatches(stages: StageConfig[], stageIndex: number):
   if (stage.type === "single-elim-groups") {
     const groups = stage.groupCount ?? DEFAULT_GROUP_COUNT;
     const perGroup = Math.max(2, Math.floor(stage.teamCount / groups));
-    return groups * (perGroup - 1);
+    // 每组 `perGroup-1` 场是"打满"（n 队单败）。关掉组内决赛则每组少一场。
+    return groups * (perGroup - 1 - (stage.groupFinalEnabled === false ? 1 : 0));
   }
   // 双败场次通用公式：胜者组 (n-1) + 败者组 (n-2) + 总决赛 1 = 2n-2。
   // 8 队 = 14（与现有对阵结构一致）；原来只写死 8 队，16 队会返回 null 等于不校验。

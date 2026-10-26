@@ -19,8 +19,9 @@ export interface StageConfig {
   type: StageType;
   teamCount: number;
   boType: "BO1" | "BO3" | "BO5";
-  groupCount?: number; // gsl-groups / single-elim-groups / round-robin 的分组数
+  groupCount?: number; // 分组数（gsl-groups / single-elim-groups / round-robin）
   boByRound?: Record<string, "BO1" | "BO3" | "BO5">; // 按轮次覆盖局制，缺省 boType
+  groupFinalEnabled?: boolean; // 组内是否打决赛，默认 true
 }
 
 export const STAGE_TYPE_LABELS: Record<StageType, string> = {
@@ -565,10 +566,7 @@ export function buildDefaultEventRules(
   return [...formatRules, ...commonRules];
 }
 
-/**
- * 实例化一个新赛事（基础信息 + 赛制配置两步）：
- * 产出规则、赛制摘要和阶段配置均已就绪的赛事。
- */
+// 实例化一个新赛事（基础信息 + 赛制配置两步）： 产出规则、赛制摘要和阶段配置均已就绪的赛事。 /
 export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
   const template = getFormatTemplate(input.templateId) ?? FORMAT_TEMPLATES[0];
   const now = new Date().toISOString();

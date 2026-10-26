@@ -35,6 +35,8 @@ export interface Slot {
 export interface MatchFactoryOptions {
   startIndex?: number;
   phase: string;
+  /** 组内是否打决赛（仅组内单败用）。默认 true；false 时每组只出半决赛。 */
+  groupFinalEnabled?: boolean;
   /**
    * 该场比赛所属的轮次名。单轮阶段（资格赛、入围赛）不传时默认等于阶段名 ——
    * 不能写死成「入围赛」：四阶段赛制里资格赛也复用这个构造器，写死会让
@@ -88,3 +90,11 @@ export function singleEliminationRoundName(entrants: number, roundIndex: number)
 }
 
 /** 生成完整单败结构；例如 4 队 = 2 场半决赛 + 1 场决赛。 */
+
+/** 去掉一组对阵里的决赛，并断开指向它的连线（2026-10-26，组内决赛开关用）。 */
+export function dropFinalRound(matches: ScheduleMatch[], enabled: boolean): ScheduleMatch[] {
+  if (enabled) return matches;
+  const kept = matches.filter((m) => !(m.round ?? "").endsWith("决赛") || (m.round ?? "").endsWith("半决赛"));
+  const gone = new Set(matches.filter((m) => !kept.includes(m)).map((m) => m.id));
+  return kept.map((m) => (gone.has(m.nextMatchId ?? "") ? { ...m, nextMatchId: undefined } : m));
+}

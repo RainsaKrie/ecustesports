@@ -6,6 +6,7 @@
 import type { Group, Matchup } from "@/lib/domains/registration/format";
 import type { ScheduleMatch } from "./schedule-data.ts";
 import { roundStageOf } from "./stage-role.ts";
+import { dropFinalRound } from "./bracket-engine-core.ts";
 
 /** 待定占位（晋级推进后由真实队伍填充） */
 import { BYE, PENDING, TBD, createMatch, isPowerOfTwo, matchId, singleEliminationRoundName, slot, type MatchFactoryOptions, type Slot } from "@/lib/domains/schedule/bracket-engine-core";
@@ -230,7 +231,7 @@ export function buildGslGroupMatches(
   groups: Group[],
   matchups: Matchup[],
   teamName: (id: string) => string,
-  options: { startIndex?: number; phase?: string; boType?: ScheduleMatch["boType"] } = {},
+  options: { startIndex?: number; phase?: string; boType?: ScheduleMatch["boType"]; groupFinalEnabled?: boolean } = {},
 ): ScheduleMatch[] {
   if (groups.length !== 4 || groups.some((group) => group.teamIds.length !== 4) || matchups.length !== 8) {
     throw new Error("GSL 抽签需要 4 个小组、每组 4 队和 8 场揭幕战对阵。");
@@ -318,7 +319,7 @@ export function bracketOrderFromSeeds(seedOrderedIds: string[]): string[] {
 export function buildGroupSingleElimMatches(
   groups: Group[],
   teamName: (id: string) => string,
-  options: { startIndex?: number; phase?: string; boType?: ScheduleMatch["boType"] } = {},
+  options: { startIndex?: number; phase?: string; boType?: ScheduleMatch["boType"]; groupFinalEnabled?: boolean } = {},
 ): ScheduleMatch[] {
   if (groups.length === 0) throw new Error("组内单败至少需要一个小组。");
   for (const group of groups) {
@@ -340,10 +341,9 @@ export function buildGroupSingleElimMatches(
       phase,
       boType,
     });
-    for (const match of bracket) {
-      matches.push({ ...match, round: `${group.name} ${match.round ?? ""}`.trim(), roundGroup: group.name, roundStage: roundStageOf(match.round) });
-    }
-    cursor += bracket.length;
+    const kept = dropFinalRound(bracket, options.groupFinalEnabled !== false);
+    for (const m of kept) matches.push({ ...m, round: `${group.name} ${m.round ?? ""}`.trim(), roundGroup: group.name, roundStage: roundStageOf(m.round) });
+    cursor += kept.length;
   }
 
   return matches;
