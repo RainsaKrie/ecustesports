@@ -121,7 +121,7 @@ const WRITERS: Array<{ file: string; sites: number; stamp: string; reason: strin
     reason: "队长提交约赛申请、对手队长确认 / 拒绝（经 application/reschedule 用例）",
   },
   {
-    file: "lib/domains/result/reporting-data.ts",
+    file: "lib/domains/result/reporting-state.ts",
     sites: 1,
     stamp: "stampScheduleVersion",
     reason: "裁判报分、管理员裁决与受控更正（走 updateEventDataBatch，文档名是间接引用）",
@@ -175,13 +175,13 @@ check(
   JSON.stringify(WRITERS.map((w) => [w.file, w.sites])),
 );
 
-// reporting-data.ts 里同时有两种写入：一条是本文件能扫到的 `writeEventData(..., "schedule", ...)`
+// reporting-state.ts（2026-10-26 从 reporting-data.ts 拆出）里同时有两种写入：一条能扫到 `writeEventData(..., "schedule", ...)`
 // （本地演示 seed），另一条是 `updateEventDataBatch` 走 `REPORTING_DOCUMENTS` 的间接写入 ——
 // 后者的文档名不在调用行上，**扫描在原理上就看不见它**，所以清单里是手工登记的。
 // 这里顺手确认那条间接写入确实带着递增入口，否则「登记了但没递增」会蒙混过关。
-const reportingData = readFileSync(join(SRC, "lib/domains/result/reporting-data.ts"), "utf8");
+const reportingData = readFileSync(join(SRC, "lib/domains/result/reporting-state.ts"), "utf8");
 check(
-  "reporting-data 的间接写入（updateEventDataBatch）确实带上了递增入口",
+  "reporting-state 的间接写入（updateEventDataBatch）确实带上了递增入口",
   reportingData.includes("updateEventDataBatch") && usesCall(reportingData, "stampScheduleVersion"),
 );
 
