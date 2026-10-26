@@ -17,7 +17,7 @@
 // =====================
 
 import { resolveSupportedFormat, type SupportedFormat } from "./format-support.ts";
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 import type { ScheduleMatch } from "./schedule-data.ts";
 
 /**
@@ -64,7 +64,7 @@ export interface EventProgress {
  *   · `src/app/api/admin/events/stage/route.ts` —— 结束赛事前的服务端校验。
  */
 export function resolveEventProgress(
-  stageConfigs: StageConfig[],
+  stageConfigs: FormatStageConfig[],
   matches: ScheduleMatch[],
 ): EventProgress {
   const stageNames = formatStageNames(resolveSupportedFormat(stageConfigs));
@@ -90,7 +90,7 @@ export function resolveEventProgress(
  * 三段检查的顺序保持与原先路由里一致（先比赛、再改期申请、最后阶段）。
  */
 export function completeEventRefusal(
-  stageConfigs: StageConfig[],
+  stageConfigs: FormatStageConfig[],
   schedule: { matches: ScheduleMatch[]; requests: Array<{ status: string }> },
 ): string | null {
   if (schedule.matches.length === 0 || schedule.matches.some((match) => match.status !== "已完成")) {

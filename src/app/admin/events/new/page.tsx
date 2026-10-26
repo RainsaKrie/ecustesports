@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FORMAT_TEMPLATES, STAGE_TYPE_LABELS, STAGE_TYPE_DEFAULT_BO, estimateStageConfig, type StageConfig, type StageType } from "@/lib/domains/schedule/format-templates";
+import { FORMAT_TEMPLATES, STAGE_TYPE_LABELS, STAGE_TYPE_DEFAULT_BO, estimateStageConfig, type FormatStageConfig, type StageType } from "@/lib/domains/schedule/format-templates";
 import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
 import { getGameConfig } from "@/lib/games";
 
@@ -33,7 +33,7 @@ export default function NewEventPage() {
   const [coverColor, setCoverColor] = useState("#ff4655");
 
   // ② 赛制配置：从瓦理杯预设起步，可增删改
-  const [stages, setStages] = useState<StageConfig[]>(() => {
+  const [stages, setStages] = useState<FormatStageConfig[]>(() => {
     const t = FORMAT_TEMPLATES.find((x) => x.id === "val-16gsl-8de");
     return (t?.stages ?? []).map((st) => ({
       name: st.name,
@@ -47,7 +47,7 @@ export default function NewEventPage() {
   const estimate = useMemo(() => estimateStageConfig(stages), [stages]);
   const formatSupport = useMemo(() => resolveSupportedFormat(stages), [stages]);
 
-  function updateStage(index: number, patch: Partial<StageConfig>) {
+  function updateStage(index: number, patch: Partial<FormatStageConfig>) {
     setStages((s) => s.map((st, i) => (i === index ? { ...st, ...patch } : st)));
   }
   function addStage() {
@@ -198,7 +198,7 @@ export default function NewEventPage() {
                   </label>
                   <label className="block text-[length:var(--adm-fs-md)] font-bold text-[var(--adm-text-soft)]">
                     比赛局制
-                    <select value={st.boType} onChange={(e) => updateStage(index, { boType: e.target.value as StageConfig["boType"] })} className={inputClass}>
+                    <select value={st.boType} onChange={(e) => updateStage(index, { boType: e.target.value as FormatStageConfig["boType"] })} className={inputClass}>
                       <option value="BO1">BO1</option>
                       <option value="BO3">BO3</option>
                       <option value="BO5">BO5</option>

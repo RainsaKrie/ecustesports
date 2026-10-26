@@ -32,7 +32,7 @@ import {
   type StagedDrawGate,
   type StagedFormatState,
 } from "@/lib/domains/schedule/staged-format";
-import type { StageConfig } from "@/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "@/lib/domains/schedule/format-templates";
 import { FORMAT_TEMPLATES } from "@/lib/domains/schedule/format-templates";
 import type { EditableEvent } from "@/lib/site-config-schema";
 
@@ -90,7 +90,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
    */
   const [pendingFill, setPendingFill] = useState<{ count: number; teamIds: string[] } | null>(null);
   const [filling, setFilling] = useState(false);
-  const [activeStage, setActiveStage] = useState<StageConfig | null>(null);
+  const [activeStage, setActiveStage] = useState<FormatStageConfig | null>(null);
   const [activeStageIndex, setActiveStageIndex] = useState<number | null>(null);
   const [eligibleTeamIds, setEligibleTeamIds] = useState<string[]>([]);
   const [qualifiers, setQualifiers] = useState<GroupQualifier[]>([]);
@@ -695,7 +695,7 @@ export default function FormatDrawWorkspace({ eventId }: { eventId: string }) {
 
   const isStaged = format?.kind === "staged-32-gsl-double-elim" || format?.kind === "staged-playin";
   // 四阶段赛制的进度条要带上资格赛；且三阶段门控的 stageIndex 需整体后移一位。
-  const stageList: StageConfig[] = format?.kind === "staged-playin"
+  const stageList: FormatStageConfig[] = format?.kind === "staged-playin"
     ? [format.playInStage, ...format.stages]
     : format?.kind === "staged-32-gsl-double-elim"
       ? format.stages
@@ -958,7 +958,7 @@ function DrawActions({
   );
 }
 
-function StageProgress({ stages, activeIndex, complete }: { stages: StageConfig[]; activeIndex: number; complete: boolean }) {
+function StageProgress({ stages, activeIndex, complete }: { stages: FormatStageConfig[]; activeIndex: number; complete: boolean }) {
   return (
     <div className="mb-5 grid adm-panel sm:grid-cols-3">
       {stages.map((stage, index) => {

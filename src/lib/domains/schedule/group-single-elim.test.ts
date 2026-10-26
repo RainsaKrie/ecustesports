@@ -20,7 +20,7 @@ import {
   buildKnockoutDrawOrder,
 } from "./staged-format.ts";
 import { resolveSupportedFormat, formatChangeRefusal, unplayedStagesToClear } from "./format-support.ts";
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 import type { Group } from "@/lib/domains/registration/format";
 import type { ScheduleMatch } from "./schedule-data.ts";
 
@@ -193,7 +193,7 @@ check(
 
 group("组3 · 赛制识别与门控（小组赛该有 12 场，不是 20）");
 
-const FOUR_STAGE_SEG: StageConfig[] = [
+const FOUR_STAGE_SEG: FormatStageConfig[] = [
   { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1" },
   { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
   { name: "小组赛", type: "single-elim-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
@@ -222,7 +222,7 @@ const playinDone: ScheduleMatch[] = Array.from({ length: 16 }, (_, i) => ({
   startTime: "", endTime: "", status: "已完成", frozen: false, winnerTeamId: `t${i}a`,
 }));
 
-const gateReady = resolveStagedDrawGate(THREE_STAGE_SEG as [StageConfig, StageConfig, StageConfig], [], playinDone, []);
+const gateReady = resolveStagedDrawGate(THREE_STAGE_SEG as [FormatStageConfig, FormatStageConfig, FormatStageConfig], [], playinDone, []);
 check(
   "入围赛 16 场打完 → 开放小组赛抽签（stageIndex 1）",
   gateReady.status === "ready" && gateReady.stageIndex === 1,
@@ -235,7 +235,7 @@ check("夹具本身：小组赛恰好 12 场", groupMatchesAll.length === 12, `�
 const groupHalfDone: ScheduleMatch[] = groupMatchesAll.map((m, index) =>
   index < 6 ? m : { ...m, status: "已排期" as const, winnerTeamId: undefined });
 const gateWaiting = resolveStagedDrawGate(
-  THREE_STAGE_SEG as [StageConfig, StageConfig, StageConfig], [], [...playinDone, ...groupHalfDone], [],
+  THREE_STAGE_SEG as [FormatStageConfig, FormatStageConfig, FormatStageConfig], [], [...playinDone, ...groupHalfDone], [],
 );
 check(
   "★ 小组赛打了 6 / 12 → 期望场次报 12（写死成 GSL 的 20 就会永远卡在「等待」）",
@@ -244,7 +244,7 @@ check(
 );
 
 const gateKnockout = resolveStagedDrawGate(
-  THREE_STAGE_SEG as [StageConfig, StageConfig, StageConfig], [], [...playinDone, ...completed], [],
+  THREE_STAGE_SEG as [FormatStageConfig, FormatStageConfig, FormatStageConfig], [], [...playinDone, ...completed], [],
 );
 // 联合类型要先收窄再取可选字段（tsx 不做类型检查，这类错只在 tsc 里暴露）
 const knockoutReady = gateKnockout.status === "ready" ? gateKnockout : null;
@@ -263,7 +263,7 @@ check(
 
 group("组4 · 赛制变更判定：已打完的阶段不动，未开打的阶段可改");
 
-const currentStages: StageConfig[] = FOUR_STAGE_SEG.map((s, i) => (i === 2 ? { ...s, type: "gsl-groups" as const } : s));
+const currentStages: FormatStageConfig[] = FOUR_STAGE_SEG.map((s, i) => (i === 2 ? { ...s, type: "gsl-groups" as const } : s));
 const played: Array<{ phase: string }> = [
   ...Array.from({ length: 4 }, () => ({ phase: "资格赛" })),
   ...Array.from({ length: 16 }, () => ({ phase: "入围赛" })),

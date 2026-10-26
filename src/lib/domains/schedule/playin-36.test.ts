@@ -14,13 +14,13 @@ import {
   buildDefaultEventRules,
   buildEventFromTemplate,
   resolveTemplateIdFromStages,
-  type StageConfig,
+  type FormatStageConfig,
 } from "./format-templates.ts";
 import { appendMatchesOp, reportGameResultsOp } from "./schedule-ops.ts";
 import { emptySchedule, normalizeScheduleState } from "./schedule-data.ts";
 import type { RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
 
-const stages4: StageConfig[] = [
+const stages4: FormatStageConfig[] = [
   { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1" },
   { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
   { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
@@ -125,7 +125,7 @@ if (complete.status === "complete") {
 }
 
 // ---------- 4. 36 → 32 → 16 的晋级链 ----------
-const stages3: [StageConfig, StageConfig, StageConfig] = [stages4[1], stages4[2], stages4[3]];
+const stages3: [FormatStageConfig, FormatStageConfig, FormatStageConfig] = [stages4[1], stages4[2], stages4[3]];
 const others = Array.from({ length: 28 }, (_, index) => `D-${index + 1}`);
 const entrants32 = [...others, ...(complete.status === "complete" ? complete.advancingTeamIds : [])];
 check("入围赛 entrants 恰为 32 支", entrants32.length === 32, String(entrants32.length));
@@ -148,7 +148,7 @@ check(
 // 第 1 节查的是 resolveSupportedFormat 的 requiredTeams（赛制识别层）；
 // 而「新建赛事」真正写进 event.teamCount 的是 buildEventFromTemplate 这条路径，
 // 两者是分开的代码。这里曾经直接取首阶段队伍数，把 36 队赛事声明成「8 队」。
-function buildFor(stages: StageConfig[], suffix: string) {
+function buildFor(stages: FormatStageConfig[], suffix: string) {
   return buildEventFromTemplate({
     id: `event-playin36-${suffix}`,
     name: "36 队四阶段赛事",

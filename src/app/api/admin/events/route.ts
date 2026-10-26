@@ -8,7 +8,7 @@
 
 import { getSiteConfig, updateSiteConfig } from "@/lib/site-config";
 import { isAdminRequest } from "@/lib/domains/identity/admin-session";
-import { buildEventFromTemplate, resolveTemplateIdFromStages, type StageConfig } from "@/lib/domains/schedule/format-templates";
+import { buildEventFromTemplate, resolveTemplateIdFromStages, type FormatStageConfig } from "@/lib/domains/schedule/format-templates";
 import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
 import { deleteEventData, readEventData, writeEventData } from "@/lib/data-store";
 import { initialRegistration } from "@/lib/domains/registration/data";
@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
     // 白名单漏一种，存进去的类型会被改写成兜底值 —— 新增阶段类型时这里必须同步（共三处同源清单）。
     const validTypes = ["single-elim", "single-elim-groups", "gsl-groups", "double-elim", "round-robin", "swiss"];
     const validBo = ["BO1", "BO3", "BO5"];
-    const stageConfigs: StageConfig[] = rawStages
+    const stageConfigs: FormatStageConfig[] = rawStages
       .map((raw) => {
         const st = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
-        const type = validTypes.includes(st.type as string) ? (st.type as StageConfig["type"]) : "single-elim";
-        const boType = validBo.includes(st.boType as string) ? (st.boType as StageConfig["boType"]) : "BO1";
+        const type = validTypes.includes(st.type as string) ? (st.type as FormatStageConfig["type"]) : "single-elim";
+        const boType = validBo.includes(st.boType as string) ? (st.boType as FormatStageConfig["boType"]) : "BO1";
         const teamCount = Math.min(128, Math.max(2, Number(st.teamCount) || 8));
         const groupCount = st.groupCount !== undefined && Number.isFinite(Number(st.groupCount)) ? Math.min(16, Math.max(1, Math.round(Number(st.groupCount)))) : undefined;
         return {

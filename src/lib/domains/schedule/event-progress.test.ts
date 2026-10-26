@@ -18,7 +18,7 @@
 
 import { resolveEventProgress, formatStageNames, completeEventRefusal } from "./event-progress.ts";
 import { resolveSupportedFormat } from "./format-support.ts";
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 import type { MatchStatus, ScheduleMatch } from "./schedule-data.ts";
 
 let pass = 0;
@@ -50,18 +50,18 @@ function match(phase: string, status: MatchStatus, index: number): ScheduleMatch
 }
 
 /** 真实线上用的那份模板：资格赛(8) → 入围赛(32) → 小组赛(16,GSL) → 淘汰赛(8,双败) */
-const FOUR_STAGE: StageConfig[] = [
+const FOUR_STAGE: FormatStageConfig[] = [
   { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1" },
   { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
   { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
   { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
 ];
 
-const SINGLE_STAGE: StageConfig[] = [
+const SINGLE_STAGE: FormatStageConfig[] = [
   { name: "淘汰赛", type: "single-elim", teamCount: 16, boType: "BO1" },
 ];
 
-const GSL_THEN_KNOCKOUT: StageConfig[] = [
+const GSL_THEN_KNOCKOUT: FormatStageConfig[] = [
   { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
   { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
 ];

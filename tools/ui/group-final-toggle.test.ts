@@ -6,7 +6,7 @@
 //   ③ 半决赛不再指向一个不存在的决赛（无悬空引用）。
 import { expectedStageMatches } from "../../src/lib/domains/schedule/bracket-blueprint";
 import { buildGroupSingleElimMatches } from "../../src/lib/domains/schedule/bracket-engine";
-import type { StageConfig } from "../../src/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "../../src/lib/domains/schedule/format-templates";
 
 let passed = 0;
 let failed = 0;
@@ -15,8 +15,8 @@ function check(label: string, cond: boolean, detail = "") {
   else { failed++; console.log(`  ✗ ${label}${detail ? "：" + detail : ""}`); }
 }
 
-const stage = (extra: Record<string, unknown> = {}): StageConfig =>
-  ({ name: "小组赛", type: "single-elim-groups", teamCount: 16, groupCount: 4, boType: "BO3", ...extra } as unknown as StageConfig);
+const stage = (extra: Record<string, unknown> = {}): FormatStageConfig =>
+  ({ name: "小组赛", type: "single-elim-groups", teamCount: 16, groupCount: 4, boType: "BO3", ...extra } as unknown as FormatStageConfig);
 
 console.log("组内决赛开关");
 

@@ -1,5 +1,5 @@
 import type { EventStatus } from "@/types";
-import type { StageConfig } from "@/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "@/lib/domains/schedule/format-templates";
 import { getGameConfig } from "@/lib/games";
 
 /** 默认图池（取自游戏配置层）。新建赛事时预勾选这些地图。 */
@@ -75,7 +75,7 @@ export interface EditableEvent {
   /** 赛制模板 id（新建比赛时选择的模板，用于赛制与抽签） */
   formatTemplateId: string;
   /** 赛制阶段配置（新建赛事赛制配置器的产物，驱动对阵图与竞赛规程） */
-  stageConfigs: StageConfig[];
+  stageConfigs: FormatStageConfig[];
   /** 赛事 QQ 群号（本届参赛通知群，负责人填写；空表示未设置） */
   eventQqGroup: string;
   /** 3.47 及更早版本的策划案兼容字段；当前产品流程不再读取或编辑。 */
@@ -470,8 +470,8 @@ export function normalizeSiteConfig(value: unknown): SiteConfig {
           return sourceStages.map((rawStage, si) => {
             const st = record(rawStage);
             const fb = fallback.stageConfigs[si] ?? fallback.stageConfigs[fallback.stageConfigs.length - 1];
-            const type = validTypes.includes(st.type as string) ? (st.type as StageConfig["type"]) : fb.type;
-            const bo = validBo.includes(st.boType as string) ? (st.boType as StageConfig["boType"]) : fb.boType;
+            const type = validTypes.includes(st.type as string) ? (st.type as FormatStageConfig["type"]) : fb.type;
+            const bo = validBo.includes(st.boType as string) ? (st.boType as FormatStageConfig["boType"]) : fb.boType;
             return {
               name: text(st.name, fb.name, 20),
               type,

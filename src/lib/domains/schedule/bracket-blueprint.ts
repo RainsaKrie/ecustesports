@@ -9,7 +9,7 @@ import {
 import type { Group, Matchup } from "@/lib/domains/registration/format";
 import { DOUBLE_ELIM_BO } from "./bracket-engine.ts";
 import { resolveSupportedFormat } from "./format-support.ts";
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 import type { ScheduleMatch } from "./schedule-data.ts";
 
 function slotIds(count: number): string[] {
@@ -34,7 +34,7 @@ function gslBlueprint(): { groups: Group[]; matchups: Matchup[] } {
 }
 
 /** 根据已确认赛制生成只读空骨架；正式比赛仍只能由抽签发布写入赛程。 */
-export function buildBracketBlueprint(stages: StageConfig[]): ScheduleMatch[] {
+export function buildBracketBlueprint(stages: FormatStageConfig[]): ScheduleMatch[] {
   const format = resolveSupportedFormat(stages);
   if (format.kind === "unsupported") return [];
 
@@ -92,7 +92,7 @@ export function buildBracketBlueprint(stages: StageConfig[]): ScheduleMatch[] {
 
 const DEFAULT_GROUP_COUNT = 4;
 
-export function expectedStageMatches(stages: StageConfig[], stageIndex: number): number | null {
+export function expectedStageMatches(stages: FormatStageConfig[], stageIndex: number): number | null {
   const stage = stages[stageIndex];
   if (!stage) return null;
   if (stage.type === "single-elim") {
@@ -119,7 +119,7 @@ export function expectedStageMatches(stages: StageConfig[], stageIndex: number):
 }
 
 /** 返回无法构成真实对阵图的原因；空赛程由骨架负责展示，不视为错误。 */
-export function bracketDataIssue(matches: ScheduleMatch[], stages: StageConfig[]): string | null {
+export function bracketDataIssue(matches: ScheduleMatch[], stages: FormatStageConfig[]): string | null {
   if (matches.length === 0) return null;
   if (matches.some((match) => !match.round)) {
     return "现有赛程缺少轮次与晋级关系，属于旧版列表数据，无法构成对阵图。";

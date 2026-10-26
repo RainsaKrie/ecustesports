@@ -1,5 +1,5 @@
 import type { Group, SeedPot } from "@/lib/domains/registration/format";
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 import type { ScheduleMatch } from "./schedule-data.ts";
 import { QUALIFIER_MIN_TEAMS } from "./format-support.ts";
 
@@ -18,7 +18,7 @@ export interface StagedFormatState {
   seedPots?: SeedPot[];
   groups?: Group[];
   stageDraws?: StageDrawRecord[];
-  stageConfigs?: StageConfig[];
+  stageConfigs?: FormatStageConfig[];
   /** 入围赛轮空直接晋级的队伍 id（32 强签位中与 BYE 相邻的队伍）。 */
   qualifierByes?: string[];
   /**
@@ -40,9 +40,9 @@ export interface GroupQualifier {
 }
 
 export type StagedDrawGate =
-  | { status: "ready"; stageIndex: number; stage: StageConfig; entrantIds: string[]; qualifiers?: GroupQualifier[] }
-  | { status: "waiting"; stageIndex: number; stage: StageConfig; completedMatches: number; totalMatches: number; message: string }
-  | { status: "blocked"; stageIndex: number; stage: StageConfig; message: string }
+  | { status: "ready"; stageIndex: number; stage: FormatStageConfig; entrantIds: string[]; qualifiers?: GroupQualifier[] }
+  | { status: "waiting"; stageIndex: number; stage: FormatStageConfig; completedMatches: number; totalMatches: number; message: string }
+  | { status: "blocked"; stageIndex: number; stage: FormatStageConfig; message: string }
   | { status: "complete"; stageIndex: 3; message: string };
 
 function stageMatches(matches: ScheduleMatch[], phase: string): ScheduleMatch[] {
@@ -54,7 +54,7 @@ function stageMatches(matches: ScheduleMatch[], phase: string): ScheduleMatch[] 
  * GSL：每组 5 场（4 队组）；**组内单败**：每组 `组内队数 − 1` 场（4 队组 = 3 场）。
  * 两个数字差 8 场，写死任一个都会让另一套赛制的门控永远判「场次不对」。
  */
-function groupStageExpectedMatches(groupStage: StageConfig): number {
+function groupStageExpectedMatches(groupStage: FormatStageConfig): number {
   const groups = groupStage.groupCount ?? 4;
   if (groupStage.type === "single-elim-groups") {
     const perGroup = Math.max(2, Math.floor(groupStage.teamCount / groups));
@@ -65,7 +65,7 @@ function groupStageExpectedMatches(groupStage: StageConfig): number {
 
 /** 小组赛晋级名单：两套小组赛制的名次判据不同，按阶段类型分流。 */
 function extractGroupQualifiers(
-  groupStage: StageConfig,
+  groupStage: FormatStageConfig,
   matches: ScheduleMatch[],
   rankOf?: (teamId: string) => number,
 ): GroupQualifier[] {
@@ -85,7 +85,7 @@ function completedWinners(matches: ScheduleMatch[]): string[] {
  * 便于抽签界面共用同一套渲染分支。
  */
 export type PlayInGate =
-  | { status: "ready"; stageIndex: 0; stage: StageConfig; entrantIds: string[] }
+  | { status: "ready"; stageIndex: 0; stage: FormatStageConfig; entrantIds: string[] }
   /**
    * 资格赛已开打、但还没全部结束。
    *
@@ -95,9 +95,9 @@ export type PlayInGate =
    * 用 `pendingCount` 明确告诉调用方要留几个待定席位 —— 不要让它自己去减，
    * 减错了会变成轮空（语义完全不同：轮空是不打，待定是要打）。
    */
-  | { status: "partial"; stageIndex: 0; stage: StageConfig; advancingTeamIds: string[]; pendingCount: number; completedMatches: number; totalMatches: number; message: string }
-  | { status: "blocked"; stageIndex: 0; stage: StageConfig; message: string }
-  | { status: "complete"; stageIndex: 0; stage: StageConfig; message: string; advancingTeamIds: string[] };
+  | { status: "partial"; stageIndex: 0; stage: FormatStageConfig; advancingTeamIds: string[]; pendingCount: number; completedMatches: number; totalMatches: number; message: string }
+  | { status: "blocked"; stageIndex: 0; stage: FormatStageConfig; message: string }
+  | { status: "complete"; stageIndex: 0; stage: FormatStageConfig; message: string; advancingTeamIds: string[] };
 
 /**
  * 资格赛门控（并入型阶段）。
@@ -113,7 +113,7 @@ export type PlayInGate =
  * 资格赛队伍数恒为偶数，一半晋级。
  */
 export function resolvePlayInGate(
-  playInStage: StageConfig,
+  playInStage: FormatStageConfig,
   playInTeamIds: string[],
   matches: ScheduleMatch[],
 ): PlayInGate {
@@ -250,7 +250,7 @@ export function extractGroupSingleElimQualifiers(
  * 不会用 TBD 或报名名单提前生成未来阶段。
  */
 export function resolveStagedDrawGate(
-  stages: [StageConfig, StageConfig, StageConfig],
+  stages: [FormatStageConfig, FormatStageConfig, FormatStageConfig],
   frozenTeamIds: string[],
   matches: ScheduleMatch[],
   qualifierByes: string[] = [],

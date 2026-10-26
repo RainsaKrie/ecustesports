@@ -14,7 +14,7 @@ const DEFAULT_MAP_POOL = getGameConfig().defaultMapPool;
 export type StageType = "single-elim" | "single-elim-groups" | "gsl-groups" | "double-elim" | "round-robin" | "swiss";
 
 /** 一个比赛阶段的可配置项（新建比赛赛制配置器的产物） */
-export interface StageConfig {
+export interface FormatStageConfig {
   name: string;
   type: StageType;
   teamCount: number;
@@ -44,7 +44,7 @@ export const STAGE_TYPE_DEFAULT_BO: Record<StageType, "BO1" | "BO3" | "BO5"> = {
 };
 
 /** 由阶段配置估算总场次与比赛小时数 */
-export function estimateStageConfig(stages: StageConfig[]): { matchCount: number; hourEstimate: number } {
+export function estimateStageConfig(stages: FormatStageConfig[]): { matchCount: number; hourEstimate: number } {
   const DURATION: Record<string, number> = { BO1: 45, BO3: 90, BO5: 150 };
   let matchCount = 0;
   let minutes = 0;
@@ -93,7 +93,7 @@ export function estimateStageConfig(stages: StageConfig[]): { matchCount: number
 }
 
 /** 阶段配置 → 赛制摘要文案（写入赛事与竞赛规程） */
-export function stageConfigSummary(stages: StageConfig[]): string {
+export function stageConfigSummary(stages: FormatStageConfig[]): string {
   return stages.map((st) => {
     const label = STAGE_TYPE_LABELS[st.type];
     return `${st.name}（${st.teamCount} 队 · ${label} · ${st.boType}）`;
@@ -397,7 +397,7 @@ export interface NewEventInput {
   organizer: string;
   templateId: string;
   /** 细致赛制配置（新建赛事第二步的产物）；缺省时由模板推导 */
-  stageConfigs?: StageConfig[];
+  stageConfigs?: FormatStageConfig[];
   description?: string;
   registrationStart?: string;
   registrationEnd?: string;
@@ -443,7 +443,7 @@ function withRulePresentation(rule: EditableRule): EditableRule {
   return { ...rule, category, emphasis };
 }
 
-function sameStage(a: StageConfig, b: FormatTemplateStage): boolean {
+function sameStage(a: FormatStageConfig, b: FormatTemplateStage): boolean {
   return a.name === b.name
     && a.type === b.type
     && a.teamCount === b.teamCount
@@ -452,7 +452,7 @@ function sameStage(a: StageConfig, b: FormatTemplateStage): boolean {
 }
 
 /** 根据实际阶段配置选择最匹配模板，避免所有非 32 队赛事错误继承 16 队 GSL 文案。 */
-export function resolveTemplateIdFromStages(stages: StageConfig[]): string {
+export function resolveTemplateIdFromStages(stages: FormatStageConfig[]): string {
   const exact = FORMAT_TEMPLATES.find(
     (template) => template.stages.length === stages.length
       && stages.every((stage, index) => sameStage(stage, template.stages[index])),
@@ -475,7 +475,7 @@ export function resolveTemplateIdFromStages(stages: StageConfig[]): string {
  *
  * 判据：下一阶段比本阶段大 → 本阶段是并入型，总队伍数 = (本阶段 − 本阶段一半) + 下一阶段。
  */
-export function totalTeamsFromStages(stages: StageConfig[]): number {
+export function totalTeamsFromStages(stages: FormatStageConfig[]): number {
   const first = stages[0];
   if (!first) return 0;
   const next = stages[1];
@@ -485,7 +485,7 @@ export function totalTeamsFromStages(stages: StageConfig[]): number {
   return first.teamCount;
 }
 
-function formatRulesFromStages(stages: StageConfig[], teamSize: number): EditableRule[] {
+function formatRulesFromStages(stages: FormatStageConfig[], teamSize: number): EditableRule[] {
   const rules: EditableRule[] = [
     {
       title: "参赛规模",
@@ -544,7 +544,7 @@ function formatRulesFromStages(stages: StageConfig[], teamSize: number): Editabl
 
 /** 新赛事默认规程 = 赛制配置自动生成 + 赛事组织通用规则继承。 */
 export function buildDefaultEventRules(
-  stages: StageConfig[],
+  stages: FormatStageConfig[],
   teamSize = 5,
   commonPreset: EditableRule[] = DEFAULT_COMMON_HANDBOOK_RULES,
 ): EditableRule[] {
@@ -571,7 +571,7 @@ export function buildEventFromTemplate(input: NewEventInput): EditableEvent {
   const template = getFormatTemplate(input.templateId) ?? FORMAT_TEMPLATES[0];
   const now = new Date().toISOString();
   // 赛制配置优先用办赛者细致配置，缺省时由模板阶段推导
-  const stageConfigs: StageConfig[] = input.stageConfigs && input.stageConfigs.length > 0
+  const stageConfigs: FormatStageConfig[] = input.stageConfigs && input.stageConfigs.length > 0
     ? input.stageConfigs
     : template.stages.map((st) => ({
         name: st.name,

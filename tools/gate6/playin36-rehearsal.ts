@@ -84,7 +84,7 @@ import {
   resolveStagedDrawGate,
   type StagedFormatState,
 } from "../../src/lib/domains/schedule/staged-format";
-import type { StageConfig } from "../../src/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "../../src/lib/domains/schedule/format-templates";
 import { getGameConfig } from "../../src/lib/games";
 import type {
   RegistrationPlayer,
@@ -109,7 +109,7 @@ const TSCONFIG = path.join(ROOT, "tsconfig.json");
 /** 独立构建目录：Next 会因它改写 tsconfig.json 的 include，收尾时要还原。 */
 const REHEARSAL_DIST = ".workbuddy/rehearsal-dist";
 
-const STAGES: StageConfig[] = [
+const STAGES: FormatStageConfig[] = [
   { name: "资格赛", type: "single-elim", teamCount: 8, boType: "BO1" },
   { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
   { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
@@ -667,7 +667,7 @@ async function main() {
 
   // ── A. 建隔离赛事 ──
   const setup = section("新建隔离赛事（四阶段 36 队）");
-  const created = await api<{ event?: { id: string; teamCount: number; stageConfigs: StageConfig[]; formatTemplateId?: string } ; message?: string }>(
+  const created = await api<{ event?: { id: string; teamCount: number; stageConfigs: FormatStageConfig[]; formatTemplateId?: string } ; message?: string }>(
     "/api/admin/events",
     {
       method: "POST",

@@ -34,7 +34,7 @@ import {
 } from "./schedule-ops.ts";
 import type { SchedulingConfig } from "./rule-engine.ts";
 import { buildKnockoutDrawOrder, resolveStagedDrawGate } from "./staged-format.ts";
-import { buildDefaultEventRules, resolveTemplateIdFromStages, type StageConfig } from "./format-templates.ts";
+import { buildDefaultEventRules, resolveTemplateIdFromStages, type FormatStageConfig } from "./format-templates.ts";
 import { bracketDataIssue, buildBracketBlueprint } from "./bracket-blueprint.ts";
 
 let pass = 0;
@@ -60,7 +60,7 @@ function fmt(d: Date): string {
 
 console.log("== 0. 新赛事模板与规程预填 ==");
 {
-  const eightTeamDouble: StageConfig[] = [
+  const eightTeamDouble: FormatStageConfig[] = [
     { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
   ];
   check("8 队双败匹配正确模板", resolveTemplateIdFromStages(eightTeamDouble) === "val-8de");
@@ -235,7 +235,7 @@ check("最终出线战胜者作为小组第二交叉进入八强", m17.nextMatch
 check("总决赛无后续晋级", m34.nextMatchId === undefined && m34.nextLoserMatchId === undefined);
 check("八强前置比赛来自不同小组出线链路", m21.prerequisiteId === "M09" && m23.prerequisiteId === "M11");
 
-const stagedBlueprintConfig: StageConfig[] = [
+const stagedBlueprintConfig: FormatStageConfig[] = [
   { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
   { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
   { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },
@@ -254,7 +254,7 @@ console.log("== 4. 三阶段分批抽签：32 → 16 → 8 ==");
   const stagedRegistration = makeRegistration(32);
   const stagedTeams = stagedRegistration.teams.filter((team) => team.status === "已冻结");
   const stagedName = (id: string) => stagedTeams.find((team) => team.id === id)?.name ?? id;
-  const stages: [StageConfig, StageConfig, StageConfig] = [
+  const stages: [FormatStageConfig, FormatStageConfig, FormatStageConfig] = [
     { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
     { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
     { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },

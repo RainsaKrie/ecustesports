@@ -8,7 +8,7 @@ import { recordOperationAuditSafely } from "@/lib/operation-audit";
 import {
   buildEventFromTemplate,
   getFormatTemplate,
-  type StageConfig,
+  type FormatStageConfig,
 } from "@/lib/domains/schedule/format-templates";
 import { emptySchedule, normalizeScheduleState, type ScheduleState } from "@/lib/domains/schedule/schedule-data";
 import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
@@ -20,8 +20,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function toStageConfigs(templateStages: Array<{
-  name: string; type: StageConfig["type"]; teamCount: number; groupCount?: number; boType: StageConfig["boType"];
-}>): StageConfig[] {
+  name: string; type: FormatStageConfig["type"]; teamCount: number; groupCount?: number; boType: FormatStageConfig["boType"];
+}>): FormatStageConfig[] {
   return templateStages.map((stage) => ({
     name: stage.name,
     type: stage.type,

@@ -1,24 +1,24 @@
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 
 export type SupportedFormat =
-  | { kind: "slot-draw"; bracket: "single-elim" | "double-elim"; stage: StageConfig; requiredTeams: number }
-  | { kind: "gsl-double-elim"; groupStage: StageConfig; knockoutStage: StageConfig; requiredTeams: 16 }
-  | { kind: "staged-32-gsl-double-elim"; stages: [StageConfig, StageConfig, StageConfig]; requiredTeams: 32; minTeams: number }
+  | { kind: "slot-draw"; bracket: "single-elim" | "double-elim"; stage: FormatStageConfig; requiredTeams: number }
+  | { kind: "gsl-double-elim"; groupStage: FormatStageConfig; knockoutStage: FormatStageConfig; requiredTeams: 16 }
+  | { kind: "staged-32-gsl-double-elim"; stages: [FormatStageConfig, FormatStageConfig, FormatStageConfig]; requiredTeams: 32; minTeams: number }
   | {
       kind: "staged-playin";
       /** 资格赛（并入型阶段：胜者并入下一阶段，不是「本阶段的前 N 名」） */
-      playInStage: StageConfig;
+      playInStage: FormatStageConfig;
       /** 入围赛 / 小组赛 / 淘汰赛 */
-      stages: [StageConfig, StageConfig, StageConfig];
+      stages: [FormatStageConfig, FormatStageConfig, FormatStageConfig];
       /** 参赛总队伍数 = 入围赛席位 + 资格赛淘汰数 */
       requiredTeams: number;
       /** 参加资格赛的队伍数（恒为偶数，一半晋级） */
       playInTeams: number;
     }
   /** 单段瑞士轮：只生成第 1 轮（相邻配对），后续轮次依赖战绩、报分后逐轮生成 */
-  | { kind: "swiss"; stage: StageConfig; requiredTeams: number }
+  | { kind: "swiss"; stage: FormatStageConfig; requiredTeams: number }
   /** 单段循环赛：全部队伍两两都打 */
-  | { kind: "round-robin"; stage: StageConfig; requiredTeams: number }
+  | { kind: "round-robin"; stage: FormatStageConfig; requiredTeams: number }
   | { kind: "unsupported"; message: string; requiredTeams: number };
 
 /** 32 队入围赛允许的最少真实队伍数：不足 17 队时应降级到 16 队赛制，而非用大量轮空硬凑 32 强。 */
@@ -37,7 +37,7 @@ function isPowerOfTwo(value: number): boolean {
  * 两者都是「4 组 × 4 队、每组前 2 名晋级」，只是组内打法不同（5 场 vs 3 场），
  * 因此进入淘汰赛的队数与后续抽签规则完全一致 —— 这是「不改已生成阶段就能换小组赛打法」的前提。
  */
-function isSupportedGroupStage(stage: StageConfig | undefined): boolean {
+function isSupportedGroupStage(stage: FormatStageConfig | undefined): boolean {
   if (!stage) return false;
   if (stage.type !== "gsl-groups" && stage.type !== "single-elim-groups") return false;
   return stage.teamCount === 16 && stage.groupCount === 4;
@@ -60,8 +60,8 @@ function isSupportedGroupStage(stage: StageConfig | undefined): boolean {
  *   ② 已经打完的阶段不能被删掉。
  */
 export function formatChangeRefusal(
-  current: StageConfig[],
-  next: StageConfig[],
+  current: FormatStageConfig[],
+  next: FormatStageConfig[],
   matches: Array<{ phase: string; status?: string; startTime?: string }>,
 ): string | null {
   /** 已被「用起来」的阶段：排过期或有赛果。纯待排期骨架不算。 */
@@ -111,8 +111,8 @@ export function formatChangeRefusal(
  * 只清「待排期且没有开赛时间」的，任何排过期的比赛都不会被碰。
  */
 export function unplayedStagesToClear(
-  current: StageConfig[],
-  next: StageConfig[],
+  current: FormatStageConfig[],
+  next: FormatStageConfig[],
   matches: Array<{ phase: string; status?: string; startTime?: string }>,
 ): string[] {
   const nextByName = new Map(next.map((stage) => [stage.name, stage]));
@@ -133,7 +133,7 @@ export function unplayedStagesToClear(
   return [...clearable];
 }
 
-export function resolveSupportedFormat(stages: StageConfig[]): SupportedFormat {
+export function resolveSupportedFormat(stages: FormatStageConfig[]): SupportedFormat {
   const requiredTeams = stages[0]?.teamCount ?? 0;
 
   // 四阶段：资格赛（并入）→ 入围赛 → 小组赛 → 淘汰赛。

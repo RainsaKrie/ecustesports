@@ -4,7 +4,7 @@
 // 现在改成"多于才报错"，这个行为必须有测试锁住，否则下次重构很容易改回去。
 import { bracketDataIssue } from "../../src/lib/domains/schedule/bracket-blueprint";
 import type { ScheduleMatch } from "../../src/lib/domains/schedule/schedule-data";
-import type { StageConfig } from "../../src/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "../../src/lib/domains/schedule/format-templates";
 
 let passed = 0;
 let failed = 0;
@@ -13,8 +13,8 @@ function check(label: string, cond: boolean, detail = "") {
   else { failed++; console.log(`  ✗ ${label}${detail ? "：" + detail : ""}`); }
 }
 
-const stage = (type: string, teamCount: number, groupCount?: number): StageConfig =>
-  ({ name: "小组赛", type, teamCount, groupCount, boType: "BO3" } as unknown as StageConfig);
+const stage = (type: string, teamCount: number, groupCount?: number): FormatStageConfig =>
+  ({ name: "小组赛", type, teamCount, groupCount, boType: "BO3" } as unknown as FormatStageConfig);
 
 function m(id: string, round: string, bo = "BO3"): ScheduleMatch {
   return { id, phase: "小组赛", round, boType: bo, status: "已完成" } as unknown as ScheduleMatch;

@@ -3,7 +3,7 @@
 // 锁住 2026-10-25 审查发现的 P0-1：同一赛制在两处（对阵图校验 / 抽签门控）
 // 由两份公式算出不同场次数。现在缺省值已统一，这里断言"两份必须一致"。
 import { expectedStageMatches } from "../../src/lib/domains/schedule/bracket-blueprint";
-import type { StageConfig } from "../../src/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "../../src/lib/domains/schedule/format-templates";
 
 let passed = 0;
 let failed = 0;
@@ -12,8 +12,8 @@ function check(label: string, cond: boolean, detail = "") {
   else { failed++; console.log(`  ✗ ${label}${detail ? "：" + detail : ""}`); }
 }
 
-const stage = (type: string, teamCount: number, groupCount?: number): StageConfig =>
-  ({ name: "测试", type, teamCount, groupCount, boType: "BO3" } as unknown as StageConfig);
+const stage = (type: string, teamCount: number, groupCount?: number): FormatStageConfig =>
+  ({ name: "测试", type, teamCount, groupCount, boType: "BO3" } as unknown as FormatStageConfig);
 
 console.log("场次推导");
 

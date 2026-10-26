@@ -4,11 +4,11 @@ import assert from "node:assert/strict";
 
 import { buildQualificationMatches, BYE, PENDING } from "./bracket-engine.ts";
 import { autoFillPendingSlots, buildQualifierSlots, resolveStagedDrawGate, withPendingSlots } from "./staged-format.ts";
-import type { StageConfig } from "./format-templates.ts";
+import type { FormatStageConfig } from "./format-templates.ts";
 import { appendMatchesOp, reportGameResultsOp } from "./schedule-ops.ts";
 import { emptySchedule } from "./schedule-data.ts";
 
-const stages: [StageConfig, StageConfig, StageConfig] = [
+const stages: [FormatStageConfig, FormatStageConfig, FormatStageConfig] = [
   { name: "入围赛", type: "single-elim", teamCount: 32, boType: "BO1" },
   { name: "小组赛", type: "gsl-groups", teamCount: 16, groupCount: 4, boType: "BO3" },
   { name: "淘汰赛", type: "double-elim", teamCount: 8, boType: "BO3" },

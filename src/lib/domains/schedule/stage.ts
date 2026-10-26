@@ -41,7 +41,7 @@ export function getEventStage(params: {
   return "筹备";
 }
 
-export interface StageConfig {
+export interface EventStageConfig {
   title: string;
   description: string;
   cta: string; // 主 CTA 按钮文字
@@ -49,7 +49,7 @@ export interface StageConfig {
   defaultTab: string; // 详情页默认选中的 tab
 }
 
-export const STAGE_CONFIGS: Record<EventStage, StageConfig> = {
+export const STAGE_CONFIGS: Record<EventStage, EventStageConfig> = {
   筹备: {
     title: "竞赛规程与报名信息",
     description: "竞赛赛制、参赛资格及报名时间以赛事组正式公告为准。",

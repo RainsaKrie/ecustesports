@@ -1,6 +1,6 @@
 // 阶段角色识别测试（2026-10-25，审查 P0-2）
 import { roleOf, isGroupStage, hasGroupPhase } from "../../src/lib/domains/schedule/stage-role";
-import type { StageConfig } from "../../src/lib/domains/schedule/format-templates";
+import type { FormatStageConfig } from "../../src/lib/domains/schedule/format-templates";
 
 let passed = 0;
 let failed = 0;
@@ -8,8 +8,8 @@ function check(label: string, cond: boolean, detail = "") {
   if (cond) { passed++; console.log(`  ✓ ${label}`); }
   else { failed++; console.log(`  ✗ ${label}${detail ? "：" + detail : ""}`); }
 }
-const s = (name: string, type: string, role?: string): StageConfig =>
-  ({ name, type, teamCount: 8, boType: "BO3", role } as unknown as StageConfig);
+const s = (name: string, type: string, role?: string): FormatStageConfig =>
+  ({ name, type, teamCount: 8, boType: "BO3", role } as unknown as FormatStageConfig);
 
 console.log("阶段角色");
 
