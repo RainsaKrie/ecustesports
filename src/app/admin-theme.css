@@ -70,6 +70,14 @@
   resize: vertical;
 }
 .adm-scope select.adm-input { padding: 0 10px; }
+/* 下拉选项（2026-10-26）：原来是浏览器默认的**白底**，而文字继承了暗色主题的浅色 → 白底白字。
+   `option` 的样式在多数浏览器里只能由这里控制，Tailwind 类管不到。 */
+.adm-scope select.adm-input option,
+.adm-scope select option {
+  background-color: var(--adm-surface-2);
+  color: var(--adm-text);
+}
+.adm-scope select, .adm-scope select.adm-input { color-scheme: dark; }
 .adm-scope .adm-input::placeholder { color: var(--adm-text-mute); font-size: var(--adm-fs-sm); }
 .adm-scope .adm-input:focus {
   border-color: var(--adm-red);

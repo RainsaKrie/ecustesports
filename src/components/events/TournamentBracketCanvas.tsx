@@ -165,7 +165,9 @@ function PhaseBracket({ matches, renderMatch }: TournamentBracketCanvasProps) {
 export default function TournamentBracketCanvas({ matches, renderMatch }: TournamentBracketCanvasProps) {
   // 阶段顺序（2026-10-20 负责人指定）：小组赛 → 入围赛 → 资格赛。
   // 不按生成顺序 —— 生成是"资格赛在前"，但那是流程顺序，不是阅读顺序。
-  const PHASE_ORDER = ["小组赛", "入围赛", "资格赛", "淘汰赛"];
+  // 淘汰赛放最前（2026-10-26）：赛事已进入淘汰阶段，它是当前与后续的阅读重点；
+  // 之前的顺序是"小组 → 入围 → 资格 → 淘汰"，淘汰赛被压到最下面，负责人要在长页面里滚到底。
+  const PHASE_ORDER = ["淘汰赛", "小组赛", "入围赛", "资格赛"];
   const phaseRank = (phase: string) => {
     const index = PHASE_ORDER.findIndex((key) => phase.includes(key));
     return index < 0 ? 99 : index;

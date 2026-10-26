@@ -578,7 +578,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                 </div>
               )
               : (
-                <div className="grid gap-px bg-[var(--adm-surface-3)] md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-[6px] md:grid-cols-2 xl:grid-cols-3">
               {visibleTeams.map(({ team, roster }) => {
                 const members = roster.members;
                 const captain = roster.captain;
@@ -596,7 +596,7 @@ export default function RegistrationOperationsWorkspace({ eventId }: { eventId: 
                   teamActions.push({ text: "整队退赛", onSelect: () => openModal({ kind: "withdraw-team", team }), tone: "text-[var(--adm-red-text)]" });
                 }
                 return (
-                  <article key={team.id} className={`bg-[var(--adm-surface)] px-[10px] py-[8px] leading-tight ${roster.withdrawn ? "bg-[var(--adm-surface-2)] text-[var(--adm-text-mute)]" : ""}`}>
+                  <article key={team.id} className={`border border-[var(--adm-line)] bg-[var(--adm-surface)] px-[10px] py-[8px] leading-tight ${roster.withdrawn ? "bg-[var(--adm-surface-2)] text-[var(--adm-text-mute)]" : ""}`}>
                     <div className="flex items-start justify-between gap-[8px]">
                       <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
                         <h3 className={`truncate ${DENSE_TITLE} font-semibold text-[var(--adm-text)]`}>{team.name}</h3>
