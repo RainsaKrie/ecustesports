@@ -65,7 +65,10 @@ export default async function Home() {
           只留左侧与底部的文字遮罩，保证标题可读。 */}
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_52%,rgba(10,11,13,0.90)_100%)]" />
+          {/* 遮罩曾是 `inset-0` 的矩形，在区块底部**硬切** —— 底下海报一亮，中间就出现一条横线，
+              整屏像被切成上下两段（负责人 2026-10-27 再次指出）。
+              用 mask 让这层遮罩在下方 45% 后渐隐：暗部自然过渡到海报，没有边界。 */}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,11,13,0.92)_0%,rgba(10,11,13,0.55)_52%,rgba(10,11,13,0.90)_100%)] [mask-image:linear-gradient(180deg,#000_0%,#000_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(180deg,#000_0%,#000_55%,transparent_100%)]" />
           {/* 底部不再压暗：原来压到 85% 黑，在 Hero 与下方之间造出一条暗带，把上下切成两段。
               只在最上沿留一点点，让标题与站头分开即可。 */}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,11,13,0.35)_0%,transparent_22%)]" />
