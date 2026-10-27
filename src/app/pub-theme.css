@@ -341,3 +341,6 @@
    现在：导航不设 margin，按钮保留 globals.css 里的 margin-left:auto —— 单一推手。
    max-width 与正文容器对齐（1360），否则站头比正文窄一截、按钮看着像没到边。 */
 
+/* 日期/时间输入：暗色下原生日历图标几乎不可见，用户以为不能点（2026-10-27） */
+:is(input[type="datetime-local"],input[type="date"],input[type="time"],input[type="month"]){color-scheme:dark}
+:is(input[type="datetime-local"],input[type="date"],input[type="time"],input[type="month"])::-webkit-calendar-picker-indicator{cursor:pointer;padding:4px;margin-right:-6px;opacity:.85}

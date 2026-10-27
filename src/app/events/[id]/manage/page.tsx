@@ -356,7 +356,7 @@ export default function ParticipantManagePage({
                 <div className="border-t border-[var(--pub-line-soft)] pt-5">
                   <h3 className="text-sm font-black text-[var(--pub-txt)]">队长约赛与改期</h3>
                   <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><input type="datetime-local" value={proposedTime} onChange={(e) => setProposedTime(e.target.value)} className={inputClass} /><input value={proposedReason} onChange={(e) => setProposedReason(e.target.value)} placeholder="备注" className={inputClass} /><Button variant="primary" size="md" disabled={busy || !proposedTime || !data.scheduleConfigConfirmed} onClick={() => run(() => participant.createScheduleRequest(data.nextMatch!.id, proposedTime, proposedReason), "约赛时间已提交。") }>提交时间</Button></div>
-                  {!data.scheduleConfigConfirmed && <p className="mt-2 text-xs font-medium text-[var(--pub-txt)]">负责人尚未开放约赛时间</p>}
+                  {!data.scheduleConfigConfirmed && <p className="mt-2 text-xs font-medium text-[var(--pub-txt)]">负责人尚未开放约赛时间（需在管理端「赛程」页确认排程约束）</p>}
                 </div>
               )}
             </div>

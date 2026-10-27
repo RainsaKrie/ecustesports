@@ -127,3 +127,7 @@
   -webkit-backdrop-filter: blur(14px);
 }
 .adm-scope .adm-bulkbar strong { color: var(--adm-red-text); font-variant-numeric: tabular-nums; }
+
+/* 日期/时间输入：暗色下原生日历图标几乎不可见，用户以为不能点（2026-10-27） */
+:is(input[type="datetime-local"],input[type="date"],input[type="time"],input[type="month"]){color-scheme:dark}
+:is(input[type="datetime-local"],input[type="date"],input[type="time"],input[type="month"])::-webkit-calendar-picker-indicator{cursor:pointer;padding:4px;margin-right:-6px;opacity:.85}
