@@ -215,8 +215,17 @@ export function formatTime(value: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
 }
 
+/**
+ * 联系方式（2026-10-28 改）：**QQ 和手机号都返回**，不再二选一。
+ *
+ * 原来写的是 `qq || phone` —— 队长填了 QQ 就永远看不到手机号，
+ * 负责人反馈"查不了队长的手机号"。两种号用途不同：QQ 拉群、手机打电话/发短信。
+ */
 export function contactOf(player: RegistrationPlayer) {
-  return player.qq || player.phone || "未填写";
+  const parts: string[] = [];
+  if (player.qq) parts.push(`QQ ${player.qq}`);
+  if (player.phone) parts.push(`手机 ${player.phone}`);
+  return parts.join(" · ") || "未填写";
 }
 
 /**

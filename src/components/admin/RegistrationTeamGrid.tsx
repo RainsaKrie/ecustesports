@@ -5,7 +5,7 @@
 // =====================
 
 import { AdminOverflowMenu, EmptyState } from "@/components/admin/ui";
-import type { RegistrationPlayer, RegistrationTeam } from "@/lib/domains/registration/data";
+import type { RegistrationTeam } from "@/lib/domains/registration/data";
 import { CopyButton, DENSE_META, DENSE_MICRO, DENSE_TITLE, GAME, copyActionClass, isFlagged, teamTone, type Modal, type TeamRoster } from "@/components/admin/RegistrationWorkspaceParts";
 
 export function TeamGrid({
@@ -102,7 +102,6 @@ export function TeamGrid({
               {captain ? (
                 <>
                   <span className="min-w-0 truncate font-bold text-[var(--adm-text)]">{captain.gameId}</span>
-                  <span className={`shrink-0 ${DENSE_MICRO} font-bold text-[var(--adm-text-mute)]`}>{captain.qq ? "QQ" : captain.phone ? "手机" : "联系方式"}</span>
                   <span className={`truncate tabular-nums ${roster.contact === "未填写" ? "text-[var(--adm-red-text)]" : "text-[var(--adm-text-soft)]"}`}>{roster.contact}</span>
                   {roster.contact !== "未填写" && <CopyButton text={roster.contact} title={`复制队长 ${captain.gameId} 的联系方式`} className={copyActionClass} />}
                 </>
