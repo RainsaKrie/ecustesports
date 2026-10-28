@@ -109,12 +109,12 @@ export default async function Home() {
 
       {/* 资料直达：v8 的 .ui-tag 行，替掉原来的红底 signal-strip */}
       <Container className="ui-section pt-8">
-        <nav aria-label="赛事资料直达" className="flex flex-wrap items-center gap-2">
+        <nav aria-label="赛事资料直达" className="flex flex-wrap items-center justify-center gap-3">
           {quickLinks.map((item) => (
             <Link
               key={item}
               href={current ? `/events/${current.id}?tab=${encodeURIComponent(item)}` : "/events"}
-              className="ui-tag hover:border-[var(--pub-red)] hover:text-[var(--pub-red)]"
+              className="ui-tag ui-tag--lg hover:border-[var(--pub-red)] hover:text-[var(--pub-red)]"
             >
               {item}
             </Link>
