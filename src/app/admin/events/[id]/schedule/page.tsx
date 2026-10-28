@@ -4,6 +4,10 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useSchedule } from "@/hooks/useSchedule";
+import { getGameConfig } from "@/lib/games";
+
+/** 赛事地图池（当前游戏的图池）。BP 未完成时用它兜底，保证地图始终是下拉而不是手填。 */
+const MAP_POOL = getGameConfig().maps.map((map) => map.name);
 import { formatSyncedAgo, formatSyncedClock } from "@/lib/domains/schedule/schedule-freshness";
 import { validateGames, maxGames, winTarget } from "@/lib/domains/schedule/schedule-ops";
 import type { ScheduleMatch, GameResult } from "@/lib/domains/schedule/schedule-data";
@@ -734,14 +738,13 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                       <div className="grid gap-3 p-3 sm:grid-cols-[1fr_5.5rem_5.5rem]">
                         <label className="block min-w-0 sm:col-span-1">
                           <span className="mb-1 block text-[length:var(--adm-fs-xs)] text-[var(--adm-text-mute)]">地图</span>
-                          {reportMaps.length > 0 ? (
-                            <select value={game.map ?? ""} onChange={(e) => updateGame(index, { map: e.target.value })} className={adminSelectClass}>
-                              <option value="">选择地图</option>
-                              {reportMaps.map((m) => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                          ) : (
-                            <input type="text" value={game.map ?? ""} onChange={(e) => updateGame(index, { map: e.target.value })} placeholder="地图" className={adminInputClass} />
-                          )}
+                          {/* 地图一律下拉（2026-10-28）：原来 BP 未完成时退化成手填输入框，
+                              负责人要求"不要手填"。BP 有序列就按序列，没有就用赛事图池兜底。 */}
+                          <select value={game.map ?? ""} onChange={(e) => updateGame(index, { map: e.target.value })} className={adminSelectClass}>
+                            <option value="">选择地图</option>
+                            {(reportMaps.length > 0 ? reportMaps : MAP_POOL).map((m) => <option key={m} value={m}>{m}</option>)}
+                            {game.map && !(reportMaps.length > 0 ? reportMaps : MAP_POOL).includes(game.map) && <option value={game.map}>{game.map}</option>}
+                          </select>
                         </label>
                         <label className="block min-w-0">
                           <span className="mb-1 block truncate text-[length:var(--adm-fs-xs)] text-[var(--adm-text-mute)]" title={selected.teamAName}>{selected.teamAName}</span>
