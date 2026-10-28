@@ -30,25 +30,16 @@ export function TeamGrid({
     );
   }
 
+  if (visibleTeams.length === 0) {
+    return (
+      <div className="p-5">
+        <EmptyState title="这个筛选下没有队伍" description="换一个筛选条件再看看。" />
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-[6px] md:grid-cols-2 xl:grid-cols-3">
-  state.teams.length === 0
-    ? (
-      <div className="p-5">
-        <EmptyState
-          title="还没有队伍"
-          description="队伍由队长在玩家页面创建后出现在这里。也可以从页头「⋯」里的「代建队伍」先建好，再把选手放进去。"
-        />
-      </div>
-    )
-    : visibleTeams.length === 0
-      ? (
-        <div className="p-5">
-          <EmptyState title="这个筛选下没有队伍" description="换一个筛选条件再看看。" />
-        </div>
-      )
-      : (
-        <div className="grid gap-[6px] md:grid-cols-2 xl:grid-cols-3">
       {visibleTeams.map(({ team, roster }) => {
         const members = roster.members;
         const captain = roster.captain;
@@ -123,8 +114,6 @@ export function TeamGrid({
           </article>
         );
       })}
-        </div>
-      )
     </div>
   );
 }
