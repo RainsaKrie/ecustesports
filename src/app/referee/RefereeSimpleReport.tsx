@@ -1,47 +1,54 @@
 // =====================
-// 报分模式面板（2026-10-29）
+// 报分表单（2026-10-29）
 //
-// 两个模式：
-//   简单版 —— 只填两队各赢几局（2:0 / 2:1），不选地图、不传图、不记逐局回合分；
-//   逐局版 —— 原来那套（BP 地图序列预生成上传位、逐局回合分、证据图）。
+// 单一表单，不让人先选「模式」：
+//   1. 先填大比分（两队各赢几局）—— 收起状态就够用，对阵图能往前走；
+//   2. 想记细节时展开「逐局记录」，逐局填地图与回合分。
 //
-// 为什么单独一个文件：RefereeWorkbench.tsx 已在行数基线上，多一行都会让架构守卫变红。
-// 这里自成一体：模式开关 + 简单版输入都在本文件内，主文件只负责把 games 接过去。
+// 与「两种模式切换」的关键区别：**展开不会重置已填内容**。
+// 原来切到逐局模式会把占位清空，等于「先粗后细」这条路走不通；
+// 现在可以先报 2:1 推进赛程，随后再展开补地图与小分。
 //
-// 简单版复用同一条提交链路：按「各赢几局」生成占位逐局（胜方局 1:0、负方局 0:1），
-// 写进同一个 games 数组 —— 胜者判定、确认页、校验、提交接口都不用改。
+// 为什么单独一个文件：RefereeWorkbench.tsx 在架构守卫的行数基线里，塞进去就会变长。
+//
+// 已知取舍：大比分模式下逐局是占位（胜方 1:0 / 负方 0:1）、地图为空。
+// 真正的「只记大比分」需要给 ScheduleMatch 加 seriesScore 字段，
+// 那要动校验与 7 处展示，安排在赛后做。
 // =====================
 
 import { useState } from "react";
 
 export type GameDraft = { map: string; teamAScore: number; teamBScore: number };
-export type ReportMode = "simple" | "detailed";
 
 function toScore(value: string): number {
   const digits = value.replace(/[^\d]/g, "");
   return digits ? Number(digits) : 0;
 }
 
-export function ReportModePanel({
-  mode,
-  onModeChange,
+export function ReportForm({
   onGames,
+  games,
   mapSequence,
   maxGames,
   teamAName,
   teamBName,
+  showDetails,
+  onShowDetailsChange,
 }: {
-  mode: ReportMode;
-  onModeChange: (next: ReportMode) => void;
   onGames: (games: GameDraft[]) => void;
-  /** 该场 BP 已确定的地图序列；切回逐局模式时用它重建空白的逐局格子 */
+  /** 当前逐局数据。收起时用它反推大比分，避免覆盖用户填好的逐局结果。 */
+  games: GameDraft[];
+  /** 该场 BP 已确定的地图序列；展开逐局时用它预填地图 */
   mapSequence: string[];
   maxGames: number;
   teamAName: string;
   teamBName: string;
+  showDetails: boolean;
+  onShowDetailsChange: (next: boolean) => void;
 }) {
   const [series, setSeries] = useState({ a: 0, b: 0 });
 
+  /** 大比分 → 占位逐局。收起状态下它就是最终数据。 */
   function buildSeries(a: number, b: number) {
     const nextA = Math.max(0, Math.min(a, maxGames));
     const nextB = Math.max(0, Math.min(b, maxGames));
@@ -52,35 +59,42 @@ export function ReportModePanel({
     onGames(next);
   }
 
-  function switchTo(next: ReportMode) {
-    onModeChange(next);
-    if (next === "detailed") {
-      // 切回逐局时清掉占位数据，避免 1:0 被当成真实回合分提交
-      setSeries({ a: 0, b: 0 });
-      onGames(
-        mapSequence.length > 0
-          ? mapSequence.map((map) => ({ map, teamAScore: 0, teamBScore: 0 }))
-          : [{ map: "", teamAScore: 0, teamBScore: 0 }],
-      );
-    }
+  /** 展开逐局：按「大比分的局数」铺空格子，地图用 BP 序列预填。 */
+  function openDetails() {
+    const total = Math.max(1, series.a + series.b);
+    const skeletons: GameDraft[] = [];
+    for (let i = 0; i < total; i += 1) skeletons.push({ map: mapSequence[i] ?? "", teamAScore: 0, teamBScore: 0 });
+    onGames(skeletons);
+    onShowDetailsChange(true);
   }
 
-  const tabClass = (active: boolean) =>
-    `h-11 border text-base font-bold ${active ? "border-[#ff4655] text-[#ff4655]" : "border-[var(--pub-line-soft)] text-[var(--pub-txt-soft)]"}`;
+  /**
+   * 收起逐局：**从当前逐局反推大比分，不动 games**。
+   * 早先版本用「展开前的大比分」重建占位，会把手填的 2:1 冲回 2:0 —— 数据被悄悄改掉。
+   */
+  function closeDetails() {
+    const a = games.filter((g) => g.teamAScore > g.teamBScore).length;
+    const b = games.filter((g) => g.teamBScore > g.teamAScore).length;
+    setSeries({ a, b });
+    onShowDetailsChange(false);
+  }
 
   return (
-    <>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => switchTo("simple")} className={tabClass(mode === "simple")}>简单报分</button>
-        <button type="button" onClick={() => switchTo("detailed")} className={tabClass(mode === "detailed")}>逐局报分</button>
-      </div>
-
-      {mode === "simple" && (
-        <div className="mt-4 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4">
-          <p className="mono-label text-[var(--pub-txt-soft)]">各赢几局</p>
+    <div className="mt-4">
+      {showDetails ? (
+        <div className="flex items-center justify-between gap-3 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-4 py-3">
+          <p className="text-sm leading-relaxed text-[var(--pub-txt-soft)]">逐局记录中，大比分按逐局自动计算</p>
+          <button type="button" onClick={closeDetails} className="shrink-0 text-sm font-bold text-[#ff4655]">收起</button>
+        </div>
+      ) : (
+        <div className="border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="mono-label text-[var(--pub-txt-soft)]">大比分（各赢几局）</p>
+            <button type="button" onClick={openDetails} className="shrink-0 text-sm font-bold text-[#ff4655]">展开逐局记录 ›</button>
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
-              <span className="mono-label text-[var(--pub-txt-soft)]">{teamAName}</span>
+              <span className="mono-label min-w-0 truncate text-[var(--pub-txt-soft)]">{teamAName}</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -90,7 +104,7 @@ export function ReportModePanel({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="mono-label text-[var(--pub-txt-soft)]">{teamBName}</span>
+              <span className="mono-label min-w-0 truncate text-[var(--pub-txt-soft)]">{teamBName}</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -100,9 +114,9 @@ export function ReportModePanel({
               />
             </label>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-[var(--pub-txt-soft)]">简单版只记大比分，不记逐局回合分与地图。要记小分请切到逐局报分。</p>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--pub-txt-soft)]">只填大比分就能推进赛程；要记地图与小分再展开。</p>
         </div>
       )}
-    </>
+    </div>
   );
 }

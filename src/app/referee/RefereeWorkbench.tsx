@@ -230,8 +230,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     setGames((prev) => prev.map((g, i) => (i === index ? { ...g, ...patch } : g)));
   }
 
-  /** 报分模式（2026-10-29）：开关与简单版输入都在 ReportModePanel 里，这里只留当前模式 */
-  const [reportMode, setReportMode] = useState<ReportMode>("detailed");
+  /** 报分表单状态（2026-10-29）：true 表示正在逐局记录，false 表示只填大比分 */
+  const [showDetails, setShowDetails] = useState(false);
 
   function addGame() {
     if (games.length >= maxGames) return;
@@ -596,17 +596,18 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           className="hidden"
         />
 
-        <ReportModePanel
-          mode={reportMode}
-          onModeChange={setReportMode}
+        <ReportForm
           onGames={setGames}
+          games={games}
           mapSequence={activeMatch.mapSequence ?? []}
           maxGames={maxGames}
           teamAName={activeMatch.teamAName}
           teamBName={activeMatch.teamBName}
+          showDetails={showDetails}
+          onShowDetailsChange={setShowDetails}
         />
 
-        {reportMode === "detailed" && (<>
+        {showDetails && (<>
         {games.map((g, i) => (
           <div key={i} className="mt-4 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4">
             <div className="flex items-center justify-between">
@@ -827,5 +828,5 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 }
 import { EmptyState, Shell, fmtTime } from "./RefereeParts";
 import { RefereeLogin } from "./RefereeLogin";
-import { ReportModePanel, type ReportMode } from "./RefereeSimpleReport";
+import { ReportForm } from "./RefereeSimpleReport";
 
