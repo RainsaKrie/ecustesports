@@ -82,6 +82,8 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   // 报分
   const [games, setGames] = useState<GameResult[]>([]);
   const [reportMaps, setReportMaps] = useState<string[]>([]);
+  /** 大比分快捷录入（2026-10-29）：与裁判台一致，只填各赢几局就能提交 */
+  const [series, setSeries] = useState({ a: 0, b: 0 });
   const [scoreError, setScoreError] = useState("");
 
   // BP 会话（卡片徽标 + 报分选图）
@@ -177,6 +179,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
     setSubmitted(false);
     setScoreError("");
     setGames([{ map: "", teamAScore: 0, teamBScore: 0 }]);
+    setSeries({ a: 0, b: 0 });
     setReportMaps(m.bpMaps ?? []);
     fetch(`/api/data/bp?eventId=${encodeURIComponent(id)}&matchId=${encodeURIComponent(m.id)}`, { cache: "no-store" })
       .then((r) => r.json())
@@ -219,6 +222,22 @@ export default function SchedulePage({ params }: SchedulePageProps) {
       if (g.length >= maxGames(selected.boType)) return g;
       return [...g, { map: "", teamAScore: 0, teamBScore: 0 }];
     });
+  }
+
+  /**
+   * 大比分 → 占位逐局（2026-10-29）：胜方局 1:0、负方局 0:1，地图留空。
+   * 复用同一条提交链路，校验与晋级逻辑都不用改；逐局可在下面继续逐格修正。
+   */
+  function applySeries(a: number, b: number) {
+    if (!selected) return;
+    const cap = maxGames(selected.boType);
+    const nextA = Math.max(0, Math.min(a, cap));
+    const nextB = Math.max(0, Math.min(b, cap));
+    setSeries({ a: nextA, b: nextB });
+    const next: GameResult[] = [];
+    for (let i = 0; i < nextA; i += 1) next.push({ map: "", teamAScore: 1, teamBScore: 0 });
+    for (let i = 0; i < nextB; i += 1) next.push({ map: "", teamAScore: 0, teamBScore: 1 });
+    setGames(next);
   }
 
   function updateGame(index: number, patch: Partial<GameResult>) {
@@ -721,6 +740,22 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                     {selected.teamAName} <span className="font-normal text-[var(--adm-text-mute)]">vs</span> {selected.teamBName}
                   </p>
                   <span className="adm-chip shrink-0" data-dot="off">{selected.boType}</span>
+                </div>
+
+                {/* 大比分快捷录入（2026-10-29）：只填各赢几局即可提交，
+                    逐局格子自动生成占位（1:0 / 0:1），下面可以逐格改成真实比分。 */}
+                <div className="border border-[var(--adm-line-soft)] bg-[var(--adm-surface-2)] p-3">
+                  <p className="text-[length:var(--adm-fs-xs)] text-[var(--adm-text-mute)]">大比分（各赢几局）</p>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <label className="block min-w-0">
+                      <span className="mb-1 block truncate text-[length:var(--adm-fs-xs)] text-[var(--adm-text-mute)]">{selected.teamAName}</span>
+                      <input type="number" min={0} max={maxGames(selected.boType)} value={series.a} onChange={(e) => applySeries(Number(e.target.value), series.b)} className={adminInputClass} />
+                    </label>
+                    <label className="block min-w-0">
+                      <span className="mb-1 block truncate text-[length:var(--adm-fs-xs)] text-[var(--adm-text-mute)]">{selected.teamBName}</span>
+                      <input type="number" min={0} max={maxGames(selected.boType)} value={series.b} onChange={(e) => applySeries(series.a, Number(e.target.value))} className={adminInputClass} />
+                    </label>
+                  </div>
                 </div>
 
                 {games.map((game, index) => {
