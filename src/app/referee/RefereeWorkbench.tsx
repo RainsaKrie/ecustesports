@@ -230,34 +230,8 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
     setGames((prev) => prev.map((g, i) => (i === index ? { ...g, ...patch } : g)));
   }
 
-  /** 报分模式（2026-10-29）：简单版只填「各赢几局」，不逐局、不选地图、不传图。
-      简单版同样写进 games（每局占位 1:0 / 0:1），所以胜者判定、确认页、提交链路都不用改。 */
-  const [reportMode, setReportMode] = useState<"simple" | "detailed">("detailed");
-  const [series, setSeries] = useState({ a: 0, b: 0 });
-
-  function applySeries(a: number, b: number) {
-    const nextA = Math.max(0, Math.min(a, maxGames));
-    const nextB = Math.max(0, Math.min(b, maxGames));
-    setSeries({ a: nextA, b: nextB });
-    const next: GameDraft[] = [];
-    for (let i = 0; i < nextA; i += 1) next.push({ map: "", teamAScore: 1, teamBScore: 0 });
-    for (let i = 0; i < nextB; i += 1) next.push({ map: "", teamAScore: 0, teamBScore: 1 });
-    setGames(next);
-  }
-
-  /** 切回逐局模式时清掉占位数据，避免 1:0 被当成真实回合分提交上去。 */
-  function switchMode(next: "simple" | "detailed") {
-    setReportMode(next);
-    if (next === "detailed" && activeMatch) {
-      const seq = activeMatch.mapSequence ?? [];
-      setGames(
-        seq.length > 0
-          ? seq.map((map) => ({ map, teamAScore: 0, teamBScore: 0 }))
-          : [{ map: "", teamAScore: 0, teamBScore: 0 }],
-      );
-      setSeries({ a: 0, b: 0 });
-    }
-  }
+  /** 报分模式（2026-10-29）：开关与简单版输入都在 ReportModePanel 里，这里只留当前模式 */
+  const [reportMode, setReportMode] = useState<ReportMode>("detailed");
 
   function addGame() {
     if (games.length >= maxGames) return;
@@ -622,39 +596,15 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
           className="hidden"
         />
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => switchMode("simple")} className={`h-11 border text-base font-bold ${reportMode === "simple" ? "border-[#ff4655] text-[#ff4655]" : "border-[var(--pub-line-soft)] text-[var(--pub-txt-soft)]"}`}>简单报分</button>
-          <button type="button" onClick={() => switchMode("detailed")} className={`h-11 border text-base font-bold ${reportMode === "detailed" ? "border-[#ff4655] text-[#ff4655]" : "border-[var(--pub-line-soft)] text-[var(--pub-txt-soft)]"}`}>逐局报分</button>
-        </div>
-
-        {reportMode === "simple" && (
-          <div className="mt-4 border border-[var(--pub-line-soft)] bg-[var(--pub-card)] p-4">
-            <p className="mono-label text-[var(--pub-txt-soft)]">各赢几局</p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="mono-label text-[var(--pub-txt-soft)]">{activeMatch.teamAName}</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={series.a}
-                  onChange={(e) => applySeries(toScore(e.target.value), series.b)}
-                  className="score-input h-[48px] border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="mono-label text-[var(--pub-txt-soft)]">{activeMatch.teamBName}</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={series.b}
-                  onChange={(e) => applySeries(series.a, toScore(e.target.value))}
-                  className="score-input h-[48px] border border-[var(--pub-line-soft)] bg-[var(--pub-card)] px-3 text-center text-xl font-bold text-[var(--pub-txt)] outline-none focus:border-[#ff4655]"
-                />
-              </label>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--pub-txt-soft)]">简单版只记大比分，不记逐局回合分与地图。要记小分请切到逐局报分。</p>
-          </div>
-        )}
+        <ReportModePanel
+          mode={reportMode}
+          onModeChange={setReportMode}
+          onGames={setGames}
+          mapSequence={activeMatch.mapSequence ?? []}
+          maxGames={maxGames}
+          teamAName={activeMatch.teamAName}
+          teamBName={activeMatch.teamBName}
+        />
 
         {reportMode === "detailed" && (<>
         {games.map((g, i) => (
@@ -877,4 +827,5 @@ export default function RefereeWorkbench({ initialEventId }: { initialEventId: s
 }
 import { EmptyState, Shell, fmtTime } from "./RefereeParts";
 import { RefereeLogin } from "./RefereeLogin";
+import { ReportModePanel, type ReportMode } from "./RefereeSimpleReport";
 
