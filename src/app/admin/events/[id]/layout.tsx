@@ -13,6 +13,7 @@ import { resolveSupportedFormat } from "@/lib/domains/schedule/format-support";
 import { resolveEventProgress } from "@/lib/domains/schedule/event-progress";
 import { scheduleModeOf } from "@/lib/domains/schedule/schedule-mode";
 import { postEventPublicContentIssues } from "@/lib/domains/content/status";
+import { NextActionLine } from "@/components/admin/NextActionLine";
 
 export default async function EventWorkspaceLayout({
   children,
@@ -71,6 +72,24 @@ export default async function EventWorkspaceLayout({
     publicContentIssues: postEventPublicContentIssues(event, config.brand.footerStatus),
   });
 
+  /**
+   * 一行「当前该做什么」：命中即停，最多一条。
+   * 顺序是「先有阻塞，再报阶段」——改期申请压着不批，负责人和队伍都卡在那儿。
+   */
+  const nextAction: { label: string; href?: string } = (() => {
+    const pendingReschedule = schedule.requests.filter((request) => request.status === "待审批").length;
+    if (pendingReschedule > 0) {
+      return { label: `${pendingReschedule} 条改期申请待批`, href: `/admin/events/${event.id}/schedule` };
+    }
+    if (progress.finished) {
+      return { label: "赛事已结束，可导出归档" };
+    }
+    if (progress.nextStageName) {
+      return { label: `${progress.nextStageName}还没开始`, href: `/admin/events/${event.id}/schedule` };
+    }
+    return { label: `当前进行：${stage}` };
+  })();
+
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
       <AdminSidebar event={event} stage={stage} modules={modules} guidance={guidance} />
@@ -79,7 +98,12 @@ export default async function EventWorkspaceLayout({
         公开面是阅读与比赛行，1360 已够。改宽度时不要顺手把这两处统一。 */}
         {/* 后台用 1500，公开面用 1360 —— **有意不一致**：后台是数据表与多列表单，需要更宽；
         公开面是阅读与比赛行，1360 已够。改宽度时不要顺手把这两处统一。 */}
-        <div className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
+          {/* 当前该做什么（2026-11-03）：一句话常显，给接手的人用。
+              只报「有事等你处理」或「现在处在哪」，不报目标差距（不催报名）。 */}
+          <NextActionLine {...nextAction} />
+          {children}
+        </div>
       </main>
     </div>
   );
