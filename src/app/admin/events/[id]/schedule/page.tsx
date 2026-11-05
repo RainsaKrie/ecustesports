@@ -41,7 +41,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const { id } = use(params);
   const confirm = useAdminConfirm();
   const toast = useAdminToast();
-  const { state, applySchedulePlan, applyTeamSwap, approveRequest, rejectRequest, toggleFrozen, removeMatch, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
+  const { state, applySchedulePlan, applyTeamSwap, approveRequest, rejectRequest, toggleFrozen, removeMatch, revertResult, setMatchTime, reportGameResults, reset, updateConfig, confirmConfig, refresh, saveError, syncedAt, autoSynced } = useSchedule(id, "admin");
   const [eventConfig, setEventConfig] = useState<EditableEvent | null>(null);
 
   /**
@@ -674,6 +674,12 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                     </>
                   )}
                   {!eventLocked && <button onClick={() => toggleFrozen(selected.id)} className={`border px-4 py-2.5 text-[length:var(--adm-fs-md)] font-semibold ${selected.frozen ? "border-[var(--adm-text)] text-[var(--adm-text)]" : "border-[var(--adm-line)] text-[var(--adm-text-soft)] hover:border-[var(--adm-text)]"}`}>{selected.frozen ? "解冻" : "冻结"}</button>}
+                  {/* 撤销赛果（2026-11-05）：还没打却被标成已完成时用。
+                      只清比分与胜者、并清空下一场对应的那一侧；签位与排期保留。
+                      下一场已有赛果时会被拒绝（提示先退下一场）。 */}
+                  {!eventLocked && selected.status === "已完成" && (
+                    <button onClick={() => { const why = revertResult(selected.id); if (why) window.alert(why); }} className="adm-btn adm-btn--secondary adm-btn--md">撤销赛果</button>
+                  )}
                   {!eventLocked && selected.status !== "已完成" && (
                     <button onClick={() => { const why = removeMatch(selected.id); if (why) window.alert(why); else setSelected(null); }} className="adm-btn adm-btn--secondary adm-btn--md">删除这场</button>
                   )}

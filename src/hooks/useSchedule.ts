@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { removeMatchOp } from "@/lib/domains/schedule/remove-match";
+import { revertResultOp } from "@/lib/domains/schedule/revert-result";
 import type { ScheduleState, ScheduleMatch, GameResult } from "@/lib/domains/schedule/schedule-data";
 import { applyBulkAssignments, type BulkAssignment } from "@/lib/domains/schedule/bulk-schedule";
 import { teamSwapRefusal, type TeamSlot } from "@/lib/domains/schedule/team-swap";
@@ -272,6 +273,18 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
   }, []);
 
   /**
+   * 撤销赛果（2026-11-05）：把一场比赛的比分与胜者清掉，退回未打，并清空下一场对应的那一侧。
+   * 与 removeMatch 同样的写法 —— 先用当前 state 算出结果再 setState，避免返回时拿不到原因。
+   */
+  const revertResult = useCallback((matchId: string): string | null => {
+    const out = revertResultOp(stateRef.current, matchId);
+    if (!out.ok) return out.message;
+    dirtyRef.current = true;
+    setState(out.state);
+    return null;
+  }, []);
+
+  /**
    * 报分：录入逐局结果、校验比分、判定胜者、标记完成，
    * 并推进胜者（胜者路径）与败者（双败路径）进入后续场次。
    * 返回 { ok, message }。
@@ -376,6 +389,7 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     rejectRequest,
     toggleFrozen,
     removeMatch,
+    revertResult,
     reportGameResults,
     setMatchTime,
     importMatches,
