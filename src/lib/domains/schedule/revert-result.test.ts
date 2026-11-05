@@ -8,6 +8,7 @@
 // =====================
 
 import { revertResultOp } from "./revert-result.ts";
+import { emptySchedule } from "./schedule-data.ts";
 import type { ScheduleMatch, ScheduleState } from "./schedule-data.ts";
 
 let failed = 0;
@@ -38,7 +39,7 @@ function match(id: string, patch: Partial<ScheduleMatch> = {}): ScheduleMatch {
 }
 
 function state(matches: ScheduleMatch[]): ScheduleState {
-  return { version: 1, config: { stageStart: "", stageEnd: "", venues: [], blocks: [] } as never, configConfirmed: true, matches, requests: [] };
+  return { ...emptySchedule(), version: 1, configConfirmed: true, matches };
 }
 
 console.log("== 撤销赛果 ==");
