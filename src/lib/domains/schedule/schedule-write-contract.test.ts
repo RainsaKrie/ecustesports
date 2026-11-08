@@ -114,8 +114,9 @@ const WRITERS: Array<{ file: string; sites: number; stamp: string; reason: strin
   },
   {
     // 2026-11-08：撤销赛果。不能走整份保存（会被丢失护栏判成覆盖冲突），
-    // 所以服务端自己读赛程、清赛果、写回 —— 是第 7 个写入点，必须递增 version。
-    file: "app/api/admin/schedule/revert/route.ts",
+    // 所以由服务端自己读赛程、清赛果、写回 —— 是第 7 个写入点，必须递增 version。
+    // 写入在 application 用例里（路由不允许直连数据层，架构守卫 ③）。
+    file: "lib/application/revert-match-result.ts",
     sites: 1,
     stamp: "stampScheduleVersion",
     reason: "撤销赛果：清掉本场赛果与胜者，并清空下一场被填进去的那一侧",
