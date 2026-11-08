@@ -678,7 +678,16 @@ export default function SchedulePage({ params }: SchedulePageProps) {
                       只清比分与胜者、并清空下一场对应的那一侧；签位与排期保留。
                       下一场已有赛果时会被拒绝（提示先退下一场）。 */}
                   {!eventLocked && selected.status === "已完成" && (
-                    <button onClick={() => { const why = revertResult(selected.id); if (why) window.alert(why); }} className="adm-btn adm-btn--secondary adm-btn--md">撤销赛果</button>
+                    <button
+                      onClick={() => {
+                        const reason = window.prompt("撤销原因（会记入操作日志）", "误报：比赛尚未进行");
+                        if (reason === null) return;
+                        void revertResult(selected.id, reason.trim()).then((why) => { if (why) window.alert(why); });
+                      }}
+                      className="adm-btn adm-btn--secondary adm-btn--md"
+                    >
+                      撤销赛果
+                    </button>
                   )}
                   {!eventLocked && selected.status !== "已完成" && (
                     <button onClick={() => { const why = removeMatch(selected.id); if (why) window.alert(why); else setSelected(null); }} className="adm-btn adm-btn--secondary adm-btn--md">删除这场</button>

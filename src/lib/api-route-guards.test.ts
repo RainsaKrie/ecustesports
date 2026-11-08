@@ -178,6 +178,8 @@ const SESSION_GUARDED_WRITE_ROUTES = new Map<string, string>([
  */
 const FROZEN_WRITE_ROUTES: Array<[string, string]> = [
   ["/api/admin/events", "DELETE,PATCH,POST"],
+  // 撤销赛果（2026-11-08）：独立写路由，因为整份快照保存路径会把它判成覆盖冲突。
+  ["/api/admin/schedule/revert", "POST"],
   ["/api/admin/events/format", "POST"],
   ["/api/admin/events/publication", "POST"],
   ["/api/admin/events/stage", "POST"],
@@ -371,6 +373,7 @@ const OPERATION_AUDIT_ROUTES: string[] = [
   "/api/admin/events/stage",
   "/api/admin/events/switch",
   "/api/admin/rule-library",
+  "/api/admin/schedule/revert", // 撤销赛果：记 schedule.result.revert + reason
   "/api/admin/site-config",
   "/api/admin/site-content",
   "/api/admin/upload",

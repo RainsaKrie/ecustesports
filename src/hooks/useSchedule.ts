@@ -6,8 +6,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { removeMatchOp } from "@/lib/domains/schedule/remove-match";
-import { revertResultOp, type RevertResultOutcome } from "@/lib/domains/schedule/revert-result";
+import { useScheduleWriters } from "@/hooks/useScheduleWriters";
 import type { ScheduleState, ScheduleMatch, GameResult } from "@/lib/domains/schedule/schedule-data";
 import { applyBulkAssignments, type BulkAssignment } from "@/lib/domains/schedule/bulk-schedule";
 import { teamSwapRefusal, type TeamSlot } from "@/lib/domains/schedule/team-swap";
@@ -256,25 +255,14 @@ export function useSchedule(eventId?: string, access: "public" | "admin" | "prev
     setState((s) => toggleFrozenOp(s, matchId));
   }, []);
 
-  /** 单场写操作的统一壳：先用当前 state 算、再 setState，返回失败原因（成功 null）。
-   *  ★ 别放进 setState 的更新函数：它延迟执行且 StrictMode 跑两次，返回时拿不到原因。 */
-  const matchOp = useCallback(
-    (op: (state: ScheduleState, matchId: string) => RevertResultOutcome) =>
-      (matchId: string): string | null => {
-        const out = op(stateRef.current, matchId);
-        if (!out.ok) return out.message;
-        dirtyRef.current = true;
-        setState(out.state);
-        return null;
-      },
-    [],
-  );
-
-  /** 删除一场比赛（2026-10-22）：赛事中途取消某场时用。 */
-  const removeMatch = matchOp(removeMatchOp);
-
-  /** 撤销赛果（2026-11-05）：还没打却被标成已完成时用，清比分与胜者并退回未打。 */
-  const revertResult = matchOp(revertResultOp);
+  // 单场写操作（删除这场 / 撤销赛果）见 useScheduleWriters，这里只接线。
+  const { removeMatch, revertResult } = useScheduleWriters({
+    eventId: eventId ?? "",
+    getState: () => stateRef.current,
+    applyState: setState,
+    markDirty: () => { dirtyRef.current = true; },
+    refresh,
+  });
 
   /**
    * 报分：录入逐局结果、校验比分、判定胜者、标记完成，
