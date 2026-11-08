@@ -373,7 +373,6 @@ const OPERATION_AUDIT_ROUTES: string[] = [
   "/api/admin/events/stage",
   "/api/admin/events/switch",
   "/api/admin/rule-library",
-  "/api/admin/schedule/revert", // 撤销赛果：记 schedule.result.revert + reason
   "/api/admin/site-config",
   "/api/admin/site-content",
   "/api/admin/upload",
@@ -397,6 +396,13 @@ const DOMAIN_LEDGER_ROUTES: Array<{ route: string; ledger: string; markers: stri
     route: "/api/admin/review",
     ledger: "赛果台账（actorType / actorId / reason / 版本）",
     markers: ["adminResolveReview(", "adminCorrectResult("],
+  },
+  {
+    // 2026-11-08：撤销赛果。留痕写在 application 用例里（路由不许直连数据层，架构守卫 ③），
+    // 所以这里的 marker 是路由对用例的调用，而不是路由内部的 audit 调用。
+    route: "/api/admin/schedule/revert",
+    ledger: "赛果台账 operation_audit（schedule.result.revert + 必填 reason）",
+    markers: ["revertMatchResult("],
   },
   {
     route: "/api/admin/referees",
