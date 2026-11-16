@@ -58,10 +58,19 @@ async function handleGET(request: NextRequest) {
   // BOM 头让 Excel 正确识别 UTF-8 中文，避免乱码。
   const csv = "\uFEFF" + [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
 
+  /**
+   * 文件名必须走 RFC 5987（2026-11-16）。
+   *
+   * 原先直接写 `filename="报名名单-${eventId}.csv"` —— **HTTP 头只允许 ByteString**，
+   * 中文会当场抛 `TypeError: Cannot convert argument to a ByteString`,
+   * 于是这个导出接口**每次请求都 500**，按钮点了没反应。
+   * 现在给浏览器看的用 `filename*=UTF-8''<百分号编码>`，再留一个纯 ASCII 兜底名。
+   */
+  const fileName = `报名名单-${eventId}.csv`;
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="报名名单-${eventId}.csv"`,
+      "Content-Disposition": `attachment; filename="roster-${eventId}.csv"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     },
   });
 }
